@@ -23,7 +23,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 | Realtime | WebSocket (gorilla/websocket) |
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 |
-| Dictionary | In-memory Go map, ENABLE wordlist (~170k words) |
+| Dictionary | Hybrid — Flutter `HashSet<String>` (solo/AI, instant, offline) + Go `map[string]struct{}` (multiplayer, authoritative) |
 | Auth | JWT (access + refresh tokens) |
 
 ---
@@ -54,6 +54,9 @@ wordchain/
         │   ├── network/
         │   ├── router/
         │   ├── services/
+        │   │   ├── dictionary_service.dart   ← ENABLE wordlist, loaded at startup
+        │   │   ├── websocket_service.dart
+        │   │   └── monetization_service.dart
         │   └── theme/
         └── features/
             ├── auth/
@@ -75,7 +78,8 @@ wordchain/
 - Use `go_router` for all navigation. Never call `Navigator.push` directly.
 - Use a single `dio` instance registered in `get_it`, with an auth interceptor.
 - WebSocket logic lives in `core/services/websocket_service.dart` only.
-- Dictionary validation: Go `map[string]struct{}`, loaded once at startup, never queried from DB.
+- Dictionary validation is **hybrid**: Flutter `DictionaryService` (HashSet) for solo/AI — instant, offline, no server call. Go `map[string]struct{}` for multiplayer — server is the authority, client cannot be trusted.
+- Solo and vs-AI games run **entirely on-device**. The server is not involved in word validation for those modes.
 - Add comments only where logic is non-obvious.
 - Write clean, readable, production-quality code. Avoid over-engineering.
 
@@ -166,6 +170,83 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 
 ---
 
+## 🔐 Guest Mode & Auth Strategy
+
+**Core principle: never block a player from playing before they're hooked.**
+
+### What guests can do (no account required)
+- Play Solo (vs self, infinite rounds) — fully offline, no server calls
+- Play vs AI (Easy / Medium / Hard) — fully offline, no server calls
+- Use a limited set of power-ups (session-only, not persisted across restarts)
+- See their current session score
+
+### What requires registration
+- Online multiplayer (1v1 real-time)
+- Persistent stats & streaks (saved across sessions)
+- Leaderboard participation
+- Persistent coin balance and power-up inventory
+- Daily Challenge (server-tracked to prevent replay)
+
+### Guest power-up allowance
+Guests receive **5 Hint uses per session** (in-memory only, reset on app restart).  
+All other power-ups (Freeze, Extra Time, Shield) are registered-only because they either affect an opponent or require persistent inventory tracking.  
+When a guest taps a locked power-up, show a soft upsell: *"Save your progress and unlock power-ups — it's free!"* with a Register button. Never hard-block or show a paywall.
+
+### Auth flow
+```
+App launch
+  ├── Stored JWT valid?  → go to /home (full features)
+  ├── No token?          → go to /home (guest mode, limited features)
+  └── Token expired?     → attempt silent refresh → success: /home | fail: /home (guest)
+
+User taps "Find Match" or "Leaderboard"
+  └── Not authenticated? → redirect to /login with return route
+      After login        → return to original destination
+```
+
+### Implementation note
+`AuthCubit` must expose an `isGuest` flag. All screens that need auth gate their features
+behind this flag — they do **not** redirect unconditionally. Only the multiplayer queue
+and leaderboard write path force a login redirect.
+
+---
+
+## 💸 Monetization Model
+
+The game uses a **hybrid freemium** model: ads + soft IAP. No hard paywalls. No pay-to-win.
+
+### Revenue streams (in priority order)
+
+| # | Stream | Implementation |
+|---|---|---|
+| 1 | **Rewarded ads** | Watch ad → earn 20 coins or revive after a loss. 62% of word game ad revenue. Highest player acceptance. |
+| 2 | **Coin IAP bundles** | Small / Medium / Large packs ($0.99 / $2.99 / $9.99). Coins buy power-ups, extra continues. |
+| 3 | **Remove Ads IAP** | One-time purchase (~$2.99). Removes interstitial ads; rewarded ads stay (player-initiated). |
+| 4 | **Premium subscription** | ~$3.99/month. No ads + 200 coins/week + exclusive board themes. |
+| 5 | **Cosmetics** | Board themes, word-chain color palettes, avatar frames. Purely visual, never affect gameplay. |
+
+### Coin economy
+```
+Earn coins:
+  - Win a match:            +30 coins
+  - Daily login bonus:      +10 coins
+  - Watch rewarded ad:      +20 coins
+  - Achieve a streak ≥ 5:   +15 coins
+
+Spend coins:
+  - Hint power-up:          10 coins per use
+  - Freeze opponent:        20 coins per use
+  - Extra Time:             15 coins per use
+  - Continue after loss:    25 coins (vs ad-based continue)
+```
+
+### What NOT to do
+- No pay-to-win mechanics (power-ups in multiplayer must be earned/limited, not buyable in unlimited quantities)
+- No energy systems or artificial wait timers — word games succeed on session frequency, not artificial scarcity
+- No interstitial ads during an active game — only between sessions or on game-over screen
+
+---
+
 ## 🗺️ Implementation Phases
 
 > **How to use:**
@@ -195,8 +276,10 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 ### Phase 2 — Backend: Dictionary & Game Engine
 **Status: [ ] Not started**
 
+**Note:** The Go dictionary is used **only for multiplayer validation** (the server is the authority; clients can be tampered with). Solo and vs-AI games validate entirely on the Flutter client via `DictionaryService`. Both sides load the same ENABLE wordlist.
+
 **Scope:**
-- `internal/engine/dictionary.go` — download or embed the ENABLE wordlist; load into `map[string]struct{}` at startup; expose `IsValid(word string) bool`
+- `internal/engine/dictionary.go` — embed the ENABLE wordlist as a `.txt` file in `internal/engine/data/`; load into `map[string]struct{}` at startup; expose `IsValid(word string) bool`
 - `internal/engine/validator.go` — `ValidateMove(prevWord, newWord string, usedWords map[string]bool) error` covering: correct starting letter, valid dictionary word, not already used
 - `internal/engine/scorer.go` — `CalculateScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int` using the formula above
 - Unit tests for all three engine files
@@ -291,9 +374,11 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 - `core/network/api_endpoints.dart` — all endpoint constants
 - `core/router/app_router.dart` — all routes via `go_router`: `/login`, `/register`, `/home`, `/game/:id`, `/lobby`, `/leaderboard`, `/profile`
 - `core/services/websocket_service.dart` — connect, disconnect, send, stream of incoming typed events
+- `core/services/dictionary_service.dart` — load ENABLE wordlist from `assets/words/enable.txt` into a `HashSet<String>` at app startup; expose `isValid(String word) bool` and `suggestWords(String startLetter) List<String>` (used by the Hint power-up). Register as a singleton in `get_it`. Call `load()` in `main()` before `runApp()`.
 - `core/theme/app_theme.dart` — light/dark theme
+- Bundle `assets/words/enable.txt` (~170k words, ~1.7 MB plain / ~500 KB gzipped) in `pubspec.yaml` assets
 
-**Done when:** App builds, navigates between placeholder screens, DI resolves without errors.
+**Done when:** App builds, navigates between placeholder screens, DI resolves without errors, `DictionaryService` loads and `isValid("apple")` returns true.
 
 ---
 
@@ -302,29 +387,37 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 
 **Scope:**
 - `features/auth/data/auth_repository.dart` — `register`, `login`, `refreshToken`; persist JWT in `shared_preferences`
-- `features/auth/cubit/auth_cubit.dart` + `auth_state.dart` — states: `AuthInitial`, `AuthLoading`, `AuthAuthenticated`, `AuthError`
-- `features/auth/view/login_screen.dart` — email + password fields, login button, link to register
-- `features/auth/view/register_screen.dart` — username + email + password, register button
-- On successful auth, navigate to `/home`; on app start, check stored token and auto-navigate
+- `features/auth/cubit/auth_cubit.dart` + `auth_state.dart` — states: `AuthInitial`, `AuthLoading`, `AuthGuest`, `AuthAuthenticated`, `AuthError`
+  - `AuthGuest`: no token; user can play solo/AI; multiplayer and leaderboard are locked
+  - `AuthAuthenticated`: valid JWT; all features unlocked
+- `features/auth/view/login_screen.dart` — email + password fields, login button, link to register, **"Continue as Guest"** text button (navigates to `/home` in guest mode)
+- `features/auth/view/register_screen.dart` — username + email + password, register button, "Continue as Guest" link
+- App startup logic:
+  - Valid JWT found → emit `AuthAuthenticated` → `/home`
+  - No token or expired (refresh failed) → emit `AuthGuest` → `/home` (guest mode, no redirect to login)
+  - Player taps "Find Match" or "Leaderboard" while guest → redirect to `/login?return=/lobby`
 
-**Done when:** User can register, log in, and be redirected to home. Stored token survives app restart.
+**Done when:** Guest can reach home and play solo without logging in. Registered user's token survives restart. Multiplayer tap redirects guest to login.
 
 ---
 
 ### Phase 10 — Flutter: Game Feature (Solo)
 **Status: [ ] Not started**
 
+**Important:** Solo and vs-AI games are **fully on-device**. No server calls for word validation — use `DictionaryService` (injected via `get_it`). The backend is not involved. This means guests can play without any network connection.
+
 **Scope:**
-- `features/game/data/game_repository.dart` — `startSoloGame`, `getGame`, `usePowerup`
+- `features/game/data/game_repository.dart` — `startSoloGame`, `getGame`, `usePowerup` (REST calls only for authenticated users saving state; guests play in-memory only)
 - `features/game/bloc/game_bloc.dart` + events + states — states: `GameInitial`, `GameLoading`, `GameActive`, `GameOver`, `GameError`
 - Events: `GameStarted`, `WordSubmitted`, `PowerupUsed`, `TimerTicked`, `GameEnded`
 - `features/game/view/game_screen.dart` — show current word chain, required starting letter, score, timer bar
-- `features/game/view/widgets/word_input.dart` — text field with submit button; disable during opponent turn
+- `features/game/view/widgets/word_input.dart` — text field with submit button; validates locally via `DictionaryService` with zero latency; disable during opponent turn
 - `features/game/view/widgets/word_chain_list.dart` — scrollable list of played words with player labels
 - `features/game/view/widgets/timer_bar.dart` — animated countdown bar
-- Wire `GameBloc` to `WebSocketService` for real-time events
+- Wire `GameBloc` to `WebSocketService` only for multiplayer; solo uses no WebSocket
+- Guest power-up logic: allow 5 Hint uses per session (tracked in `GameBloc` state, not persisted); show soft upsell prompt ("Register to save your progress and unlock more power-ups") when guest uses their last hint or taps a locked power-up
 
-**Done when:** Solo game is fully playable end-to-end from the UI.
+**Done when:** Solo game is fully playable by a guest with zero login friction. `DictionaryService` validates all words locally.
 
 ---
 
@@ -360,17 +453,27 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 
 **Scope:**
 - `core/services/monetization_service.dart` — abstract class + mock implementation:
-  - `showRewardedAd() → Future<bool>`
+  - `showRewardedAd() → Future<bool>` — returns true if user watched the full ad
+  - `showInterstitialAd()` — called between sessions (game over → home), never mid-game
   - `getProducts() → Future<List<Product>>`
   - `purchase(productId) → Future<PurchaseResult>`
-  - `spendCoins(amount)`, `awardCoins(amount)`
-- Register `MockMonetizationService` in `get_it` (swap for real SDK later)
-- Add "Watch Ad to Continue" button on game-over screen (calls `showRewardedAd`)
-- Add "Buy Coins" placeholder in profile screen
-- Backend `internal/service/monetization.go` — stub `AwardCoins`, `SpendCoins`, `ValidateReceipt`
-- Final integration test: full flow from register → queue → match → game → game over → leaderboard
+  - `spendCoins(int amount) → bool` — returns false if insufficient balance
+  - `awardCoins(int amount)`
+- Register `MockMonetizationService` in `get_it` (swap for real SDK — AdMob + RevenueCat — in production)
+- **Game-over screen additions:**
+  - "Watch Ad to Continue" button (calls `showRewardedAd`; on success, resume game with 50% timer restored)
+  - "Use 25 coins to continue" button (registered users only; calls `spendCoins(25)`)
+  - Show interstitial ad when returning to home (not when continuing)
+- **Profile screen additions:**
+  - Coin balance display
+  - "Buy Coins" button — shows product list (mock prices: $0.99 / $2.99 / $9.99)
+  - "Remove Ads" one-time purchase button
+  - "Premium — $3.99/mo" subscription button with feature list
+- **Power-up upsell:** when guest uses last free hint, show bottom sheet: *"Register free to save progress + unlock more power-ups"*
+- Backend `internal/service/monetization.go` — `AwardCoins`, `SpendCoins`, `ValidateReceipt` (stub; real receipt validation added when integrating store SDKs)
+- Final integration test: full flow from guest → solo game → game over → rewarded ad → continue; and register → queue → match → game → game over → leaderboard
 
-**Done when:** All screens are connected, no placeholder crashes, the full game loop runs end-to-end.
+**Done when:** All screens are connected, no placeholder crashes, the full game loop (guest and registered) runs end-to-end. Coin balance updates after rewarded ad.
 
 ---
 
@@ -390,5 +493,6 @@ Each time you start a new Claude Code session:
 - **Never implement anything outside the current phase's scope.** If you notice something missing from a previous phase, flag it but do not fix it silently.
 - **Always check previous phases' output** before writing new code that depends on it (e.g., check actual repository method signatures before calling them in a service).
 - **Keep the CLAUDE.md status table up to date** after completing each phase.
-- The backend dictionary wordlist (ENABLE) can be embedded as a `.txt` file in `internal/engine/data/` or downloaded at container build time — choose whichever is simpler.
+- **Dictionary is dual:** embed `enable.txt` both in `internal/engine/data/` (Go, for multiplayer) and in `assets/words/enable.txt` (Flutter, for solo/AI). Same file, two copies.
+- **Never require login to start a solo or vs-AI game.** Guest mode is a first-class state. Any screen that forces login before solo play is a bug.
 - For local development, backend port is `8080`, Postgres is `5432`, Redis is `6379`.
