@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1800">
+<title>WordChain — UI / UX Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+
+:root{
+  --bg:    #05091A;
+  --bg2:   #080E22;
+  --bg3:   #0C1530;
+  --bg4:   #111E3C;
+  --bg5:   #172345;
+
+  --b:  rgba(82,148,245,0.10);
+  --b2: rgba(82,148,245,0.18);
+  --b3: rgba(82,148,245,0.30);
+  --bw: rgba(255,255,255,0.07);
+  --bw2:rgba(255,255,255,0.13);
+
+  --blue:      #5294F5;
+  --blue-dim:  rgba(82,148,245,0.13);
+  --blue-bdr:  rgba(82,148,245,0.30);
+  --blue-lt:   #82B8FA;
+
+  --pink:      #EE6FA0;
+  --pink-dim:  rgba(238,111,160,0.13);
+  --pink-bdr:  rgba(238,111,160,0.30);
+
+  --gold:      #E8B84B;
+  --gold-dim:  rgba(232,184,75,0.13);
+  --gold-bdr:  rgba(232,184,75,0.28);
+
+  --teal:      #2DCBA0;
+  --teal-dim:  rgba(45,203,160,0.12);
+
+  --orange:    #F07D42;
+  --red:       #E84B5F;
+  --streak:    #FF6D3A;
+
+  --t1: #DDE5F8;
+  --t2: #7B95CC;
+  --t3: #3C567A;
+  --t4: #20345C;
+}
+
+body{
+  background: var(--bg);
+  color: var(--t1);
+  font-family:'DM Sans',sans-serif;
+  padding: 60px 60px 80px;
+  min-width:1260px;
+  background-image:
+    radial-gradient(circle at 25% 0%, rgba(82,148,245,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 75% 100%, rgba(238,111,160,0.04) 0%, transparent 50%);
+}
+
+/* PAGE HEADER */
+.page-header{
+  text-align:center;
+  margin-bottom:64px;
+}
+.page-header h1{
+  font-family:'Syne',sans-serif;
+  font-size:48px;
+  font-weight:800;
+  letter-spacing:0.18em;
+  color:var(--t1);
+  text-transform:uppercase;
+}
+.page-header h1 span{color:var(--blue);}
+.page-header p{
+  margin-top:10px;
+  font-size:13px;
+  font-weight:500;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--t3);
+}
+
+/* GALLERY */
+.gallery{
+  display:grid;
+  grid-template-columns:repeat(3,375px);
+  gap:48px 36px;
+  justify-content:center;
+}
+.pw{display:flex;flex-direction:column;gap:14px;align-items:center;}
+.pw .lbl{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.pw .lbl .n{
+  font-family:'Syne',sans-serif;
+  font-size:12px;
+  font-weight:700;
+  color:var(--t4);
+  letter-spacing:0.1em;
+}
+.pw .lbl .nm{
+  font-size:12px;
+  font-weight:500;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--t3);
+}
+
+/* PHONE FRAME */
+.phone{
+  width:375px;
+  height:812px;
+  background:var(--bg2);
+  border-radius:44px;
+  border:1.5px solid rgba(255,255,255,0.10);
+  overflow:hidden;
+  position:relative;
+  box-shadow:
+    0 60px 120px rgba(0,0,0,0.7),
+    0 20px 40px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+}
+
+/* STATUS BAR */
+.sb{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 24px 6px;
+  flex-shrink:0;
+}
+.sb .time{
+  font-family:'Syne',sans-serif;
+  font-size:14px;
+  font-weight:700;
+  color:var(--t1);
+}
+.sb .icons{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-size:11px;
+  color:var(--t2);
+  font-weight:600;
+}
+
+/* SCREEN BODY */
+.sc{
+  flex:1;
+  overflow:hidden;
+  position:relative;
+}
+
+/* HOME INDICATOR */
+.hi{
+  height:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+.hi div{
+  width:130px;
+  height:5px;
+  background:rgba(255,255,255,0.22);
+  border-radius:3px;
+}
+
+/* BOTTOM NAV */
+.bnav{
+  height:76px;
+  background:var(--bg3);
+  border-top:1px solid var(--bw);
+  display:flex;
+  align-items:center;
+  justify-content:space-around;
+  padding:0 10px;
+  flex-shrink:0;
+}
+.ni{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  flex:1;
+  cursor:pointer;
+}
+.ni svg{color:var(--t3);}
+.ni span{
+  font-size:10px;
+  font-weight:500;
+  color:var(--t3);
+  letter-spacing:0.04em;
+}
+.ni.on svg{color:var(--blue);}
+.ni.on span{color:var(--blue);}
+
+/* COMPONENTS */
+.btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border:none;
+  border-radius:14px;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:0.05em;
+  cursor:pointer;
+  text-transform:uppercase;
+}
+.btn-primary{
+  background:var(--blue);
+  color:#fff;
+}
+.btn-secondary{
+  background:var(--bg4);
+  color:var(--t1);
+  border:1px solid var(--bw2);
+}
+.btn-gold{
+  background:var(--gold);
+  color:#1A1000;
+}
+.btn-ghost{
+  background:transparent;
+  color:var(--t2);
+  border:1px solid var(--bw);
+}
+.btn-danger{
+  background:rgba(232,75,95,0.15);
+  color:var(--red);
+  border:1px solid rgba(232,75,95,0.25);
+}
+.btn-teal{
+  background:var(--teal-dim);
+  color:var(--teal);
+  border:1px solid rgba(45,203,160,0.25);
+}
+
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+}
+.chip-blue{background:var(--blue-dim);color:var(--blue-lt);border:1px solid var(--blue-bdr);}
+.chip-pink{background:var(--pink-dim);color:var(--pink);border:1px solid var(--pink-bdr);}
+.chip-gold{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-bdr);}
+.chip-teal{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(45,203,160,0.28);}
+
+.card{
+  background:var(--bg3);
+  border:1px solid var(--bw);
+  border-radius:18px;
+  padding:18px;
+}
+
+/* WORD TILE */
+.wt{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 13px;
+  border-radius:10px;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:15px;
+  text-transform:uppercase;
+  letter-spacing:0.07em;
+  line-height:1;
+}
+.wt.you{background:var(--blue-dim);border:1px solid var(--blue-bdr);color:var(--blue-lt);}
+.wt.opp{background:var(--pink-dim);border:1px solid var(--pink-bdr);color:var(--pink);}
+.wt .ll{color:var(--gold);}
+
+/* CHAIN CONNECTOR */
+.cc{
+  display:flex;
+  align-items:center;
+  padding:2px 0 2px 62px;
+  gap:4px;
+  color:var(--t4);
+  font-size:11px;
+  font-weight:600;
+}
+.cc-line{width:1px;height:14px;background:var(--t4);}
+
+/* TIMER BAR */
+.timer-wrap{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.tbar{
+  flex:1;
+  height:5px;
+  background:var(--bg4);
+  border-radius:3px;
+  overflow:hidden;
+}
+.tbar-fill{
+  height:100%;
+  border-radius:3px;
+}
+.tbar-fill.hi-time{background:linear-gradient(90deg,var(--blue),#9BC8FF);}
+.tbar-fill.mid-time{background:linear-gradient(90deg,var(--orange),#FFBB82);}
+.tbar-fill.lo-time{background:linear-gradient(90deg,var(--red),#FF8899);}
+.tbar-count{
+  font-family:'Syne',sans-serif;
+  font-size:14px;
+  font-weight:700;
+  color:var(--t2);
+  min-width:28px;
+  text-align:right;
+}
+
+/* SCORE */
+.score-big{
+  font-family:'Syne',sans-serif;
+  font-size:42px;
+  font-weight:800;
+  color:var(--t1);
+  letter-spacing:-0.01em;
+}
+.score-delta{
+  font-family:'Syne',sans-serif;
+  font-size:12px;
+  font-weight:700;
+  color:var(--teal);
+}
+
+/* COIN DISPLAY */
+.coins-disp{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-family:'Syne',sans-serif;
+  font-size:15px;
+  font-weight:700;
+  color:var(--gold);
+}
+.coin-hex{
+  width:20px;height:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+
+/* STREAK */
+.streak-disp{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-family:'Syne',sans-serif;
+  font-size:15px;
+  font-weight:700;
+  color:var(--streak);
+}
+
+/* AVATAR */
+.av{
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  text-transform:uppercase;
+  flex-shrink:0;
+}
+.av-blue{background:var(--blue-dim);color:var(--blue-lt);border:1.5px solid var(--blue-bdr);}
+.av-pink{background:var(--pink-dim);color:var(--pink);border:1.5px solid var(--pink-bdr);}
+.av-gray{background:var(--bg4);color:var(--t2);border:1.5px solid var(--bw2);}
+
+/* POWER-UP BUTTON */
+.pu-btn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  padding:8px 0;
+  flex:1;
+  border-radius:12px;
+  background:var(--bg4);
+  border:1px solid var(--bw);
+  cursor:pointer;
+}
+.pu-icon{font-size:20px;line-height:1;}
+.pu-count{
+  font-family:'Syne',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  color:var(--t2);
+}
+
+/* WORD INPUT */
+.wi-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 20px;
+}
+.wi{
+  flex:1;
+  background:var(--bg4);
+  border:1.5px solid var(--b3);
+  border-radius:14px;
+  padding:13px 16px;
+  font-family:'Syne',sans-serif;
+  font-size:17px;
+  font-weight:700;
+  color:var(--t1);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  outline:none;
+}
+.wi::placeholder{color:var(--t4);font-weight:400;text-transform:none;font-family:'DM Sans',sans-serif;font-size:14px;letter-spacing:0;}
+.wi-submit{
+  width:48px;height:48px;
+  background:var(--blue);
+  border:none;border-radius:14px;
+  font-size:20px;font-weight:900;
+  color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* DIVIDER */
+.divider{
+  height:1px;
+  background:var(--bw);
+  margin:0 20px;
+}
+
+/* SECTION LABEL */
+.sec-lbl{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--t3);
+  padding:0 20px;
+}
+
+/* FORM INPUT */
+.fi-wrap{margin-bottom:16px;}
+.fi-label{
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--t3);
+  margin-bottom:7px;
+}
+.fi{
+  width:100%;
+  background:var(--bg4);
+  border:1.5px solid var(--bw2);
+  border-radius:12px;
+  padding:13px 16px;
+  font-size:15px;
+  color:var(--t1);
+  font-family:'DM Sans',sans-serif;
+  outline:none;
+}
+.fi::placeholder{color:var(--t3);}
+.fi-row{position:relative;}
+.fi-row .fi{padding-right:44px;}
+.fi-eye{
+  position:absolute;
+  right:14px;top:50%;transform:translateY(-50%);
+  color:var(--t3);font-size:14px;cursor:pointer;
+}
+
+/* RANK LIST */
+.rank-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 20px;
+}
+.rank-num{
+  font-family:'Syne',sans-serif;
+  font-size:13px;
+  font-weight:700;
+  color:var(--t3);
+  width:22px;
+  text-align:center;
+}
+.rank-num.g1{color:#F5D060;}
+.rank-num.g2{color:#C8D0D9;}
+.rank-num.g3{color:#C48B56;}
+.rank-score{
+  margin-left:auto;
+  font-family:'Syne',sans-serif;
+  font-size:13px;
+  font-weight:700;
+  color:var(--t2);
+}
+.rank-row.you-row{background:var(--blue-dim);border-radius:10px;margin:0 12px;padding:10px 8px;}
+.rank-row.you-row .rank-score{color:var(--blue-lt);}
+
+/* STAT GRID */
+.stat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:0 20px;
+}
+.stat-cell{
+  background:var(--bg3);
+  border:1px solid var(--bw);
+  border-radius:12px;
+  padding:12px 14px;
+}
+.stat-val{
+  font-family:'Syne',sans-serif;
+  font-size:22px;
+  font-weight:800;
+  color:var(--t1);
+}
+.stat-lbl{
+  font-size:11px;
+  font-weight:500;
+  color:var(--t3);
+  margin-top:3px;
+  letter-spacing:0.04em;
+}
+
+/* PROGRESS DOTS */
+.prog-dots{
+  display:flex;gap:6px;
+  align-items:center;
+}
+.pd{
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--bg5);
+}
+.pd.on{
+  background:var(--blue);
+  width:20px;border-radius:4px;
+}
+
+/* ==================== SCREEN 1: HOME ==================== */
+#s1 .sc{
+  display:flex;flex-direction:column;
+}
+#s1 .hero{
+  background:linear-gradient(180deg,rgba(82,148,245,0.07) 0%,transparent 100%);
+  border-bottom:1px solid var(--b);
+  padding:18px 20px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+#s1 .logo{
+  font-family:'Syne',sans-serif;
+  font-size:26px;
+  font-weight:800;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--t1);
+  line-height:1;
+}
+#s1 .logo span{color:var(--blue);}
+#s1 .hero-stats{
+  display:flex;gap:16px;
+  align-items:center;
+}
+#s1 .daily-card{
+  margin:16px;
+  background:linear-gradient(135deg,rgba(82,148,245,0.14) 0%,rgba(82,148,245,0.06) 100%);
+  border:1px solid var(--blue-bdr);
+  border-radius:18px;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+#s1 .dc-left .dc-label{
+  font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--blue-lt);
+}
+#s1 .dc-left .dc-title{
+  font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--t1);margin:3px 0 2px;
+}
+#s1 .dc-left .dc-sub{
+  font-size:12px;color:var(--t2);
+}
+#s1 .dc-arrow{
+  width:40px;height:40px;
+  background:var(--blue);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:#fff;
+}
+#s1 .modes-label{
+  padding:14px 20px 10px;
+  font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--t3);
+}
+#s1 .mode-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:10px;padding:0 16px;
+}
+#s1 .mode-btn{
+  background:var(--bg3);border:1px solid var(--bw);
+  border-radius:14px;padding:14px 8px 12px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  cursor:pointer;
+}
+#s1 .mode-btn.active{border-color:var(--blue-bdr);background:var(--blue-dim);}
+#s1 .mode-btn svg{color:var(--t2);}
+#s1 .mode-btn.active svg{color:var(--blue);}
+#s1 .mode-btn .mt{
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--t2);
+}
+#s1 .mode-btn.active .mt{color:var(--blue-lt);}
+#s1 .mode-btn .ms{font-size:10px;color:var(--t3);}
+#s1 .rank-card{
+  margin:14px 16px 0;
+  background:var(--bg3);border:1px solid var(--bw);border-radius:14px;
+  padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#s1 .rank-card .rk-l{display:flex;align-items:center;gap:10px;}
+#s1 .rank-card .rk-trophy{font-size:22px;}
+#s1 .rank-card .rk-info .rk-title{font-size:12px;color:var(--t3);font-weight:500;}
+#s1 .rank-card .rk-info .rk-val{
+  font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--t1);
+}
+#s1 .rank-card .rk-cta{
+  font-size:12px;font-weight:600;color:var(--blue);letter-spacing:0.04em;
+}
+
+/* ==================== SCREEN 2: LOGIN ==================== */
+#s2 .sc{
+  padding:30px 24px 0;
+  display:flex;flex-direction:column;
+}
+#s2 .login-mark{
+  width:52px;height:52px;
+  background:var(--blue-dim);border:1.5px solid var(--blue-bdr);border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;
+}
+#s2 .login-h1{
+  font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--t1);margin-bottom:6px;
+}
+#s2 .login-sub{font-size:14px;color:var(--t2);margin-bottom:32px;}
+#s2 .forgot{
+  text-align:right;font-size:12px;font-weight:500;color:var(--blue);margin-top:-8px;margin-bottom:24px;cursor:pointer;
+}
+#s2 .or-line{
+  display:flex;align-items:center;gap:12px;margin:20px 0;
+}
+#s2 .or-line span{font-size:12px;color:var(--t3);font-weight:500;white-space:nowrap;}
+#s2 .or-line div{flex:1;height:1px;background:var(--bw);}
+#s2 .guest-btn{
+  text-align:center;font-size:14px;font-weight:600;color:var(--t2);
+  padding:14px;border-radius:12px;border:1px solid var(--bw);cursor:pointer;background:transparent;width:100%;font-family:'DM Sans',sans-serif;
+}
+#s2 .register-link{
+  text-align:center;margin-top:16px;font-size:13px;color:var(--t2);
+}
+#s2 .register-link span{color:var(--blue);font-weight:600;cursor:pointer;}
+
+/* ==================== SCREEN 3: TUTORIAL ==================== */
+#s3 .sc{padding:20px 0 0;display:flex;flex-direction:column;}
+#s3 .tut-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;margin-bottom:24px;
+}
+#s3 .skip{font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;}
+#s3 .tut-step{
+  background:linear-gradient(135deg,rgba(82,148,245,0.09) 0%,transparent 100%);
+  border:1px solid var(--b2);border-radius:20px;margin:0 16px 24px;
+  padding:22px;
+}
+#s3 .tut-badge{
+  display:inline-flex;gap:6px;align-items:center;
+  font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue-lt);
+  margin-bottom:10px;
+}
+#s3 .tut-h{
+  font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--t1);margin-bottom:6px;
+}
+#s3 .tut-sub{font-size:13px;color:var(--t2);line-height:1.6;}
+#s3 .letter-reveal{
+  margin:0 auto;
+  width:72px;height:72px;
+  background:var(--gold-dim);border:2px solid var(--gold-bdr);border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:38px;font-weight:800;color:var(--gold);
+}
+#s3 .chain-preview{padding:0 20px;}
+#s3 .chain-preview .cpl{
+  font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);margin-bottom:10px;
+}
+#s3 .tut-hint{
+  margin:16px 20px 0;padding:12px 16px;
+  background:var(--teal-dim);border:1px solid rgba(45,203,160,0.2);border-radius:12px;
+  font-size:12px;color:var(--teal);line-height:1.6;font-weight:500;
+}
+
+/* ==================== SCREEN 4: SOLO GAME ==================== */
+#s4 .sc{display:flex;flex-direction:column;}
+#s4 .game-top{
+  padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bw);
+}
+#s4 .game-mode-chip{
+  font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);
+}
+#s4 .game-score{
+  font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--t1);
+}
+#s4 .game-score .g-delta{
+  font-size:13px;font-weight:700;color:var(--teal);margin-left:6px;
+}
+#s4 .timer-section{
+  padding:12px 20px;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--bw);
+}
+#s4 .chain-section{
+  flex:1;
+  padding:14px 0;
+  display:flex;flex-direction:column;
+  gap:0;
+  overflow:hidden;
+}
+#s4 .chain-row{
+  display:flex;align-items:center;gap:10px;
+  padding:5px 20px;
+}
+#s4 .chain-pl{
+  font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--t3);width:30px;text-align:right;
+}
+#s4 .chain-score{
+  margin-left:auto;
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--teal);
+}
+#s4 .chain-score.new{color:var(--gold);}
+#s4 .cc{padding:2px 0 2px 80px;}
+#s4 .next-letter-bar{
+  padding:10px 20px;
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(90deg,rgba(232,184,75,0.07) 0%,transparent 100%);
+  border-top:1px solid var(--gold-bdr);border-bottom:1px solid var(--gold-bdr);
+}
+#s4 .nl-label{font-size:12px;color:var(--t2);font-weight:500;}
+#s4 .nl-letter{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--gold);
+}
+#s4 .input-section{padding:12px 0;}
+#s4 .pu-section{
+  padding:10px 16px 8px;
+  display:flex;gap:8px;
+}
+
+/* ==================== SCREEN 5: MULTIPLAYER GAME ==================== */
+#s5 .sc{display:flex;flex-direction:column;}
+#s5 .vs-header{
+  padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bw);
+  background:linear-gradient(180deg,rgba(82,148,245,0.05) 0%,transparent 100%);
+}
+#s5 .vs-player{display:flex;align-items:center;gap:10px;}
+#s5 .vs-player .vscore{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;
+}
+#s5 .vs-player.you .vscore{color:var(--blue-lt);}
+#s5 .vs-player.opp .vscore{color:var(--pink);}
+#s5 .vs-divider{
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--t4);letter-spacing:0.15em;
+}
+#s5 .turn-bar{
+  padding:9px 20px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--blue-dim);border-bottom:1px solid var(--blue-bdr);
+}
+#s5 .turn-text{
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue-lt);
+}
+#s5 .chain-section{
+  flex:1;padding:12px 0;display:flex;flex-direction:column;overflow:hidden;
+}
+#s5 .chain-row{
+  display:flex;align-items:center;gap:10px;padding:4px 20px;
+}
+#s5 .chain-pl{
+  font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  width:30px;text-align:right;
+}
+#s5 .chain-pl.you{color:var(--blue-lt);}
+#s5 .chain-pl.opp{color:var(--pink);}
+#s5 .chain-score{
+  margin-left:auto;
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--teal);
+}
+#s5 .cc{padding:2px 0 2px 80px;}
+#s5 .next-prompt{
+  padding:10px 20px;
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(90deg,rgba(232,184,75,0.07) 0%,transparent 100%);
+  border-top:1px solid var(--gold-bdr);border-bottom:1px solid var(--gold-bdr);
+}
+#s5 .np-label{font-size:12px;color:var(--t2);font-weight:500;}
+#s5 .np-letter{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--gold);
+}
+#s5 .timer-section{padding:10px 20px;display:flex;align-items:center;gap:12px;}
+#s5 .input-section{padding:10px 0 6px;}
+#s5 .pu-section{
+  padding:8px 16px;
+  display:flex;gap:8px;
+}
+#s5 .pu-row-label{
+  font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--t3);
+  padding:0 20px;margin-bottom:4px;
+}
+
+/* ==================== SCREEN 6: GAME OVER ==================== */
+#s6{position:relative;}
+#s6 .game-bg{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;opacity:0.35;
+}
+#s6 .game-bg .game-top{
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bw);
+}
+#s6 .overlay{
+  position:absolute;inset:0;
+  background:rgba(5,9,26,0.94);
+  display:flex;flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:28px 24px;
+  gap:0;
+}
+#s6 .ov-icon{font-size:40px;margin-bottom:12px;}
+#s6 .ov-title{
+  font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--t1);margin-bottom:6px;
+}
+#s6 .ov-reason{
+  font-size:13px;color:var(--t2);text-align:center;line-height:1.5;margin-bottom:20px;
+}
+#s6 .ov-score-row{
+  display:flex;gap:20px;margin-bottom:24px;
+}
+#s6 .ov-score-cell{
+  background:var(--bg3);border:1px solid var(--bw);border-radius:12px;padding:12px 20px;text-align:center;
+}
+#s6 .ov-score-val{
+  font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--t1);
+}
+#s6 .ov-score-lbl{font-size:11px;color:var(--t3);margin-top:3px;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;}
+#s6 .ov-sep{
+  width:100%;border-top:1px solid var(--bw);padding-top:22px;margin-bottom:16px;
+  text-align:center;
+}
+#s6 .ov-sep span{
+  background:rgba(5,9,26,0.94);padding:0 12px;
+  font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);
+  position:relative;top:-14px;
+}
+#s6 .ov-cta-row{display:flex;flex-direction:column;gap:10px;width:100%;}
+#s6 .ov-timer{
+  font-size:12px;color:var(--t3);text-align:center;margin-top:8px;font-weight:500;
+}
+#s6 .ov-defeat{
+  font-size:13px;color:var(--t3);font-weight:500;cursor:pointer;margin-top:14px;text-decoration:underline;
+}
+
+/* ==================== SCREEN 7: LOBBY ==================== */
+#s7 .sc{padding:24px;display:flex;flex-direction:column;gap:20px;}
+#s7 .lobby-title{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--t1);
+}
+#s7 .lobby-sub{font-size:13px;color:var(--t2);margin-top:4px;}
+#s7 .mode-selector{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+#s7 .ms-option{
+  padding:16px;background:var(--bg3);border:1.5px solid var(--bw);border-radius:14px;cursor:pointer;
+}
+#s7 .ms-option.active{
+  border-color:var(--blue-bdr);background:var(--blue-dim);
+}
+#s7 .ms-name{
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;
+}
+#s7 .ms-option.active .ms-name{color:var(--blue-lt);}
+#s7 .ms-option:not(.active) .ms-name{color:var(--t2);}
+#s7 .ms-desc{font-size:11px;color:var(--t3);margin-top:4px;}
+#s7 .searching-card{
+  background:var(--bg3);border:1px solid var(--bw);border-radius:20px;
+  padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;
+}
+#s7 .pulse-ring{
+  width:80px;height:80px;position:relative;display:flex;align-items:center;justify-content:center;
+}
+#s7 .pulse-ring .ring{
+  position:absolute;inset:0;
+  border:1.5px solid var(--blue-bdr);border-radius:50%;
+  animation:pulse 2s ease-out infinite;
+}
+#s7 .pulse-ring .ring:nth-child(2){animation-delay:0.7s;}
+#s7 .pulse-ring .ring:nth-child(3){animation-delay:1.4s;}
+#s7 .pulse-ring .center-av{
+  width:52px;height:52px;border-radius:50%;position:relative;z-index:1;
+}
+@keyframes pulse{
+  0%{transform:scale(0.85);opacity:0.6;}
+  70%{transform:scale(1.4);opacity:0;}
+  100%{opacity:0;}
+}
+#s7 .vs-searching{
+  display:flex;align-items:center;gap:16px;width:100%;
+}
+#s7 .vs-you{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+#s7 .vs-word{
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.1em;color:var(--t3);text-transform:uppercase;
+}
+#s7 .vs-opp{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+#s7 .mystery-av{
+  width:52px;height:52px;border-radius:50%;
+  background:var(--bg5);border:1.5px dashed var(--t4);
+  display:flex;align-items:center;justify-content:center;
+}
+#s7 .mystery-dots{
+  display:flex;gap:3px;
+}
+#s7 .mystery-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--t4);
+  animation:blink 1.5s infinite;
+}
+#s7 .mystery-dot:nth-child(2){animation-delay:0.3s;}
+#s7 .mystery-dot:nth-child(3){animation-delay:0.6s;}
+@keyframes blink{0%,100%{opacity:0.3;}50%{opacity:1;}}
+#s7 .elapsed{
+  font-size:12px;color:var(--t3);font-weight:500;
+}
+
+/* ==================== SCREEN 8: DAILY CHALLENGE ==================== */
+#s8 .sc{padding:20px 0 0;display:flex;flex-direction:column;}
+#s8 .daily-head{
+  padding:0 20px;margin-bottom:20px;
+}
+#s8 .daily-badge{
+  display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;
+  font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);
+}
+#s8 .daily-title{
+  font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--t1);margin-bottom:4px;
+}
+#s8 .daily-sub{font-size:13px;color:var(--t2);}
+#s8 .start-letter-card{
+  margin:0 16px 18px;
+  background:linear-gradient(135deg,rgba(232,184,75,0.10) 0%,rgba(232,184,75,0.04) 100%);
+  border:1px solid var(--gold-bdr);border-radius:18px;
+  padding:22px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#s8 .sl-left .sl-label{font-size:12px;color:var(--t2);margin-bottom:6px;}
+#s8 .sl-left .sl-letter{
+  font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--gold);line-height:1;
+}
+#s8 .sl-right{text-align:right;}
+#s8 .sl-right .sl-val{
+  font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--t1);
+}
+#s8 .sl-right .sl-lbl{font-size:11px;color:var(--t3);margin-top:3px;letter-spacing:0.05em;}
+#s8 .rules-card{
+  margin:0 16px 18px;
+  background:var(--bg3);border:1px solid var(--bw);border-radius:14px;padding:14px 16px;
+}
+#s8 .rule-item{
+  display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:13px;color:var(--t2);
+}
+#s8 .rule-item:last-child{margin-bottom:0;}
+#s8 .rule-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--blue);margin-top:6px;flex-shrink:0;
+}
+#s8 .start-btn-wrap{padding:0 16px;}
+
+/* ==================== SCREEN 9: DAILY RESULT ==================== */
+#s9 .sc{padding:20px 0;display:flex;flex-direction:column;}
+#s9 .result-header{
+  padding:0 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;
+}
+#s9 .result-title{
+  font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--t1);
+}
+#s9 .result-title span{color:var(--gold);}
+#s9 .score-band{
+  margin:0 16px 16px;
+  background:linear-gradient(135deg,rgba(82,148,245,0.12) 0%,rgba(82,148,245,0.04) 100%);
+  border:1px solid var(--blue-bdr);border-radius:18px;
+  padding:16px 18px;
+  display:flex;gap:0;justify-content:space-around;align-items:center;
+}
+#s9 .sb-cell{text-align:center;}
+#s9 .sb-val{
+  font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--t1);
+}
+#s9 .sb-lbl{font-size:11px;color:var(--t3);margin-top:4px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;}
+#s9 .sb-sep{width:1px;background:var(--bw);height:40px;align-self:center;}
+#s9 .rank-badge{
+  margin:0 auto 16px;
+  width:fit-content;
+  display:flex;align-items:center;gap:8px;
+  background:var(--gold-dim);border:1px solid var(--gold-bdr);border-radius:20px;
+  padding:6px 16px;
+}
+#s9 .rb-text{
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--gold);
+}
+#s9 .share-card{
+  margin:0 16px 14px;
+  background:var(--bg3);border:1px solid var(--bw);border-radius:14px;
+  padding:14px 16px;
+}
+#s9 .sc-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
+}
+#s9 .sc-title{
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--t2);letter-spacing:0.06em;
+}
+#s9 .sc-chain{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t1);line-height:1.8;word-break:break-all;
+}
+#s9 .sc-chain .arrow{color:var(--t3);}
+#s9 .sc-footer{
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);margin-top:8px;
+}
+#s9 .actions{display:flex;gap:10px;padding:0 16px;}
+
+/* ==================== SCREEN 10: LEADERBOARD ==================== */
+#s10 .sc{display:flex;flex-direction:column;}
+#s10 .lb-head{
+  padding:16px 20px 14px;
+  border-bottom:1px solid var(--bw);
+}
+#s10 .lb-title{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--t1);margin-bottom:10px;
+}
+#s10 .lb-tabs{
+  display:flex;gap:0;background:var(--bg3);border-radius:10px;padding:3px;
+}
+#s10 .lb-tab{
+  flex:1;padding:7px;border-radius:8px;text-align:center;
+  font-size:13px;font-weight:600;cursor:pointer;color:var(--t3);
+}
+#s10 .lb-tab.on{background:var(--bg5);color:var(--t1);}
+#s10 .reset-bar{
+  padding:10px 20px;border-bottom:1px solid var(--bw);
+  display:flex;align-items:center;justify-content:space-between;
+}
+#s10 .reset-label{font-size:12px;color:var(--t3);font-weight:500;}
+#s10 .reset-timer{
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--t2);
+}
+#s10 .top3{
+  padding:14px 16px 10px;
+  display:flex;gap:8px;align-items:flex-end;
+}
+#s10 .top3-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:var(--bg3);border-radius:14px;padding:14px 8px 10px;border:1px solid var(--bw);
+}
+#s10 .top3-item.first{
+  flex:1.25;background:linear-gradient(180deg,rgba(245,208,96,0.10) 0%,var(--bg3) 100%);
+  border-color:rgba(245,208,96,0.20);order:-1;padding-top:18px;
+}
+#s10 .top3-medal{font-size:18px;}
+#s10 .top3-av{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+}
+#s10 .top3-name{font-size:11px;font-weight:600;color:var(--t2);text-align:center;width:100%;}
+#s10 .top3-score{
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--t1);
+}
+#s10 .rank-list{
+  flex:1;overflow:hidden;padding-bottom:4px;
+}
+#s10 .rr{display:flex;align-items:center;gap:10px;padding:8px 20px;}
+#s10 .rr .rn{
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--t3);width:20px;text-align:center;
+}
+#s10 .rr .runame{font-size:13px;font-weight:500;color:var(--t1);}
+#s10 .rr .rscore{
+  margin-left:auto;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--t2);
+}
+#s10 .you-sticky{
+  padding:10px 20px;
+  display:flex;align-items:center;gap:10px;
+  background:var(--blue-dim);border-top:1px solid var(--blue-bdr);
+}
+#s10 .you-sticky .rn{
+  font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--blue-lt);
+}
+#s10 .you-sticky .runame{font-size:13px;font-weight:600;color:var(--blue-lt);}
+#s10 .you-sticky .rscore{
+  margin-left:auto;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--blue-lt);
+}
+
+/* ==================== SCREEN 11: FRIENDS ==================== */
+#s11 .sc{padding:0;display:flex;flex-direction:column;}
+#s11 .fr-head{padding:18px 20px 14px;border-bottom:1px solid var(--bw);}
+#s11 .fr-title{
+  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--t1);margin-bottom:14px;
+}
+#s11 .search-wrap{position:relative;}
+#s11 .search-icon{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--t3);
+}
+#s11 .search-inp{
+  width:100%;background:var(--bg4);border:1.5px solid var(--bw);border-radius:12px;
+  padding:11px 14px 11px 40px;font-size:14px;color:var(--t1);font-family:'DM Sans',sans-serif;outline:none;
+}
+#s11 .search-inp::placeholder{color:var(--t3);}
+#s11 .fr-section-lbl{
+  padding:14px 20px 8px;
+  font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);
+}
+#s11 .pending-card{
+  margin:0 16px 10px;
+  background:linear-gradient(135deg,rgba(232,184,75,0.08) 0%,transparent 100%);
+  border:1px solid var(--gold-bdr);border-radius:14px;padding:14px 16px;
+}
+#s11 .pc-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+#s11 .pc-name{font-size:14px;font-weight:600;color:var(--t1);}
+#s11 .pc-sub{font-size:12px;color:var(--t2);margin-top:2px;}
+#s11 .pc-btns{display:flex;gap:8px;}
+#s11 .friend-item{
+  display:flex;align-items:center;gap:12px;padding:11px 20px;
+}
+#s11 .fi-name{font-size:14px;font-weight:500;color:var(--t1);}
+#s11 .fi-score{font-size:12px;color:var(--t2);margin-top:2px;font-weight:500;}
+#s11 .fi-cta{margin-left:auto;}
+#s11 .add-friend{
+  margin:16px 20px 0;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;border-radius:12px;border:1.5px dashed var(--bw2);cursor:pointer;
+  font-size:13px;font-weight:600;color:var(--t2);
+}
+
+/* ==================== SCREEN 12: PROFILE ==================== */
+#s12 .sc{padding:0;display:flex;flex-direction:column;overflow:hidden;}
+#s12 .pr-head{
+  padding:18px 20px 16px;
+  background:linear-gradient(180deg,rgba(82,148,245,0.07) 0%,transparent 100%);
+  border-bottom:1px solid var(--bw);
+}
+#s12 .pr-user{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+#s12 .pr-name{
+  font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--t1);
+}
+#s12 .pr-handle{font-size:13px;color:var(--t2);margin-top:3px;}
+#s12 .pr-currency{display:flex;align-items:center;gap:16px;}
+#s12 .pr-streak-val{
+  font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--streak);
+}
+#s12 .pr-coins-val{
+  font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--gold);
+}
+#s12 .pr-coin-label,#s12 .pr-streak-label{
+  font-size:11px;color:var(--t3);margin-top:2px;font-weight:500;letter-spacing:0.04em;
+}
+#s12 .pr-actions{display:flex;gap:8px;margin-top:14px;}
+#s12 .section-head{
+  padding:16px 20px 10px;
+  font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);
+}
+#s12 .pu-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 16px;
+}
+#s12 .pu-cell{
+  background:var(--bg3);border:1px solid var(--bw);border-radius:12px;
+  padding:10px 6px;text-align:center;
+}
+#s12 .pu-ic{font-size:20px;margin-bottom:4px;}
+#s12 .pu-nm{font-size:10px;color:var(--t3);font-weight:500;margin-bottom:2px;letter-spacing:0.03em;}
+#s12 .pu-ct{
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--t1);
+}
+#s12 .settings-list{padding:0 16px;}
+#s12 .settings-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0;border-bottom:1px solid var(--bw);
+}
+#s12 .settings-item:last-child{border-bottom:none;}
+#s12 .si-name{font-size:14px;font-weight:500;color:var(--t1);}
+#s12 .si-desc{font-size:12px;color:var(--t3);margin-top:2px;}
+#s12 .si-arrow{color:var(--t4);}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>WORD<span>CHAIN</span></h1>
+  <p>UI · UX Design System · 12 Screens · Dark Luxury Theme</p>
+</header>
+
+<div class="gallery">
+
+<!-- ============================== SCREEN 1: HOME ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">01</span><span class="nm">Home Screen</span></div>
+  <div class="phone" id="s1">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="hero">
+        <div>
+          <div class="logo">WORD<span>CHAIN</span></div>
+          <div style="font-size:12px;color:var(--t3);margin-top:4px;font-weight:500;">Good morning, Alex</div>
+        </div>
+        <div class="hero-stats">
+          <div class="streak-disp">
+            <span style="font-size:17px;">🔥</span>
+            <span>7</span>
+            <span style="font-size:11px;color:var(--t2);font-weight:500;">days</span>
+          </div>
+          <div class="coins-disp">
+            <span class="coin-hex">🪙</span>
+            <span>340</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="daily-card">
+        <div class="dc-left">
+          <div class="dc-label">📅 Daily Challenge</div>
+          <div class="dc-title">#127</div>
+          <div class="dc-sub">Best today: 2,180 · Start with G</div>
+        </div>
+        <div class="dc-arrow">▶</div>
+      </div>
+
+      <div class="modes-label">Quick Play</div>
+      <div class="mode-grid">
+        <div class="mode-btn active">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+          <div class="mt">Solo</div>
+          <div class="ms">Classic / TA</div>
+        </div>
+        <div class="mode-btn">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <div class="mt">VS AI</div>
+          <div class="ms">Medium</div>
+        </div>
+        <div class="mode-btn">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="15" cy="7" r="3"/><path d="M2 20c0-3 3-5 7-5m4 0c4 0 7 2 7 5"/></svg>
+          <div class="mt">1v1</div>
+          <div class="ms">Find Match</div>
+        </div>
+      </div>
+
+      <div class="rank-card">
+        <div class="rk-l">
+          <div class="rk-trophy">🏆</div>
+          <div class="rk-info">
+            <div class="rk-title">Weekly Global Rank</div>
+            <div class="rk-val">#24 of 1,204</div>
+          </div>
+        </div>
+        <div class="rk-cta">View →</div>
+      </div>
+    </div>
+
+    <div class="bnav">
+      <div class="ni on">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.55 5.45 21 6 21H9M19 10L21 12M19 10V20C19 20.55 18.55 21 18 21H15M9 21V15C9 15 9 13 12 13C15 13 15 15 15 15V21M9 21H15"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        <span>Ranks</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Friends</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 2: LOGIN ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">02</span><span class="nm">Login Screen</span></div>
+  <div class="phone" id="s2">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 20px 0;cursor:pointer;">
+        <svg width="20" height="20" fill="none" stroke="var(--t2)" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span style="font-size:14px;font-weight:500;color:var(--t2);">Back</span>
+      </div>
+      <div class="login-mark">
+        <svg width="26" height="26" fill="none" stroke="var(--blue)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="3"/></svg>
+      </div>
+      <div class="login-h1">Welcome back</div>
+      <div class="login-sub">Sign in to continue your chain</div>
+
+      <div class="fi-wrap">
+        <label class="fi-label">Email</label>
+        <input class="fi" type="email" placeholder="your@email.com" value="alex@example.com">
+      </div>
+      <div class="fi-wrap">
+        <label class="fi-label">Password</label>
+        <div class="fi-row">
+          <input class="fi" type="password" placeholder="••••••••" value="password">
+          <span class="fi-eye">👁</span>
+        </div>
+      </div>
+      <div class="forgot">Forgot password?</div>
+
+      <button class="btn btn-primary" style="width:100%;height:50px;font-size:15px;margin-bottom:0;">
+        Login
+      </button>
+
+      <div class="or-line">
+        <div></div><span>or</span><div></div>
+      </div>
+
+      <button class="guest-btn">Continue as Guest</button>
+      <div class="register-link">Don't have an account? <span>Register</span></div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 3: TUTORIAL ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">03</span><span class="nm">Tutorial — Step 2</span></div>
+  <div class="phone" id="s3">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="tut-head">
+        <div class="prog-dots">
+          <div class="pd"></div>
+          <div class="pd on"></div>
+          <div class="pd"></div>
+          <div class="pd"></div>
+        </div>
+        <div class="skip">Skip</div>
+      </div>
+
+      <div class="tut-step">
+        <div class="tut-badge">
+          <svg width="12" height="12" fill="var(--blue)" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          Step 2 of 4
+        </div>
+        <div class="tut-h">Keep the chain going!</div>
+        <div class="tut-sub">Type a word that starts with the last letter of the previous word.</div>
+      </div>
+
+      <div style="display:flex;justify-content:center;margin-bottom:22px;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);text-align:center;margin-bottom:10px;">Next word must start with…</div>
+          <div class="letter-reveal">M</div>
+        </div>
+      </div>
+
+      <div class="chain-preview">
+        <div class="cpl">Your chain so far:</div>
+        <div class="chain-row" style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+          <div class="chain-pl" style="width:auto;color:var(--t3);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">YOU</div>
+          <div class="wt you" style="margin-left:8px;">CLOU<span class="ll">D</span></div>
+        </div>
+        <div style="padding:3px 0 3px 52px;color:var(--t4);font-size:12px;">↓</div>
+        <div class="chain-row" style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+          <div class="chain-pl" style="width:auto;color:var(--t3);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">YOU</div>
+          <div class="wt you" style="margin-left:8px;">DREA<span class="ll">M</span></div>
+        </div>
+        <div style="padding:3px 0 3px 52px;color:var(--t4);font-size:12px;">↓</div>
+        <div class="wi-wrap" style="padding:0;margin-top:4px;">
+          <input class="wi" placeholder="type a word starting with M…" style="border-color:var(--gold-bdr);">
+          <button class="wi-submit">→</button>
+        </div>
+      </div>
+
+      <div class="tut-hint">
+        💡 Invalid words show a gentle hint — no penalty during the tutorial!
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 4: SOLO GAME ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">04</span><span class="nm">Solo Game — Classic</span></div>
+  <div class="phone" id="s4">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="game-top">
+        <div>
+          <div class="game-mode-chip">Classic · Solo</div>
+          <div class="game-score">1,640<span class="g-delta">+92</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--t3);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Chain</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--t1);">12</div>
+        </div>
+      </div>
+
+      <div class="timer-section">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;">Turn timer</div>
+        <div class="timer-wrap" style="flex:1;">
+          <div class="tbar" style="flex:1;">
+            <div class="tbar-fill mid-time" style="width:60%;"></div>
+          </div>
+          <div class="tbar-count" style="color:var(--orange);">9s</div>
+        </div>
+      </div>
+
+      <div class="chain-section">
+        <div class="chain-row">
+          <div class="chain-pl">—</div>
+          <div class="wt you" style="opacity:0.45;">GALAX<span class="ll">Y</span></div>
+          <div class="chain-score">+70</div>
+        </div>
+        <div class="cc">↓</div>
+        <div class="chain-row">
+          <div class="chain-pl">—</div>
+          <div class="wt you" style="opacity:0.55;">YELLO<span class="ll">W</span></div>
+          <div class="chain-score">+85</div>
+        </div>
+        <div class="cc">↓</div>
+        <div class="chain-row">
+          <div class="chain-pl">—</div>
+          <div class="wt you" style="opacity:0.7;">WALRU<span class="ll">S</span></div>
+          <div class="chain-score">+78</div>
+        </div>
+        <div class="cc">↓</div>
+        <div class="chain-row">
+          <div class="chain-pl">—</div>
+          <div class="wt you">STOR<span class="ll">M</span></div>
+          <div class="chain-score new">+92 ✦</div>
+        </div>
+        <div class="cc">↓</div>
+      </div>
+
+      <div class="next-letter-bar">
+        <div class="nl-label">Next word starts with</div>
+        <div class="nl-letter">M</div>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <div class="chip chip-teal">Streak ×3 🔥</div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="wi-wrap">
+          <input class="wi" value="M" placeholder="">
+          <button class="wi-submit">→</button>
+        </div>
+      </div>
+
+      <div class="pu-section">
+        <div class="pu-btn">
+          <div class="pu-icon">💡</div>
+          <div class="pu-count">×3</div>
+        </div>
+        <div class="pu-btn">
+          <div class="pu-icon">⏱</div>
+          <div class="pu-count">×2</div>
+        </div>
+        <div class="pu-btn">
+          <div class="pu-icon">🛡</div>
+          <div class="pu-count">×1</div>
+        </div>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 5: MULTIPLAYER GAME ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">05</span><span class="nm">Multiplayer Game — Your Turn</span></div>
+  <div class="phone" id="s5">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="vs-header">
+        <div class="vs-player you">
+          <div class="av av-blue" style="width:36px;height:36px;font-size:13px;">A</div>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--blue-lt);letter-spacing:0.1em;text-transform:uppercase;">You</div>
+            <div class="vscore">1,240</div>
+          </div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="vs-player opp" style="flex-direction:row-reverse;">
+          <div class="av av-pink" style="width:36px;height:36px;font-size:13px;">K</div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;font-weight:600;color:var(--pink);letter-spacing:0.1em;text-transform:uppercase;">Kira</div>
+            <div class="vscore">980</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="turn-bar">
+        <svg width="12" height="12" fill="var(--blue-lt)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+        <div class="turn-text">Your turn — 1v1 Classic</div>
+      </div>
+
+      <div class="chain-section">
+        <div class="chain-row">
+          <div class="chain-pl you">YOU</div>
+          <div class="wt you" style="opacity:0.4;">GRA<span class="ll" style="opacity:1;">P</span><span class="ll">E</span></div>
+          <div class="chain-score">+70</div>
+        </div>
+        <div class="cc" style="padding-left:68px;">↓</div>
+        <div class="chain-row">
+          <div class="chain-pl opp">OPP</div>
+          <div class="wt opp" style="opacity:0.55;">EAGL<span class="ll">E</span></div>
+          <div class="chain-score">+95</div>
+        </div>
+        <div class="cc" style="padding-left:68px;">↓</div>
+        <div class="chain-row">
+          <div class="chain-pl you">YOU</div>
+          <div class="wt you" style="opacity:0.7;">ELASTI<span class="ll">C</span></div>
+          <div class="chain-score">+110</div>
+        </div>
+        <div class="cc" style="padding-left:68px;">↓</div>
+        <div class="chain-row">
+          <div class="chain-pl opp">OPP</div>
+          <div class="wt opp" style="opacity:0.85;">CRYSTA<span class="ll">L</span></div>
+          <div class="chain-score">+120</div>
+        </div>
+        <div class="cc" style="padding-left:68px;">↓</div>
+        <div class="chain-row">
+          <div class="chain-pl you">YOU</div>
+          <div class="wt you">LEMO<span class="ll">N</span></div>
+          <div class="chain-score new">+85 ✦</div>
+        </div>
+        <div class="cc" style="padding-left:68px;">↓</div>
+      </div>
+
+      <div class="next-prompt">
+        <div class="np-label">Next word starts with</div>
+        <div class="np-letter">N</div>
+        <div style="margin-left:auto;">
+          <div class="chip chip-pink" style="font-size:10px;">OPP's turn next</div>
+        </div>
+      </div>
+
+      <div class="timer-section">
+        <div class="timer-wrap" style="flex:1;">
+          <div class="tbar"><div class="tbar-fill hi-time" style="width:80%;"></div></div>
+          <div class="tbar-count">12s</div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="wi-wrap">
+          <input class="wi" value="N" placeholder="">
+          <button class="wi-submit">→</button>
+        </div>
+      </div>
+
+      <div class="pu-row-label">Your power-ups</div>
+      <div class="pu-section">
+        <div class="pu-btn">
+          <div class="pu-icon">💡</div><div class="pu-count">×1</div>
+        </div>
+        <div class="pu-btn">
+          <div class="pu-icon">⏱</div><div class="pu-count">×1</div>
+        </div>
+        <div class="pu-btn" style="opacity:0.45;">
+          <div class="pu-icon">❄️</div><div class="pu-count">×0</div>
+        </div>
+        <div class="pu-btn">
+          <div class="pu-icon">🛡</div><div class="pu-count">×1</div>
+        </div>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 6: GAME OVER ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">06</span><span class="nm">Game Over — Continue Prompt</span></div>
+  <div class="phone" id="s6">
+    <div class="sb" style="position:relative;z-index:1;">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc" style="position:relative;">
+      <div class="game-bg">
+        <div class="game-top" style="padding:12px 20px;display:flex;justify-content:space-between;">
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--t1);">1,240</div>
+          <div style="font-size:11px;color:var(--t3);">Classic · 1v1</div>
+        </div>
+        <div style="padding:10px 20px;display:flex;gap:10px;">
+          <div class="wt you">CRYSTA<span class="ll">L</span></div>
+        </div>
+        <div style="padding:8px 20px;">
+          <div class="wt you">LEMO<span class="ll">N</span></div>
+        </div>
+      </div>
+      <div class="overlay">
+        <div class="ov-icon">💥</div>
+        <div class="ov-title">Invalid Word!</div>
+        <div class="ov-reason">"XYLOPHONE" doesn't start with N.<br>Your chain of 8 words is at risk.</div>
+        <div class="ov-score-row">
+          <div class="ov-score-cell">
+            <div class="ov-score-val">1,240</div>
+            <div class="ov-score-lbl">Score</div>
+          </div>
+          <div class="ov-score-cell">
+            <div class="ov-score-val">8</div>
+            <div class="ov-score-lbl">Words</div>
+          </div>
+        </div>
+        <div class="ov-sep" style="width:100%;">
+          <span>Continue playing?</span>
+        </div>
+        <div class="ov-cta-row">
+          <button class="btn btn-ghost" style="width:100%;height:48px;font-size:14px;gap:8px;">
+            <span>▶</span> Watch Ad — Free Continue
+          </button>
+          <button class="btn btn-gold" style="width:100%;height:48px;font-size:14px;gap:6px;">
+            🪙 Spend 25 Coins
+          </button>
+        </div>
+        <div class="ov-timer">⏱ 12 seconds to decide…</div>
+        <div class="ov-defeat">Accept defeat</div>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 7: LOBBY ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">07</span><span class="nm">Matchmaking Lobby</span></div>
+  <div class="phone" id="s7">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 20px 0;cursor:pointer;">
+        <svg width="20" height="20" fill="none" stroke="var(--t2)" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span style="font-size:14px;font-weight:500;color:var(--t2);">Back</span>
+      </div>
+      <div class="lobby-title">Find a Match</div>
+      <div class="lobby-sub">Choose your game mode and we'll find you an opponent.</div>
+
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--t3);margin-bottom:10px;">Game Mode</div>
+      <div class="mode-selector">
+        <div class="ms-option active">
+          <div class="ms-name">Classic</div>
+          <div class="ms-desc">First mistake loses · 15s/turn</div>
+        </div>
+        <div class="ms-option">
+          <div class="ms-name">Time Attack</div>
+          <div class="ms-desc">90s total · 8s/turn</div>
+        </div>
+      </div>
+
+      <div class="searching-card">
+        <div class="vs-searching">
+          <div class="vs-you">
+            <div class="pulse-ring">
+              <div class="ring"></div>
+              <div class="ring"></div>
+              <div class="av av-blue center-av" style="width:52px;height:52px;font-size:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;">A</div>
+            </div>
+            <div class="vs-word">You</div>
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--t4);letter-spacing:0.15em;">VS</div>
+          <div class="vs-opp">
+            <div class="mystery-av" style="width:52px;height:52px;border-radius:50%;background:var(--bg5);border:1.5px dashed var(--t4);display:flex;align-items:center;justify-content:center;">
+              <div class="mystery-dots">
+                <div class="mystery-dot"></div>
+                <div class="mystery-dot"></div>
+                <div class="mystery-dot"></div>
+              </div>
+            </div>
+            <div class="vs-word">Searching…</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--t3);font-weight:500;">0:23 elapsed</div>
+        <div style="font-size:13px;color:var(--t2);font-weight:500;text-align:center;">Classic · Looking for an opponent near your skill level</div>
+      </div>
+
+      <button class="btn btn-danger" style="width:100%;height:48px;font-size:14px;margin-top:4px;">
+        Cancel Search
+      </button>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 8: DAILY CHALLENGE ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">08</span><span class="nm">Daily Challenge</span></div>
+  <div class="phone" id="s8">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="daily-head">
+        <div class="daily-badge">
+          📅 &nbsp;Daily · May 19, 2026
+        </div>
+        <div class="daily-title">Challenge #127</div>
+        <div class="daily-sub">One attempt per day. Top score wins.</div>
+      </div>
+
+      <div class="start-letter-card">
+        <div class="sl-left">
+          <div class="sl-label">Start your chain with</div>
+          <div class="sl-letter">G</div>
+        </div>
+        <div class="sl-right">
+          <div style="display:flex;gap:14px;justify-content:flex-end;">
+            <div>
+              <div class="sl-val">2,180</div>
+              <div class="sl-lbl">Today's best</div>
+            </div>
+            <div>
+              <div class="sl-val">1,240</div>
+              <div class="sl-lbl">Your best</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <div class="chip chip-gold">🔥 7-day streak</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rules-card">
+        <div class="rule-item"><div class="rule-dot"></div>Up to 20 words — longest chain wins</div>
+        <div class="rule-item"><div class="rule-dot"></div>15 seconds per turn, first mistake ends the run</div>
+        <div class="rule-item"><div class="rule-dot"></div>One retry available for 25 🪙 if you fail</div>
+        <div class="rule-item"><div class="rule-dot"></div>Share your result after — compare with friends!</div>
+      </div>
+
+      <div class="start-btn-wrap">
+        <button class="btn btn-primary" style="width:100%;height:54px;font-size:16px;letter-spacing:0.08em;">
+          ▶ &nbsp;Start Challenge
+        </button>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.55 5.45 21 6 21H9M19 10L21 12M19 10V20C19 20.55 18.55 21 18 21H15M9 21V15C9 15 9 13 12 13C15 13 15 15 15 15V21M9 21H15"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="ni on">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Daily</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Friends</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 9: DAILY RESULT ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">09</span><span class="nm">Daily Result + Share</span></div>
+  <div class="phone" id="s9">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="result-header">
+        <div class="result-title">Daily <span>#127</span> — Done!</div>
+        <div class="chip chip-teal">+10 🪙</div>
+      </div>
+
+      <div class="score-band">
+        <div class="sb-cell">
+          <div class="sb-val">1,840</div>
+          <div class="sb-lbl">Score</div>
+        </div>
+        <div class="sb-sep"></div>
+        <div class="sb-cell">
+          <div class="sb-val">14</div>
+          <div class="sb-lbl">Words</div>
+        </div>
+        <div class="sb-sep"></div>
+        <div class="sb-cell">
+          <div class="sb-val">#47</div>
+          <div class="sb-lbl">Rank</div>
+        </div>
+      </div>
+
+      <div class="rank-badge">
+        <svg width="16" height="16" fill="var(--gold)" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <div class="rb-text">Top 4% today · 🔥 8-day streak!</div>
+      </div>
+
+      <div class="share-card">
+        <div class="sc-header">
+          <div class="sc-title">WordChain Daily #127</div>
+          <div class="chip chip-blue" style="font-size:10px;">Preview</div>
+        </div>
+        <div class="sc-chain">
+          <span>GLOBE</span><span class="arrow">→</span>
+          <span>ENERGY</span><span class="arrow">→</span>
+          <span>YELLOW</span><span class="arrow">→</span>
+          <span>WALRUS</span><span class="arrow">→</span><br>
+          <span>STORM</span><span class="arrow">→</span>
+          <span>METAL</span><span class="arrow">→</span>
+          <span>LAKE</span><span class="arrow">→</span>
+          <span>EARTH</span><span class="arrow">→</span><br>
+          <span>HUNGRY</span><span class="arrow">→</span>
+          <span>YIELD</span><span class="arrow">→</span>
+          <span>DRUMS</span><span class="arrow">→</span><br>
+          <span>SILENT</span><span class="arrow">→</span>
+          <span>THREAD</span><span class="arrow">→</span>
+          <span>DANCER</span>
+        </div>
+        <div class="sc-footer">Score: 1,840 · Play at wordchain.app</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" style="flex:1;height:46px;gap:6px;font-size:13px;">
+          📤 Share Result
+        </button>
+        <button class="btn btn-secondary" style="flex:1;height:46px;gap:6px;font-size:13px;">
+          ↺ Retry (25 🪙)
+        </button>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 10: LEADERBOARD ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">10</span><span class="nm">Leaderboard — Global</span></div>
+  <div class="phone" id="s10">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="lb-head">
+        <div class="lb-title">Leaderboard</div>
+        <div class="lb-tabs">
+          <div class="lb-tab on">Global</div>
+          <div class="lb-tab">Friends</div>
+        </div>
+      </div>
+
+      <div class="reset-bar">
+        <div class="reset-label">Weekly reset in</div>
+        <div class="reset-timer">3d 14h 22m</div>
+      </div>
+
+      <div class="top3">
+        <div class="top3-item" style="order:1;">
+          <div class="top3-medal">🥈</div>
+          <div class="top3-av av-gray" style="width:38px;height:38px;font-size:13px;">WW</div>
+          <div class="top3-name">wordwiz99</div>
+          <div class="top3-score">7,891</div>
+        </div>
+        <div class="top3-item first" style="order:0;">
+          <div class="top3-medal">🥇</div>
+          <div class="top3-av" style="background:var(--gold-dim);color:var(--gold);border:1.5px solid var(--gold-bdr);width:44px;height:44px;font-size:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;">DC</div>
+          <div class="top3-name" style="font-weight:700;color:var(--gold);">darkchessm</div>
+          <div class="top3-score" style="color:var(--gold);">8,420</div>
+        </div>
+        <div class="top3-item" style="order:2;">
+          <div class="top3-medal">🥉</div>
+          <div class="top3-av av-gray" style="width:38px;height:38px;font-size:13px;">LP</div>
+          <div class="top3-name">lexicon_pro</div>
+          <div class="top3-score">7,240</div>
+        </div>
+      </div>
+
+      <div class="rank-list">
+        <div class="rr"><div class="rn">4</div><div class="av av-gray" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">SQ</div><div class="runame">scrablqueen</div><div class="rscore">6,805</div></div>
+        <div class="rr"><div class="rn">5</div><div class="av av-gray" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">VV</div><div class="runame">verbose_v</div><div class="rscore">6,123</div></div>
+        <div class="rr"><div class="rn">6</div><div class="av av-gray" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">QL</div><div class="runame">quickletters</div><div class="rscore">5,890</div></div>
+        <div class="rr"><div class="rn">7</div><div class="av av-gray" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">AK</div><div class="runame">anagram_king</div><div class="rscore">5,455</div></div>
+        <div class="rr"><div class="rn">8</div><div class="av av-gray" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">PM</div><div class="runame">puzzlemstr</div><div class="rscore">5,201</div></div>
+        <div class="rr"><div class="rn">9</div><div class="av av-gray" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">WH</div><div class="runame">word_hawk</div><div class="rscore">4,988</div></div>
+        <div class="rr"><div class="rn">10</div><div class="av av-gray" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">LX</div><div class="runame">lexicogr</div><div class="rscore">4,721</div></div>
+        <div style="padding:4px 20px;display:flex;align-items:center;gap:4px;"><div style="flex:1;height:1px;background:var(--bw);"></div><div style="font-size:10px;color:var(--t4);padding:0 8px;font-weight:500;">···</div><div style="flex:1;height:1px;background:var(--bw);"></div></div>
+      </div>
+
+      <div class="you-sticky">
+        <div class="rn" style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--blue-lt);">24</div>
+        <div class="av av-blue" style="width:30px;height:30px;font-size:11px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;flex-shrink:0;">A</div>
+        <div class="runame">You</div>
+        <div class="rscore">3,100</div>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 11: FRIENDS ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">11</span><span class="nm">Friends Screen</span></div>
+  <div class="phone" id="s11">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="fr-head">
+        <div class="fr-title">Friends</div>
+        <div class="search-wrap">
+          <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="search-inp" placeholder="Search by username…">
+        </div>
+      </div>
+
+      <div class="fr-section-lbl">Pending (1)</div>
+      <div class="pending-card">
+        <div class="pc-top">
+          <div class="av av-gray" style="width:40px;height:40px;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;">AC</div>
+          <div>
+            <div class="pc-name">alexchen</div>
+            <div class="pc-sub">Sent you a challenge · Classic</div>
+          </div>
+          <div style="margin-left:auto;"><div class="chip chip-gold">Challenge</div></div>
+        </div>
+        <div class="pc-btns">
+          <button class="btn btn-teal" style="flex:1;height:38px;font-size:13px;">Accept</button>
+          <button class="btn btn-ghost" style="flex:1;height:38px;font-size:13px;">Decline</button>
+        </div>
+      </div>
+
+      <div class="fr-section-lbl">Friends (4)</div>
+
+      <div class="friend-item">
+        <div class="av av-pink" style="width:40px;height:40px;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;">MK</div>
+        <div>
+          <div class="fi-name">maria.k</div>
+          <div class="fi-score">2,890 this week</div>
+        </div>
+        <div class="fi-cta"><button class="btn btn-secondary" style="height:34px;padding:0 14px;font-size:12px;">Challenge</button></div>
+      </div>
+      <div class="divider"></div>
+      <div class="friend-item">
+        <div class="av av-blue" style="width:40px;height:40px;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;">TD</div>
+        <div>
+          <div class="fi-name">tylerdev</div>
+          <div class="fi-score">1,940 this week</div>
+        </div>
+        <div class="fi-cta"><button class="btn btn-secondary" style="height:34px;padding:0 14px;font-size:12px;">Challenge</button></div>
+      </div>
+      <div class="divider"></div>
+      <div class="friend-item">
+        <div class="av av-gray" style="width:40px;height:40px;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;">SP</div>
+        <div>
+          <div class="fi-name">saypreet</div>
+          <div class="fi-score">1,201 this week</div>
+        </div>
+        <div class="fi-cta"><button class="btn btn-secondary" style="height:34px;padding:0 14px;font-size:12px;">Challenge</button></div>
+      </div>
+      <div class="divider"></div>
+      <div class="friend-item">
+        <div class="av av-gray" style="width:40px;height:40px;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;">RY</div>
+        <div>
+          <div class="fi-name">ryan_y</div>
+          <div class="fi-score">892 this week</div>
+        </div>
+        <div class="fi-cta"><button class="btn btn-secondary" style="height:34px;padding:0 14px;font-size:12px;">Challenge</button></div>
+      </div>
+
+      <div class="add-friend">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Add a Friend
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.55 5.45 21 6 21H9M19 10L21 12M19 10V20C19 20.55 18.55 21 18 21H15M9 21V15C9 15 9 13 12 13C15 13 15 15 15 15V21M9 21H15"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        <span>Ranks</span>
+      </div>
+      <div class="ni on">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Friends</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 12: PROFILE ============================== -->
+<div class="pw">
+  <div class="lbl"><span class="n">12</span><span class="nm">Profile Screen</span></div>
+  <div class="phone" id="s12">
+    <div class="sb">
+      <span class="time">9:41</span>
+      <span class="icons">●●●○&nbsp;79%</span>
+    </div>
+    <div class="sc">
+      <div class="pr-head">
+        <div class="pr-user">
+          <div class="av av-blue" style="width:56px;height:56px;font-size:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;">W</div>
+          <div>
+            <div class="pr-name">wordchain_42</div>
+            <div class="pr-handle">Member since Jan 2026</div>
+          </div>
+        </div>
+        <div class="pr-currency">
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="font-size:11px;color:var(--t3);font-weight:500;margin-bottom:2px;">Daily streak</div>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="font-size:16px;">🔥</span>
+              <div class="pr-streak-val">7</div>
+              <span style="font-size:11px;color:var(--t2);font-weight:500;">days</span>
+            </div>
+          </div>
+          <div style="width:1px;height:32px;background:var(--bw);"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="font-size:11px;color:var(--t3);font-weight:500;margin-bottom:2px;">Coins</div>
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="font-size:16px;">🪙</span>
+              <div class="pr-coins-val">340</div>
+            </div>
+          </div>
+        </div>
+        <div class="pr-actions">
+          <button class="btn btn-gold" style="flex:1;height:40px;font-size:12px;gap:6px;">🪙 Buy Coins</button>
+          <button class="btn btn-secondary" style="flex:1;height:40px;font-size:12px;gap:4px;">⭐ Premium</button>
+        </div>
+      </div>
+
+      <div class="section-head">Stats</div>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-val">124</div>
+          <div class="stat-lbl">Matches played</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">67</div>
+          <div class="stat-lbl">Wins</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">18</div>
+          <div class="stat-lbl">Best chain streak</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" style="font-size:16px;">CRYSTALLIZED</div>
+          <div class="stat-lbl">Longest word (12)</div>
+        </div>
+      </div>
+
+      <div class="section-head">Power-ups</div>
+      <div class="pu-grid">
+        <div class="pu-cell">
+          <div class="pu-ic">💡</div>
+          <div class="pu-nm">Hint</div>
+          <div class="pu-ct">×3</div>
+        </div>
+        <div class="pu-cell">
+          <div class="pu-ic">⏱</div>
+          <div class="pu-nm">Extra Time</div>
+          <div class="pu-ct">×2</div>
+        </div>
+        <div class="pu-cell">
+          <div class="pu-ic">🛡</div>
+          <div class="pu-nm">Shield</div>
+          <div class="pu-ct">×1</div>
+        </div>
+        <div class="pu-cell" style="opacity:0.45;">
+          <div class="pu-ic">❄️</div>
+          <div class="pu-nm">Freeze</div>
+          <div class="pu-ct">×0</div>
+        </div>
+      </div>
+
+      <div class="section-head">Settings</div>
+      <div class="settings-list">
+        <div class="settings-item">
+          <div>
+            <div class="si-name">Tutorial &amp; Help</div>
+            <div class="si-desc">Replay the tutorial anytime</div>
+          </div>
+          <svg class="si-arrow" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="settings-item">
+          <div>
+            <div class="si-name">Remove Ads</div>
+            <div class="si-desc">One-time purchase · $2.99</div>
+          </div>
+          <svg class="si-arrow" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="settings-item">
+          <div>
+            <div class="si-name">Notifications</div>
+            <div class="si-desc">Streaks, daily challenges, matches</div>
+          </div>
+          <svg class="si-arrow" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="bnav">
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.55 5.45 21 6 21H9M19 10L21 12M19 10V20C19 20.55 18.55 21 18 21H15M9 21V15C9 15 9 13 12 13C15 13 15 15 15 15V21M9 21H15"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        <span>Ranks</span>
+      </div>
+      <div class="ni">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Friends</span>
+      </div>
+      <div class="ni on">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </div>
+    </div>
+    <div class="hi"><div></div></div>
+  </div>
+</div>
+
+</div><!-- end gallery -->
+
+</body>
+</html>
