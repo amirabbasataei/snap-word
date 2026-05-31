@@ -57,6 +57,7 @@ Update this table when a phase is completed. Source of truth — keep in sync wi
 | Logging | Go: `slog` (structured JSON in prod, text in dev). Flutter: `logger` package. |
 | Push Notifications | Firebase Cloud Messaging (FCM) — Android + iOS via `firebase_messaging` Flutter package |
 | Sharing | `share_plus` Flutter package |
+| Local DB (Flutter) | Drift 2 — type-safe SQLite ORM; tables: `local_matches`, `local_used_words`, `local_player_stats`, `local_powerup_cache` |
 
 ---
 
@@ -83,7 +84,7 @@ wordchain/
 │   ├── migrations/
 │   ├── Dockerfile
 │   └── docker-compose.yml
-└── frontend/
+└── client/
     ├── pubspec.yaml
     ├── assets/
     │   └── words/enable.txt
@@ -93,8 +94,16 @@ wordchain/
         │   ├── di/
         │   ├── network/
         │   ├── router/
+        │   ├── database/
+        │   │   ├── app_database.dart           ← Drift DB definition, schema version
+        │   │   └── daos/
+        │   │       ├── match_dao.dart
+        │   │       ├── used_word_dao.dart
+        │   │       ├── stats_dao.dart
+        │   │       └── powerup_cache_dao.dart
         │   ├── services/
         │   │   ├── dictionary_service.dart
+        │   │   ├── sync_service.dart           ← uploads unsynced matches, merges stats
         │   │   ├── websocket_service.dart
         │   │   ├── monetization_service.dart
         │   │   ├── notification_service.dart   ← FCM token registration + foreground handling
@@ -116,7 +125,7 @@ wordchain/
 ## 📐 Coding Rules (apply in every session)
 
 - Backend: strictly 3 layers — `handler → service → repository`. No domain layer.
-- Frontend: feature-based folders only. No forced layered architecture per feature.
+- client: feature-based folders only. No forced layered architecture per feature.
 - Each feature only has what it needs: `cubit/` or `bloc/`, `data/`, `view/`.
 - Use `get_it` for all DI. Never use `Provider` or `InheritedWidget` for DI.
 - Use `go_router` for all navigation. Never call `Navigator.push` directly.
@@ -126,6 +135,16 @@ wordchain/
 - Solo and vs-AI games run **entirely on-device**. The server is not involved in word validation for those modes.
 - Add comments only where logic is non-obvious.
 - Write clean, readable, production-quality code. Avoid over-engineering.
+
+### Local database (Drift)
+- The local Drift DB is the **single source of truth for all solo and AI game state**. Never rely on in-memory-only state for data that must survive an app restart or backgrounding.
+- `LocalUsedWords` is the authoritative duplicate-check source during a game. On each `WordSubmitted` event, `GameBloc` calls `UsedWordDao.isWordUsed(matchId, word)` before the dictionary check — never use only an in-memory `Set<String>` for this.
+- When a match ends, the full word chain is serialised into `local_matches.word_chain` (JSON) and all `local_used_words` rows for that match are deleted inside a single Drift transaction — they are no longer needed.
+- `LocalPlayerStats` is updated synchronously at game-end inside the same Drift transaction. `SyncService.sync()` propagates it to the backend asynchronously afterwards — never block the UI on the sync call.
+- `LocalPowerupCache` reflects the last-known server inventory for authenticated users. Writes always go to the server first; update the local cache only on a successful API response.
+- For guests, `LocalPowerupCache` is not used. The 5 free Hint uses per session are tracked in `GameBloc` state only (intentional reset per session).
+- `SyncService.sync()` is idempotent and safe to call on every app resume. Trigger it on: app foreground (authenticated), successful registration, successful login, and connectivity-restored events.
+- Never write a Drift migration that drops or truncates `local_matches` or `local_player_stats` without first flushing all rows where `synced = false`.
 
 ### Error handling
 - **Go**: wrap errors with `fmt.Errorf("...: %w", err)`. Handlers translate errors to HTTP via a single `respondError` helper. Define sentinel errors in the service layer (e.g., `ErrInvalidWord`, `ErrNotYourTurn`); handlers map them to status codes.
@@ -301,6 +320,90 @@ CREATE TABLE weekly_leaderboard_rewards (
 
 ---
 
+## 📱 Local Database Schema (Flutter / Drift)
+
+All tables live in a single Drift database (`AppDatabase`) at `core/database/app_database.dart`. Schema version starts at `1`; increment and write a `MigrationStrategy` step whenever a table changes. Run `dart run build_runner build` to regenerate after schema edits.
+
+```dart
+// local_matches — one row per solo/AI game
+class LocalMatches extends Table {
+  IntColumn     get id           => integer().autoIncrement()();
+  TextColumn    get remoteId     => text().nullable()();         // backend UUID — null until synced
+  TextColumn    get mode         => text()();                    // classic | time_attack
+  TextColumn    get opponentType => text()();                    // solo | ai_easy | ai_medium | ai_hard
+  TextColumn    get status       => text()();                    // active | finished | abandoned
+  IntColumn     get score        => integer().withDefault(const Constant(0))();
+  IntColumn     get chainLength  => integer().withDefault(const Constant(0))();
+  TextColumn    get wordChain    => text().withDefault(const Constant('[]'))(); // JSON List<String>
+  BoolColumn    get synced       => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get startedAt   => dateTime()();
+  DateTimeColumn get endedAt     => dateTime().nullable()();
+}
+
+// local_used_words — live duplicate-check table; rows deleted when match ends
+class LocalUsedWords extends Table {
+  IntColumn  get matchId => integer()();   // FK → LocalMatches.id
+  TextColumn get word    => text()();
+  @override
+  Set<Column> get primaryKey => {matchId, word};
+}
+
+// local_player_stats — singleton row (id always 1)
+class LocalPlayerStats extends Table {
+  IntColumn     get id                 => integer().withDefault(const Constant(1))();
+  IntColumn     get totalMatches       => integer().withDefault(const Constant(0))();
+  IntColumn     get wins               => integer().withDefault(const Constant(0))();
+  IntColumn     get bestScore          => integer().withDefault(const Constant(0))();
+  IntColumn     get bestMatchStreak    => integer().withDefault(const Constant(0))();
+  IntColumn     get dailyStreak        => integer().withDefault(const Constant(0))();
+  IntColumn     get longestDailyStreak => integer().withDefault(const Constant(0))();
+  TextColumn    get longestWord        => text().nullable()();
+  DateTimeColumn get lastPlayedDate    => dateTime().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// local_powerup_cache — authenticated users only; ignored for guests
+class LocalPowerupCache extends Table {
+  TextColumn     get powerupType  => text()();                    // hint | freeze | extra_time | shield
+  IntColumn      get quantity     => integer().withDefault(const Constant(0))();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+  @override
+  Set<Column> get primaryKey => {powerupType};
+}
+```
+
+### DAO responsibilities
+
+| DAO | Key methods |
+|---|---|
+| `MatchDao` | `createMatch`, `updateMatch`, `getActiveMatch`, `getUnsyncedMatches`, `markSynced(id, remoteId)` |
+| `UsedWordDao` | `insertWord(matchId, word)`, `isWordUsed(matchId, word) → bool`, `deleteWordsForMatch(matchId)` |
+| `StatsDao` | `getStats`, `upsertStats`, `mergeWithRemote(RemoteStats)` — takes MAX of each numeric field |
+| `PowerupCacheDao` | `getAll`, `setQuantity(type, qty)`, `refreshFromRemote(List<RemotePowerup>)` |
+
+### Sync strategy (`SyncService`)
+
+```
+SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app resume
+  1. Upload unsynced matches
+       fetch local_matches WHERE synced = false, ORDER BY startedAt ASC
+       → POST /api/v1/game/solo for each (body includes mode, score, word_chain, started_at, ended_at)
+       → 200: set synced = true, store remoteId
+       → 409 (already exists): mark synced = true silently
+       → network error: abort remaining uploads; retry on next trigger
+  2. Merge stats
+       GET /api/v1/profile/stats
+       → StatsDao.mergeWithRemote(): take MAX of each numeric field; update local_player_stats
+  3. Refresh powerup cache
+       GET /api/v1/powerup/inventory  (added in Phase 7)
+       → PowerupCacheDao.refreshFromRemote()
+```
+
+**Sync triggers:** app foreground (authenticated), successful registration, successful login, connectivity restored (`connectivity_plus`), immediately before joining a multiplayer queue.
+
+---
+
 ## 🌐 REST API Conventions
 
 - Base path: `/api/v1/`
@@ -319,9 +422,10 @@ CREATE TABLE weekly_leaderboard_rewards (
 - `POST /api/v1/auth/refresh`
 
 **Game**
-- `POST /api/v1/game/solo` — start a solo game
+- `POST /api/v1/game/solo` — create/record a solo game (used for sync upload; body: `{mode, score, word_chain, started_at, ended_at}`)
 - `GET  /api/v1/game/:id` — get match state
 - `GET  /api/v1/profile/stats` — get current user's stats
+- `GET  /api/v1/powerup/inventory` — get current powerup quantities (used by `SyncService` step 3)
 - `POST /api/v1/powerup/use` — use a power-up (validates inventory, deducts, applies)
 
 **Matchmaking**
@@ -406,25 +510,26 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 ### What guests can do (no account required)
 - Play Solo (vs self, infinite rounds) — fully offline, no server calls
 - Play vs AI (Easy / Medium / Hard) — fully offline, no server calls
-- Use 5 Hint power-ups per session (in-memory only, reset on app restart)
-- See their current session score
+- Accumulate stats (games played, best score, best streak, longest word) — persisted to the **local Drift DB**, visible in a lightweight guest profile view, and preserved across app restarts until uninstall
+- Use 5 Hint power-ups per session (tracked in `GameBloc` state, intentionally reset on restart)
+- Resume an interrupted solo/AI game on next app launch (active match row in `local_matches`)
 
 ### What requires registration
 - Online multiplayer (1v1 real-time)
-- Persistent stats, daily streak, and leaderboard participation
+- Cloud-synced stats, daily streak, and leaderboard participation (basic stats are stored locally for guests)
 - Persistent coin balance and power-up inventory
 - Daily Challenge (server-tracked to prevent replay)
 - Friend system and friend challenges
 
 ### Guest power-up allowance
-Guests receive **5 Hint uses per session** (tracked in `GameBloc` state, not persisted). All other power-ups (Freeze, Extra Time, Shield) require registration because they depend on persistent inventory or affect an opponent. When a guest uses their last Hint or taps a locked power-up, show a soft upsell: *"Register free to save your progress and unlock more power-ups."* Never hard-block or show a paywall.
+Guests receive **5 Hint uses per session** (tracked in `GameBloc` state; intentionally reset on restart — persisting them would encourage session abuse). All other power-ups (Freeze, Extra Time, Shield) require registration because they depend on persistent inventory or affect an opponent. When a guest uses their last Hint or taps a locked power-up, show a soft upsell: *"Register free to save your progress and unlock more power-ups."* Never hard-block or show a paywall.
 
 ### Guest-to-registered conversion
-When a guest completes a solo game and registers immediately within the same session:
-- `AuthCubit` checks whether `GameBloc` holds a completed game in state.
-- If so, it calls `POST /api/v1/game/solo` after a successful register to save the score and chain to the new account.
-- This transfer happens automatically — no user action required beyond registering.
-- Guests who restart the app without registering lose their session data. The post-game upsell prompt should make this explicit: *"Register free to save this score and all future progress."*
+When a guest registers or logs in, `AuthCubit` triggers `SyncService.sync()` immediately after the successful API call. `SyncService` reads all unsynced rows from `local_matches` (`synced = false`) and posts them to the backend in chronological order, then calls `StatsDao.mergeWithRemote()` (taking the MAX of each numeric field). Because progress lives in the local DB, the guest does **not** need to register in the same session they played — history from previous sessions is preserved.
+
+- The post-game upsell prompt should read: *"Register free to back up your progress and unlock multiplayer."*
+- A guest who uninstalls the app without registering loses their local data permanently.
+- On conflict (`409` from the API for a match already uploaded): mark the local row `synced = true` silently.
 
 ### Auth flow
 ```
@@ -660,7 +765,7 @@ Tests are written **inside the phase that introduces the code**, not as a separa
 - **WebSocket tests** spin up `httptest.Server` and connect a real client.
 - Target ≥ 70% coverage on `engine/` and `service/`.
 
-### Frontend (Flutter)
+### client (Flutter)
 - **Widget tests** for each screen's primary states (loading, success, error, empty).
 - **Bloc/Cubit tests** using `bloc_test` for every state transition.
 - **Golden tests** for `WordChainList` and `TimerBar`.
@@ -688,7 +793,7 @@ Full end-to-end smoke flows:
 **Status: [ ] Not started**
 
 **Scope:**
-- Create monorepo folder structure (`backend/`, `frontend/`)
+- Create monorepo folder structure (`backend/`, `client/`)
 - Write full architecture diagram (`backend/ARCHITECTURE.md`)
 - Initialize Go module (`go.mod`) with all dependencies
 - `internal/config/config.go` — load from env vars (see Appendix)
@@ -706,9 +811,15 @@ Full end-to-end smoke flows:
 **Status: [ ] Not started**
 
 **Scope:**
-- Initialize Flutter project in `frontend/`
-- `pubspec.yaml` dependencies: `flutter_bloc`, `go_router`, `dio`, `get_it`, `equatable`, `web_socket_channel`, `shared_preferences`, `logger`, `firebase_messaging`, `share_plus`
-- `core/di/injection.dart` — register all services and repositories
+- Initialize Flutter project in `client/`
+- `pubspec.yaml` dependencies: `flutter_bloc`, `go_router`, `dio`, `get_it`, `equatable`, `web_socket_channel`, `shared_preferences`, `logger`, `firebase_messaging`, `share_plus`, `drift`, `drift_flutter`, `sqlite3_flutter_libs`, `connectivity_plus`; dev dependencies: `drift_dev`, `build_runner`
+- `core/database/app_database.dart` — Drift `AppDatabase`; registers all four tables; schema version 1; opens via `driftDatabase(name: 'wordchain.db')`
+- `core/database/daos/match_dao.dart` — `createMatch`, `updateMatch`, `getActiveMatch`, `getUnsyncedMatches`, `markSynced(id, remoteId)`
+- `core/database/daos/used_word_dao.dart` — `insertWord(matchId, word)`, `isWordUsed(matchId, word) → Future<bool>`, `deleteWordsForMatch(matchId)`
+- `core/database/daos/stats_dao.dart` — `getStats`, `upsertStats`, `mergeWithRemote(RemoteStats)` (takes MAX of each numeric field)
+- `core/database/daos/powerup_cache_dao.dart` — `getAll`, `setQuantity`, `refreshFromRemote`
+- `core/services/sync_service.dart` — `sync()`: (1) uploads unsynced `local_matches` to `POST /api/v1/game/solo`, (2) merges remote stats via `StatsDao`, (3) refreshes powerup cache via `PowerupCacheDao`; no-op if guest
+- `core/di/injection.dart` — register all services and repositories, including `AppDatabase` and `SyncService` as lazy singletons
 - `core/network/dio_client.dart` — single `Dio` instance, base URL from config, auth interceptor (attaches JWT, handles 401 → refresh)
 - `core/network/api_endpoints.dart` — all endpoint constants
 - `core/router/app_router.dart` — routes: `/login`, `/register`, `/home`, `/game/:id`, `/lobby`, `/daily`, `/leaderboard`, `/friends`, `/profile`
@@ -719,7 +830,7 @@ Full end-to-end smoke flows:
 - `core/theme/app_theme.dart` — light/dark theme
 - Bundle `assets/words/enable.txt` in `pubspec.yaml`
 
-**Done when:** App builds, all routes navigate to placeholder screens, DI resolves, `isValid("apple")` returns true, FCM token registers successfully.
+**Done when:** App builds, all routes navigate to placeholder screens, DI resolves, `isValid("apple")` returns true, `AppDatabase` opens without error, `isWordUsed` returns `false` on a fresh match, `SyncService.sync()` is a no-op for a guest.
 
 ---
 
@@ -727,10 +838,13 @@ Full end-to-end smoke flows:
 **Status: [ ] Not started**
 
 **Scope:**
-- `features/game/data/game_repository.dart` — `startSoloGame`, `getGame`, `usePowerup`
+- `features/game/data/game_repository.dart` — `startLocalGame(mode, opponentType) → Future<int>`: inserts a row into `local_matches` (status `active`) and returns its local id; `finishLocalGame(localMatchId, score, wordChain)`: updates status, score, chainLength, wordChain, endedAt and runs `deleteWordsForMatch` — all inside one Drift transaction; `usePowerup(type)` (authenticated only): calls `POST /api/v1/powerup/use` then updates `local_powerup_cache` on success
 - `features/game/bloc/game_bloc.dart` — states: `GameInitial`, `GameLoading`, `GameActive`, `GameOver`, `GameError`; events: `GameStarted`, `WordSubmitted`, `PowerupUsed`, `TimerTicked`, `GameEnded`, `ContinueRequested`, `ContinueResolved`
+  - On `GameStarted`: calls `game_repository.startLocalGame()`, stores `localMatchId` in bloc state
+  - On `WordSubmitted`: first calls `UsedWordDao.isWordUsed(localMatchId, word)` for duplicate check, then `DictionaryService.isValid(word)` for dictionary check; on acceptance inserts via `UsedWordDao.insertWord()`
+  - On `GameEnded`: calls `game_repository.finishLocalGame()` (Drift transaction: update match + delete used words), then `StatsDao.upsertStats()`, then `SyncService.sync()` as a fire-and-forget (do not await in bloc)
 - `features/game/view/game_screen.dart` — word chain display, required starting letter, score, timer bar, power-up buttons, game-over overlay with continue prompt
-- `features/game/view/widgets/word_input.dart` — text field + submit; validates via `DictionaryService` locally; disabled during opponent's turn
+- `features/game/view/widgets/word_input.dart` — text field + submit; duplicate check via `UsedWordDao.isWordUsed()` then dictionary check via `DictionaryService.isValid()`; disabled during opponent's turn
 - `features/game/view/widgets/word_chain_list.dart` — scrollable list of played words
 - `features/game/view/widgets/timer_bar.dart` — animated countdown bar
 - `features/game/view/widgets/continue_prompt.dart` — shown on `GameOver` in Classic mode; "Watch Ad" and "Spend 25 Coins" buttons; 15-second countdown; one use per session tracked in `GameBloc` state
@@ -741,7 +855,7 @@ Full end-to-end smoke flows:
   - Skippable and replayable from Profile → Help
 - Guest Hint: 5 free per session, soft upsell prompt on last use
 
-**Done when:** Solo game fully playable by a guest. Tutorial completes all four steps. Continue works once per Classic session. All end conditions trigger `GameOver`.
+**Done when:** Solo game fully playable by a guest, including resuming an interrupted game after app restart (active `local_matches` row is detected on launch and offered to continue). Used-word duplicate detection reads from `local_used_words`, not from memory. Stats persist in `local_player_stats` after app restart. Tutorial completes all four steps. Continue works once per Classic session. All end conditions trigger `GameOver`.
 
 ---
 
@@ -753,10 +867,10 @@ Full end-to-end smoke flows:
 - `features/auth/cubit/auth_cubit.dart` — states: `AuthInitial`, `AuthLoading`, `AuthGuest`, `AuthAuthenticated`, `AuthError`; expose `isGuest` flag
 - `features/auth/view/login_screen.dart` — email + password, login button, register link, "Continue as Guest" button
 - `features/auth/view/register_screen.dart` — username + email + password, register button, "Continue as Guest" link
-- App startup logic: valid JWT → `AuthAuthenticated` → `/home`; no token / refresh failed → `AuthGuest` → `/home`
-- On register success: check `GameBloc` state; if a completed solo game exists, call `POST /api/v1/game/solo` to transfer score before navigating home
+- App startup logic: valid JWT → `AuthAuthenticated` → `/home` then `SyncService.sync()`; no token / refresh failed → `AuthGuest` → `/home`
+- On register or login success: call `SyncService.sync()` — all unsynced `local_matches` are uploaded and stats are merged automatically, regardless of which session the games were played in
 
-**Done when:** Guest reaches home and plays solo without login. Token survives restart. Guest score transfers on registration.
+**Done when:** Guest reaches home and plays solo without login. Token survives restart. All unsynced local matches and stats are uploaded automatically on registration and login. A guest who played three days ago and then registers sees their full history synced to the backend.
 
 ---
 
@@ -798,7 +912,8 @@ Full end-to-end smoke flows:
 - `internal/repository/stats.go` — `UpsertStats`, `GetStats`
 - `internal/service/game.go` — `CreateSoloGame`, `GetGameState`, `EndGame`, `UpdateStats`
 - REST endpoints: `POST /api/v1/game/solo`, `GET /api/v1/game/:id`, `GET /api/v1/profile/stats`
-- `internal/handler/powerup.go` — `POST /api/v1/powerup/use` (validates inventory, deducts, applies; rejects second use in multiplayer via `match_players.continue_used` or per-powerup-type tracking)
+- `internal/handler/powerup.go` — `GET /api/v1/powerup/inventory` (returns all powerup quantities for the current user; used by `SyncService` step 3); `POST /api/v1/powerup/use` (validates inventory, deducts, applies; rejects second use in multiplayer via `match_players.continue_used` or per-powerup-type tracking)
+- Update `POST /api/v1/game/solo` to accept `{mode, score, word_chain: [...], started_at, ended_at}` — this is the sync upload endpoint called by `SyncService`; return `409` if a match with the same `started_at` + `user_id` already exists (idempotent)
 
 **Done when:** Solo game create/retrieve/end and power-up use work via REST.
 
@@ -903,7 +1018,9 @@ Full end-to-end smoke flows:
 - Wire `GameBloc` to `WebSocketService` for multiplayer; handle `loss_event`, `continue_window`, `continue_decision`, `game_over`
 - `features/home/view/home_screen.dart` — buttons for Solo / vs AI, Find Match, Daily Challenge, Leaderboard, Friends, Profile; show daily streak count if user is authenticated
 
-**Done when:** Player queues, is matched, plays a shared-chain multiplayer game, continue window works for both players, game_over navigates correctly.
+- Before calling `lobby_repository.joinQueue()`, trigger `SyncService.sync()` so local stats are flushed before a multiplayer session might overwrite them on the next merge
+
+**Done when:** Player queues, is matched, plays a shared-chain multiplayer game, continue window works for both players, game_over navigates correctly, local stats are synced before joining the queue.
 
 ---
 
@@ -917,8 +1034,8 @@ Full end-to-end smoke flows:
 - `features/friends/cubit/friends_cubit.dart`
 - `features/friends/view/friends_screen.dart` — friend list, pending requests banner, username search, per-friend profile with Challenge button
 - `features/friends/view/friend_challenge_sheet.dart` — mode selector (Classic / Time Attack), send challenge button
-- `features/profile/cubit/profile_cubit.dart` — fetch stats + coin balance + power-up inventory
-- `features/profile/view/profile_screen.dart` — total matches, wins, best match streak, daily streak, longest daily streak, longest word played, coin balance, power-up inventory, Help button (replays tutorial)
+- `features/profile/cubit/profile_cubit.dart` — for authenticated users: fetch stats, coin balance, and powerup inventory from the backend, then update local cache via `StatsDao.mergeWithRemote()` and `PowerupCacheDao.refreshFromRemote()`; for guests: read directly from `StatsDao` and show a "Register to back up" banner
+- `features/profile/view/profile_screen.dart` — total matches, wins, best match streak, daily streak, longest daily streak, longest word played; coin balance and power-up inventory for authenticated users; guest banner ("Register to back up your progress") for guests; Help button (replays tutorial)
 - Handle notification deep links: friend request notification → `/friends`; friend challenge notification → `/friends`
 
 **Done when:** All screens show real data. Friend request and challenge flows complete end-to-end.
@@ -979,9 +1096,10 @@ Full end-to-end smoke flows:
 - **Never implement outside the current phase's scope.** Flag missing items from prior phases without silently fixing them.
 - **Always check previous phases' output** before writing code that depends on it (e.g., verify actual repository method signatures before calling them in a service).
 - **Keep CLAUDE.md status table and per-phase status lines in sync.**
-- **Dictionary is dual:** `enable.txt` lives in both `backend/internal/engine/data/` and `frontend/assets/words/`. Keep them byte-identical.
+- **Dictionary is dual:** `enable.txt` lives in both `backend/internal/engine/data/` and `client/assets/words/`. Keep them byte-identical.
 - **`word_freq_ranks.txt` is backend only.** Rarity scoring is server-side; `rarity_bonus` is omitted from the Flutter scorer. Solo scores are not posted to the competitive leaderboard, so this asymmetry is acceptable.
 - **Never require login to start a solo or vs-AI game.** Guest mode is first-class. Any screen that forces login before solo play is a bug.
+- **Local DB is the source of truth for solo/AI games.** The backend is never called during an active solo or AI game. All word storage, duplicate checks, and stat updates go through Drift. The backend is synced lazily via `SyncService`.
 - **Daily Challenge never appears in the multiplayer lobby.** It is solo-only.
 - **Power-up limits in multiplayer are enforced server-side.** Client UI disables buttons after use, but the server must reject any second use attempt regardless.
 - **Do not hardcode game tuning values** (timers, scores, AI difficulty, trap letter weights). Read from `config.go` on the Go side and a `GameConfig` constant on the Flutter side.
@@ -1012,7 +1130,7 @@ Full end-to-end smoke flows:
 
 ### ENABLE wordlist
 - ~172,820 words, public domain, one lowercase word per line, ASCII only, no proper nouns, no contractions.
-- Stored at `backend/internal/engine/data/enable.txt` and `frontend/assets/words/enable.txt` (byte-identical).
+- Stored at `backend/internal/engine/data/enable.txt` and `client/assets/words/enable.txt` (byte-identical).
 - Loaded into `map[string]struct{}` (Go) and `HashSet<String>` (Flutter) at startup.
 - Memory footprint: ~1.7 MB plain text; ~6–8 MB in-memory set.
 
