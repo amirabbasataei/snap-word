@@ -24,17 +24,17 @@ Update this table when a phase is completed. Source of truth — keep in sync wi
 | # | Phase | Status |
 |---|---|---|
 | 1 | Foundation & Database | [ ] Not started |
-| 2 | Backend: Dictionary & Game Engine | [ ] Not started |
-| 3 | Backend: Auth | [ ] Not started |
-| 4 | Backend: Game REST API & Match Repository | [ ] Not started |
-| 5 | Backend: WebSocket & Multiplayer | [ ] Not started |
-| 6 | Backend: Matchmaking & AI Opponent | [ ] Not started |
-| 7 | Backend: Leaderboard & Streak | [ ] Not started |
-| 8 | Backend: Friends & Challenges | [ ] Not started |
-| 9 | Backend: Push Notifications | [ ] Not started |
-| 10 | Flutter: Core Setup | [ ] Not started |
-| 11 | Flutter: Auth Feature | [ ] Not started |
-| 12 | Flutter: Game Feature (Solo + Tutorial) | [ ] Not started |
+| 2 | Flutter: Core Setup | [ ] Not started |
+| 3 | Flutter: Game Feature (Solo + Tutorial) | [ ] Not started |
+| 4 | Flutter: Auth Feature | [ ] Not started |
+| 5 | Backend: Dictionary & Game Engine | [ ] Not started |
+| 6 | Backend: Auth | [ ] Not started |
+| 7 | Backend: Game REST API & Match Repository | [ ] Not started |
+| 8 | Backend: WebSocket & Multiplayer | [ ] Not started |
+| 9 | Backend: Matchmaking & AI Opponent | [ ] Not started |
+| 10 | Backend: Leaderboard & Streak | [ ] Not started |
+| 11 | Backend: Friends & Challenges | [ ] Not started |
+| 12 | Backend: Push Notifications | [ ] Not started |
 | 13 | Flutter: Lobby & Multiplayer | [ ] Not started |
 | 14 | Flutter: Leaderboard, Friends & Profile | [ ] Not started |
 | 15 | Flutter: Daily Challenge & Sharing | [ ] Not started |
@@ -702,134 +702,7 @@ Full end-to-end smoke flows:
 
 ---
 
-### Phase 2 — Backend: Dictionary & Game Engine
-**Status: [ ] Not started**
-
-**Note:** The Go dictionary is used **only for multiplayer validation**. Solo and AI games validate entirely on the Flutter client via `DictionaryService`.
-
-**Scope:**
-- `internal/engine/dictionary.go` — embed ENABLE wordlist (`data/enable.txt`), load into `map[string]struct{}` at startup, expose `IsValid(word string) bool`
-- `internal/engine/frequency.go` — embed `data/word_freq_ranks.txt`, load into `map[string]int` at startup, expose `Rank(word string) int` (returns `math.MaxInt` if missing)
-- `internal/engine/validator.go` — `ValidateMove(prevWord, newWord string, usedWords map[string]bool) error` — covers all six Word Validation Rules; returns typed sentinel errors
-- `internal/engine/scorer.go` — `CalculateScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int` using the formula above (includes rarity_bonus via `frequency.Rank`)
-- Unit tests for all four engine files
-
-**Done when:** All engine unit tests pass. Dictionary loads. Validator correctly rejects bad moves with typed errors.
-
----
-
-### Phase 3 — Backend: Auth
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/repository/user.go` — `CreateUser`, `GetUserByEmail`, `GetUserByID`
-- `internal/service/auth.go` — `Register`, `Login`, `RefreshToken` (bcrypt, JWT generation)
-- `internal/handler/auth.go` — `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`
-- `internal/middleware/auth.go` — JWT validation middleware for protected routes
-- Password policy: min 8 chars, ≥1 letter and ≥1 digit. Username: 3–32 chars, `[a-zA-Z0-9_]`.
-
-**Done when:** Register and login return valid JWTs. Protected route returns 401 without token. Invalid passwords rejected with 400.
-
----
-
-### Phase 4 — Backend: Game REST API & Match Repository
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/repository/match.go` — `CreateMatch`, `GetMatch`, `UpdateMatchStatus`, `SaveGameState`, `GetMatchPlayers`, `SetContinueUsed`
-- `internal/repository/stats.go` — `UpsertStats`, `GetStats`
-- `internal/service/game.go` — `CreateSoloGame`, `GetGameState`, `EndGame`, `UpdateStats`
-- REST endpoints: `POST /api/v1/game/solo`, `GET /api/v1/game/:id`, `GET /api/v1/profile/stats`
-- `internal/handler/powerup.go` — `POST /api/v1/powerup/use` (validates inventory, deducts, applies; rejects second use in multiplayer via `match_players.continue_used` or per-powerup-type tracking)
-
-**Done when:** Solo game create/retrieve/end and power-up use work via REST.
-
----
-
-### Phase 5 — Backend: WebSocket & Multiplayer
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/ws/client.go` — read/write pumps, ping/pong
-- `internal/ws/room.go` — **shared chain room**: alternating turns on a single chain, `loss_event` dispatch, continue handling (15s window per event, one continue per player tracked via `match_players.continue_used`), Shield interaction, reconnection (30s grace)
-- `internal/ws/hub.go` — manages all rooms, routes messages, cleans up finished rooms
-- `internal/handler/ws.go` — `GET /api/v1/ws/game/:roomID` — upgrades connection, registers client with hub
-- Integrate engine validator and scorer into room turn logic
-- Handle client events: `submit_word`, `use_powerup`, `continue`
-- Emit server events: `word_accepted`, `word_rejected`, `loss_event`, `continue_window`, `continue_decision`, `game_over`
-- Multiplayer power-up enforcement: reject `use_powerup` if the player has already used that power-up type in this match
-
-**Done when:** Two clients share a single chain, alternate correctly, loss events trigger the continue window, one continue per player enforced, game_over fires.
-
----
-
-### Phase 6 — Backend: Matchmaking & AI Opponent
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/service/matchmaking.go` — Redis List queue per mode (`queue:classic`, `queue:time_attack`); background goroutine polls every 500ms; pairs two players → creates room → notifies via WS; falls back to AI opponent after 30s wait
-- `POST /api/v1/match/queue`, `DELETE /api/v1/match/queue`
-- `internal/service/ai.go` — AI difficulty struct:
-  ```
-  Easy:   3s delay, 25% mistake rate, min length 3, random word selection
-  Medium: 1.5s delay, 10% mistake rate, min length 4, 30% trap-letter preference
-  Hard:   0.6s delay, 2% mistake rate, min length 6, 70% trap-letter preference + longest valid trap word preferred
-  ```
-  Trap letters: Q, X, Z, J, V. AI selects a trap-ending word only when at least one exists for the required starting letter; otherwise falls back to weighted random from all valid candidates.
-
-**Done when:** Matchmaking pairs two real clients. AI plays at all three difficulty levels with correct trap letter behaviour.
-
----
-
-### Phase 7 — Backend: Leaderboard & Streak
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/service/leaderboard.go` — Redis Sorted Set `leaderboard:global:weekly`: `AddScore`, `GetTopN(n int)`, `GetPlayerRank(userID string)`
-- `AddScore` is called at the end of **multiplayer and Daily Challenge games only** (not solo)
-- `GET /api/v1/leaderboard?type=global&limit=100`
-- `GET /api/v1/leaderboard?type=friends&limit=100` — fetches friend IDs, retrieves scores via `ZSCORE`, returns sorted list
-- `internal/service/streak.go` — `RecordGamePlayed(userID string, date time.Time)`: updates `daily_streak`, `last_played_date`, `longest_daily_streak`; awards milestone coins; calls `notification.SendToUser` for milestone events
-- Call `RecordGamePlayed` at every game end (solo end, multiplayer room close, daily challenge completion)
-- `internal/scheduler/scheduler.go` — goroutine with 1-minute ticker, initial jobs:
-  - Weekly reset: Sunday 00:00 UTC — query top 3, insert `weekly_leaderboard_rewards`, award coins, send push notifications, delete Redis key
-  - Streak at-risk check: every minute, fire notifications where applicable
-
-**Done when:** Leaderboard returns correct ranked list. Weekly reset awards coins and sends notifications. Streak increments and milestone coins are awarded.
-
----
-
-### Phase 8 — Backend: Friends & Challenges
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/repository/friendship.go` — `SendRequest`, `RespondToRequest`, `ListFriends`, `ListPendingRequests`, `RemoveFriend`
-- `internal/repository/challenge.go` — `CreateChallenge`, `RespondToChallenge`, `GetPendingChallenges`, `ExpireOldChallenges`
-- `internal/service/friends.go` — business logic: no duplicate requests, no self-requests, validates friendship before challenge creation
-- `internal/service/challenge.go` — `CreateChallenge` (creates a private match room on accept, writes `match_id`), `RespondToChallenge` (accept → triggers matchmaking directly into private room; decline → notify challenger), sends push notifications on all state changes
-- Handlers for all Friends and Friend Challenge endpoints
-- Add scheduler job: run `ExpireOldChallenges` every 5 minutes; notify challenger on expiry
-
-**Done when:** Full friend request and friend challenge flows work end-to-end. Expired challenges are cleaned up automatically.
-
----
-
-### Phase 9 — Backend: Push Notifications
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/service/notification.go` — `SendToUser(userID, title, body string)`: looks up FCM token from `device_tokens`, calls FCM HTTP v1 API (`https://fcm.googleapis.com/v1/projects/{FCM_PROJECT_ID}/messages:send`) using `FCM_SERVICE_ACCOUNT_JSON` for auth
-- `POST /api/v1/notifications/token`, `DELETE /api/v1/notifications/token`
-- Wire `SendToUser` into all existing trigger points that were previously stubs: friend request, challenge received/responded, match found, streak milestone, weekly leaderboard reward
-- Add scheduler jobs:
-  - **Midnight UTC daily**: query all users with device tokens, send Daily Challenge reminder
-  - **Every minute**: query `player_stats` for users with `daily_streak >= 3`, `last_played_date < today`, and estimated local time ≥ 20:00 — send streak-at-risk notification (deduplicate using a Redis key `notif:streak_risk:{userID}:{date}` with TTL 24h)
-
-**Done when:** All notification triggers fire in integration tests. Token registration and deregistration work. Duplicate at-risk notifications are prevented.
-
----
-
-### Phase 10 — Flutter: Core Setup
+### Phase 2 — Flutter: Core Setup
 **Status: [ ] Not started**
 
 **Scope:**
@@ -850,22 +723,7 @@ Full end-to-end smoke flows:
 
 ---
 
-### Phase 11 — Flutter: Auth Feature
-**Status: [ ] Not started**
-
-**Scope:**
-- `features/auth/data/auth_repository.dart` — `register`, `login`, `refreshToken`; persist JWT in `shared_preferences`
-- `features/auth/cubit/auth_cubit.dart` — states: `AuthInitial`, `AuthLoading`, `AuthGuest`, `AuthAuthenticated`, `AuthError`; expose `isGuest` flag
-- `features/auth/view/login_screen.dart` — email + password, login button, register link, "Continue as Guest" button
-- `features/auth/view/register_screen.dart` — username + email + password, register button, "Continue as Guest" link
-- App startup logic: valid JWT → `AuthAuthenticated` → `/home`; no token / refresh failed → `AuthGuest` → `/home`
-- On register success: check `GameBloc` state; if a completed solo game exists, call `POST /api/v1/game/solo` to transfer score before navigating home
-
-**Done when:** Guest reaches home and plays solo without login. Token survives restart. Guest score transfers on registration.
-
----
-
-### Phase 12 — Flutter: Game Feature (Solo + Tutorial)
+### Phase 3 — Flutter: Game Feature (Solo + Tutorial)
 **Status: [ ] Not started**
 
 **Scope:**
@@ -884,6 +742,148 @@ Full end-to-end smoke flows:
 - Guest Hint: 5 free per session, soft upsell prompt on last use
 
 **Done when:** Solo game fully playable by a guest. Tutorial completes all four steps. Continue works once per Classic session. All end conditions trigger `GameOver`.
+
+---
+
+### Phase 4 — Flutter: Auth Feature
+**Status: [ ] Not started**
+
+**Scope:**
+- `features/auth/data/auth_repository.dart` — `register`, `login`, `refreshToken`; persist JWT in `shared_preferences`
+- `features/auth/cubit/auth_cubit.dart` — states: `AuthInitial`, `AuthLoading`, `AuthGuest`, `AuthAuthenticated`, `AuthError`; expose `isGuest` flag
+- `features/auth/view/login_screen.dart` — email + password, login button, register link, "Continue as Guest" button
+- `features/auth/view/register_screen.dart` — username + email + password, register button, "Continue as Guest" link
+- App startup logic: valid JWT → `AuthAuthenticated` → `/home`; no token / refresh failed → `AuthGuest` → `/home`
+- On register success: check `GameBloc` state; if a completed solo game exists, call `POST /api/v1/game/solo` to transfer score before navigating home
+
+**Done when:** Guest reaches home and plays solo without login. Token survives restart. Guest score transfers on registration.
+
+---
+
+### Phase 5 — Backend: Dictionary & Game Engine
+**Status: [ ] Not started**
+
+**Note:** The Go dictionary is used **only for multiplayer validation**. Solo and AI games validate entirely on the Flutter client via `DictionaryService`.
+
+**Scope:**
+- `internal/engine/dictionary.go` — embed ENABLE wordlist (`data/enable.txt`), load into `map[string]struct{}` at startup, expose `IsValid(word string) bool`
+- `internal/engine/frequency.go` — embed `data/word_freq_ranks.txt`, load into `map[string]int` at startup, expose `Rank(word string) int` (returns `math.MaxInt` if missing)
+- `internal/engine/validator.go` — `ValidateMove(prevWord, newWord string, usedWords map[string]bool) error` — covers all six Word Validation Rules; returns typed sentinel errors
+- `internal/engine/scorer.go` — `CalculateScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int` using the formula above (includes rarity_bonus via `frequency.Rank`)
+- Unit tests for all four engine files
+
+**Done when:** All engine unit tests pass. Dictionary loads. Validator correctly rejects bad moves with typed errors.
+
+---
+
+### Phase 6 — Backend: Auth
+**Status: [ ] Not started**
+
+**Scope:**
+- `internal/repository/user.go` — `CreateUser`, `GetUserByEmail`, `GetUserByID`
+- `internal/service/auth.go` — `Register`, `Login`, `RefreshToken` (bcrypt, JWT generation)
+- `internal/handler/auth.go` — `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`
+- `internal/middleware/auth.go` — JWT validation middleware for protected routes
+- Password policy: min 8 chars, ≥1 letter and ≥1 digit. Username: 3–32 chars, `[a-zA-Z0-9_]`.
+
+**Done when:** Register and login return valid JWTs. Protected route returns 401 without token. Invalid passwords rejected with 400.
+
+---
+
+### Phase 7 — Backend: Game REST API & Match Repository
+**Status: [ ] Not started**
+
+**Scope:**
+- `internal/repository/match.go` — `CreateMatch`, `GetMatch`, `UpdateMatchStatus`, `SaveGameState`, `GetMatchPlayers`, `SetContinueUsed`
+- `internal/repository/stats.go` — `UpsertStats`, `GetStats`
+- `internal/service/game.go` — `CreateSoloGame`, `GetGameState`, `EndGame`, `UpdateStats`
+- REST endpoints: `POST /api/v1/game/solo`, `GET /api/v1/game/:id`, `GET /api/v1/profile/stats`
+- `internal/handler/powerup.go` — `POST /api/v1/powerup/use` (validates inventory, deducts, applies; rejects second use in multiplayer via `match_players.continue_used` or per-powerup-type tracking)
+
+**Done when:** Solo game create/retrieve/end and power-up use work via REST.
+
+---
+
+### Phase 8 — Backend: WebSocket & Multiplayer
+**Status: [ ] Not started**
+
+**Scope:**
+- `internal/ws/client.go` — read/write pumps, ping/pong
+- `internal/ws/room.go` — **shared chain room**: alternating turns on a single chain, `loss_event` dispatch, continue handling (15s window per event, one continue per player tracked via `match_players.continue_used`), Shield interaction, reconnection (30s grace)
+- `internal/ws/hub.go` — manages all rooms, routes messages, cleans up finished rooms
+- `internal/handler/ws.go` — `GET /api/v1/ws/game/:roomID` — upgrades connection, registers client with hub
+- Integrate engine validator and scorer into room turn logic
+- Handle client events: `submit_word`, `use_powerup`, `continue`
+- Emit server events: `word_accepted`, `word_rejected`, `loss_event`, `continue_window`, `continue_decision`, `game_over`
+- Multiplayer power-up enforcement: reject `use_powerup` if the player has already used that power-up type in this match
+
+**Done when:** Two clients share a single chain, alternate correctly, loss events trigger the continue window, one continue per player enforced, game_over fires.
+
+---
+
+### Phase 9 — Backend: Matchmaking & AI Opponent
+**Status: [ ] Not started**
+
+**Scope:**
+- `internal/service/matchmaking.go` — Redis List queue per mode (`queue:classic`, `queue:time_attack`); background goroutine polls every 500ms; pairs two players → creates room → notifies via WS; falls back to AI opponent after 30s wait
+- `POST /api/v1/match/queue`, `DELETE /api/v1/match/queue`
+- `internal/service/ai.go` — AI difficulty struct:
+  ```
+  Easy:   3s delay, 25% mistake rate, min length 3, random word selection
+  Medium: 1.5s delay, 10% mistake rate, min length 4, 30% trap-letter preference
+  Hard:   0.6s delay, 2% mistake rate, min length 6, 70% trap-letter preference + longest valid trap word preferred
+  ```
+  Trap letters: Q, X, Z, J, V. AI selects a trap-ending word only when at least one exists for the required starting letter; otherwise falls back to weighted random from all valid candidates.
+
+**Done when:** Matchmaking pairs two real clients. AI plays at all three difficulty levels with correct trap letter behaviour.
+
+---
+
+### Phase 10 — Backend: Leaderboard & Streak
+**Status: [ ] Not started**
+
+**Scope:**
+- `internal/service/leaderboard.go` — Redis Sorted Set `leaderboard:global:weekly`: `AddScore`, `GetTopN(n int)`, `GetPlayerRank(userID string)`
+- `AddScore` is called at the end of **multiplayer and Daily Challenge games only** (not solo)
+- `GET /api/v1/leaderboard?type=global&limit=100`
+- `GET /api/v1/leaderboard?type=friends&limit=100` — fetches friend IDs, retrieves scores via `ZSCORE`, returns sorted list
+- `internal/service/streak.go` — `RecordGamePlayed(userID string, date time.Time)`: updates `daily_streak`, `last_played_date`, `longest_daily_streak`; awards milestone coins; calls `notification.SendToUser` for milestone events
+- Call `RecordGamePlayed` at every game end (solo end, multiplayer room close, daily challenge completion)
+- `internal/scheduler/scheduler.go` — goroutine with 1-minute ticker, initial jobs:
+  - Weekly reset: Sunday 00:00 UTC — query top 3, insert `weekly_leaderboard_rewards`, award coins, send push notifications, delete Redis key
+  - Streak at-risk check: every minute, fire notifications where applicable
+
+**Done when:** Leaderboard returns correct ranked list. Weekly reset awards coins and sends notifications. Streak increments and milestone coins are awarded.
+
+---
+
+### Phase 11 — Backend: Friends & Challenges
+**Status: [ ] Not started**
+
+**Scope:**
+- `internal/repository/friendship.go` — `SendRequest`, `RespondToRequest`, `ListFriends`, `ListPendingRequests`, `RemoveFriend`
+- `internal/repository/challenge.go` — `CreateChallenge`, `RespondToChallenge`, `GetPendingChallenges`, `ExpireOldChallenges`
+- `internal/service/friends.go` — business logic: no duplicate requests, no self-requests, validates friendship before challenge creation
+- `internal/service/challenge.go` — `CreateChallenge` (creates a private match room on accept, writes `match_id`), `RespondToChallenge` (accept → triggers matchmaking directly into private room; decline → notify challenger), sends push notifications on all state changes
+- Handlers for all Friends and Friend Challenge endpoints
+- Add scheduler job: run `ExpireOldChallenges` every 5 minutes; notify challenger on expiry
+
+**Done when:** Full friend request and friend challenge flows work end-to-end. Expired challenges are cleaned up automatically.
+
+---
+
+### Phase 12 — Backend: Push Notifications
+**Status: [ ] Not started**
+
+**Scope:**
+- `internal/service/notification.go` — `SendToUser(userID, title, body string)`: looks up FCM token from `device_tokens`, calls FCM HTTP v1 API (`https://fcm.googleapis.com/v1/projects/{FCM_PROJECT_ID}/messages:send`) using `FCM_SERVICE_ACCOUNT_JSON` for auth
+- `POST /api/v1/notifications/token`, `DELETE /api/v1/notifications/token`
+- Wire `SendToUser` into all existing trigger points that were previously stubs: friend request, challenge received/responded, match found, streak milestone, weekly leaderboard reward
+- Add scheduler jobs:
+  - **Midnight UTC daily**: query all users with device tokens, send Daily Challenge reminder
+  - **Every minute**: query `player_stats` for users with `daily_streak >= 3`, `last_played_date < today`, and estimated local time ≥ 20:00 — send streak-at-risk notification (deduplicate using a Redis key `notif:streak_risk:{userID}:{date}` with TTL 24h)
+
+**Done when:** All notification triggers fire in integration tests. Token registration and deregistration work. Duplicate at-risk notifications are prevented.
 
 ---
 
