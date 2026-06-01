@@ -105,7 +105,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 5 — Backend: Dictionary & Game Engine
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 > The Go dictionary is used **only for multiplayer validation**. Solo and AI games validate entirely on the Flutter client.
 
