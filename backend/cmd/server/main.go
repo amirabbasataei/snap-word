@@ -18,6 +18,10 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"wordchain/backend/internal/config"
+	"wordchain/backend/internal/handler"
+	"wordchain/backend/internal/middleware"
+	"wordchain/backend/internal/repository"
+	"wordchain/backend/internal/service"
 	dbmigrations "wordchain/backend/migrations"
 )
 
@@ -55,8 +59,21 @@ func main() {
 
 	router.GET("/health", healthHandler(db, rdb))
 
-	// /api/v1 group populated in subsequent phases
-	_ = router.Group("/api/v1")
+	// Dependency wiring
+	userRepo := repository.NewUserRepository(db)
+	authSvc := service.NewAuthService(userRepo, cfg)
+	authHandler := handler.NewAuthHandler(authSvc)
+
+	api := router.Group("/api/v1")
+
+	// Auth routes (public)
+	auth := api.Group("/auth")
+	auth.POST("/register", authHandler.Register)
+	auth.POST("/login", authHandler.Login)
+	auth.POST("/refresh", authHandler.Refresh)
+
+	// Protected route group — subsequent phases attach handlers here
+	_ = api.Group("/", middleware.RequireAuth(authSvc))
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server listening", "addr", addr)

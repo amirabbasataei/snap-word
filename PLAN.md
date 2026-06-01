@@ -121,7 +121,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 6 — Backend: Auth
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `internal/repository/user.go` — `CreateUser`, `GetUserByEmail`, `GetUserByID`
