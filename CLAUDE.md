@@ -1,7 +1,7 @@
 # CLAUDE.md — WordChain Project
 
-This file is read by Claude Code at the start of every session.
-**Always read this file first. Never skip a phase. Never implement ahead of the current phase.**
+Read this file and **PLAN.md** at the start of every session.
+**Never skip a phase. Never implement ahead of the current phase.**
 
 ---
 
@@ -19,7 +19,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 
 ## 📊 Phase Status
 
-Update this table when a phase is completed. Source of truth — keep in sync with the per-phase status lines below.
+Keep this table in sync with the per-phase status lines in PLAN.md.
 
 | # | Phase | Status |
 |---|---|---|
@@ -66,6 +66,7 @@ Update this table when a phase is completed. Source of truth — keep in sync wi
 ```
 wordchain/
 ├── CLAUDE.md
+├── PLAN.md
 ├── .env.example
 ├── backend/
 │   ├── cmd/server/main.go
@@ -79,7 +80,7 @@ wordchain/
 │   │   │   └── data/
 │   │   │       ├── enable.txt                  ← ENABLE wordlist
 │   │   │       └── word_freq_ranks.txt         ← word frequency ranks (see Appendix)
-│   │   ├── scheduler/                          ← background jobs (streak reminders, leaderboard reset, challenge expiry)
+│   │   ├── scheduler/                          ← background jobs
 │   │   └── middleware/
 │   ├── migrations/
 │   ├── Dockerfile
@@ -95,7 +96,7 @@ wordchain/
         │   ├── network/
         │   ├── router/
         │   ├── database/
-        │   │   ├── app_database.dart           ← Drift DB definition, schema version
+        │   │   ├── app_database.dart
         │   │   └── daos/
         │   │       ├── match_dao.dart
         │   │       ├── used_word_dao.dart
@@ -103,11 +104,11 @@ wordchain/
         │   │       └── powerup_cache_dao.dart
         │   ├── services/
         │   │   ├── dictionary_service.dart
-        │   │   ├── sync_service.dart           ← uploads unsynced matches, merges stats
+        │   │   ├── sync_service.dart
         │   │   ├── websocket_service.dart
         │   │   ├── monetization_service.dart
-        │   │   ├── notification_service.dart   ← FCM token registration + foreground handling
-        │   │   └── share_service.dart          ← Daily Challenge result card + native share
+        │   │   ├── notification_service.dart
+        │   │   └── share_service.dart
         │   └── theme/
         └── features/
             ├── auth/
@@ -125,21 +126,20 @@ wordchain/
 ## 📐 Coding Rules (apply in every session)
 
 - Backend: strictly 3 layers — `handler → service → repository`. No domain layer.
-- client: feature-based folders only. No forced layered architecture per feature.
+- Flutter: feature-based folders only. No forced layered architecture per feature.
 - Each feature only has what it needs: `cubit/` or `bloc/`, `data/`, `view/`.
 - Use `get_it` for all DI. Never use `Provider` or `InheritedWidget` for DI.
 - Use `go_router` for all navigation. Never call `Navigator.push` directly.
 - Use a single `dio` instance registered in `get_it`, with an auth interceptor.
 - WebSocket logic lives in `core/services/websocket_service.dart` only.
-- Dictionary validation is **hybrid**: Flutter `DictionaryService` (HashSet) for solo/AI — instant, offline, no server call. Go `map[string]struct{}` for multiplayer — server is the authority, client cannot be trusted.
+- Dictionary validation is **hybrid**: Flutter `DictionaryService` (HashSet) for solo/AI — instant, offline, no server call. Go `map[string]struct{}` for multiplayer — server is the authority.
 - Solo and vs-AI games run **entirely on-device**. The server is not involved in word validation for those modes.
 - Add comments only where logic is non-obvious.
-- Write clean, readable, production-quality code. Avoid over-engineering.
 
 ### Local database (Drift)
 - The local Drift DB is the **single source of truth for all solo and AI game state**. Never rely on in-memory-only state for data that must survive an app restart or backgrounding.
 - `LocalUsedWords` is the authoritative duplicate-check source during a game. On each `WordSubmitted` event, `GameBloc` calls `UsedWordDao.isWordUsed(matchId, word)` before the dictionary check — never use only an in-memory `Set<String>` for this.
-- When a match ends, the full word chain is serialised into `local_matches.word_chain` (JSON) and all `local_used_words` rows for that match are deleted inside a single Drift transaction — they are no longer needed.
+- When a match ends, the full word chain is serialised into `local_matches.word_chain` (JSON) and all `local_used_words` rows for that match are deleted inside a single Drift transaction.
 - `LocalPlayerStats` is updated synchronously at game-end inside the same Drift transaction. `SyncService.sync()` propagates it to the backend asynchronously afterwards — never block the UI on the sync call.
 - `LocalPowerupCache` reflects the last-known server inventory for authenticated users. Writes always go to the server first; update the local cache only on a successful API response.
 - For guests, `LocalPowerupCache` is not used. The 5 free Hint uses per session are tracked in `GameBloc` state only (intentional reset per session).
@@ -162,7 +162,7 @@ wordchain/
 
 | Variant | Opponent options | Turn timer | End condition |
 |---|---|---|---|
-| **Classic** | Solo, AI, 1v1 Multiplayer | 15s per turn | First invalid/timeout move loses; one continue per player allowed (see Continue Rules) |
+| **Classic** | Solo, AI, 1v1 Multiplayer | 15s per turn | First invalid/timeout move loses; one continue per player allowed |
 | **Time Attack** | Solo, AI, 1v1 Multiplayer | 8s per turn | Total match time hits 90s; highest score wins |
 | **Daily Challenge** | **Solo only** | 15s per turn | First mistake or after 20 words; score posted to daily leaderboard |
 
@@ -172,19 +172,16 @@ Defaults above are tunable in `internal/config/config.go` and via a `GameConfig`
 
 ### Multiplayer shared chain
 In any multiplayer match (vs AI or 1v1), **both players contribute to a single shared word chain**:
-- Players alternate turns. Player A plays a word, then Player B must continue from the last letter, then Player A, and so on.
-- The full chain is visible to both players at all times.
-- The first player to submit an invalid word, let the timer expire, or concede loses — unless they invoke a continue (Classic only, see below).
-- In Time Attack, players alternate until the 90-second match timer expires; the player with the higher cumulative score wins.
+- Players alternate turns on the same chain.
+- The first player to submit an invalid word, let the timer expire, or concede loses — unless they invoke a continue (Classic only).
+- In Time Attack, players alternate until the 90-second match timer expires; highest cumulative score wins.
 
 ### Continue Rules (Classic mode only — solo and multiplayer)
-When a player's turn results in a loss event (invalid word or timeout):
-1. The game pauses and a prompt appears for that player.
-2. The player may **Watch a rewarded ad** (free continue) or **Spend 25 coins** (instant continue).
-3. On continue: the chain resumes from the last valid word; it is that player's turn again.
-4. Each player may use **at most one continue per match**.
-5. In multiplayer, the opponent sees an "Opponent deciding…" overlay with a **15-second countdown**. If the countdown expires with no action, the loss stands and the opponent wins.
-6. **Shield interaction**: Shield auto-activates *before* a loss event occurs; the continue prompt appears only if no Shield is held. They are independent systems.
+1. On a loss event: player may **Watch a rewarded ad** (free) or **Spend 25 coins** (instant).
+2. On continue: chain resumes from the last valid word; it is that player's turn again.
+3. Each player may use **at most one continue per match**.
+4. In multiplayer, the opponent sees "Opponent deciding…" with a **15-second countdown**. If it expires, the loss stands.
+5. **Shield interaction**: Shield auto-activates *before* a loss event; the continue prompt appears only if no Shield is held.
 
 ### Word validation rules
 Apply identically in Go (`engine.ValidateMove`) and Flutter (`DictionaryService.isValid`):
@@ -192,23 +189,16 @@ Apply identically in Go (`engine.ValidateMove`) and Flutter (`DictionaryService.
 1. **Normalize**: trim whitespace, lowercase.
 2. **Allowed characters**: `[a-z]` only. Reject digits, spaces, hyphens, apostrophes.
 3. **Minimum length**: 3 letters. Reject with reason `too_short`.
-4. **Starting letter**: must equal the last letter of the previous accepted word (case-insensitive after normalization). First word of the chain has no constraint.
-5. **No repetition**: track `usedWords` per match; reject duplicates with reason `already_used`.
-6. **Dictionary check**: must exist in the ENABLE wordlist. No proper nouns; ENABLE excludes them.
+4. **Starting letter**: must equal the last letter of the previous accepted word. First word has no constraint.
+5. **No repetition**: reject duplicates with reason `already_used`.
+6. **Dictionary check**: must exist in the ENABLE wordlist.
 
 ### Streak rules
-
-A **match streak** is the count of consecutive successful word submissions by the same player within a single match. Resets to 0 on any rejection or timeout. The `streak_bonus` in the scoring formula uses the count *before* the current word (so the 4th consecutive correct word gets the bonus, not the 3rd).
-
-A **daily streak** is the count of consecutive calendar days (UTC) on which the player completed at least one game of any mode. Tracked server-side in `player_stats`. See the Daily Streak section.
+- **Match streak**: consecutive successful word submissions by the same player in one match. Resets on rejection/timeout. `streak_bonus` uses the count *before* the current word.
+- **Daily streak**: consecutive calendar days (UTC) with at least one completed game. Tracked server-side in `player_stats`.
 
 ### Solo end conditions
-Solo is single-player practice with no opponent. The match ends when **any** of:
-- The player submits an invalid word
-- The per-turn timer hits 0
-- The player taps "End game"
-
-Scores are saved to the backend for authenticated users. Guests see results in-session only but can transfer their score to a new account if they register immediately (see Guest Mode).
+Match ends when the player submits an invalid word, the timer hits 0, or they tap "End game".
 
 ---
 
@@ -240,7 +230,7 @@ CREATE TABLE match_players (
     user_id UUID REFERENCES users(id),
     score INTEGER DEFAULT 0,
     is_ai BOOLEAN DEFAULT false,
-    continue_used BOOLEAN DEFAULT false,   -- tracks whether this player used their one continue
+    continue_used BOOLEAN DEFAULT false,
     joined_at TIMESTAMPTZ DEFAULT now(),
     PRIMARY KEY (match_id, user_id)
 );
@@ -273,10 +263,10 @@ CREATE TABLE daily_challenges (
 CREATE TABLE daily_challenge_attempts (
     user_id UUID REFERENCES users(id),
     challenge_date DATE REFERENCES daily_challenges(challenge_date),
-    attempt_number INTEGER NOT NULL DEFAULT 1,  -- 1 = free attempt, 2 = paid retry
+    attempt_number INTEGER NOT NULL DEFAULT 1,  -- 1 = free, 2 = paid retry
     score INTEGER NOT NULL,
     chain_length INTEGER NOT NULL,
-    word_chain TEXT[] NOT NULL DEFAULT '{}',    -- ordered list of words played (used for share card)
+    word_chain TEXT[] NOT NULL DEFAULT '{}',
     completed_at TIMESTAMPTZ DEFAULT now(),
     PRIMARY KEY (user_id, challenge_date, attempt_number)
 );
@@ -293,11 +283,11 @@ CREATE TABLE friend_challenges (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     challenger_id UUID REFERENCES users(id),
     challenged_id UUID REFERENCES users(id),
-    mode VARCHAR(20) NOT NULL,            -- classic, time_attack
-    match_id UUID REFERENCES matches(id), -- null until accepted
-    status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, declined, expired
+    mode VARCHAR(20) NOT NULL,
+    match_id UUID REFERENCES matches(id),
+    status VARCHAR(20) DEFAULT 'pending',  -- pending, accepted, declined, expired
     created_at TIMESTAMPTZ DEFAULT now(),
-    expires_at TIMESTAMPTZ NOT NULL       -- challenger_created_at + 24h
+    expires_at TIMESTAMPTZ NOT NULL        -- created_at + 24h
 );
 
 CREATE TABLE device_tokens (
@@ -322,13 +312,12 @@ CREATE TABLE weekly_leaderboard_rewards (
 
 ## 📱 Local Database Schema (Flutter / Drift)
 
-All tables live in a single Drift database (`AppDatabase`) at `core/database/app_database.dart`. Schema version starts at `1`; increment and write a `MigrationStrategy` step whenever a table changes. Run `dart run build_runner build` to regenerate after schema edits.
+All tables live in a single Drift database (`AppDatabase`) at `core/database/app_database.dart`. Schema version starts at `1`; increment and add a `MigrationStrategy` step on every change. Run `dart run build_runner build` after schema edits.
 
 ```dart
-// local_matches — one row per solo/AI game
 class LocalMatches extends Table {
   IntColumn     get id           => integer().autoIncrement()();
-  TextColumn    get remoteId     => text().nullable()();         // backend UUID — null until synced
+  TextColumn    get remoteId     => text().nullable()();         // null until synced
   TextColumn    get mode         => text()();                    // classic | time_attack
   TextColumn    get opponentType => text()();                    // solo | ai_easy | ai_medium | ai_hard
   TextColumn    get status       => text()();                    // active | finished | abandoned
@@ -340,7 +329,6 @@ class LocalMatches extends Table {
   DateTimeColumn get endedAt     => dateTime().nullable()();
 }
 
-// local_used_words — live duplicate-check table; rows deleted when match ends
 class LocalUsedWords extends Table {
   IntColumn  get matchId => integer()();   // FK → LocalMatches.id
   TextColumn get word    => text()();
@@ -348,7 +336,6 @@ class LocalUsedWords extends Table {
   Set<Column> get primaryKey => {matchId, word};
 }
 
-// local_player_stats — singleton row (id always 1)
 class LocalPlayerStats extends Table {
   IntColumn     get id                 => integer().withDefault(const Constant(1))();
   IntColumn     get totalMatches       => integer().withDefault(const Constant(0))();
@@ -363,7 +350,6 @@ class LocalPlayerStats extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-// local_powerup_cache — authenticated users only; ignored for guests
 class LocalPowerupCache extends Table {
   TextColumn     get powerupType  => text()();                    // hint | freeze | extra_time | shield
   IntColumn      get quantity     => integer().withDefault(const Constant(0))();
@@ -388,19 +374,17 @@ class LocalPowerupCache extends Table {
 SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app resume
   1. Upload unsynced matches
        fetch local_matches WHERE synced = false, ORDER BY startedAt ASC
-       → POST /api/v1/game/solo for each (body includes mode, score, word_chain, started_at, ended_at)
+       → POST /api/v1/game/solo for each
        → 200: set synced = true, store remoteId
        → 409 (already exists): mark synced = true silently
-       → network error: abort remaining uploads; retry on next trigger
+       → network error: abort remaining; retry on next trigger
   2. Merge stats
-       GET /api/v1/profile/stats
-       → StatsDao.mergeWithRemote(): take MAX of each numeric field; update local_player_stats
+       GET /api/v1/profile/stats → StatsDao.mergeWithRemote()
   3. Refresh powerup cache
-       GET /api/v1/powerup/inventory  (added in Phase 7)
-       → PowerupCacheDao.refreshFromRemote()
+       GET /api/v1/powerup/inventory → PowerupCacheDao.refreshFromRemote()
 ```
 
-**Sync triggers:** app foreground (authenticated), successful registration, successful login, connectivity restored (`connectivity_plus`), immediately before joining a multiplayer queue.
+**Sync triggers:** app foreground (authenticated), successful registration/login, connectivity restored, before joining multiplayer queue.
 
 ---
 
@@ -411,50 +395,26 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 - Content type: `application/json`
 - Standard success: `{ "data": { ... } }`
 - Standard error: `{ "error": { "code": "...", "message": "..." } }`
-- Status codes: `400` validation, `401` missing/invalid JWT, `403` not allowed, `404` not found, `409` conflict, `429` rate limited, `500` server error
+- Status codes: `400` validation, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited, `500` server error
 - All write endpoints rate-limited via Redis (60 req/min per user/IP)
 
 ### Endpoint list
 
-**Auth**
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/refresh`
+**Auth:** `POST /auth/register` · `POST /auth/login` · `POST /auth/refresh`
 
-**Game**
-- `POST /api/v1/game/solo` — create/record a solo game (used for sync upload; body: `{mode, score, word_chain, started_at, ended_at}`)
-- `GET  /api/v1/game/:id` — get match state
-- `GET  /api/v1/profile/stats` — get current user's stats
-- `GET  /api/v1/powerup/inventory` — get current powerup quantities (used by `SyncService` step 3)
-- `POST /api/v1/powerup/use` — use a power-up (validates inventory, deducts, applies)
+**Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `GET /powerup/inventory` · `POST /powerup/use`
 
-**Matchmaking**
-- `POST   /api/v1/match/queue` — join matchmaking queue (body: `{mode, difficulty?}`)
-- `DELETE /api/v1/match/queue` — cancel queuing
+**Matchmaking:** `POST /match/queue` · `DELETE /match/queue`
 
-**Leaderboard**
-- `GET /api/v1/leaderboard?type=global&limit=100`
-- `GET /api/v1/leaderboard?type=friends&limit=100`
+**Leaderboard:** `GET /leaderboard?type=global&limit=100` · `GET /leaderboard?type=friends&limit=100`
 
-**Daily Challenge**
-- `GET  /api/v1/daily` — get today's challenge state for current user (includes whether attempt/retry used)
-- `POST /api/v1/daily/retry` — spend 25 coins to unlock a second attempt (returns 409 if retry already used)
+**Daily Challenge:** `GET /daily` · `POST /daily/retry`
 
-**Friends**
-- `POST   /api/v1/friends/request` — send a friend request by username
-- `GET    /api/v1/friends` — list accepted friends
-- `GET    /api/v1/friends/requests` — list pending incoming requests
-- `POST   /api/v1/friends/respond` — accept or decline (body: `{requester_id, action: "accept"|"decline"}`)
-- `DELETE /api/v1/friends/:friendId` — remove a friend
+**Friends:** `POST /friends/request` · `GET /friends` · `GET /friends/requests` · `POST /friends/respond` · `DELETE /friends/:friendId`
 
-**Friend Challenges**
-- `POST /api/v1/challenges` — create a challenge (body: `{challenged_id, mode}`)
-- `POST /api/v1/challenges/:id/respond` — accept or decline
-- `GET  /api/v1/challenges/pending` — list pending incoming challenges
+**Friend Challenges:** `POST /challenges` · `POST /challenges/:id/respond` · `GET /challenges/pending`
 
-**Push Notifications**
-- `POST   /api/v1/notifications/token` — register FCM device token
-- `DELETE /api/v1/notifications/token` — deregister on logout
+**Push Notifications:** `POST /notifications/token` · `DELETE /notifications/token`
 
 ---
 
@@ -464,7 +424,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 Client → Server:
   { "type": "submit_word",  "word": "apple" }
   { "type": "use_powerup",  "powerup": "freeze" }
-  { "type": "continue",     "method": "ad" | "coins" }   ← sent after loss_event; must arrive within 15s
+  { "type": "continue",     "method": "ad" | "coins" }   ← must arrive within 15s of loss_event
   { "type": "ping" }
 
 Server → Client:
@@ -474,7 +434,7 @@ Server → Client:
   { "type": "turn_change",          "player_id": "..." }
   { "type": "timer_update",         "remaining_ms": 7400 }
   { "type": "loss_event",           "player_id": "...", "reason": "invalid_word" | "timeout" }
-  { "type": "continue_window",      "player_id": "...", "deadline_ms": 15000 }   ← sent to both players
+  { "type": "continue_window",      "player_id": "...", "deadline_ms": 15000 }
   { "type": "continue_decision",    "player_id": "...", "decision": "continue" | "forfeit" }
   { "type": "powerup_used",         "powerup": "freeze", "by": "..." }
   { "type": "game_over",            "winner": "...", "scores": { ... } }
@@ -497,9 +457,8 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 ```
 
 - `time_limit` is the turn timer for the current match variant.
-- `streak` is the count of consecutive successes by the player in this match *before* this word.
-- `freq_rank` is looked up from `word_freq_ranks.txt` (see Appendix). Missing words are treated as rank ∞ (always rare).
-- **Solo/AI note**: `rarity_bonus` is not applied in solo/AI mode — the Flutter scorer omits it because the frequency file is not bundled on the client. Solo scores are therefore calculated without rarity. Since solo scores are not added to the competitive leaderboard, this is acceptable.
+- `streak` is consecutive successes *before* this word.
+- `rarity_bonus` is **not applied in solo/AI mode** — the Flutter scorer omits it (frequency file is backend-only). Solo scores are excluded from the competitive leaderboard, so this asymmetry is acceptable.
 
 ---
 
@@ -507,29 +466,21 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 
 **Core principle: never block a player from playing before they're hooked.**
 
-### What guests can do (no account required)
-- Play Solo (vs self, infinite rounds) — fully offline, no server calls
-- Play vs AI (Easy / Medium / Hard) — fully offline, no server calls
-- Accumulate stats (games played, best score, best streak, longest word) — persisted to the **local Drift DB**, visible in a lightweight guest profile view, and preserved across app restarts until uninstall
-- Use 5 Hint power-ups per session (tracked in `GameBloc` state, intentionally reset on restart)
-- Resume an interrupted solo/AI game on next app launch (active match row in `local_matches`)
+### What guests can do
+- Play Solo and vs AI — fully offline, no server calls
+- Accumulate stats persisted to local Drift DB, preserved across restarts
+- Use 5 Hint power-ups per session (tracked in `GameBloc` state, reset on restart)
+- Resume an interrupted game on next app launch
 
 ### What requires registration
-- Online multiplayer (1v1 real-time)
-- Cloud-synced stats, daily streak, and leaderboard participation (basic stats are stored locally for guests)
-- Persistent coin balance and power-up inventory
-- Daily Challenge (server-tracked to prevent replay)
-- Friend system and friend challenges
+- Online multiplayer, Daily Challenge, leaderboard, friends system
+- Cloud-synced stats, persistent coins and power-up inventory
 
 ### Guest power-up allowance
-Guests receive **5 Hint uses per session** (tracked in `GameBloc` state; intentionally reset on restart — persisting them would encourage session abuse). All other power-ups (Freeze, Extra Time, Shield) require registration because they depend on persistent inventory or affect an opponent. When a guest uses their last Hint or taps a locked power-up, show a soft upsell: *"Register free to save your progress and unlock more power-ups."* Never hard-block or show a paywall.
+5 free Hint uses per session. All other power-ups require registration. On last use or tapping a locked power-up, show soft upsell: *"Register free to save your progress and unlock more power-ups."* Never hard-block.
 
 ### Guest-to-registered conversion
-When a guest registers or logs in, `AuthCubit` triggers `SyncService.sync()` immediately after the successful API call. `SyncService` reads all unsynced rows from `local_matches` (`synced = false`) and posts them to the backend in chronological order, then calls `StatsDao.mergeWithRemote()` (taking the MAX of each numeric field). Because progress lives in the local DB, the guest does **not** need to register in the same session they played — history from previous sessions is preserved.
-
-- The post-game upsell prompt should read: *"Register free to back up your progress and unlock multiplayer."*
-- A guest who uninstalls the app without registering loses their local data permanently.
-- On conflict (`409` from the API for a match already uploaded): mark the local row `synced = true` silently.
+On register/login, `AuthCubit` triggers `SyncService.sync()` immediately. History from any prior session is preserved because it lives in the local DB. On `409` conflict from API: mark local row `synced = true` silently.
 
 ### Auth flow
 ```
@@ -540,10 +491,9 @@ App launch
 
 Tap "Find Match", "Leaderboard", "Friends", or "Daily Challenge"
   └── Guest? → /login?return=<destination>
-      After login → return to original destination
 ```
 
-`AuthCubit` must expose an `isGuest` flag. Only the multiplayer queue and leaderboard write path force a login redirect — all other screens gate features behind the flag without redirecting.
+`AuthCubit` must expose an `isGuest` flag. Only multiplayer queue and leaderboard write path force a login redirect.
 
 ---
 
@@ -551,48 +501,20 @@ Tap "Find Match", "Leaderboard", "Friends", or "Daily Challenge"
 
 **Hybrid freemium: ads + soft IAP. No hard paywalls. No pay-to-win.**
 
-### Revenue streams
-
-| # | Stream | Implementation |
-|---|---|---|
-| 1 | **Rewarded ads** | Watch ad → earn 20 coins, or use as a free continue. Highest player acceptance. |
-| 2 | **Coin IAP bundles** | $0.99 / $2.99 / $9.99 packs. Coins buy power-ups, continues, and Daily Challenge retries. |
-| 3 | **Remove Ads IAP** | One-time ~$2.99. Removes interstitial ads; rewarded ads remain (player-initiated). |
-| 4 | **Premium subscription** | ~$3.99/month. No ads + 200 coins/week. |
+| Stream | Details |
+|---|---|
+| Rewarded ads | Watch ad → earn 20 coins or use as a free continue |
+| Coin IAP bundles | $0.99 / $2.99 / $9.99 |
+| Remove Ads IAP | ~$2.99 one-time; keeps rewarded ads (player-initiated) |
+| Premium subscription | ~$3.99/mo; no ads + 200 coins/week |
 
 ### Coin economy
 
-**Earn:**
+**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100
 
-| Event | Coins |
-|---|---|
-| Win a match (multiplayer or vs AI) | +30 |
-| Daily login bonus | +10 |
-| Watch rewarded ad | +20 |
-| Match streak ≥ 5 in one game | +15 |
-| Daily streak milestone: 3 consecutive days | +30 |
-| Daily streak milestone: 7 consecutive days | +100 |
-| Daily streak milestone: 30 consecutive days | +500 |
-| Weekly leaderboard 1st place | +500 |
-| Weekly leaderboard 2nd place | +300 |
-| Weekly leaderboard 3rd place | +100 |
+**Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
-Milestones are repeatable — the next milestone after 30 days is 60, then 90, etc.
-
-**Spend:**
-
-| Item | Coins |
-|---|---|
-| Hint power-up (1 use) | 10 |
-| Freeze power-up (1 use) | 20 |
-| Extra Time power-up (1 use) | 15 |
-| Continue after loss (Classic only) | 25 |
-| Daily Challenge retry (1 per day) | 25 |
-
-### What NOT to do
-- No pay-to-win (power-up limits in multiplayer are enforced server-side, not bypassable by buying)
-- No energy systems or artificial wait timers
-- No interstitial ads during an active game — only on the game-over screen or when returning to home
+No energy systems, no artificial wait timers, no interstitial ads during an active game.
 
 ---
 
@@ -600,46 +522,33 @@ Milestones are repeatable — the next milestone after 30 days is 60, then 90, e
 
 | Power-up | Effect | Solo/AI limit | Multiplayer limit | Guest? |
 |---|---|---|---|---|
-| **Hint** | Suggests a valid word for the current required starting letter | Unlimited | 1 use per match | 5 per session (free, no coins) |
-| **Freeze** | Pauses the opponent's turn timer for 5 additional seconds on their next turn | N/A (solo has no opponent) | 1 use per match | ❌ Registered only |
-| **Extra Time** | Adds 8s to the current player's turn timer | Unlimited | 1 use per match | ❌ Registered only |
-| **Shield** | Auto-activates to negate the next loss-causing event (invalid word or timeout). Fires before the continue prompt. Does not stack. | 1 per game | 1 per match | ❌ Registered only |
+| **Hint** | Suggests a valid word for the required starting letter | Unlimited | 1 per match | 5 per session (free) |
+| **Freeze** | Pauses opponent's timer +5s on their next turn | N/A | 1 per match | ❌ Registered only |
+| **Extra Time** | Adds 8s to current player's turn timer | Unlimited | 1 per match | ❌ Registered only |
+| **Shield** | Auto-negates next loss-causing event. Fires before continue prompt. Does not stack. | 1 per game | 1 per match | ❌ Registered only |
 
-Both players' power-up inventories are visible to each other at the start of a multiplayer match (transparent gameplay). Multiplayer use limits are enforced server-side; client UI disables the button after use but the server rejects any second use attempt regardless.
+Both players' inventories are visible at match start. Multiplayer limits enforced server-side — server rejects any second use regardless of client state.
 
 ---
 
 ## 🤖 AI Opponent
 
-### Difficulty config
-
-| Level | Response delay | Mistake rate | Min word length | Word selection strategy |
+| Level | Response delay | Mistake rate | Min word length | Strategy |
 |---|---|---|---|---|
-| Easy | 3s | 25% | 3 | Random valid word starting with the required letter |
-| Medium | 1.5s | 10% | 4 | 30% chance to prefer a trap-ending word |
-| Hard | 0.6s | 2% | 6 | 70% chance to prefer a trap-ending word; selects the longest valid trap word when available |
+| Easy | 3s | 25% | 3 | Random valid word |
+| Medium | 1.5s | 10% | 4 | 30% trap-letter preference |
+| Hard | 0.6s | 2% | 6 | 70% trap-letter preference; longest valid trap word when available |
 
-### Trap letter strategy
-**Trap letters** are Q, X, Z, J, V — letters for which very few English words begin. By choosing a word ending in one of these letters, the AI maximises the difficulty of the human's next turn.
-
-The trap preference is applied only when at least one valid trap-ending word exists for the current required starting letter. If none exists, the AI falls back to its standard random selection. The AI never intentionally makes a mistake when a trap word is available.
-
-This strategy is implemented in `internal/service/ai.go` as a weighted random selection over candidate words, where trap-ending candidates receive a boosted weight at Medium and Hard difficulty.
+**Trap letters**: Q, X, Z, J, V. Trap preference only when at least one trap-ending word exists for the required starting letter; otherwise falls back to weighted random. Implemented in `internal/service/ai.go`.
 
 ---
 
 ## 📅 Daily Streak
 
-A **daily streak** counts consecutive calendar days (UTC) on which the player completed at least one game of any mode.
-
-### Rules
 - Completing any game (solo, AI, multiplayer, or Daily Challenge) before midnight UTC counts for that day.
 - Missing a day resets the streak to 0.
 - Tracked in `player_stats.daily_streak` and `player_stats.last_played_date`.
-- `longest_daily_streak` updates whenever `daily_streak` exceeds the previous record.
-- `RecordGamePlayed(userID string, date time.Time)` is called at every game end (solo, multiplayer room close, and daily challenge completion). It updates the streak, awards milestone coins, and enqueues a push notification for milestone events.
-
-### Milestone rewards (one-time per milestone level; repeatable on subsequent cycles)
+- `RecordGamePlayed(userID string, date time.Time)` called at every game end — updates streak, awards milestone coins, enqueues push notification.
 
 | Milestone | Reward |
 |---|---|
@@ -647,462 +556,118 @@ A **daily streak** counts consecutive calendar days (UTC) on which the player co
 | 7 consecutive days | +100 coins |
 | 30 consecutive days | +500 coins |
 
-After 30 days the cycle repeats: next milestones are 60, 90, etc.
+Milestones repeat: next cycle is 60, 90, etc.
 
-### At-risk notification
-If a player has an active streak ≥ 3 and has not played by 20:00 local time, the scheduler sends a push notification: *"Your [N]-day streak is at risk! Play one game before midnight to keep it alive."* See Push Notifications section for implementation.
+**At-risk notification**: streak ≥ 3, not played today, local time ≥ 20:00 → push *"Your [N]-day streak is at risk!"*
 
 ---
 
 ## 👥 Social Features
 
 ### Friend system
-- Any registered user can search for others by exact username.
-- `POST /api/v1/friends/request` sends a request; the target receives a push notification.
-- Requests are accepted or declined via `POST /api/v1/friends/respond`.
-- Accepted friendships are bidirectional; a single row with `status = accepted` is sufficient (the service checks both `(requester_id, addressee_id)` and `(addressee_id, requester_id)` when determining friendship).
-- The **Friends tab** on the Leaderboard screen shows only the current user's friends, ranked by their weekly score from the same Redis sorted set as the global leaderboard.
+- Search by exact username. `POST /friends/request` → push notification to target.
+- Accepted friendships are bidirectional (service checks both directions of the row).
+- Friends tab on Leaderboard shows friends ranked by the same Redis sorted set.
 
 ### Friend challenges
-- From a friend's profile, tap **Challenge** and choose Classic or Time Attack.
-- A `friend_challenges` record is created with `expires_at = NOW() + 24h`.
-- The challenged player receives a push notification: *"[Username] challenged you to a [Mode] match!"*
-- On acceptance: both players are placed into a private match room directly (bypasses the public matchmaking queue). The `match_id` is written to `friend_challenges`.
-- On decline: the challenger is notified — *"[Username] declined your challenge."*
-- On expiry (24h, no response): the challenger is notified — *"Your challenge to [Username] expired."* The scheduler runs `ExpireOldChallenges` every 5 minutes.
+- From a friend's profile → Challenge → choose Classic or Time Attack.
+- Record created with `expires_at = NOW() + 24h`. On accept: private match room (bypasses matchmaking queue). On decline/expiry: challenger notified. `ExpireOldChallenges` runs every 5 minutes.
 
 ### Daily Challenge share card
-After completing the Daily Challenge (win or lose, free attempt or paid retry), the player is shown a result card. Tapping **Share** opens the native share sheet via `share_plus`.
-
-**Text format:**
 ```
 WordChain Daily #[N]
 Score: [score] | Chain: [chain_length] words
 [word1] → [word2] → ... → [last_word]
 Play at wordchain.app
 ```
-
-- Day number `N` = days elapsed since `GAME_EPOCH_DATE` (see env vars appendix), 1-indexed.
-- The word chain array is stored in `daily_challenge_attempts.word_chain`.
-- `share_service.dart` exposes `shareDaily(DailyChallengeResult result)` which builds the text string and calls `Share.share()`.
+Day N = days since `GAME_EPOCH_DATE`, 1-indexed. `share_service.dart` → `shareDaily(DailyChallengeResult)` → `Share.share()`.
 
 ---
 
 ## 🔔 Push Notifications
 
-All notifications are sent via the FCM HTTP v1 API. Device tokens are registered at login (`POST /api/v1/notifications/token`) and deregistered at logout.
+All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout.
 
-| Trigger | Audience | Message |
-|---|---|---|
-| Daily Challenge available (midnight UTC) | All registered users with a device token | "Today's Word Chain challenge is ready. Can you beat yesterday's score?" |
-| Streak at risk (20:00 local, streak ≥ 3, not played today) | Affected users | "Your [N]-day streak is at risk! Play one game before midnight to keep it alive." |
-| Streak milestone reached | Player | "🔥 [N]-day streak! You've earned [coins] coins." |
-| Friend request received | Addressee | "[Username] wants to be your friend." |
-| Friend challenge received | Challenged player | "[Username] challenged you to a [Mode] match!" |
-| Friend challenge response | Challenger | "[Username] accepted/declined your challenge." / "Your challenge to [Username] expired." |
-| Match found via matchmaking | Both players | "Opponent found! Your match is ready." |
-| Weekly leaderboard reward | Top 3 players | "The weekly leaderboard has reset. You finished #[rank] and earned [coins] coins!" |
+| Trigger | Message |
+|---|---|
+| Daily Challenge available (midnight UTC) | "Today's Word Chain challenge is ready." |
+| Streak at risk (20:00 local, streak ≥ 3) | "Your [N]-day streak is at risk!" |
+| Streak milestone | "[N]-day streak! You've earned [coins] coins." |
+| Friend request | "[Username] wants to be your friend." |
+| Friend challenge received | "[Username] challenged you to a [Mode] match!" |
+| Friend challenge response | Accepted / declined / expired message |
+| Match found | "Opponent found! Your match is ready." |
+| Weekly leaderboard reward | "You finished #[rank] and earned [coins] coins!" |
 
-### Backend implementation
-- `internal/service/notification.go` — `SendToUser(userID, title, body string)`: fetches FCM token from `device_tokens`, calls FCM v1 API.
-- `internal/scheduler/scheduler.go` — goroutine with a 1-minute ticker running the following jobs:
-  - **Midnight UTC**: send Daily Challenge push to all users with tokens.
-  - **Every minute**: check for users whose `last_played_date < today` and `daily_streak >= 3` and whose local 20:00 has passed (use a UTC offset defaulted to 0 if no timezone stored).
-  - **Every 5 minutes**: expire stale `friend_challenges`.
-  - **Sunday 00:00 UTC**: run weekly leaderboard reset (see Leaderboard section).
-
-### Flutter implementation
-- `core/services/notification_service.dart`: requests FCM permission on first launch (after tutorial), registers the device token via the API, handles foreground messages as in-app banners, and exposes a stream of notification payloads for deep-link routing (tapping a Daily Challenge notification navigates to `/daily`; tapping a friend challenge notification navigates to `/friends`).
+**Backend**: `internal/service/notification.go` — `SendToUser(userID, title, body)`.
+**Scheduler** (1-min ticker): midnight daily challenge push · every-minute streak-at-risk check · every-5-min challenge expiry · Sunday 00:00 weekly reset.
+**Flutter**: `notification_service.dart` — FCM permission after tutorial, token registration, foreground banners, payload stream for deep-link routing (`/daily`, `/friends`).
 
 ---
 
 ## 🎓 Tutorial (First-Time Player)
 
-Triggered automatically on first app launch. Can be skipped at any time via a "Skip" button and replayed later from Profile → Help.
+Auto-triggered on first launch. Skippable; replayable from Profile → Help. Completion flag: `tutorial_completed` in `shared_preferences`.
 
-**Completion flag**: `tutorial_completed` (bool) stored in `shared_preferences`.
-
-### Tutorial steps
-
-| Step | Instruction shown | What the player does |
+| Step | Instruction | Action |
 |---|---|---|
-| 1 | "Type any word to start the chain!" | Types any valid word (≥ 3 letters) |
-| 2 | "Now type a word starting with **[last letter]**!" | Types a valid continuation |
-| 3 | "Great! Keep going — you can't reuse words." | Types one more valid word |
-| 4 | "You're ready! Try Classic, Time Attack, or the Daily Challenge." | Taps "Start Playing" |
+| 1 | "Type any word to start the chain!" | Any valid word ≥ 3 letters |
+| 2 | "Now type a word starting with **[letter]**!" | Valid continuation |
+| 3 | "Great! Keep going — you can't reuse words." | One more valid word |
+| 4 | "You're ready! Try Classic, Time Attack, or the Daily Challenge." | Tap "Start Playing" |
 
-- The tutorial runs against a sandboxed in-memory game state. No score or match record is created.
-- Invalid words during the tutorial show a gentle inline prompt ("That one doesn't work — try another word starting with [letter]!") instead of triggering a game-over.
-- After the tutorial, if the player is still a guest, show the soft upsell: *"Register free to save your progress and unlock power-ups."* (non-blocking — tap to dismiss).
+- Sandboxed in-memory state; no match record created.
+- Invalid words show inline prompt, not game-over.
+- After tutorial (if still guest): soft upsell *"Register free to save your progress and unlock power-ups."*
 
 ---
 
 ## 🏆 Leaderboard & Weekly Reset
 
-### Leaderboard sources
-- Redis Sorted Set `leaderboard:global:weekly` stores cumulative score per user.
-- Score is added at the end of **multiplayer and Daily Challenge games only**. Solo scores are excluded from the competitive leaderboard.
-- `GET /api/v1/leaderboard?type=global` returns top 100 with rank, username, score.
-- `GET /api/v1/leaderboard?type=friends` fetches the current user's friend IDs, retrieves their scores from the same sorted set via `ZSCORE`, and returns a ranked friend-only list.
+- Redis Sorted Set `leaderboard:global:weekly` — score added at end of **multiplayer and Daily Challenge games only** (not solo).
+- `GET /leaderboard?type=friends` fetches friend IDs, retrieves scores via `ZSCORE` from the same set.
 
-### Weekly reset (Sunday 00:00 UTC — run by scheduler)
-1. Query top 3 from `leaderboard:global:weekly`.
-2. Insert rows into `weekly_leaderboard_rewards` (idempotent — skip if `week_start` already exists).
-3. Award coins: 1st → 500, 2nd → 300, 3rd → 100 (`UPDATE users SET coins = coins + X`).
-4. Send push notification to each rewarded user.
-5. Delete the Redis key to start the new week's leaderboard at zero.
+**Weekly reset (Sunday 00:00 UTC):**
+1. Query top 3 → insert `weekly_leaderboard_rewards` (idempotent)
+2. Award coins: 1st →500, 2nd →300, 3rd →100
+3. Send push notifications to rewarded users
+4. Delete Redis key
 
 ---
 
 ## 🧪 Testing Strategy
 
-Tests are written **inside the phase that introduces the code**, not as a separate phase.
+Tests written **inside the phase that introduces the code**.
 
-### Backend (Go)
-- **Unit tests** for every file in `internal/engine/`, `internal/service/`, `internal/scheduler/`.
-- **Repository tests** use a real Postgres test container (`testcontainers-go`); no mocked DB.
-- **Handler tests** use `httptest` against the Gin router with a stubbed service layer.
-- **WebSocket tests** spin up `httptest.Server` and connect a real client.
-- Target ≥ 70% coverage on `engine/` and `service/`.
+**Backend (Go):** Unit tests for `engine/`, `service/`, `scheduler/`. Repository tests use real Postgres container (`testcontainers-go`). Handler tests use `httptest` with stubbed service. WS tests use `httptest.Server` with real client. Target ≥ 70% coverage on `engine/` and `service/`.
 
-### client (Flutter)
-- **Widget tests** for each screen's primary states (loading, success, error, empty).
-- **Bloc/Cubit tests** using `bloc_test` for every state transition.
-- **Golden tests** for `WordChainList` and `TimerBar`.
-- Mock `DictionaryService`, `WebSocketService`, and `NotificationService` in widget tests. Do not load the real wordlist.
+**Flutter:** Widget tests for each screen's primary states. Bloc/Cubit tests via `bloc_test`. Golden tests for `WordChainList` and `TimerBar`. Mock `DictionaryService`, `WebSocketService`, `NotificationService` — do not load the real wordlist.
 
-### Integration (Phase 16)
-Full end-to-end smoke flows:
-- Guest → tutorial → solo → game over → watch ad continue → game ends → score shown
-- Guest → completes solo → registers → score transferred to new account
-- Registered → Daily Challenge → completes → share card generated → retry costs 25 coins
-- Registered → matchmaking queue → 1v1 match → shared chain play → continue prompt → game over → leaderboard updated
-- Registered → sends friend request → friend accepts → friend challenge → private match
-- Weekly scheduler job runs → top 3 rewarded → leaderboard resets
-
----
-
-## 🗺️ Implementation Phases
-
-> At the start of each session: *"Read CLAUDE.md and implement Phase N."*
-> Mark the phase `[x]` in both the status table and the per-phase status line when complete.
-
----
-
-### Phase 1 — Foundation & Database
-**Status: [ ] Not started**
-
-**Scope:**
-- Create monorepo folder structure (`backend/`, `client/`)
-- Write full architecture diagram (`backend/ARCHITECTURE.md`)
-- Initialize Go module (`go.mod`) with all dependencies
-- `internal/config/config.go` — load from env vars (see Appendix)
-- `migrations/001_init.up.sql` + `001_init.down.sql` — full schema from the Database Schema section above (all tables including `friendships`, `friend_challenges`, `device_tokens`, `weekly_leaderboard_rewards`)
-- `docker-compose.yml` — services: app, postgres, redis
-- Backend `Dockerfile`
-- `cmd/server/main.go` — wire config, DB, Redis, Gin router, `GET /health`
-- `.env.example`
-
-**Done when:** `docker-compose up` starts all three services. Server responds to `GET /health` with 200 OK.
-
----
-
-### Phase 2 — Flutter: Core Setup
-**Status: [ ] Not started**
-
-**Scope:**
-- Initialize Flutter project in `client/`
-- `pubspec.yaml` dependencies: `flutter_bloc`, `go_router`, `dio`, `get_it`, `equatable`, `web_socket_channel`, `shared_preferences`, `logger`, `firebase_messaging`, `share_plus`, `drift`, `drift_flutter`, `sqlite3_flutter_libs`, `connectivity_plus`; dev dependencies: `drift_dev`, `build_runner`
-- `core/database/app_database.dart` — Drift `AppDatabase`; registers all four tables; schema version 1; opens via `driftDatabase(name: 'wordchain.db')`
-- `core/database/daos/match_dao.dart` — `createMatch`, `updateMatch`, `getActiveMatch`, `getUnsyncedMatches`, `markSynced(id, remoteId)`
-- `core/database/daos/used_word_dao.dart` — `insertWord(matchId, word)`, `isWordUsed(matchId, word) → Future<bool>`, `deleteWordsForMatch(matchId)`
-- `core/database/daos/stats_dao.dart` — `getStats`, `upsertStats`, `mergeWithRemote(RemoteStats)` (takes MAX of each numeric field)
-- `core/database/daos/powerup_cache_dao.dart` — `getAll`, `setQuantity`, `refreshFromRemote`
-- `core/services/sync_service.dart` — `sync()`: (1) uploads unsynced `local_matches` to `POST /api/v1/game/solo`, (2) merges remote stats via `StatsDao`, (3) refreshes powerup cache via `PowerupCacheDao`; no-op if guest
-- `core/di/injection.dart` — register all services and repositories, including `AppDatabase` and `SyncService` as lazy singletons
-- `core/network/dio_client.dart` — single `Dio` instance, base URL from config, auth interceptor (attaches JWT, handles 401 → refresh)
-- `core/network/api_endpoints.dart` — all endpoint constants
-- `core/router/app_router.dart` — routes: `/login`, `/register`, `/home`, `/game/:id`, `/lobby`, `/daily`, `/leaderboard`, `/friends`, `/profile`
-- `core/services/websocket_service.dart` — connect, disconnect, send, stream of typed incoming events
-- `core/services/dictionary_service.dart` — load ENABLE into `HashSet<String>` before `runApp()`, expose `isValid(String word) bool` and `suggestWords(String startLetter) List<String>`
-- `core/services/notification_service.dart` — request FCM permission after tutorial, register token via API, handle foreground messages as in-app banners, expose notification payload stream for deep-link routing
-- `core/services/share_service.dart` — `shareDaily(DailyChallengeResult result)` using `share_plus`
-- `core/theme/app_theme.dart` — light/dark theme
-- Bundle `assets/words/enable.txt` in `pubspec.yaml`
-
-**Done when:** App builds, all routes navigate to placeholder screens, DI resolves, `isValid("apple")` returns true, `AppDatabase` opens without error, `isWordUsed` returns `false` on a fresh match, `SyncService.sync()` is a no-op for a guest.
-
----
-
-### Phase 3 — Flutter: Game Feature (Solo + Tutorial)
-**Status: [ ] Not started**
-
-**Scope:**
-- `features/game/data/game_repository.dart` — `startLocalGame(mode, opponentType) → Future<int>`: inserts a row into `local_matches` (status `active`) and returns its local id; `finishLocalGame(localMatchId, score, wordChain)`: updates status, score, chainLength, wordChain, endedAt and runs `deleteWordsForMatch` — all inside one Drift transaction; `usePowerup(type)` (authenticated only): calls `POST /api/v1/powerup/use` then updates `local_powerup_cache` on success
-- `features/game/bloc/game_bloc.dart` — states: `GameInitial`, `GameLoading`, `GameActive`, `GameOver`, `GameError`; events: `GameStarted`, `WordSubmitted`, `PowerupUsed`, `TimerTicked`, `GameEnded`, `ContinueRequested`, `ContinueResolved`
-  - On `GameStarted`: calls `game_repository.startLocalGame()`, stores `localMatchId` in bloc state
-  - On `WordSubmitted`: first calls `UsedWordDao.isWordUsed(localMatchId, word)` for duplicate check, then `DictionaryService.isValid(word)` for dictionary check; on acceptance inserts via `UsedWordDao.insertWord()`
-  - On `GameEnded`: calls `game_repository.finishLocalGame()` (Drift transaction: update match + delete used words), then `StatsDao.upsertStats()`, then `SyncService.sync()` as a fire-and-forget (do not await in bloc)
-- `features/game/view/game_screen.dart` — word chain display, required starting letter, score, timer bar, power-up buttons, game-over overlay with continue prompt
-- `features/game/view/widgets/word_input.dart` — text field + submit; duplicate check via `UsedWordDao.isWordUsed()` then dictionary check via `DictionaryService.isValid()`; disabled during opponent's turn
-- `features/game/view/widgets/word_chain_list.dart` — scrollable list of played words
-- `features/game/view/widgets/timer_bar.dart` — animated countdown bar
-- `features/game/view/widgets/continue_prompt.dart` — shown on `GameOver` in Classic mode; "Watch Ad" and "Spend 25 Coins" buttons; 15-second countdown; one use per session tracked in `GameBloc` state
-- Tutorial flow at `features/game/view/tutorial_screen.dart`:
-  - 4 guided steps (see Tutorial section)
-  - Sandboxed in-memory state, no record created
-  - Shown on first launch via `shared_preferences: tutorial_completed`
-  - Skippable and replayable from Profile → Help
-- Guest Hint: 5 free per session, soft upsell prompt on last use
-
-**Done when:** Solo game fully playable by a guest, including resuming an interrupted game after app restart (active `local_matches` row is detected on launch and offered to continue). Used-word duplicate detection reads from `local_used_words`, not from memory. Stats persist in `local_player_stats` after app restart. Tutorial completes all four steps. Continue works once per Classic session. All end conditions trigger `GameOver`.
-
----
-
-### Phase 4 — Flutter: Auth Feature
-**Status: [ ] Not started**
-
-**Scope:**
-- `features/auth/data/auth_repository.dart` — `register`, `login`, `refreshToken`; persist JWT in `shared_preferences`
-- `features/auth/cubit/auth_cubit.dart` — states: `AuthInitial`, `AuthLoading`, `AuthGuest`, `AuthAuthenticated`, `AuthError`; expose `isGuest` flag
-- `features/auth/view/login_screen.dart` — email + password, login button, register link, "Continue as Guest" button
-- `features/auth/view/register_screen.dart` — username + email + password, register button, "Continue as Guest" link
-- App startup logic: valid JWT → `AuthAuthenticated` → `/home` then `SyncService.sync()`; no token / refresh failed → `AuthGuest` → `/home`
-- On register or login success: call `SyncService.sync()` — all unsynced `local_matches` are uploaded and stats are merged automatically, regardless of which session the games were played in
-
-**Done when:** Guest reaches home and plays solo without login. Token survives restart. All unsynced local matches and stats are uploaded automatically on registration and login. A guest who played three days ago and then registers sees their full history synced to the backend.
-
----
-
-### Phase 5 — Backend: Dictionary & Game Engine
-**Status: [ ] Not started**
-
-**Note:** The Go dictionary is used **only for multiplayer validation**. Solo and AI games validate entirely on the Flutter client via `DictionaryService`.
-
-**Scope:**
-- `internal/engine/dictionary.go` — embed ENABLE wordlist (`data/enable.txt`), load into `map[string]struct{}` at startup, expose `IsValid(word string) bool`
-- `internal/engine/frequency.go` — embed `data/word_freq_ranks.txt`, load into `map[string]int` at startup, expose `Rank(word string) int` (returns `math.MaxInt` if missing)
-- `internal/engine/validator.go` — `ValidateMove(prevWord, newWord string, usedWords map[string]bool) error` — covers all six Word Validation Rules; returns typed sentinel errors
-- `internal/engine/scorer.go` — `CalculateScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int` using the formula above (includes rarity_bonus via `frequency.Rank`)
-- Unit tests for all four engine files
-
-**Done when:** All engine unit tests pass. Dictionary loads. Validator correctly rejects bad moves with typed errors.
-
----
-
-### Phase 6 — Backend: Auth
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/repository/user.go` — `CreateUser`, `GetUserByEmail`, `GetUserByID`
-- `internal/service/auth.go` — `Register`, `Login`, `RefreshToken` (bcrypt, JWT generation)
-- `internal/handler/auth.go` — `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`
-- `internal/middleware/auth.go` — JWT validation middleware for protected routes
-- Password policy: min 8 chars, ≥1 letter and ≥1 digit. Username: 3–32 chars, `[a-zA-Z0-9_]`.
-
-**Done when:** Register and login return valid JWTs. Protected route returns 401 without token. Invalid passwords rejected with 400.
-
----
-
-### Phase 7 — Backend: Game REST API & Match Repository
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/repository/match.go` — `CreateMatch`, `GetMatch`, `UpdateMatchStatus`, `SaveGameState`, `GetMatchPlayers`, `SetContinueUsed`
-- `internal/repository/stats.go` — `UpsertStats`, `GetStats`
-- `internal/service/game.go` — `CreateSoloGame`, `GetGameState`, `EndGame`, `UpdateStats`
-- REST endpoints: `POST /api/v1/game/solo`, `GET /api/v1/game/:id`, `GET /api/v1/profile/stats`
-- `internal/handler/powerup.go` — `GET /api/v1/powerup/inventory` (returns all powerup quantities for the current user; used by `SyncService` step 3); `POST /api/v1/powerup/use` (validates inventory, deducts, applies; rejects second use in multiplayer via `match_players.continue_used` or per-powerup-type tracking)
-- Update `POST /api/v1/game/solo` to accept `{mode, score, word_chain: [...], started_at, ended_at}` — this is the sync upload endpoint called by `SyncService`; return `409` if a match with the same `started_at` + `user_id` already exists (idempotent)
-
-**Done when:** Solo game create/retrieve/end and power-up use work via REST.
-
----
-
-### Phase 8 — Backend: WebSocket & Multiplayer
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/ws/client.go` — read/write pumps, ping/pong
-- `internal/ws/room.go` — **shared chain room**: alternating turns on a single chain, `loss_event` dispatch, continue handling (15s window per event, one continue per player tracked via `match_players.continue_used`), Shield interaction, reconnection (30s grace)
-- `internal/ws/hub.go` — manages all rooms, routes messages, cleans up finished rooms
-- `internal/handler/ws.go` — `GET /api/v1/ws/game/:roomID` — upgrades connection, registers client with hub
-- Integrate engine validator and scorer into room turn logic
-- Handle client events: `submit_word`, `use_powerup`, `continue`
-- Emit server events: `word_accepted`, `word_rejected`, `loss_event`, `continue_window`, `continue_decision`, `game_over`
-- Multiplayer power-up enforcement: reject `use_powerup` if the player has already used that power-up type in this match
-
-**Done when:** Two clients share a single chain, alternate correctly, loss events trigger the continue window, one continue per player enforced, game_over fires.
-
----
-
-### Phase 9 — Backend: Matchmaking & AI Opponent
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/service/matchmaking.go` — Redis List queue per mode (`queue:classic`, `queue:time_attack`); background goroutine polls every 500ms; pairs two players → creates room → notifies via WS; falls back to AI opponent after 30s wait
-- `POST /api/v1/match/queue`, `DELETE /api/v1/match/queue`
-- `internal/service/ai.go` — AI difficulty struct:
-  ```
-  Easy:   3s delay, 25% mistake rate, min length 3, random word selection
-  Medium: 1.5s delay, 10% mistake rate, min length 4, 30% trap-letter preference
-  Hard:   0.6s delay, 2% mistake rate, min length 6, 70% trap-letter preference + longest valid trap word preferred
-  ```
-  Trap letters: Q, X, Z, J, V. AI selects a trap-ending word only when at least one exists for the required starting letter; otherwise falls back to weighted random from all valid candidates.
-
-**Done when:** Matchmaking pairs two real clients. AI plays at all three difficulty levels with correct trap letter behaviour.
-
----
-
-### Phase 10 — Backend: Leaderboard & Streak
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/service/leaderboard.go` — Redis Sorted Set `leaderboard:global:weekly`: `AddScore`, `GetTopN(n int)`, `GetPlayerRank(userID string)`
-- `AddScore` is called at the end of **multiplayer and Daily Challenge games only** (not solo)
-- `GET /api/v1/leaderboard?type=global&limit=100`
-- `GET /api/v1/leaderboard?type=friends&limit=100` — fetches friend IDs, retrieves scores via `ZSCORE`, returns sorted list
-- `internal/service/streak.go` — `RecordGamePlayed(userID string, date time.Time)`: updates `daily_streak`, `last_played_date`, `longest_daily_streak`; awards milestone coins; calls `notification.SendToUser` for milestone events
-- Call `RecordGamePlayed` at every game end (solo end, multiplayer room close, daily challenge completion)
-- `internal/scheduler/scheduler.go` — goroutine with 1-minute ticker, initial jobs:
-  - Weekly reset: Sunday 00:00 UTC — query top 3, insert `weekly_leaderboard_rewards`, award coins, send push notifications, delete Redis key
-  - Streak at-risk check: every minute, fire notifications where applicable
-
-**Done when:** Leaderboard returns correct ranked list. Weekly reset awards coins and sends notifications. Streak increments and milestone coins are awarded.
-
----
-
-### Phase 11 — Backend: Friends & Challenges
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/repository/friendship.go` — `SendRequest`, `RespondToRequest`, `ListFriends`, `ListPendingRequests`, `RemoveFriend`
-- `internal/repository/challenge.go` — `CreateChallenge`, `RespondToChallenge`, `GetPendingChallenges`, `ExpireOldChallenges`
-- `internal/service/friends.go` — business logic: no duplicate requests, no self-requests, validates friendship before challenge creation
-- `internal/service/challenge.go` — `CreateChallenge` (creates a private match room on accept, writes `match_id`), `RespondToChallenge` (accept → triggers matchmaking directly into private room; decline → notify challenger), sends push notifications on all state changes
-- Handlers for all Friends and Friend Challenge endpoints
-- Add scheduler job: run `ExpireOldChallenges` every 5 minutes; notify challenger on expiry
-
-**Done when:** Full friend request and friend challenge flows work end-to-end. Expired challenges are cleaned up automatically.
-
----
-
-### Phase 12 — Backend: Push Notifications
-**Status: [ ] Not started**
-
-**Scope:**
-- `internal/service/notification.go` — `SendToUser(userID, title, body string)`: looks up FCM token from `device_tokens`, calls FCM HTTP v1 API (`https://fcm.googleapis.com/v1/projects/{FCM_PROJECT_ID}/messages:send`) using `FCM_SERVICE_ACCOUNT_JSON` for auth
-- `POST /api/v1/notifications/token`, `DELETE /api/v1/notifications/token`
-- Wire `SendToUser` into all existing trigger points that were previously stubs: friend request, challenge received/responded, match found, streak milestone, weekly leaderboard reward
-- Add scheduler jobs:
-  - **Midnight UTC daily**: query all users with device tokens, send Daily Challenge reminder
-  - **Every minute**: query `player_stats` for users with `daily_streak >= 3`, `last_played_date < today`, and estimated local time ≥ 20:00 — send streak-at-risk notification (deduplicate using a Redis key `notif:streak_risk:{userID}:{date}` with TTL 24h)
-
-**Done when:** All notification triggers fire in integration tests. Token registration and deregistration work. Duplicate at-risk notifications are prevented.
-
----
-
-### Phase 13 — Flutter: Lobby & Multiplayer
-**Status: [ ] Not started**
-
-**Scope:**
-- `features/lobby/data/lobby_repository.dart` — `joinQueue`, `cancelQueue`
-- `features/lobby/cubit/lobby_cubit.dart` — states: `LobbyIdle`, `LobbySearching`, `LobbyMatchFound`, `LobbyError`
-- `features/lobby/view/lobby_screen.dart` — mode selector (**Classic** and **Time Attack only** — Daily Challenge does not appear here), difficulty selector for AI, Find Match button, searching animation, cancel button
-- On `LobbyMatchFound`, navigate to `/game/:id`
-- Multiplayer additions to `game_screen.dart`:
-  - Shared chain display: words labeled by player
-  - Turn indicator (whose turn it is)
-  - Both players' power-up inventories displayed
-  - Opponent continue-window overlay: "Opponent deciding… [15s countdown]" when a `continue_window` event is received
-- Wire `GameBloc` to `WebSocketService` for multiplayer; handle `loss_event`, `continue_window`, `continue_decision`, `game_over`
-- `features/home/view/home_screen.dart` — buttons for Solo / vs AI, Find Match, Daily Challenge, Leaderboard, Friends, Profile; show daily streak count if user is authenticated
-
-- Before calling `lobby_repository.joinQueue()`, trigger `SyncService.sync()` so local stats are flushed before a multiplayer session might overwrite them on the next merge
-
-**Done when:** Player queues, is matched, plays a shared-chain multiplayer game, continue window works for both players, game_over navigates correctly, local stats are synced before joining the queue.
-
----
-
-### Phase 14 — Flutter: Leaderboard, Friends & Profile
-**Status: [ ] Not started**
-
-**Scope:**
-- `features/leaderboard/cubit/leaderboard_cubit.dart` — fetch global top 100 and friends top 100; current user rank in each
-- `features/leaderboard/view/leaderboard_screen.dart` — tab bar: Global | Friends; ranked list; highlight current user's row; show weekly reward note for top 3
-- `features/friends/data/friends_repository.dart` — all Friend and Friend Challenge API calls
-- `features/friends/cubit/friends_cubit.dart`
-- `features/friends/view/friends_screen.dart` — friend list, pending requests banner, username search, per-friend profile with Challenge button
-- `features/friends/view/friend_challenge_sheet.dart` — mode selector (Classic / Time Attack), send challenge button
-- `features/profile/cubit/profile_cubit.dart` — for authenticated users: fetch stats, coin balance, and powerup inventory from the backend, then update local cache via `StatsDao.mergeWithRemote()` and `PowerupCacheDao.refreshFromRemote()`; for guests: read directly from `StatsDao` and show a "Register to back up" banner
-- `features/profile/view/profile_screen.dart` — total matches, wins, best match streak, daily streak, longest daily streak, longest word played; coin balance and power-up inventory for authenticated users; guest banner ("Register to back up your progress") for guests; Help button (replays tutorial)
-- Handle notification deep links: friend request notification → `/friends`; friend challenge notification → `/friends`
-
-**Done when:** All screens show real data. Friend request and challenge flows complete end-to-end.
-
----
-
-### Phase 15 — Flutter: Daily Challenge & Sharing
-**Status: [ ] Not started**
-
-**Scope:**
-- `features/daily/data/daily_repository.dart` — `getDailyChallenge`, `submitAttempt`, `retryChallenge`
-- `features/daily/cubit/daily_cubit.dart` — states: `DailyInitial`, `DailyLoading`, `DailyAvailable`, `DailyAttempted`, `DailyRetryAvailable`, `DailyError`
-- `features/daily/view/daily_screen.dart`:
-  - If not attempted: shows today's challenge details and Play button
-  - If attempted: shows score, chain length, word chain, Share button, and (if eligible) a Retry button showing the 25-coin cost
-  - If retry attempted: shows retry score alongside original score, Share button only
-- After game completion: navigate to daily result screen, trigger share card display
-- `share_service.dart` generates the text card and calls `Share.share()`
-- Handle notification deep link: daily push notification → `/daily`
-- Wire daily streak display on Home screen and Profile (fetched as part of `player_stats`)
-
-**Done when:** Daily Challenge plays end-to-end. Share card generates correctly. Retry deducts 25 coins. Streak increments after any game completion. Deep link from push notification navigates to `/daily`.
-
----
-
-### Phase 16 — Monetization Hooks & Final Wiring
-**Status: [ ] Not started**
-
-**Scope:**
-- `core/services/monetization_service.dart` — abstract class + mock implementation:
-  - `showRewardedAd() → Future<bool>` — returns true if full ad watched
-  - `showInterstitialAd()` — between sessions only, never mid-game
-  - `getProducts() → Future<List<Product>>`
-  - `purchase(productId) → Future<PurchaseResult>`
-  - `spendCoins(int amount) → bool`
-  - `awardCoins(int amount)`
-- Register `MockMonetizationService` in `get_it`; swap for AdMob + RevenueCat in production
-- Game-over screen: "Watch Ad to Continue" + "Spend 25 Coins" buttons; interstitial ad when returning to home (not when continuing)
-- Profile screen: coin balance display, "Buy Coins" button (mock prices: $0.99 / $2.99 / $9.99), "Remove Ads" one-time purchase, "Premium — $3.99/mo" subscription with feature list
-- Backend `internal/service/monetization.go` — `AwardCoins`, `SpendCoins`, `ValidateReceipt` (stub)
-- Run full integration test suite (see Testing Strategy — Integration)
-
-**Done when:** All screens connected, no placeholder crashes, every earn/spend coin path updates balances correctly, full guest and registered game loops run end-to-end.
+**Integration:** See PLAN.md Phase 16 for full end-to-end smoke flows.
 
 ---
 
 ## 🔁 Session Workflow
 
-1. Point Claude Code at this file: *"Read CLAUDE.md"*
+1. Read **CLAUDE.md** (specs, rules) and **PLAN.md** (phase scope)
 2. State the phase: *"Implement Phase N — [title]"*
-3. Mark both the per-phase status line and the Phase Status table `[x] Complete` when done
-4. Commit the code before starting the next phase
+3. Mark `[x] Complete` in both the CLAUDE.md status table and the PLAN.md per-phase status line
+4. Commit before starting the next phase
 
 ---
 
 ## ⚠️ Important Notes for Claude Code
 
 - **Never implement outside the current phase's scope.** Flag missing items from prior phases without silently fixing them.
-- **Always check previous phases' output** before writing code that depends on it (e.g., verify actual repository method signatures before calling them in a service).
-- **Keep CLAUDE.md status table and per-phase status lines in sync.**
+- **Always check previous phases' output** before writing code that depends on it (verify actual method signatures).
+- **Keep CLAUDE.md status table and PLAN.md per-phase status lines in sync.**
 - **Dictionary is dual:** `enable.txt` lives in both `backend/internal/engine/data/` and `client/assets/words/`. Keep them byte-identical.
-- **`word_freq_ranks.txt` is backend only.** Rarity scoring is server-side; `rarity_bonus` is omitted from the Flutter scorer. Solo scores are not posted to the competitive leaderboard, so this asymmetry is acceptable.
-- **Never require login to start a solo or vs-AI game.** Guest mode is first-class. Any screen that forces login before solo play is a bug.
-- **Local DB is the source of truth for solo/AI games.** The backend is never called during an active solo or AI game. All word storage, duplicate checks, and stat updates go through Drift. The backend is synced lazily via `SyncService`.
-- **Daily Challenge never appears in the multiplayer lobby.** It is solo-only.
-- **Power-up limits in multiplayer are enforced server-side.** Client UI disables buttons after use, but the server must reject any second use attempt regardless.
-- **Do not hardcode game tuning values** (timers, scores, AI difficulty, trap letter weights). Read from `config.go` on the Go side and a `GameConfig` constant on the Flutter side.
+- **`word_freq_ranks.txt` is backend only.** Rarity bonus is server-side; omit it from the Flutter scorer.
+- **Never require login to start a solo or vs-AI game.** Guest mode is first-class.
+- **Local DB is the source of truth for solo/AI games.** The backend is never called during an active solo or AI game.
+- **Daily Challenge never appears in the multiplayer lobby.**
+- **Power-up limits in multiplayer are enforced server-side.** Server rejects any second use regardless of client state.
+- **Do not hardcode game tuning values.** Read from `config.go` (Go) and `GameConfig` constant (Flutter).
 - Local dev ports: backend 8080, Postgres 5432, Redis 6379.
 
 ---
@@ -1119,24 +684,15 @@ Full end-to-end smoke flows:
 | `JWT_REFRESH_TTL` | no | `720h` | Default 30 days |
 | `LOG_LEVEL` | no | `info` | debug / info / warn / error |
 | `ENV` | no | `dev` | dev / prod — controls log format |
-| `CORS_ORIGINS` | no | `http://localhost:*` | Comma-separated allowed origins |
-| `FCM_PROJECT_ID` | yes | `wordchain-prod` | Firebase project ID for FCM v1 API |
-| `FCM_SERVICE_ACCOUNT_JSON` | yes | (path or inline JSON) | Service account credentials for FCM auth |
-| `GAME_EPOCH_DATE` | no | `2025-01-01` | Day #1 for Daily Challenge numbering (YYYY-MM-DD) |
+| `CORS_ORIGINS` | no | `http://localhost:*` | Comma-separated |
+| `FCM_PROJECT_ID` | yes | `wordchain-prod` | Firebase project ID |
+| `FCM_SERVICE_ACCOUNT_JSON` | yes | (path or inline JSON) | Service account for FCM auth |
+| `GAME_EPOCH_DATE` | no | `2025-01-01` | Day #1 for Daily Challenge numbering |
 
 ---
 
 ## 📎 Appendix: Dictionary & Word Frequency List
 
-### ENABLE wordlist
-- ~172,820 words, public domain, one lowercase word per line, ASCII only, no proper nouns, no contractions.
-- Stored at `backend/internal/engine/data/enable.txt` and `client/assets/words/enable.txt` (byte-identical).
-- Loaded into `map[string]struct{}` (Go) and `HashSet<String>` (Flutter) at startup.
-- Memory footprint: ~1.7 MB plain text; ~6–8 MB in-memory set.
+**ENABLE wordlist** — ~172,820 words, public domain, one lowercase word per line, ASCII only, no proper nouns. Stored at `backend/internal/engine/data/enable.txt` and `client/assets/words/enable.txt` (byte-identical). Memory: ~1.7 MB plain text, ~6–8 MB in-memory set.
 
-### Word frequency list (`word_freq_ranks.txt`)
-- **Format**: tab-separated `word\trank`, one entry per line, lowercase, sorted by rank ascending.
-- **Source**: derive from a freely licensed word frequency corpus (e.g., Wikipedia word count data, CC BY-SA). Restrict to words that also appear in the ENABLE wordlist to keep the file small.
-- **Usage**: words with rank > 10,000 are considered rare and earn the `rarity_bonus`. Words absent from the file receive rank `math.MaxInt` (always rare).
-- **Storage**: backend only, at `backend/internal/engine/data/word_freq_ranks.txt`. Loaded into `map[string]int` at server startup alongside the dictionary.
-- **Note**: verify the license of the chosen corpus before shipping. Wikipedia-derived counts are CC BY-SA and acceptable for a commercial product provided attribution is given in the app's credits.
+**`word_freq_ranks.txt`** — tab-separated `word\trank`, lowercase, sorted by rank ascending. Source: freely licensed corpus (e.g. Wikipedia CC BY-SA) filtered to ENABLE words. Words with rank > 10,000 earn `rarity_bonus`; missing words treated as rank ∞. Backend only at `backend/internal/engine/data/word_freq_ranks.txt`.
