@@ -68,7 +68,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 3 — Flutter: Auth Feature
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 > Auth UI and cubit are fully implementable now. The actual API calls (`register`, `login`, `refreshToken`) will return network errors until Phase 4 brings the backend up — guest mode continues to work perfectly throughout.
 

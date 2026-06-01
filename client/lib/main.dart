@@ -1,12 +1,14 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/router/app_router.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
+import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +19,13 @@ Future<void> main() async {
 
   // Wire DI
   await configureDependencies(dictionaryService);
+
+  // Resolve auth state (AuthGuest or AuthAuthenticated) before building the
+  // router so redirect never sees AuthInitial/AuthLoading on first evaluation.
+  await getIt<AuthCubit>().init();
+
+  // Build router after DI + auth are fully ready
+  getIt.registerSingleton<GoRouter>(buildAppRouter());
 
   // Firebase — graceful fail without google-services config
   try {
@@ -38,7 +47,7 @@ class WordChainApp extends StatelessWidget {
       title: 'WordChain',
       theme: AppTheme.dark,
       themeMode: ThemeMode.dark,
-      routerConfig: appRouter,
+      routerConfig: getIt<GoRouter>(),
       debugShowCheckedModeBanner: false,
     );
   }
