@@ -123,6 +123,12 @@ wordchain/
 
 ---
 
+## 🎨 UI Design Reference
+
+All Flutter screens must be implemented pixel-close to the designs in `figma/`. Each PLAN.md Flutter phase lists the specific reference image(s) for that phase. Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference image.
+
+---
+
 ## 📐 Coding Rules (apply in every session)
 
 - Backend: strictly 3 layers — `handler → service → repository`. No domain layer.

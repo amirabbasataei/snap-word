@@ -35,6 +35,8 @@ At the start of each session: read **both** files, then implement the requested 
 - `core/theme/app_theme.dart` — light/dark theme
 - Bundle `assets/words/enable.txt` in `pubspec.yaml`
 
+**Design reference:** `figma/home-screen.png`, `figma/onboarding.png`
+
 **Done when:** App builds, all routes navigate to placeholder screens, DI resolves, `isValid("apple")` returns true, `AppDatabase` opens without error, `isWordUsed` returns `false` on a fresh match, `SyncService.sync()` is a no-op for a guest.
 
 ---
@@ -59,6 +61,8 @@ At the start of each session: read **both** files, then implement the requested 
   - Skippable and replayable from Profile → Help
 - Guest Hint: 5 free per session, soft upsell prompt on last use
 
+**Design reference:** `figma/solo-game.png`, `figma/game-over.png`
+
 **Done when:** Solo game fully playable by a guest, including resuming an interrupted game after app restart. Used-word duplicate detection reads from `local_used_words`, not from memory. Stats persist in `local_player_stats` after app restart. Tutorial completes all four steps. Continue works once per Classic session. All end conditions trigger `GameOver`.
 
 ---
@@ -75,6 +79,8 @@ At the start of each session: read **both** files, then implement the requested 
 - `features/auth/view/register_screen.dart` — username + email + password, register button, "Continue as Guest" link
 - App startup logic: valid JWT → `AuthAuthenticated` → `/home` then `SyncService.sync()`; no token / refresh failed → `AuthGuest` → `/home`
 - On register or login success: call `SyncService.sync()` — all unsynced `local_matches` are uploaded and stats are merged automatically, regardless of which session the games were played in
+
+**Design reference:** `figma/login-screen.png`
 
 **Done when:** Guest reaches home and plays solo without login. Auth screens render correctly and handle network errors gracefully. Token persistence logic is wired (full login flow verified end-to-end after Phase 4). All unsynced matches and stats upload automatically on registration and login once the backend is running.
 
@@ -243,6 +249,8 @@ At the start of each session: read **both** files, then implement the requested 
 - `features/home/view/home_screen.dart` — Solo / vs AI, Find Match, Daily Challenge, Leaderboard, Friends, Profile; show daily streak count if authenticated
 - Before calling `lobby_repository.joinQueue()`, trigger `SyncService.sync()`
 
+**Design reference:** `figma/match-making.png`, `figma/multiplayer-game.png`
+
 **Done when:** Player queues, is matched, plays a shared-chain multiplayer game, continue window works for both players, game_over navigates correctly, local stats are synced before joining the queue.
 
 ---
@@ -260,6 +268,8 @@ At the start of each session: read **both** files, then implement the requested 
 - `features/profile/cubit/profile_cubit.dart` — authenticated: fetch stats/coins/powerups from backend, update local cache; guest: read from `StatsDao`, show "Register to back up" banner
 - `features/profile/view/profile_screen.dart` — stats, coin balance, powerup inventory (authenticated); guest banner; Help button (replays tutorial)
 - Handle notification deep links: friend request/challenge notification → `/friends`
+
+**Design reference:** `figma/leaderboard.png`, `figma/friends-screen.png`, `figma/profile-screen.png`
 
 **Done when:** All screens show real data. Friend request and challenge flows complete end-to-end.
 
@@ -279,6 +289,8 @@ At the start of each session: read **both** files, then implement the requested 
 - `share_service.dart` generates the text card (see CLAUDE.md Social Features → Daily Challenge share card) and calls `Share.share()`
 - Handle notification deep link: daily push → `/daily`
 - Wire daily streak display on Home and Profile
+
+**Design reference:** `figma/daily-challenge.png`, `figma/daily-result.png`
 
 **Done when:** Daily Challenge plays end-to-end. Share card generates correctly. Retry deducts 25 coins. Streak increments after any game completion. Deep link navigates to `/daily`.
 
