@@ -87,7 +87,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 4 — Foundation & Database
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 > `client/` and monorepo root already exist from Phase 1. This phase builds out the `backend/` scaffold and brings the server online so Phases 3 and 5+ can be tested end-to-end.
 

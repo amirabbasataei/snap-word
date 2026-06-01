@@ -26,7 +26,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | 1 | Flutter: Core Setup | [x] Complete |
 | 2 | Flutter: Game Feature (Solo + Tutorial) | [x] Complete |
 | 3 | Flutter: Auth Feature | [x] Complete |
-| 4 | Foundation & Database | [ ] Not started |
+| 4 | Foundation & Database | [x] Complete |
 | 5 | Backend: Dictionary & Game Engine | [ ] Not started |
 | 6 | Backend: Auth | [ ] Not started |
 | 7 | Backend: Game REST API & Match Repository | [ ] Not started |
