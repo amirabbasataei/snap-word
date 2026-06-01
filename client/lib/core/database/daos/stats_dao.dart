@@ -78,11 +78,37 @@ class StatsDao extends DatabaseAccessor<AppDatabase> with _$StatsDaoMixin {
     );
   }
 
+  Future<void> recordGameResult({
+    required int score,
+    required String? longestWord,
+  }) async {
+    final existing = await getStats();
+    await upsertStats(
+      LocalPlayerStatsCompanion(
+        id: const Value(1),
+        totalMatches: Value((existing?.totalMatches ?? 0) + 1),
+        wins: Value(existing?.wins ?? 0),
+        bestScore: Value(_max(existing?.bestScore ?? 0, score)),
+        bestMatchStreak: Value(existing?.bestMatchStreak ?? 0),
+        dailyStreak: Value(existing?.dailyStreak ?? 0),
+        longestDailyStreak: Value(existing?.longestDailyStreak ?? 0),
+        longestWord: Value(_bestWord(existing?.longestWord, longestWord)),
+        lastPlayedDate: Value(DateTime.now()),
+      ),
+    );
+  }
+
   int _max(int a, int b) => a > b ? a : b;
 
   DateTime? _latestDate(DateTime? a, DateTime? b) {
     if (a == null) return b;
     if (b == null) return a;
     return a.isAfter(b) ? a : b;
+  }
+
+  String? _bestWord(String? a, String? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a.length >= b.length ? a : b;
   }
 }

@@ -9,7 +9,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 1 — Flutter: Core Setup
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 > Solo and AI games run entirely on-device. The backend is not involved until Phase 4+.
 > This phase also creates the monorepo root structure.
@@ -42,7 +42,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 2 — Flutter: Game Feature (Solo + Tutorial)
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `features/game/data/game_repository.dart` — `startLocalGame(mode, opponentType) → Future<int>`: inserts a row into `local_matches` (status `active`) and returns its local id; `finishLocalGame(localMatchId, score, wordChain)`: updates status, score, chainLength, wordChain, endedAt and runs `deleteWordsForMatch` — all inside one Drift transaction; `usePowerup(type)` (authenticated only): calls `POST /api/v1/powerup/use` then updates `local_powerup_cache` on success

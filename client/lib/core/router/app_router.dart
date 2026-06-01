@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/features/auth/view/login_screen.dart';
 import 'package:wordchain/features/auth/view/register_screen.dart';
 import 'package:wordchain/features/daily/view/daily_screen.dart';
 import 'package:wordchain/features/friends/view/friends_screen.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/game/view/tutorial_screen.dart';
 import 'package:wordchain/features/home/view/home_screen.dart';
 import 'package:wordchain/features/leaderboard/view/leaderboard_screen.dart';
 import 'package:wordchain/features/lobby/view/lobby_screen.dart';
@@ -13,7 +16,18 @@ import 'package:wordchain/features/profile/view/profile_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/home',
+  redirect: (context, state) {
+    final prefs = getIt<SharedPreferences>();
+    final tutorialDone = prefs.getBool('tutorial_completed') ?? false;
+    final onTutorial = state.uri.toString().startsWith('/tutorial');
+    if (!tutorialDone && !onTutorial) return '/tutorial';
+    return null;
+  },
   routes: [
+    GoRoute(
+      path: '/tutorial',
+      builder: (context, state) => const TutorialScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => _MainShell(shell: shell),
       branches: [
@@ -60,9 +74,11 @@ final appRouter = GoRouter(
       builder: (context, state) => const RegisterScreen(),
     ),
     GoRoute(
-      path: '/game/:id',
-      builder: (context, state) =>
-          GameScreen(id: state.pathParameters['id']!),
+      path: '/game',
+      builder: (context, state) {
+        final args = state.extra as GameRouteArgs;
+        return GameScreen(args: args);
+      },
     ),
     GoRoute(
       path: '/lobby',

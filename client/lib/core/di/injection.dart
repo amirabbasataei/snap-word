@@ -7,6 +7,7 @@ import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
+import 'package:wordchain/features/game/data/game_repository.dart';
 
 final getIt = GetIt.instance;
 
@@ -48,6 +49,16 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
       matchDao: getIt<MatchDao>(),
       statsDao: getIt<StatsDao>(),
       powerupCacheDao: getIt<PowerupCacheDao>(),
+    ),
+  );
+
+  // Game
+  getIt.registerLazySingleton<GameRepository>(
+    () => GameRepository(
+      db: getIt<AppDatabase>(),
+      matchDao: getIt<MatchDao>(),
+      usedWordDao: getIt<UsedWordDao>(),
+      dio: getIt<DioClient>().dio,
     ),
   );
 }

@@ -28,4 +28,31 @@ class MatchDao extends DatabaseAccessor<AppDatabase> with _$MatchDaoMixin {
           remoteId: Value(remoteId),
         ),
       );
+
+  Future<LocalMatche?> getMatchById(int id) =>
+      (select(localMatches)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<void> updateWordChainForMatch(int id, List<String> chain) =>
+      (update(localMatches)..where((t) => t.id.equals(id))).write(
+        LocalMatchesCompanion(
+          chainLength: Value(chain.length),
+          wordChain: Value(jsonEncode(chain)),
+        ),
+      );
+
+  Future<void> finishMatch(
+    int id,
+    int score,
+    int chainLength,
+    String wordChainJson,
+  ) =>
+      (update(localMatches)..where((t) => t.id.equals(id))).write(
+        LocalMatchesCompanion(
+          status: const Value('finished'),
+          score: Value(score),
+          chainLength: Value(chainLength),
+          wordChain: Value(wordChainJson),
+          endedAt: Value(DateTime.now()),
+        ),
+      );
 }
