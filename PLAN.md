@@ -8,28 +8,14 @@ At the start of each session: read **both** files, then implement the requested 
 
 ---
 
-## Phase 1 — Foundation & Database
+## Phase 1 — Flutter: Core Setup
 **Status: [ ] Not started**
 
-**Scope:**
-- Create monorepo folder structure (`backend/`, `client/`)
-- Write full architecture diagram (`backend/ARCHITECTURE.md`)
-- Initialize Go module (`go.mod`) with all dependencies
-- `internal/config/config.go` — load from env vars (see CLAUDE.md Appendix)
-- `migrations/001_init.up.sql` + `001_init.down.sql` — full schema from CLAUDE.md Database Schema section (all tables including `friendships`, `friend_challenges`, `device_tokens`, `weekly_leaderboard_rewards`)
-- `docker-compose.yml` — services: app, postgres, redis
-- Backend `Dockerfile`
-- `cmd/server/main.go` — wire config, DB, Redis, Gin router, `GET /health`
-- `.env.example`
-
-**Done when:** `docker-compose up` starts all three services. Server responds to `GET /health` with 200 OK.
-
----
-
-## Phase 2 — Flutter: Core Setup
-**Status: [ ] Not started**
+> Solo and AI games run entirely on-device. The backend is not involved until Phase 4+.
+> This phase also creates the monorepo root structure.
 
 **Scope:**
+- Create monorepo root: `wordchain/` with `backend/` (empty placeholder) and `client/` folders; add `.env.example` and `.gitignore`
 - Initialize Flutter project in `client/`
 - `pubspec.yaml` dependencies: `flutter_bloc`, `go_router`, `dio`, `get_it`, `equatable`, `web_socket_channel`, `shared_preferences`, `logger`, `firebase_messaging`, `share_plus`, `drift`, `drift_flutter`, `sqlite3_flutter_libs`, `connectivity_plus`; dev dependencies: `drift_dev`, `build_runner`
 - `core/database/app_database.dart` — Drift `AppDatabase`; registers all four tables; schema version 1; opens via `driftDatabase(name: 'wordchain.db')`
@@ -53,7 +39,7 @@ At the start of each session: read **both** files, then implement the requested 
 
 ---
 
-## Phase 3 — Flutter: Game Feature (Solo + Tutorial)
+## Phase 2 — Flutter: Game Feature (Solo + Tutorial)
 **Status: [ ] Not started**
 
 **Scope:**
@@ -77,8 +63,10 @@ At the start of each session: read **both** files, then implement the requested 
 
 ---
 
-## Phase 4 — Flutter: Auth Feature
+## Phase 3 — Flutter: Auth Feature
 **Status: [ ] Not started**
+
+> Auth UI and cubit are fully implementable now. The actual API calls (`register`, `login`, `refreshToken`) will return network errors until Phase 4 brings the backend up — guest mode continues to work perfectly throughout.
 
 **Scope:**
 - `features/auth/data/auth_repository.dart` — `register`, `login`, `refreshToken`; persist JWT in `shared_preferences`
@@ -88,7 +76,25 @@ At the start of each session: read **both** files, then implement the requested 
 - App startup logic: valid JWT → `AuthAuthenticated` → `/home` then `SyncService.sync()`; no token / refresh failed → `AuthGuest` → `/home`
 - On register or login success: call `SyncService.sync()` — all unsynced `local_matches` are uploaded and stats are merged automatically, regardless of which session the games were played in
 
-**Done when:** Guest reaches home and plays solo without login. Token survives restart. All unsynced local matches and stats are uploaded automatically on registration and login. A guest who played three days ago and then registers sees their full history synced to the backend.
+**Done when:** Guest reaches home and plays solo without login. Auth screens render correctly and handle network errors gracefully. Token persistence logic is wired (full login flow verified end-to-end after Phase 4). All unsynced matches and stats upload automatically on registration and login once the backend is running.
+
+---
+
+## Phase 4 — Foundation & Database
+**Status: [ ] Not started**
+
+> `client/` and monorepo root already exist from Phase 1. This phase builds out the `backend/` scaffold and brings the server online so Phases 3 and 5+ can be tested end-to-end.
+
+**Scope:**
+- Write full architecture diagram (`backend/ARCHITECTURE.md`)
+- Initialize Go module (`go.mod`) with all dependencies inside `backend/`
+- `internal/config/config.go` — load from env vars (see CLAUDE.md Appendix)
+- `migrations/001_init.up.sql` + `001_init.down.sql` — full schema from CLAUDE.md Database Schema section (all tables including `friendships`, `friend_challenges`, `device_tokens`, `weekly_leaderboard_rewards`)
+- `docker-compose.yml` — services: app, postgres, redis
+- Backend `Dockerfile`
+- `cmd/server/main.go` — wire config, DB, Redis, Gin router, `GET /health`
+
+**Done when:** `docker-compose up` starts all three services. Server responds to `GET /health` with 200 OK. Auth flow from Phase 3 works against the running server.
 
 ---
 
