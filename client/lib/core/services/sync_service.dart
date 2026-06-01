@@ -1,0 +1,88 @@
+import 'package:dio/dio.dart';
+import 'package:logger/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wordchain/core/database/app_database.dart';
+import 'package:wordchain/core/network/api_endpoints.dart';
+
+class SyncService {
+  final SharedPreferences _prefs;
+  final Dio _dio;
+  final MatchDao _matchDao;
+  final StatsDao _statsDao;
+  final PowerupCacheDao _powerupCacheDao;
+  final Logger _log = Logger();
+
+  SyncService({
+    required SharedPreferences prefs,
+    required Dio dio,
+    required MatchDao matchDao,
+    required StatsDao statsDao,
+    required PowerupCacheDao powerupCacheDao,
+  })  : _prefs = prefs,
+        _dio = dio,
+        _matchDao = matchDao,
+        _statsDao = statsDao,
+        _powerupCacheDao = powerupCacheDao;
+
+  bool get _isGuest => _prefs.getString('jwt_access_token') == null;
+
+  Future<void> sync() async {
+    if (_isGuest) return;
+    await _uploadUnsyncedMatches();
+    await _mergeStats();
+    await _refreshPowerupCache();
+  }
+
+  Future<void> _uploadUnsyncedMatches() async {
+    final matches = await _matchDao.getUnsyncedMatches();
+    for (final match in matches) {
+      try {
+        final response = await _dio.post(
+          ApiEndpoints.soloGame,
+          data: {
+            'mode': match.mode,
+            'score': match.score,
+            'word_chain': match.wordChain,
+            'started_at': match.startedAt.toIso8601String(),
+            'ended_at': match.endedAt?.toIso8601String(),
+          },
+        );
+        final remoteId = response.data['data']['id'] as String;
+        await _matchDao.markSynced(match.id, remoteId);
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 409) {
+          // Already exists server-side — mark synced silently
+          final remoteId = e.response?.data['data']?['id'] as String? ?? '';
+          await _matchDao.markSynced(match.id, remoteId);
+        } else {
+          _log.w('Match sync failed, will retry: $e');
+          return; // abort remaining; retry on next trigger
+        }
+      }
+    }
+  }
+
+  Future<void> _mergeStats() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.profileStats);
+      final remote = RemoteStats.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+      await _statsDao.mergeWithRemote(remote);
+    } catch (e) {
+      _log.w('Stats sync failed: $e');
+    }
+  }
+
+  Future<void> _refreshPowerupCache() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.powerupInventory);
+      final list = (response.data['data'] as List<dynamic>)
+          .map((e) => RemotePowerup.fromJson(e as Map<String, dynamic>))
+          .toList();
+      await _powerupCacheDao.refreshFromRemote(list);
+    } catch (e) {
+      _log.w('Powerup cache refresh failed: $e');
+    }
+  }
+}

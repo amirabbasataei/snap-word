@@ -1,0 +1,40 @@
+# Environment
+.env
+.env.local
+
+# Backend
+backend/bin/
+backend/tmp/
+*.exe
+*.test
+
+# Flutter / Dart
+client/.dart_tool/
+client/.flutter-plugins
+client/.flutter-plugins-dependencies
+client/.packages
+client/build/
+client/.pub-cache/
+client/.pub/
+client/coverage/
+client/**/*.g.dart
+client/**/*.freezed.dart
+client/android/local.properties
+client/android/.gradle/
+client/android/app/debug/
+client/android/app/release/
+client/android/app/google-services.json
+client/ios/Flutter/flutter_export_environment.sh
+client/ios/Flutter/Generated.xcconfig
+client/ios/Pods/
+client/ios/Runner.xcworkspace/xcuserdata/
+client/ios/GoogleService-Info.plist
+client/*.iml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

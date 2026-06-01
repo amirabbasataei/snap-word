@@ -1,19 +1,53 @@
-name: client
-description: "A new Flutter project."
+name: wordchain
+description: "WordChain — a Shiritori-style word chain mobile game."
 publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.11.5
+  sdk: ^3.7.0
 
 dependencies:
   flutter:
     sdk: flutter
 
+  # State management
+  flutter_bloc: ^9.1.0
+  equatable: ^2.0.7
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # Networking
+  dio: ^5.8.0+1
+  web_socket_channel: ^3.0.2
+
+  # Dependency injection
+  get_it: ^8.0.3
+
+  # Local storage
+  shared_preferences: ^2.5.3
+  drift: ^2.23.1
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.30
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.5
+
+  # Utilities
+  logger: ^2.5.0
+  connectivity_plus: ^6.1.4
+  share_plus: ^10.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  drift_dev: ^2.23.1
+  build_runner: ^2.4.15
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/words/enable.txt
