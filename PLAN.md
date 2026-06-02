@@ -276,7 +276,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 15 — Flutter: Daily Challenge & Sharing
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `features/daily/data/daily_repository.dart` — `getDailyChallenge`, `submitAttempt`, `retryChallenge`
