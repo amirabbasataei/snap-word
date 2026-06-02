@@ -2,8 +2,11 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"wordchain/backend/internal/repository"
 	"wordchain/backend/internal/service"
@@ -15,6 +18,7 @@ type Scheduler struct {
 	statsRepo      *repository.StatsRepository
 	notifSvc       *service.NotificationService
 	challengeSvc   *service.ChallengeService
+	rdb            *redis.Client
 }
 
 // New creates a Scheduler. Call Start to run it.
@@ -23,12 +27,14 @@ func New(
 	statsRepo *repository.StatsRepository,
 	notifSvc *service.NotificationService,
 	challengeSvc *service.ChallengeService,
+	rdb *redis.Client,
 ) *Scheduler {
 	return &Scheduler{
 		leaderboardSvc: leaderboardSvc,
 		statsRepo:      statsRepo,
 		notifSvc:       notifSvc,
 		challengeSvc:   challengeSvc,
+		rdb:            rdb,
 	}
 }
 
@@ -55,7 +61,12 @@ func (s *Scheduler) tick(ctx context.Context, now time.Time) {
 		s.leaderboardSvc.RunWeeklyReset(ctx, weekStart)
 	}
 
-	// Streak at-risk notification: 20:00 UTC daily
+	// Daily challenge reminder: midnight UTC every day
+	if now.Hour() == 0 && now.Minute() == 0 {
+		s.sendDailyChallengeReminder(ctx, now)
+	}
+
+	// Streak at-risk notification: 20:00 UTC daily (with per-user deduplication)
 	if now.Hour() == 20 && now.Minute() == 0 {
 		s.checkStreakAtRisk(ctx, now)
 	}
@@ -66,22 +77,65 @@ func (s *Scheduler) tick(ctx context.Context, now time.Time) {
 	}
 }
 
+// sendDailyChallengeReminder broadcasts the daily challenge push to all registered devices.
+// A Redis key prevents duplicate sends within a 25-hour window.
+func (s *Scheduler) sendDailyChallengeReminder(ctx context.Context, now time.Time) {
+	dateStr := now.Format("2006-01-02")
+	dedupKey := fmt.Sprintf("notif:daily_challenge:%s", dateStr)
+
+	set, err := s.rdb.SetNX(ctx, dedupKey, 1, 25*time.Hour).Result()
+	if err != nil {
+		slog.Error("scheduler: daily challenge dedup check failed", "error", err)
+		return
+	}
+	if !set {
+		return // Already sent today.
+	}
+
+	if err := s.notifSvc.SendToAll(ctx,
+		"Daily Word Chain Challenge",
+		"Today's Word Chain challenge is ready.",
+	); err != nil {
+		slog.Error("scheduler: daily challenge notification failed", "error", err)
+		return
+	}
+	slog.Info("scheduler: daily challenge notifications sent", "date", dateStr)
+}
+
+// checkStreakAtRisk sends a streak-at-risk push to each eligible user.
+// Redis key notif:streak_risk:{userID}:{date} (TTL 24h) prevents duplicate sends per user per day.
 func (s *Scheduler) checkStreakAtRisk(ctx context.Context, now time.Time) {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	dateStr := today.Format("2006-01-02")
+
 	userIDs, err := s.statsRepo.GetUsersWithStreakAtRisk(ctx, today)
 	if err != nil {
 		slog.Error("scheduler: GetUsersWithStreakAtRisk failed", "error", err)
 		return
 	}
+
+	sent := 0
 	for _, uid := range userIDs {
+		dedupKey := fmt.Sprintf("notif:streak_risk:%s:%s", uid, dateStr)
+		set, err := s.rdb.SetNX(ctx, dedupKey, 1, 24*time.Hour).Result()
+		if err != nil {
+			slog.Warn("scheduler: streak-at-risk dedup check failed", "userID", uid, "error", err)
+			continue
+		}
+		if !set {
+			continue // Already notified this user today.
+		}
 		if err := s.notifSvc.SendToUser(ctx, uid,
 			"Your streak is at risk!",
 			"Play a game before midnight to keep your daily streak alive.",
 		); err != nil {
 			slog.Warn("scheduler: streak-at-risk notification failed", "userID", uid, "error", err)
+		} else {
+			sent++
 		}
 	}
-	if len(userIDs) > 0 {
-		slog.Info("scheduler: streak-at-risk notifications sent", "count", len(userIDs))
+
+	if sent > 0 {
+		slog.Info("scheduler: streak-at-risk notifications sent", "count", sent)
 	}
 }

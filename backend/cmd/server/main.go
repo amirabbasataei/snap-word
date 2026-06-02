@@ -68,8 +68,9 @@ func main() {
 	powerupRepo := repository.NewPowerupRepository(db)
 	friendRepo := repository.NewFriendshipRepository(db)
 	lbRepo := repository.NewLeaderboardRepository(db)
+	notifRepo := repository.NewNotificationRepository(db)
 
-	notifSvc := service.NewNotificationService()
+	notifSvc := service.NewNotificationService(cfg, notifRepo)
 	streakSvc := service.NewStreakService(statsRepo, userRepo, notifSvc)
 	leaderboardSvc := service.NewLeaderboardService(rdb, userRepo, friendRepo, lbRepo, notifSvc)
 
@@ -98,9 +99,10 @@ func main() {
 	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
 	friendHandler := handler.NewFriendHandler(friendSvc)
 	challengeHandler := handler.NewChallengeHandler(challengeSvc)
+	notificationHandler := handler.NewNotificationHandler(notifRepo)
 
 	// Start background scheduler
-	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc)
+	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc, rdb)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go sched.Start(ctx)
@@ -136,6 +138,10 @@ func main() {
 	protected.POST("/challenges", challengeHandler.Create)
 	protected.POST("/challenges/:id/respond", challengeHandler.Respond)
 	protected.GET("/challenges/pending", challengeHandler.GetPending)
+
+	// Push notification token management
+	protected.POST("/notifications/token", notificationHandler.RegisterToken)
+	protected.DELETE("/notifications/token", notificationHandler.DeregisterToken)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server listening", "addr", addr)

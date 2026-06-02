@@ -218,7 +218,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 12 — Backend: Push Notifications
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `internal/service/notification.go` — `SendToUser(userID, title, body string)`: looks up FCM token from `device_tokens`, calls FCM HTTP v1 API using `FCM_SERVICE_ACCOUNT_JSON` for auth
