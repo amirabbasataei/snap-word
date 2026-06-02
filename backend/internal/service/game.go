@@ -42,10 +42,11 @@ type MatchWithPlayers struct {
 type GameService struct {
 	matchRepo *repository.MatchRepository
 	statsRepo *repository.StatsRepository
+	streakSvc *StreakService
 }
 
-func NewGameService(matchRepo *repository.MatchRepository, statsRepo *repository.StatsRepository) *GameService {
-	return &GameService{matchRepo: matchRepo, statsRepo: statsRepo}
+func NewGameService(matchRepo *repository.MatchRepository, statsRepo *repository.StatsRepository, streakSvc *StreakService) *GameService {
+	return &GameService{matchRepo: matchRepo, statsRepo: statsRepo, streakSvc: streakSvc}
 }
 
 // CreateSoloGame persists a finished solo match uploaded by the Flutter SyncService.
@@ -82,6 +83,12 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 	if err := s.updateStatsAfterSoloGame(ctx, userID, in.WordChain, in.EndedAt); err != nil {
 		// non-fatal: match is already created; log and continue
 		slog.Error("CreateSoloGame: stats update failed", "userID", userID, "error", err)
+	}
+
+	if s.streakSvc != nil {
+		if err := s.streakSvc.RecordGamePlayed(ctx, userID, in.EndedAt); err != nil {
+			slog.Error("CreateSoloGame: RecordGamePlayed failed", "userID", userID, "error", err)
+		}
 	}
 
 	return m, false, nil

@@ -71,11 +71,25 @@ type PowerupDeductor interface {
 	UseItem(ctx context.Context, userID, powerupType string) (int, error)
 }
 
+// StreakRecorder records game completion for daily streak tracking.
+// Implemented by service.StreakService.
+type StreakRecorder interface {
+	RecordGamePlayed(ctx context.Context, userID string, date time.Time) error
+}
+
+// LeaderboardUpdater adds a player's score to the weekly leaderboard.
+// Used only for multiplayer games; solo scores are excluded.
+type LeaderboardUpdater interface {
+	AddScore(ctx context.Context, userID string, score int) error
+}
+
 // RoomDeps holds the external dependencies a room needs for DB interactions.
 // All fields may be nil in tests that exercise in-memory logic only.
 type RoomDeps struct {
-	MatchRepo  *repository.MatchRepository
-	PowerupSvc PowerupDeductor
+	MatchRepo      *repository.MatchRepository
+	PowerupSvc     PowerupDeductor
+	StreakSvc      StreakRecorder
+	LeaderboardSvc LeaderboardUpdater
 }
 
 // Room manages a single multiplayer game session.
@@ -664,6 +678,7 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 		return
 	}
 	ctx := context.Background()
+	now := time.Now().UTC()
 
 	var winnerPtr *string
 	if winnerID != "" {
@@ -684,6 +699,21 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 	for playerID, score := range scores {
 		if err := r.deps.MatchRepo.UpdatePlayerScore(ctx, r.id, playerID, score); err != nil {
 			slog.Error("ws: UpdatePlayerScore failed", "room", r.id, "player", playerID, "error", err)
+		}
+
+		// Skip AI players — they have no real user account.
+		if strings.HasPrefix(playerID, "ai:") {
+			continue
+		}
+		if r.deps.StreakSvc != nil {
+			if err := r.deps.StreakSvc.RecordGamePlayed(ctx, playerID, now); err != nil {
+				slog.Error("ws: RecordGamePlayed failed", "room", r.id, "player", playerID, "error", err)
+			}
+		}
+		if r.deps.LeaderboardSvc != nil {
+			if err := r.deps.LeaderboardSvc.AddScore(ctx, playerID, score); err != nil {
+				slog.Error("ws: AddScore failed", "room", r.id, "player", playerID, "error", err)
+			}
 		}
 	}
 }

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 var ErrUserNotFound = errors.New("user not found")
@@ -74,4 +76,38 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*User, err
 		return nil, fmt.Errorf("GetUserByID: %w", err)
 	}
 	return u, nil
+}
+
+// AwardCoins atomically adds amount to a user's coin balance.
+func (r *UserRepository) AwardCoins(ctx context.Context, userID string, amount int) error {
+	const q = `UPDATE users SET coins = coins + $1 WHERE id = $2`
+	_, err := r.db.ExecContext(ctx, q, amount, userID)
+	if err != nil {
+		return fmt.Errorf("AwardCoins: %w", err)
+	}
+	return nil
+}
+
+// GetUsernames returns a map of userID → username for the given IDs.
+// Missing IDs are silently omitted from the result.
+func (r *UserRepository) GetUsernames(ctx context.Context, userIDs []string) (map[string]string, error) {
+	if len(userIDs) == 0 {
+		return map[string]string{}, nil
+	}
+	const q = `SELECT id, username FROM users WHERE id = ANY($1)`
+	rows, err := r.db.QueryContext(ctx, q, pq.Array(userIDs))
+	if err != nil {
+		return nil, fmt.Errorf("GetUsernames: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]string, len(userIDs))
+	for rows.Next() {
+		var id, username string
+		if err := rows.Scan(&id, &username); err != nil {
+			return nil, fmt.Errorf("GetUsernames scan: %w", err)
+		}
+		result[id] = username
+	}
+	return result, rows.Err()
 }

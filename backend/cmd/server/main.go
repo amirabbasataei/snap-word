@@ -21,6 +21,7 @@ import (
 	"wordchain/backend/internal/handler"
 	"wordchain/backend/internal/middleware"
 	"wordchain/backend/internal/repository"
+	"wordchain/backend/internal/scheduler"
 	"wordchain/backend/internal/service"
 	"wordchain/backend/internal/ws"
 	dbmigrations "wordchain/backend/migrations"
@@ -65,14 +66,22 @@ func main() {
 	matchRepo := repository.NewMatchRepository(db)
 	statsRepo := repository.NewStatsRepository(db)
 	powerupRepo := repository.NewPowerupRepository(db)
+	friendRepo := repository.NewFriendshipRepository(db)
+	lbRepo := repository.NewLeaderboardRepository(db)
+
+	notifSvc := service.NewNotificationService()
+	streakSvc := service.NewStreakService(statsRepo, userRepo, notifSvc)
+	leaderboardSvc := service.NewLeaderboardService(rdb, userRepo, friendRepo, lbRepo, notifSvc)
 
 	authSvc := service.NewAuthService(userRepo, cfg)
-	gameSvc := service.NewGameService(matchRepo, statsRepo)
+	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc)
 	powerupSvc := service.NewPowerupService(powerupRepo)
 
 	hub := ws.NewHub(ws.RoomDeps{
-		MatchRepo:  matchRepo,
-		PowerupSvc: powerupSvc,
+		MatchRepo:      matchRepo,
+		PowerupSvc:     powerupSvc,
+		StreakSvc:      streakSvc,
+		LeaderboardSvc: leaderboardSvc,
 	})
 
 	matchSvc := service.NewMatchmakingService(rdb, hub)
@@ -82,6 +91,13 @@ func main() {
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 	matchHandler := handler.NewMatchHandler(matchSvc)
 	wsHandler := handler.NewWSHandler(hub, authSvc)
+	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
+
+	// Start background scheduler
+	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go sched.Start(ctx)
 
 	api := router.Group("/api/v1")
 
@@ -101,6 +117,7 @@ func main() {
 	protected.GET("/ws/game/:roomID", wsHandler.ServeWS)
 	protected.POST("/match/queue", matchHandler.JoinQueue)
 	protected.DELETE("/match/queue", matchHandler.CancelQueue)
+	protected.GET("/leaderboard", leaderboardHandler.Get)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server listening", "addr", addr)

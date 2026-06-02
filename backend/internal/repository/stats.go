@@ -96,6 +96,47 @@ func (r *StatsRepository) UpsertStats(ctx context.Context, stats *PlayerStats) e
 	return nil
 }
 
+// UpdateStreak sets the daily streak fields without touching other columns.
+func (r *StatsRepository) UpdateStreak(ctx context.Context, userID string, dailyStreak, longestDailyStreak int, lastPlayedDate time.Time) error {
+	const q = `
+		INSERT INTO player_stats (user_id, daily_streak, longest_daily_streak, last_played_date, updated_at)
+		VALUES ($1, $2, $3, $4, now())
+		ON CONFLICT (user_id) DO UPDATE SET
+		    daily_streak         = EXCLUDED.daily_streak,
+		    longest_daily_streak = GREATEST(player_stats.longest_daily_streak, EXCLUDED.longest_daily_streak),
+		    last_played_date     = EXCLUDED.last_played_date,
+		    updated_at           = now()`
+
+	_, err := r.db.ExecContext(ctx, q, userID, dailyStreak, longestDailyStreak, lastPlayedDate)
+	if err != nil {
+		return fmt.Errorf("UpdateStreak: %w", err)
+	}
+	return nil
+}
+
+// GetUsersWithStreakAtRisk returns user IDs where daily_streak ≥ 3 and
+// last_played_date equals yesterday (i.e., they haven't played today yet).
+func (r *StatsRepository) GetUsersWithStreakAtRisk(ctx context.Context, today time.Time) ([]string, error) {
+	yesterday := today.AddDate(0, 0, -1)
+	const q = `SELECT user_id FROM player_stats WHERE daily_streak >= 3 AND last_played_date = $1`
+
+	rows, err := r.db.QueryContext(ctx, q, yesterday)
+	if err != nil {
+		return nil, fmt.Errorf("GetUsersWithStreakAtRisk: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("GetUsersWithStreakAtRisk scan: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 // IncrementMatchStats atomically increments total_matches and updates longest_word / last_played_date.
 // All other fields are left unchanged by this operation.
 func (r *StatsRepository) IncrementMatchStats(ctx context.Context, userID, longestWord string, playedAt time.Time) error {

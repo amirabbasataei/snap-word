@@ -185,7 +185,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 10 — Backend: Leaderboard & Streak
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `internal/service/leaderboard.go` — Redis Sorted Set `leaderboard:global:weekly`: `AddScore`, `GetTopN(n int)`, `GetPlayerRank(userID string)`
