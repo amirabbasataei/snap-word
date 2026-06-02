@@ -203,7 +203,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 11 — Backend: Friends & Challenges
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `internal/repository/friendship.go` — `SendRequest`, `RespondToRequest`, `ListFriends`, `ListPendingRequests`, `RemoveFriend`

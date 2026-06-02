@@ -88,6 +88,24 @@ func (r *UserRepository) AwardCoins(ctx context.Context, userID string, amount i
 	return nil
 }
 
+// GetUserByUsername returns the user with the given username.
+func (r *UserRepository) GetUserByUsername(ctx context.Context, username string) (*User, error) {
+	const q = `
+		SELECT id, username, email, password_hash, coins, created_at
+		FROM users WHERE username = $1`
+
+	u := &User{}
+	err := r.db.QueryRowContext(ctx, q, username).
+		Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Coins, &u.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GetUserByUsername: %w", err)
+	}
+	return u, nil
+}
+
 // GetUsernames returns a map of userID → username for the given IDs.
 // Missing IDs are silently omitted from the result.
 func (r *UserRepository) GetUsernames(ctx context.Context, userIDs []string) (map[string]string, error) {

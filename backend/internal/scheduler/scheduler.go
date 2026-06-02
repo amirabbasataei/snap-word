@@ -14,6 +14,7 @@ type Scheduler struct {
 	leaderboardSvc *service.LeaderboardService
 	statsRepo      *repository.StatsRepository
 	notifSvc       *service.NotificationService
+	challengeSvc   *service.ChallengeService
 }
 
 // New creates a Scheduler. Call Start to run it.
@@ -21,11 +22,13 @@ func New(
 	leaderboardSvc *service.LeaderboardService,
 	statsRepo *repository.StatsRepository,
 	notifSvc *service.NotificationService,
+	challengeSvc *service.ChallengeService,
 ) *Scheduler {
 	return &Scheduler{
 		leaderboardSvc: leaderboardSvc,
 		statsRepo:      statsRepo,
 		notifSvc:       notifSvc,
+		challengeSvc:   challengeSvc,
 	}
 }
 
@@ -55,6 +58,11 @@ func (s *Scheduler) tick(ctx context.Context, now time.Time) {
 	// Streak at-risk notification: 20:00 UTC daily
 	if now.Hour() == 20 && now.Minute() == 0 {
 		s.checkStreakAtRisk(ctx, now)
+	}
+
+	// Expire overdue friend challenges every 5 minutes
+	if now.Minute()%5 == 0 {
+		s.challengeSvc.ExpireOldChallenges(ctx)
 	}
 }
 

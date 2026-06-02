@@ -86,15 +86,21 @@ func main() {
 
 	matchSvc := service.NewMatchmakingService(rdb, hub)
 
+	challengeRepo := repository.NewChallengeRepository(db)
+	friendSvc := service.NewFriendService(friendRepo, userRepo, notifSvc)
+	challengeSvc := service.NewChallengeService(challengeRepo, friendRepo, userRepo, hub, notifSvc)
+
 	authHandler := handler.NewAuthHandler(authSvc)
 	gameHandler := handler.NewGameHandler(gameSvc)
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 	matchHandler := handler.NewMatchHandler(matchSvc)
 	wsHandler := handler.NewWSHandler(hub, authSvc)
 	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
+	friendHandler := handler.NewFriendHandler(friendSvc)
+	challengeHandler := handler.NewChallengeHandler(challengeSvc)
 
 	// Start background scheduler
-	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc)
+	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go sched.Start(ctx)
@@ -118,6 +124,18 @@ func main() {
 	protected.POST("/match/queue", matchHandler.JoinQueue)
 	protected.DELETE("/match/queue", matchHandler.CancelQueue)
 	protected.GET("/leaderboard", leaderboardHandler.Get)
+
+	// Friends
+	protected.POST("/friends/request", friendHandler.SendRequest)
+	protected.GET("/friends", friendHandler.ListFriends)
+	protected.GET("/friends/requests", friendHandler.ListRequests)
+	protected.POST("/friends/respond", friendHandler.RespondToRequest)
+	protected.DELETE("/friends/:friendId", friendHandler.RemoveFriend)
+
+	// Friend challenges
+	protected.POST("/challenges", challengeHandler.Create)
+	protected.POST("/challenges/:id/respond", challengeHandler.Respond)
+	protected.GET("/challenges/pending", challengeHandler.GetPending)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server listening", "addr", addr)
