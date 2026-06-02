@@ -28,10 +28,12 @@ var (
 var usernameRe = regexp.MustCompile(`^[a-zA-Z0-9_]{3,32}$`)
 var emailRe = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
-// TokenPair holds an access token and a refresh token.
+// TokenPair holds an access token, a refresh token, and the authenticated user's identity.
 type TokenPair struct {
 	AccessToken  string
 	RefreshToken string
+	UserID       string
+	Username     string
 }
 
 type claims struct {
@@ -144,7 +146,7 @@ func (s *AuthService) generateTokenPair(userID, username string) (*TokenPair, er
 		return nil, fmt.Errorf("sign refresh token: %w", err)
 	}
 
-	return &TokenPair{AccessToken: access, RefreshToken: refresh}, nil
+	return &TokenPair{AccessToken: access, RefreshToken: refresh, UserID: userID, Username: username}, nil
 }
 
 func (s *AuthService) sign(c *claims) (string, error) {

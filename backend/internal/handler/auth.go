@@ -37,6 +37,8 @@ type refreshRequest struct {
 type tokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	UserID       string `json:"user_id"`
+	Username     string `json:"username"`
 }
 
 // Register handles POST /api/v1/auth/register.
@@ -59,6 +61,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": tokenResponse{
 		AccessToken:  pair.AccessToken,
 		RefreshToken: pair.RefreshToken,
+		UserID:       pair.UserID,
+		Username:     pair.Username,
 	}})
 }
 
@@ -82,6 +86,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": tokenResponse{
 		AccessToken:  pair.AccessToken,
 		RefreshToken: pair.RefreshToken,
+		UserID:       pair.UserID,
+		Username:     pair.Username,
 	}})
 }
 
@@ -102,6 +108,8 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": tokenResponse{
 		AccessToken:  pair.AccessToken,
 		RefreshToken: pair.RefreshToken,
+		UserID:       pair.UserID,
+		Username:     pair.Username,
 	}})
 }
 
