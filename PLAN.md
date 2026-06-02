@@ -150,7 +150,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 8 — Backend: WebSocket & Multiplayer
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `internal/ws/client.go` — read/write pumps, ping/pong

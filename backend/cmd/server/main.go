@@ -22,6 +22,7 @@ import (
 	"wordchain/backend/internal/middleware"
 	"wordchain/backend/internal/repository"
 	"wordchain/backend/internal/service"
+	"wordchain/backend/internal/ws"
 	dbmigrations "wordchain/backend/migrations"
 )
 
@@ -69,9 +70,15 @@ func main() {
 	gameSvc := service.NewGameService(matchRepo, statsRepo)
 	powerupSvc := service.NewPowerupService(powerupRepo)
 
+	hub := ws.NewHub(ws.RoomDeps{
+		MatchRepo:  matchRepo,
+		PowerupSvc: powerupSvc,
+	})
+
 	authHandler := handler.NewAuthHandler(authSvc)
 	gameHandler := handler.NewGameHandler(gameSvc)
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
+	wsHandler := handler.NewWSHandler(hub, authSvc)
 
 	api := router.Group("/api/v1")
 
@@ -88,6 +95,7 @@ func main() {
 	protected.GET("/profile/stats", gameHandler.GetStats)
 	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
 	protected.POST("/powerup/use", powerupHandler.Use)
+	protected.GET("/ws/game/:roomID", wsHandler.ServeWS)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server listening", "addr", addr)

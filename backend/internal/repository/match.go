@@ -143,6 +143,26 @@ func (r *MatchRepository) FindSoloMatch(ctx context.Context, userID string, mode
 	return m, err
 }
 
+// UpdatePlayerScore sets the final score for a player in a match.
+func (r *MatchRepository) UpdatePlayerScore(ctx context.Context, matchID, userID string, score int) error {
+	const q = `UPDATE match_players SET score = $1 WHERE match_id = $2 AND user_id = $3`
+	_, err := r.db.ExecContext(ctx, q, score, matchID, userID)
+	if err != nil {
+		return fmt.Errorf("UpdatePlayerScore: %w", err)
+	}
+	return nil
+}
+
+// SetMatchWinner records the winner and marks the match finished with the current timestamp.
+func (r *MatchRepository) SetMatchWinner(ctx context.Context, matchID string, winnerID *string) error {
+	const q = `UPDATE matches SET status = 'finished', winner_id = $1, ended_at = now() WHERE id = $2`
+	_, err := r.db.ExecContext(ctx, q, winnerID, matchID)
+	if err != nil {
+		return fmt.Errorf("SetMatchWinner: %w", err)
+	}
+	return nil
+}
+
 func (r *MatchRepository) scanMatch(row *sql.Row) (*Match, error) {
 	m := &Match{}
 	var winnerID sql.NullString
