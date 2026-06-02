@@ -13,7 +13,6 @@ import (
 	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/engine"
 	"wordchain/backend/internal/repository"
-	"wordchain/backend/internal/service"
 )
 
 const maxPlayers = 2
@@ -65,11 +64,18 @@ type gameStartState struct {
 	NextLetter  string         `json:"next_letter,omitempty"`
 }
 
+// PowerupDeductor deducts one power-up use from a player's inventory.
+// Implemented by service.PowerupService — defined here as an interface so the
+// ws package does not need to import the service package.
+type PowerupDeductor interface {
+	UseItem(ctx context.Context, userID, powerupType string) (int, error)
+}
+
 // RoomDeps holds the external dependencies a room needs for DB interactions.
 // All fields may be nil in tests that exercise in-memory logic only.
 type RoomDeps struct {
 	MatchRepo  *repository.MatchRepository
-	PowerupSvc *service.PowerupService
+	PowerupSvc PowerupDeductor
 }
 
 // Room manages a single multiplayer game session.

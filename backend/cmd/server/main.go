@@ -75,9 +75,12 @@ func main() {
 		PowerupSvc: powerupSvc,
 	})
 
+	matchSvc := service.NewMatchmakingService(rdb, hub)
+
 	authHandler := handler.NewAuthHandler(authSvc)
 	gameHandler := handler.NewGameHandler(gameSvc)
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
+	matchHandler := handler.NewMatchHandler(matchSvc)
 	wsHandler := handler.NewWSHandler(hub, authSvc)
 
 	api := router.Group("/api/v1")
@@ -96,6 +99,8 @@ func main() {
 	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
 	protected.POST("/powerup/use", powerupHandler.Use)
 	protected.GET("/ws/game/:roomID", wsHandler.ServeWS)
+	protected.POST("/match/queue", matchHandler.JoinQueue)
+	protected.DELETE("/match/queue", matchHandler.CancelQueue)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server listening", "addr", addr)

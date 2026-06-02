@@ -60,6 +60,42 @@ func parseDuration(key string, fallback time.Duration) time.Duration {
 	return d
 }
 
+// AIDifficulty holds the configuration for one AI skill level.
+// Trap letters (Q, X, Z, J, V) end a word in a position that offers few valid
+// follow-ups for the opponent — the AI prefers them when TrapPref fires.
+type AIDifficulty struct {
+	DelayMs       int     // milliseconds before the AI submits its word
+	MistakeRate   float64 // probability [0,1] of submitting an intentionally invalid word
+	MinWordLength int     // minimum word length the AI will choose
+	TrapPref      float64 // probability [0,1] of choosing a trap-ending word
+	PreferLongest bool    // when TrapPref fires, pick the longest trap word
+}
+
+// AIDifficulties maps difficulty names to their configs per the game spec.
+var AIDifficulties = map[string]AIDifficulty{
+	"easy": {
+		DelayMs:       3000,
+		MistakeRate:   0.25,
+		MinWordLength: 3,
+		TrapPref:      0,
+		PreferLongest: false,
+	},
+	"medium": {
+		DelayMs:       1500,
+		MistakeRate:   0.10,
+		MinWordLength: 4,
+		TrapPref:      0.30,
+		PreferLongest: false,
+	},
+	"hard": {
+		DelayMs:       600,
+		MistakeRate:   0.02,
+		MinWordLength: 6,
+		TrapPref:      0.70,
+		PreferLongest: true,
+	},
+}
+
 // Game tuning defaults — read from this package in handlers and services.
 // Change values here; never scatter magic numbers elsewhere.
 const (

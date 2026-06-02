@@ -167,7 +167,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 9 — Backend: Matchmaking & AI Opponent
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `internal/service/matchmaking.go` — Redis List queue per mode (`queue:classic`, `queue:time_attack`); background goroutine polls every 500ms; pairs two players → creates room → notifies via WS; falls back to AI opponent after 30s wait

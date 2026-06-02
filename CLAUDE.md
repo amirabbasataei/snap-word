@@ -31,7 +31,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | 6 | Backend: Auth | [x] Complete |
 | 7 | Backend: Game REST API & Match Repository | [x] Complete |
 | 8 | Backend: WebSocket & Multiplayer | [x] Complete |
-| 9 | Backend: Matchmaking & AI Opponent | [ ] Not started |
+| 9 | Backend: Matchmaking & AI Opponent | [x] Complete |
 | 10 | Backend: Leaderboard & Streak | [ ] Not started |
 | 11 | Backend: Friends & Challenges | [ ] Not started |
 | 12 | Backend: Push Notifications | [ ] Not started |
