@@ -10,6 +10,7 @@ import 'package:wordchain/core/services/websocket_service.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
+import 'package:wordchain/features/lobby/data/lobby_repository.dart';
 
 final getIt = GetIt.instance;
 
@@ -76,5 +77,10 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
       usedWordDao: getIt<UsedWordDao>(),
       dio: getIt<DioClient>().dio,
     ),
+  );
+
+  // Lobby
+  getIt.registerLazySingleton<LobbyRepository>(
+    () => LobbyRepository(dio: getIt<DioClient>().dio),
   );
 }

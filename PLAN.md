@@ -233,7 +233,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 13 — Flutter: Lobby & Multiplayer
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `features/lobby/data/lobby_repository.dart` — `joinQueue`, `cancelQueue`

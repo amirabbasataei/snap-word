@@ -35,7 +35,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | 10 | Backend: Leaderboard & Streak | [x] Complete |
 | 11 | Backend: Friends & Challenges | [x] Complete |
 | 12 | Backend: Push Notifications | [x] Complete |
-| 13 | Flutter: Lobby & Multiplayer | [ ] Not started |
+| 13 | Flutter: Lobby & Multiplayer | [x] Complete |
 | 14 | Flutter: Leaderboard, Friends & Profile | [ ] Not started |
 | 15 | Flutter: Daily Challenge & Sharing | [ ] Not started |
 | 16 | Monetization Hooks & Final Wiring | [ ] Not started |

@@ -12,14 +12,20 @@ import 'package:wordchain/features/game/view/widgets/word_input.dart';
 
 class GameRouteArgs {
   final String mode; // classic | time_attack
-  final String opponentType; // solo | ai_easy | ai_medium | ai_hard
+  final String opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
   final int? resumeMatchId;
+  final String? roomId; // multiplayer WS room
+  final String? myPlayerId; // authenticated user's UUID
 
   const GameRouteArgs({
     required this.mode,
     required this.opponentType,
     this.resumeMatchId,
+    this.roomId,
+    this.myPlayerId,
   });
+
+  bool get isMultiplayer => roomId != null;
 }
 
 class GameScreen extends StatelessWidget {
@@ -36,10 +42,13 @@ class GameScreen extends StatelessWidget {
         statsDao: getIt(),
         syncService: getIt(),
         prefs: getIt(),
+        wsService: getIt(),
       )..add(GameStarted(
           mode: args.mode,
           opponentType: args.opponentType,
           resumeMatchId: args.resumeMatchId,
+          roomId: args.roomId,
+          myPlayerId: args.myPlayerId,
         )),
       child: const _GameView(),
     );
@@ -55,7 +64,7 @@ class _GameView extends StatelessWidget {
       listenWhen: (prev, curr) =>
           curr is GameOver && curr.isSaved && prev is GameOver && !prev.isSaved,
       listener: (context, state) {
-        // Nothing extra needed; the builder handles showing final UI
+        // nothing extra — builder handles final UI
       },
       builder: (context, state) {
         if (state is GameLoading || state is GameInitial) {
@@ -72,7 +81,8 @@ class _GameView extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+                  const Icon(Icons.error_outline,
+                      color: AppColors.error, size: 48),
                   const SizedBox(height: 16),
                   Text(
                     state.message,
@@ -91,7 +101,9 @@ class _GameView extends StatelessWidget {
         }
 
         if (state is GameOver) {
-          if (!state.isSaved && state.canContinue && state.continueTimeRemaining > 0) {
+          if (!state.isSaved &&
+              state.canContinue &&
+              state.continueTimeRemaining > 0) {
             return Scaffold(
               backgroundColor: AppColors.background,
               body: ContinuePrompt(
@@ -116,6 +128,10 @@ class _GameView extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Active game
+// ---------------------------------------------------------------------------
+
 class _ActiveGameScreen extends StatelessWidget {
   final GameActive state;
 
@@ -123,123 +139,164 @@ class _ActiveGameScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final modeLabel = state.mode == 'time_attack' ? 'TIME ATTACK' : 'CLASSIC';
-    final opponentLabel =
-        state.opponentType == 'solo' ? 'SOLO' : 'VS AI';
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => _showEndGameDialog(context),
-                    child: const Icon(
-                      Icons.close,
-                      color: AppColors.textSecondary,
-                      size: 22,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: Column(
+              children: [
+                _GameHeader(state: state),
+                TimerBar(
+                  timeRemaining: state.turnTimeRemaining,
+                  totalTime: state.mode == 'time_attack'
+                      ? GameConstants.timeAttackTurnTimerSec
+                      : GameConstants.classicTurnTimerSec,
+                ),
+                if (state.isMultiplayer) ...[
+                  _TurnIndicator(state: state),
+                  const SizedBox(height: 4),
+                ],
+                const SizedBox(height: 8),
+                Expanded(
+                  child: WordChainList(
+                    words: state.wordChain,
+                    scores: state.wordScores,
+                    wordOwners: state.isMultiplayer ? state.wordOwners : null,
+                    myPlayerId: state.myPlayerId,
+                    opponentUsername: state.opponentUsername,
+                  ),
+                ),
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border(
+                      top: BorderSide(color: AppColors.divider, width: 1),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '$opponentLabel · $modeLabel',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            '${state.score}',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          if (state.wordScores.isNotEmpty)
-                            Text(
-                              ' +${state.wordScores.last}',
-                              style: const TextStyle(
-                                color: AppColors.success,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                        ],
+                      const SizedBox(height: 12),
+                      _NextLetterBar(state: state),
+                      const SizedBox(height: 10),
+                      WordInput(
+                        startLetter: state.nextStartLetter,
+                        enabled: state.isMyTurn && !state.opponentContinueWindowActive,
+                        hintWord: state.hintWord,
+                        onSubmit: (word) =>
+                            context.read<GameBloc>().add(WordSubmitted(word)),
                       ),
-                      Text(
-                        'CHAIN  ${state.wordChain.length}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
+                      const SizedBox(height: 12),
+                      _PowerupRow(state: state),
+                      const SizedBox(height: 16),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Opponent continue-window overlay
+        if (state.opponentContinueWindowActive)
+          _OpponentContinueOverlay(
+            remaining: state.opponentContinueWindowRemaining,
+            opponentName: state.opponentUsername ?? 'Opponent',
+          ),
+        // Opponent disconnected banner
+        if (state.opponentDisconnected)
+          const _DisconnectedBanner(),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Multiplayer header (names + scores)
+// ---------------------------------------------------------------------------
+
+class _GameHeader extends StatelessWidget {
+  final GameActive state;
+
+  const _GameHeader({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.isMultiplayer) {
+      return _MultiplayerHeader(state: state);
+    }
+    return _SoloHeader(state: state);
+  }
+}
+
+class _SoloHeader extends StatelessWidget {
+  final GameActive state;
+
+  const _SoloHeader({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final modeLabel = state.mode == 'time_attack' ? 'TIME ATTACK' : 'CLASSIC';
+    final opponentLabel = state.opponentType == 'solo' ? 'SOLO' : 'VS AI';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => _showEndGameDialog(context),
+            child: const Icon(
+              Icons.close,
+              color: AppColors.textSecondary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '$opponentLabel · $modeLabel',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const Spacer(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '${state.score}',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (state.wordScores.isNotEmpty)
+                    Text(
+                      ' +${state.wordScores.last}',
+                      style: const TextStyle(
+                        color: AppColors.success,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                 ],
               ),
-            ),
-
-            // Timer bar
-            TimerBar(
-              timeRemaining: state.turnTimeRemaining,
-              totalTime: state.mode == 'time_attack'
-                  ? GameConstants.timeAttackTurnTimerSec
-                  : GameConstants.classicTurnTimerSec,
-            ),
-            const SizedBox(height: 12),
-
-            // Word chain
-            Expanded(
-              child: WordChainList(
-                words: state.wordChain,
-                scores: state.wordScores,
-              ),
-            ),
-
-            // Bottom input area
-            Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(
-                  top: BorderSide(color: AppColors.divider, width: 1),
+              Text(
+                'CHAIN  ${state.wordChain.length}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  letterSpacing: 0.6,
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 12),
-                  _NextLetterBar(state: state),
-                  const SizedBox(height: 10),
-                  WordInput(
-                    startLetter: state.nextStartLetter,
-                    enabled: true,
-                    hintWord: state.hintWord,
-                    onSubmit: (word) =>
-                        context.read<GameBloc>().add(WordSubmitted(word)),
-                  ),
-                  const SizedBox(height: 12),
-                  _PowerupRow(state: state),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -249,7 +306,8 @@ class _ActiveGameScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('End Game?', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text('End Game?',
+            style: TextStyle(color: AppColors.textPrimary)),
         content: const Text(
           'Your current progress will be saved.',
           style: TextStyle(color: AppColors.textSecondary),
@@ -274,6 +332,157 @@ class _ActiveGameScreen extends StatelessWidget {
     );
   }
 }
+
+class _MultiplayerHeader extends StatelessWidget {
+  final GameActive state;
+
+  const _MultiplayerHeader({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final modeLabel = state.mode == 'time_attack' ? 'TIME ATTACK' : 'CLASSIC';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        children: [
+          Text(
+            'MULTIPLAYER · $modeLabel',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _PlayerScoreChip(
+                label: 'YOU',
+                score: state.score,
+                isActive: state.isMyTurn,
+                align: CrossAxisAlignment.start,
+              ),
+              const Spacer(),
+              Text(
+                'CHAIN  ${state.wordChain.length}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const Spacer(),
+              _PlayerScoreChip(
+                label: state.opponentUsername?.toUpperCase() ?? 'OPP',
+                score: state.opponentScore,
+                isActive: !state.isMyTurn,
+                align: CrossAxisAlignment.end,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlayerScoreChip extends StatelessWidget {
+  final String label;
+  final int score;
+  final bool isActive;
+  final CrossAxisAlignment align;
+
+  const _PlayerScoreChip({
+    required this.label,
+    required this.score,
+    required this.isActive,
+    required this.align,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: align,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: isActive ? AppColors.primary : AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '$score',
+          style: TextStyle(
+            color: isActive ? AppColors.textPrimary : AppColors.textSecondary,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Turn indicator
+// ---------------------------------------------------------------------------
+
+class _TurnIndicator extends StatelessWidget {
+  final GameActive state;
+
+  const _TurnIndicator({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
+      decoration: BoxDecoration(
+        color: state.isMyTurn
+            ? AppColors.primary.withValues(alpha: 0.15)
+            : AppColors.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: state.isMyTurn ? AppColors.primary : AppColors.divider,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            state.isMyTurn ? Icons.edit_outlined : Icons.hourglass_empty,
+            size: 14,
+            color:
+                state.isMyTurn ? AppColors.primary : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            state.isMyTurn ? 'YOUR TURN' : 'OPPONENT\'S TURN',
+            style: TextStyle(
+              color:
+                  state.isMyTurn ? AppColors.primary : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Next letter bar + streak badge
+// ---------------------------------------------------------------------------
 
 class _NextLetterBar extends StatelessWidget {
   final GameActive state;
@@ -302,7 +511,8 @@ class _NextLetterBar extends StatelessWidget {
           const Spacer(),
           if (state.streak >= 2)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
@@ -322,6 +532,10 @@ class _NextLetterBar extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Power-up row
+// ---------------------------------------------------------------------------
 
 class _PowerupRow extends StatelessWidget {
   final GameActive state;
@@ -386,7 +600,9 @@ class _PowerupButton extends StatelessWidget {
           color: AppColors.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: enabled ? AppColors.divider : AppColors.divider.withValues(alpha: 0.4),
+            color: enabled
+                ? AppColors.divider
+                : AppColors.divider.withValues(alpha: 0.4),
           ),
         ),
         child: Column(
@@ -403,7 +619,9 @@ class _PowerupButton extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: enabled ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.4),
+                color: enabled
+                    ? AppColors.textSecondary
+                    : AppColors.textSecondary.withValues(alpha: 0.4),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -415,6 +633,116 @@ class _PowerupButton extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Opponent continue-window overlay
+// ---------------------------------------------------------------------------
+
+class _OpponentContinueOverlay extends StatelessWidget {
+  final int remaining;
+  final String opponentName;
+
+  const _OpponentContinueOverlay({
+    required this.remaining,
+    required this.opponentName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Colors.black.withValues(alpha: 0.65),
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.hourglass_top,
+                    size: 40, color: AppColors.secondary),
+                const SizedBox(height: 16),
+                Text(
+                  '$opponentName deciding…',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$remaining s',
+                  style: const TextStyle(
+                    color: AppColors.secondary,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'They can watch an ad or spend coins to continue.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Disconnected banner
+// ---------------------------------------------------------------------------
+
+class _DisconnectedBanner extends StatelessWidget {
+  const _DisconnectedBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 60,
+      left: 16,
+      right: 16,
+      child: Material(
+        borderRadius: BorderRadius.circular(12),
+        color: AppColors.error.withValues(alpha: 0.9),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.wifi_off, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Text(
+                'Opponent disconnected — waiting 30s…',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Game over
+// ---------------------------------------------------------------------------
+
 class _GameOverScreen extends StatelessWidget {
   final GameOver state;
 
@@ -424,11 +752,46 @@ class _GameOverScreen extends StatelessWidget {
         'time_limit' => 'Time\'s Up!',
         'ended_by_user' => 'Game Ended',
         'timeout' => 'Timer Ran Out!',
+        'opponent_disconnected' => 'Opponent Left',
         _ => 'Game Over',
       };
 
   @override
   Widget build(BuildContext context) {
+    final isMultiplayer = state.isMultiplayer;
+
+    // For multiplayer result banner
+    Widget? resultBanner;
+    if (isMultiplayer && state.winnerId != null) {
+      final iWonMatch = state.score > state.opponentScore ||
+          state.reason == 'opponent_disconnected';
+      resultBanner = Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: iWonMatch
+              ? AppColors.success.withValues(alpha: 0.15)
+              : AppColors.error.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: iWonMatch ? AppColors.success : AppColors.error,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              iWonMatch ? '🏆 YOU WIN!' : '😞 YOU LOSE',
+              style: TextStyle(
+                color: iWonMatch ? AppColors.success : AppColors.error,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -437,61 +800,91 @@ class _GameOverScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('🏁', style: TextStyle(fontSize: 60)),
+              if (resultBanner == null)
+                const Text('🏁', style: TextStyle(fontSize: 60)),
+              if (resultBanner != null) resultBanner,
               const SizedBox(height: 16),
-              Text(
-                _reasonTitle,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ResultCard(
-                      label: 'SCORE',
-                      value: state.score.toString(),
-                    ),
+              if (resultBanner == null)
+                Text(
+                  _reasonTitle,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _ResultCard(
-                      label: 'WORDS',
-                      value: state.chainLength.toString(),
+                ),
+              const SizedBox(height: 28),
+              if (isMultiplayer) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ResultCard(
+                        label: 'YOUR SCORE',
+                        value: state.score.toString(),
+                      ),
                     ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _ResultCard(
+                        label: 'OPP SCORE',
+                        value: state.opponentScore.toString(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _ResultCard(
+                  label: 'WORDS',
+                  value: state.chainLength.toString(),
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ResultCard(
+                        label: 'SCORE',
+                        value: state.score.toString(),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _ResultCard(
+                        label: 'WORDS',
+                        value: state.chainLength.toString(),
+                      ),
+                    ),
+                  ],
+                ),
+                if (state.wordChain.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _ResultCard(
+                    label: 'LONGEST WORD',
+                    value: state.wordChain
+                        .reduce((a, b) => a.length >= b.length ? a : b)
+                        .toUpperCase(),
                   ),
                 ],
-              ),
-              if (state.wordChain.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _ResultCard(
-                  label: 'LONGEST WORD',
-                  value: state.wordChain
-                      .reduce((a, b) => a.length >= b.length ? a : b)
-                      .toUpperCase(),
-                ),
               ],
               const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: () => context.go('/home'),
                 child: const Text('Back to Home'),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () {
-                  context.pushReplacement(
-                    '/game',
-                    extra: GameRouteArgs(
-                      mode: state.mode,
-                      opponentType: 'solo',
-                    ),
-                  );
-                },
-                child: const Text('Play Again'),
-              ),
+              if (!isMultiplayer) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () {
+                    context.pushReplacement(
+                      '/game',
+                      extra: GameRouteArgs(
+                        mode: state.mode,
+                        opponentType: 'solo',
+                      ),
+                    );
+                  },
+                  child: const Text('Play Again'),
+                ),
+              ],
             ],
           ),
         ),

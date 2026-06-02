@@ -4,11 +4,18 @@ import 'package:wordchain/core/theme/app_theme.dart';
 class WordChainList extends StatefulWidget {
   final List<String> words;
   final List<int> scores;
+  // Multiplayer: parallel list of player IDs; null entry = unknown/AI
+  final List<String?>? wordOwners;
+  final String? myPlayerId;
+  final String? opponentUsername;
 
   const WordChainList({
     super.key,
     required this.words,
     required this.scores,
+    this.wordOwners,
+    this.myPlayerId,
+    this.opponentUsername,
   });
 
   @override
@@ -40,6 +47,17 @@ class _WordChainListState extends State<WordChainList> {
     super.dispose();
   }
 
+  bool _isMyWord(int index) {
+    if (widget.wordOwners == null || widget.myPlayerId == null) return true;
+    if (index >= widget.wordOwners!.length) return true;
+    return widget.wordOwners![index] == widget.myPlayerId;
+  }
+
+  String? _playerLabel(int index) {
+    if (widget.wordOwners == null) return null;
+    return _isMyWord(index) ? 'You' : (widget.opponentUsername ?? 'Opp');
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.words.isEmpty) {
@@ -59,6 +77,8 @@ class _WordChainListState extends State<WordChainList> {
         final word = widget.words[index];
         final score = index < widget.scores.length ? widget.scores[index] : null;
         final isLast = index == widget.words.length - 1;
+        final isMyWord = _isMyWord(index);
+        final playerLabel = _playerLabel(index);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,7 +99,9 @@ class _WordChainListState extends State<WordChainList> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: isLast ? AppColors.primary : AppColors.card,
+                    color: isLast
+                        ? (isMyWord ? AppColors.primary : AppColors.secondary)
+                        : AppColors.card,
                     borderRadius: BorderRadius.circular(10),
                     border: isLast
                         ? null
@@ -97,6 +119,19 @@ class _WordChainListState extends State<WordChainList> {
                     ),
                   ),
                 ),
+                if (playerLabel != null) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    playerLabel,
+                    style: TextStyle(
+                      color: isMyWord
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 if (score != null)
                   Text(
