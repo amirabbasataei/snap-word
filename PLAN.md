@@ -256,7 +256,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 14 — Flutter: Leaderboard, Friends & Profile
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `features/leaderboard/cubit/leaderboard_cubit.dart` — fetch global top 100 and friends top 100; current user rank in each

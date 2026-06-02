@@ -38,8 +38,24 @@ Future<void> main() async {
   runApp(const WordChainApp());
 }
 
-class WordChainApp extends StatelessWidget {
+class WordChainApp extends StatefulWidget {
   const WordChainApp({super.key});
+
+  @override
+  State<WordChainApp> createState() => _WordChainAppState();
+}
+
+class _WordChainAppState extends State<WordChainApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Listen to FCM notification payloads and deep-link into the app.
+    GetIt.instance<NotificationService>().payloadStream.listen((route) {
+      if (route != null && route.isNotEmpty) {
+        GetIt.instance<GoRouter>().go(route);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

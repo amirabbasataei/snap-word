@@ -9,8 +9,11 @@ import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
+import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
+import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 import 'package:wordchain/features/lobby/data/lobby_repository.dart';
+import 'package:wordchain/features/profile/data/profile_repository.dart';
 
 final getIt = GetIt.instance;
 
@@ -82,5 +85,20 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   // Lobby
   getIt.registerLazySingleton<LobbyRepository>(
     () => LobbyRepository(dio: getIt<DioClient>().dio),
+  );
+
+  // Leaderboard
+  getIt.registerLazySingleton<LeaderboardRepository>(
+    () => LeaderboardRepository(dio: getIt<DioClient>().dio),
+  );
+
+  // Friends
+  getIt.registerLazySingleton<FriendsRepository>(
+    () => FriendsRepository(dio: getIt<DioClient>().dio),
+  );
+
+  // Profile
+  getIt.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepository(dio: getIt<DioClient>().dio),
   );
 }
