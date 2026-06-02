@@ -61,8 +61,17 @@ func main() {
 
 	// Dependency wiring
 	userRepo := repository.NewUserRepository(db)
+	matchRepo := repository.NewMatchRepository(db)
+	statsRepo := repository.NewStatsRepository(db)
+	powerupRepo := repository.NewPowerupRepository(db)
+
 	authSvc := service.NewAuthService(userRepo, cfg)
+	gameSvc := service.NewGameService(matchRepo, statsRepo)
+	powerupSvc := service.NewPowerupService(powerupRepo)
+
 	authHandler := handler.NewAuthHandler(authSvc)
+	gameHandler := handler.NewGameHandler(gameSvc)
+	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 
 	api := router.Group("/api/v1")
 
@@ -72,8 +81,13 @@ func main() {
 	auth.POST("/login", authHandler.Login)
 	auth.POST("/refresh", authHandler.Refresh)
 
-	// Protected route group — subsequent phases attach handlers here
-	_ = api.Group("/", middleware.RequireAuth(authSvc))
+	// Protected routes
+	protected := api.Group("/", middleware.RequireAuth(authSvc))
+	protected.POST("/game/solo", gameHandler.CreateSolo)
+	protected.GET("/game/:id", gameHandler.GetGame)
+	protected.GET("/profile/stats", gameHandler.GetStats)
+	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
+	protected.POST("/powerup/use", powerupHandler.Use)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("server listening", "addr", addr)

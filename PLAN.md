@@ -135,7 +135,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 7 — Backend: Game REST API & Match Repository
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `internal/repository/match.go` — `CreateMatch`, `GetMatch`, `UpdateMatchStatus`, `SaveGameState`, `GetMatchPlayers`, `SetContinueUsed`

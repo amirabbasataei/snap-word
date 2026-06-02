@@ -29,7 +29,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | 4 | Foundation & Database | [x] Complete |
 | 5 | Backend: Dictionary & Game Engine | [x] Complete |
 | 6 | Backend: Auth | [x] Complete |
-| 7 | Backend: Game REST API & Match Repository | [ ] Not started |
+| 7 | Backend: Game REST API & Match Repository | [x] Complete |
 | 8 | Backend: WebSocket & Multiplayer | [ ] Not started |
 | 9 | Backend: Matchmaking & AI Opponent | [ ] Not started |
 | 10 | Backend: Leaderboard & Streak | [ ] Not started |
