@@ -11,11 +11,12 @@ import 'package:wordchain/features/game/view/widgets/word_chain_list.dart';
 import 'package:wordchain/features/game/view/widgets/word_input.dart';
 
 class GameRouteArgs {
-  final String mode; // classic | time_attack
+  final String mode; // classic | time_attack | daily
   final String opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
   final int? resumeMatchId;
   final String? roomId; // multiplayer WS room
   final String? myPlayerId; // authenticated user's UUID
+  final String? startLetter; // daily challenge: first required letter
 
   const GameRouteArgs({
     required this.mode,
@@ -23,6 +24,7 @@ class GameRouteArgs {
     this.resumeMatchId,
     this.roomId,
     this.myPlayerId,
+    this.startLetter,
   });
 
   bool get isMultiplayer => roomId != null;
@@ -49,6 +51,7 @@ class GameScreen extends StatelessWidget {
           resumeMatchId: args.resumeMatchId,
           roomId: args.roomId,
           myPlayerId: args.myPlayerId,
+          startLetter: args.startLetter,
         )),
       child: const _GameView(),
     );
@@ -64,7 +67,10 @@ class _GameView extends StatelessWidget {
       listenWhen: (prev, curr) =>
           curr is GameOver && curr.isSaved && prev is GameOver && !prev.isSaved,
       listener: (context, state) {
-        // nothing extra — builder handles final UI
+        // Daily challenge: auto-navigate to result screen once saved
+        if (state is GameOver && state.mode == 'daily') {
+          context.go('/daily');
+        }
       },
       builder: (context, state) {
         if (state is GameLoading || state is GameInitial) {
@@ -236,8 +242,11 @@ class _SoloHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final modeLabel = state.mode == 'time_attack' ? 'TIME ATTACK' : 'CLASSIC';
-    final opponentLabel = state.opponentType == 'solo' ? 'SOLO' : 'VS AI';
+    final headerLabel = switch (state.mode) {
+      'time_attack' => 'SOLO · TIME ATTACK',
+      'daily' => 'DAILY CHALLENGE',
+      _ => '${state.opponentType == 'solo' ? 'SOLO' : 'VS AI'} · CLASSIC',
+    };
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -253,7 +262,7 @@ class _SoloHeader extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            '$opponentLabel · $modeLabel',
+            headerLabel,
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,
@@ -753,6 +762,7 @@ class _GameOverScreen extends StatelessWidget {
         'ended_by_user' => 'Game Ended',
         'timeout' => 'Timer Ran Out!',
         'opponent_disconnected' => 'Opponent Left',
+        'max_words' => 'Challenge Complete!',
         _ => 'Game Over',
       };
 
@@ -866,24 +876,43 @@ class _GameOverScreen extends StatelessWidget {
                 ],
               ],
               const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: () => context.go('/home'),
-                child: const Text('Back to Home'),
-              ),
-              if (!isMultiplayer) ...[
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () {
-                    context.pushReplacement(
-                      '/game',
-                      extra: GameRouteArgs(
-                        mode: state.mode,
-                        opponentType: 'solo',
-                      ),
-                    );
-                  },
-                  child: const Text('Play Again'),
+              // Daily challenge: show loading indicator while sync completes, then auto-navigates
+              if (state.mode == 'daily') ...[
+                if (!state.isSaved) ...[
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Saving your result…',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ] else ...[
+                ElevatedButton(
+                  onPressed: () => context.go('/home'),
+                  child: const Text('Back to Home'),
                 ),
+                if (!isMultiplayer) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () {
+                      context.pushReplacement(
+                        '/game',
+                        extra: GameRouteArgs(
+                          mode: state.mode,
+                          opponentType: 'solo',
+                        ),
+                      );
+                    },
+                    child: const Text('Play Again'),
+                  ),
+                ],
               ],
             ],
           ),

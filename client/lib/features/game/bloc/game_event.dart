@@ -5,11 +5,12 @@ sealed class GameEvent extends Equatable {
 }
 
 class GameStarted extends GameEvent {
-  final String mode; // classic | time_attack
+  final String mode; // classic | time_attack | daily
   final String opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
   final int? resumeMatchId; // null = new game (solo/AI only)
   final String? roomId; // multiplayer WS room ID
   final String? myPlayerId; // authenticated user's UUID
+  final String? startLetter; // daily challenge: forces the first required letter
 
   const GameStarted({
     required this.mode,
@@ -17,10 +18,11 @@ class GameStarted extends GameEvent {
     this.resumeMatchId,
     this.roomId,
     this.myPlayerId,
+    this.startLetter,
   });
 
   @override
-  List<Object?> get props => [mode, opponentType, resumeMatchId, roomId, myPlayerId];
+  List<Object?> get props => [mode, opponentType, resumeMatchId, roomId, myPlayerId, startLetter];
 }
 
 class WordSubmitted extends GameEvent {

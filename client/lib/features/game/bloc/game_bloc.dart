@@ -187,7 +187,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             : null,
         nextStartLetter: wordChain.isNotEmpty
             ? wordChain.last[wordChain.last.length - 1]
-            : null,
+            : event.startLetter, // daily challenge uses the challenge's start letter
         guestHintUsesLeft:
             _isGuest ? GameConstants.guestHintUsesPerSession : 999,
         continueUsed: false,
@@ -277,6 +277,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final newScores = [...active.wordScores, turnScore];
 
     await _gameRepository.recordAcceptedWord(active.localMatchId, newChain);
+
+    // Daily challenge ends automatically after reaching the max word count
+    if (active.mode == 'daily' && newChain.length >= GameConstants.dailyMaxWords) {
+      _stopTurnTimer();
+      await _finalizeGame(
+        emit: emit,
+        localMatchId: active.localMatchId,
+        mode: active.mode,
+        reason: 'max_words',
+        score: active.score + turnScore,
+        wordChain: newChain,
+        canContinue: false,
+      );
+      return;
+    }
 
     _turnStartTime = DateTime.now();
     _startTurnTimer();
@@ -825,7 +840,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         longestWord: longestWord,
       );
 
-      _syncService.sync().ignore();
+      // Daily challenge results must be uploaded before the result screen loads
+      if (over.mode == 'daily') {
+        await _syncService.sync();
+      } else {
+        _syncService.sync().ignore();
+      }
 
       emit(over.copyWith(isSaved: true));
     } catch (e) {

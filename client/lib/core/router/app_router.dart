@@ -49,6 +49,11 @@ GoRouter buildAppRouter() {
           path.startsWith('/login') || path.startsWith('/register');
       if (authState is AuthAuthenticated && onAuthScreen) return '/home';
 
+      // Daily challenge requires authentication
+      if (path.startsWith('/daily') && authState is! AuthAuthenticated) {
+        return '/login?return=/daily';
+      }
+
       return null;
     },
     routes: [
