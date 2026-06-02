@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
@@ -61,6 +62,27 @@ class GameScreen extends StatelessWidget {
 class _GameView extends StatelessWidget {
   const _GameView();
 
+  void _handleContinue(BuildContext context, String method) async {
+    final monetization = getIt<MonetizationService>();
+    if (method == 'ad') {
+      final watched = await monetization.showRewardedAd();
+      if (!watched || !context.mounted) return;
+    } else if (method == 'coins') {
+      final spent = monetization.spendCoins(25);
+      if (!spent) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Not enough coins.')),
+          );
+        }
+        return;
+      }
+    }
+    if (context.mounted) {
+      context.read<GameBloc>().add(ContinueRequested(method));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<GameBloc, GameState>(
@@ -115,7 +137,7 @@ class _GameView extends StatelessWidget {
               body: ContinuePrompt(
                 state: state,
                 onContinue: (method) =>
-                    context.read<GameBloc>().add(ContinueRequested(method)),
+                    _handleContinue(context, method),
                 onAcceptDefeat: () =>
                     context.read<GameBloc>().add(const AcceptDefeat()),
               ),
@@ -757,6 +779,11 @@ class _GameOverScreen extends StatelessWidget {
 
   const _GameOverScreen({required this.state});
 
+  void _navigateHome(BuildContext context) async {
+    await getIt<MonetizationService>().showInterstitialAd();
+    if (context.mounted) context.go('/home');
+  }
+
   String get _reasonTitle => switch (state.reason) {
         'time_limit' => 'Time\'s Up!',
         'ended_by_user' => 'Game Ended',
@@ -895,7 +922,7 @@ class _GameOverScreen extends StatelessWidget {
                 ],
               ] else ...[
                 ElevatedButton(
-                  onPressed: () => context.go('/home'),
+                  onPressed: () => _navigateHome(context),
                   child: const Text('Back to Home'),
                 ),
                 if (!isMultiplayer) ...[

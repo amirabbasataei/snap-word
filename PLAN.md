@@ -297,7 +297,7 @@ At the start of each session: read **both** files, then implement the requested 
 ---
 
 ## Phase 16 — Monetization Hooks & Final Wiring
-**Status: [ ] Not started**
+**Status: [x] Complete**
 
 **Scope:**
 - `core/services/monetization_service.dart` — abstract class + mock implementation:

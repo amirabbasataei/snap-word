@@ -77,6 +77,7 @@ func main() {
 	authSvc := service.NewAuthService(userRepo, cfg)
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc)
 	powerupSvc := service.NewPowerupService(powerupRepo)
+	_ = service.NewMonetizationService(userRepo) // available for handlers; no routes in Phase 16
 
 	hub := ws.NewHub(ws.RoomDeps{
 		MatchRepo:      matchRepo,

@@ -88,6 +88,28 @@ func (r *UserRepository) AwardCoins(ctx context.Context, userID string, amount i
 	return nil
 }
 
+var ErrInsufficientCoins = errors.New("insufficient_coins")
+
+// SpendCoins atomically deducts amount from a user's coin balance.
+// Returns ErrInsufficientCoins if balance is too low.
+func (r *UserRepository) SpendCoins(ctx context.Context, userID string, amount int) error {
+	const q = `
+		UPDATE users SET coins = coins - $1
+		WHERE id = $2 AND coins >= $1`
+	res, err := r.db.ExecContext(ctx, q, amount, userID)
+	if err != nil {
+		return fmt.Errorf("SpendCoins: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("SpendCoins rows: %w", err)
+	}
+	if rows == 0 {
+		return ErrInsufficientCoins
+	}
+	return nil
+}
+
 // GetUserByUsername returns the user with the given username.
 func (r *UserRepository) GetUserByUsername(ctx context.Context, username string) (*User, error) {
 	const q = `

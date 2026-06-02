@@ -4,6 +4,7 @@ import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/dio_client.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
+import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
@@ -49,6 +50,9 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
     () => NotificationService(getIt<DioClient>().dio),
   );
   getIt.registerLazySingleton<ShareService>(() => ShareService());
+  getIt.registerLazySingleton<MonetizationService>(
+    () => MockMonetizationService(initialCoins: 100),
+  );
   getIt.registerLazySingleton<SyncService>(
     () => SyncService(
       prefs: getIt<SharedPreferences>(),

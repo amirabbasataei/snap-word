@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/profile/cubit/profile_cubit.dart';
@@ -67,6 +68,32 @@ class _LoadedView extends StatelessWidget {
 
   const _LoadedView({required this.state});
 
+  void _showBuyCoinsSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _BuyCoinsSheet(
+        onPurchase: (productId) => _purchaseProduct(context, productId),
+      ),
+    );
+  }
+
+  void _purchaseProduct(BuildContext context, String productId) async {
+    final monetization = getIt<MonetizationService>();
+    final result = await monetization.purchase(productId);
+    if (!context.mounted) return;
+    final msg = switch (result.status) {
+      PurchaseStatus.success => 'Purchase successful!',
+      PurchaseStatus.cancelled => 'Purchase cancelled.',
+      PurchaseStatus.failed => result.error ?? 'Purchase failed.',
+    };
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   String _username(BuildContext context) {
     final auth = getIt<AuthCubit>().state;
     if (auth is AuthAuthenticated) return auth.username;
@@ -118,7 +145,7 @@ class _LoadedView extends StatelessWidget {
                 child: ElevatedButton.icon(
                   icon: const Text('🪙', style: TextStyle(fontSize: 14)),
                   label: const Text('BUY COINS'),
-                  onPressed: () {},
+                  onPressed: () => _showBuyCoinsSheet(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: AppColors.background,
@@ -135,7 +162,7 @@ class _LoadedView extends StatelessWidget {
                 child: OutlinedButton.icon(
                   icon: const Text('⭐', style: TextStyle(fontSize: 14)),
                   label: const Text('PREMIUM'),
-                  onPressed: () {},
+                  onPressed: () => _purchaseProduct(context, 'premium_monthly'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(44),
                     textStyle: const TextStyle(
@@ -216,7 +243,7 @@ class _LoadedView extends StatelessWidget {
           _SettingsRow(
             title: 'Remove Ads',
             subtitle: 'One-time purchase · \$2.99',
-            onTap: () {},
+            onTap: () => _purchaseProduct(context, 'remove_ads'),
           ),
         if (!state.isGuest)
           _SettingsRow(
@@ -587,6 +614,90 @@ class _SettingsRow extends StatelessWidget {
                 color: AppColors.textSecondary,
                 size: 20,
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Buy coins bottom sheet
+// ---------------------------------------------------------------------------
+
+class _BuyCoinsSheet extends StatelessWidget {
+  final void Function(String productId) onPurchase;
+
+  const _BuyCoinsSheet({required this.onPurchase});
+
+  @override
+  Widget build(BuildContext context) {
+    const coinBundles = [
+      ('coins_099', '100 Coins', '\$0.99'),
+      ('coins_299', '350 Coins', '\$2.99'),
+      ('coins_999', '1500 Coins', '\$9.99'),
+    ];
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'BUY COINS',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 14),
+            ...coinBundles.map((bundle) {
+              final (id, title, price) = bundle;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onPurchase(id);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.card,
+                    foregroundColor: AppColors.textPrimary,
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🪙', style: TextStyle(fontSize: 20)),
+                      const SizedBox(width: 12),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        price,
+                        style: const TextStyle(
+                          color: AppColors.secondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ],
         ),
       ),
