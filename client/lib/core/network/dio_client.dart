@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 
 class DioClient {
-  static const String _baseUrl = 'http://localhost:8080';
+  static const String _baseUrl = 'http://10.0.2.2:8080';
 
   late final Dio dio;
 
@@ -20,9 +20,9 @@ class DioClient {
 
     dio.interceptors.add(_AuthInterceptor(prefs, dio));
     dio.interceptors.add(LogInterceptor(
-      requestBody: false,
-      responseBody: false,
-      logPrint: (obj) => Logger().d(obj.toString()),
+      requestBody: true,
+      responseBody: true,
+      // logPrint: (obj) => Logger().d(obj.toString()),
     ));
   }
 }

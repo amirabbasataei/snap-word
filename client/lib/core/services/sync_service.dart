@@ -77,7 +77,7 @@ class SyncService {
   Future<void> _refreshPowerupCache() async {
     try {
       final response = await _dio.get(ApiEndpoints.powerupInventory);
-      final list = (response.data['data'] as List<dynamic>)
+      final list = (response.data['data']['items'] as List<dynamic>)
           .map((e) => RemotePowerup.fromJson(e as Map<String, dynamic>))
           .toList();
       await _powerupCacheDao.refreshFromRemote(list);

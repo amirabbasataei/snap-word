@@ -203,8 +203,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   void _connectMultiplayerWs(String roomId) {
     final token = _prefs.getString('jwt_access_token') ?? '';
     final uri = token.isNotEmpty
-        ? 'ws://localhost:8080/api/v1/ws/game/$roomId?token=$token'
-        : 'ws://localhost:8080/api/v1/ws/game/$roomId';
+        ? 'ws://10.0.2.2:8080/api/v1/ws/game/$roomId?token=$token'
+        : 'ws://10.0.2.2:8080/api/v1/ws/game/$roomId';
 
     _wsSub?.cancel();
     _wsService.connect(uri);
