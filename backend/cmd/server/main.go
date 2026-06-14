@@ -89,8 +89,14 @@ func main() {
 	matchSvc := service.NewMatchmakingService(rdb, hub)
 
 	challengeRepo := repository.NewChallengeRepository(db)
+	dailyRepo := repository.NewDailyRepository(db)
 	friendSvc := service.NewFriendService(friendRepo, userRepo, notifSvc)
 	challengeSvc := service.NewChallengeService(challengeRepo, friendRepo, userRepo, hub, notifSvc)
+	dailySvc, err := service.NewDailyService(dailyRepo, statsRepo, userRepo, cfg)
+	if err != nil {
+		slog.Error("daily service init failed", "error", err)
+		os.Exit(1)
+	}
 
 	authHandler := handler.NewAuthHandler(authSvc)
 	gameHandler := handler.NewGameHandler(gameSvc)
@@ -101,6 +107,7 @@ func main() {
 	friendHandler := handler.NewFriendHandler(friendSvc)
 	challengeHandler := handler.NewChallengeHandler(challengeSvc)
 	notificationHandler := handler.NewNotificationHandler(notifRepo)
+	dailyHandler := handler.NewDailyHandler(dailySvc)
 
 	// Start background scheduler
 	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc, rdb)
@@ -139,6 +146,10 @@ func main() {
 	protected.POST("/challenges", challengeHandler.Create)
 	protected.POST("/challenges/:id/respond", challengeHandler.Respond)
 	protected.GET("/challenges/pending", challengeHandler.GetPending)
+
+	// Daily challenge
+	protected.GET("/daily", dailyHandler.GetDaily)
+	protected.POST("/daily/retry", dailyHandler.Retry)
 
 	// Push notification token management
 	protected.POST("/notifications/token", notificationHandler.RegisterToken)

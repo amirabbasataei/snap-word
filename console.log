@@ -1,0 +1,168 @@
+I/ImeTracker(10607): com.ataei.client:3c794681: onRequestShow at ORIGIN_CLIENT reason SHOW_SOFT_INPUT fromUser false
+D/InsetsController(10607): show(ime(), fromIme=false)
+D/InsetsController(10607): Setting requestedVisibleTypes to -1 (was -9)
+D/InputConnectionAdaptor(10607): The input method toggled cursor monitoring on
+I/AssistStructure(10607): Flattened final assist data: 516 bytes, containing 1 windows, 3 views
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+I/ImeTracker(10607): com.ataei.client:3c794681: onShown
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+
+════════ Exception caught by rendering library ═════════════════════════════════
+A RenderFlex overflowed by 89 pixels on the bottom.
+The relevant error-causing widget was:
+    Column Column:file:///home/amirabbas/Development/word-chain/client/lib/features/game/view/game_screen.dart:837:18
+════════════════════════════════════════════════════════════════════════════════
+I/ImeTracker(10607): com.ataei.client:55d74141: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT fromUser false
+D/InsetsController(10607): hide(ime(), fromIme=false)
+W/WindowOnBackDispatcher(10607): sendCancelIfRunning: isInProgress=false callback=android.view.ImeBackAnimationController@3e0d376
+D/InsetsController(10607): Setting requestedVisibleTypes to -9 (was -1)
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+I/flutter (10607): *** Request ***
+I/flutter (10607): uri: http://10.0.2.2:8080/api/v1/game/solo
+I/flutter (10607): method: POST
+I/flutter (10607): responseType: ResponseType.json
+I/flutter (10607): followRedirects: true
+I/flutter (10607): persistentConnection: true
+I/flutter (10607): connectTimeout: 0:00:10.000000
+I/flutter (10607): sendTimeout: null
+I/flutter (10607): receiveTimeout: 0:00:10.000000
+I/flutter (10607): receiveDataWhenStatusError: true
+I/flutter (10607): extra: {}
+I/flutter (10607): headers:
+I/flutter (10607):  Content-Type: application/json
+I/flutter (10607):  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNTAwZWI1ZS0xN2FkLTRkYmItYmEzMy1mMzkzYzU1MTczZjEiLCJ1c2VybmFtZSI6InVzZXIxIiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc4MTQyNjIzMSwiaWF0IjoxNzgxNDI1MzMxfQ.RvrFWyUNFQbFoA4efyBoewNl6j41uoKOxmgGHU5SAXg
+I/flutter (10607): data:
+I/flutter (10607): {mode: daily, score: 1267, word_chain: ["any","you","usually","yes","she","everything","great","thank","keep","please","enjoy","young","ground","distance"], started_at: 2026-06-09T16:55:51.000, ended_at: 2026-06-09T16:57:26.000}
+I/flutter (10607):
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+I/flutter (10607): *** DioException ***:
+I/flutter (10607): uri: http://10.0.2.2:8080/api/v1/game/solo
+I/flutter (10607): DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+I/flutter (10607): The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+I/flutter (10607): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+I/flutter (10607): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+I/flutter (10607): *** Response ***
+I/flutter (10607): uri: http://10.0.2.2:8080/api/v1/game/solo
+I/flutter (10607): statusCode: 400
+I/flutter (10607): statusMessage: Bad Request
+I/flutter (10607): headers:
+I/flutter (10607):  content-type: application/json; charset=utf-8
+I/flutter (10607):  date: Sun, 14 Jun 2026 08:26:29 GMT
+I/flutter (10607):  content-length: 156
+I/flutter (10607): Response Text:
+I/flutter (10607): {"error":{"code":"validation_error","message":"parsing time \"2026-06-09T16:55:51.000\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"\" as \"Z07:00\""}}
+I/flutter (10607): 
+I/flutter (10607):
+I/flutter (10607): ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+I/flutter (10607): │ #0   SyncService._uploadUnsyncedMatches (package:wordchain/core/services/sync_service.dart:58:16)
+I/flutter (10607): │ #1   <asynchronous suspension>
+I/flutter (10607): ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+I/flutter (10607): │ ⚠️ Match sync failed, will retry: DioException [bad response]: This exception was thrown because the response has a status code of 400 and RequestOptions.validateStatus was configured to throw for this status code.
+I/flutter (10607): │ ⚠️ The status code of 400 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+I/flutter (10607): │ ⚠️ Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+I/flutter (10607): │ ⚠️ In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+I/flutter (10607): │ ⚠️ 
+I/flutter (10607): └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+I/flutter (10607): *** Request ***
+I/flutter (10607): uri: http://10.0.2.2:8080/api/v1/profile/stats
+I/flutter (10607): method: GET
+I/flutter (10607): responseType: ResponseType.json
+I/flutter (10607): followRedirects: true
+I/flutter (10607): persistentConnection: true
+I/flutter (10607): connectTimeout: 0:00:10.000000
+I/flutter (10607): sendTimeout: null
+I/flutter (10607): receiveTimeout: 0:00:10.000000
+I/flutter (10607): receiveDataWhenStatusError: true
+I/flutter (10607): extra: {}
+I/flutter (10607): headers:
+I/flutter (10607):  Content-Type: application/json
+I/flutter (10607):  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNTAwZWI1ZS0xN2FkLTRkYmItYmEzMy1mMzkzYzU1MTczZjEiLCJ1c2VybmFtZSI6InVzZXIxIiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc4MTQyNjIzMSwiaWF0IjoxNzgxNDI1MzMxfQ.RvrFWyUNFQbFoA4efyBoewNl6j41uoKOxmgGHU5SAXg
+I/flutter (10607): data:
+I/flutter (10607): null
+I/flutter (10607):
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+I/flutter (10607): *** Response ***
+I/flutter (10607): uri: http://10.0.2.2:8080/api/v1/profile/stats
+I/flutter (10607): statusCode: 200
+I/flutter (10607): statusMessage: OK
+I/flutter (10607): headers:
+I/flutter (10607):  content-type: application/json; charset=utf-8
+I/flutter (10607):  date: Sun, 14 Jun 2026 08:26:29 GMT
+I/flutter (10607):  content-length: 121
+I/flutter (10607): Response Text:
+I/flutter (10607): {"data":{"total_matches":0,"wins":0,"longest_word":null,"best_match_streak":0,"daily_streak":0,"longest_daily_streak":0}}
+I/flutter (10607):
+I/flutter (10607): *** Request ***
+I/flutter (10607): uri: http://10.0.2.2:8080/api/v1/powerup/inventory
+I/flutter (10607): method: GET
+I/flutter (10607): responseType: ResponseType.json
+I/flutter (10607): followRedirects: true
+I/flutter (10607): persistentConnection: true
+I/flutter (10607): connectTimeout: 0:00:10.000000
+I/flutter (10607): sendTimeout: null
+I/flutter (10607): receiveTimeout: 0:00:10.000000
+I/flutter (10607): receiveDataWhenStatusError: true
+I/flutter (10607): extra: {}
+I/flutter (10607): headers:
+I/flutter (10607):  Content-Type: application/json
+I/flutter (10607):  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNTAwZWI1ZS0xN2FkLTRkYmItYmEzMy1mMzkzYzU1MTczZjEiLCJ1c2VybmFtZSI6InVzZXIxIiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc4MTQyNjIzMSwiaWF0IjoxNzgxNDI1MzMxfQ.RvrFWyUNFQbFoA4efyBoewNl6j41uoKOxmgGHU5SAXg
+I/flutter (10607): data:
+I/flutter (10607): null
+I/flutter (10607):
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+I/flutter (10607): *** Response ***
+I/flutter (10607): uri: http://10.0.2.2:8080/api/v1/powerup/inventory
+I/flutter (10607): statusCode: 200
+I/flutter (10607): statusMessage: OK
+I/flutter (10607): headers:
+I/flutter (10607):  content-type: application/json; charset=utf-8
+I/flutter (10607):  date: Sun, 14 Jun 2026 08:26:29 GMT
+I/flutter (10607):  content-length: 21
+I/flutter (10607): Response Text:
+I/flutter (10607): {"data":{"items":[]}}
+I/flutter (10607):
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+
+════════ Exception caught by rendering library ═════════════════════════════════
+A RenderFlex overflowed by 4.5 pixels on the bottom.
+The relevant error-causing widget was:
+    Column Column:file:///home/amirabbas/Development/word-chain/client/lib/features/daily/view/daily_screen.dart:111:18
+════════════════════════════════════════════════════════════════════════════════
+W/WindowOnBackDispatcher(10607): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@cfa120a
+W/WindowOnBackDispatcher(10607): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@cfa120a
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+D/FlutterJNI(10607): Sending viewport metrics to the engine.
+I/ImeTracker(10607): system_server:c3454099: onCancelled at PHASE_CLIENT_ON_CONTROLS_CHANGED
+
+════════ Exception caught by gesture ═══════════════════════════════════════════
+There is nothing to pop
+════════════════════════════════════════════════════════════════════════════════
