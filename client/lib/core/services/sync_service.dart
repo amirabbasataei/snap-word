@@ -43,8 +43,8 @@ class SyncService {
             'mode': match.mode,
             'score': match.score,
             'word_chain': match.wordChain,
-            'started_at': match.startedAt.toIso8601String(),
-            'ended_at': match.endedAt?.toIso8601String(),
+            'started_at': _toRfc3339(match.startedAt),
+            'ended_at': match.endedAt != null ? _toRfc3339(match.endedAt!) : null,
           },
         );
         final remoteId = response.data['data']['id'] as String;
@@ -84,5 +84,16 @@ class SyncService {
     } catch (e) {
       _log.w('Powerup cache refresh failed: $e');
     }
+  }
+
+  String _toRfc3339(DateTime dt) {
+    final utc = dt.toUtc();
+    final y = utc.year.toString().padLeft(4, '0');
+    final m = utc.month.toString().padLeft(2, '0');
+    final d = utc.day.toString().padLeft(2, '0');
+    final h = utc.hour.toString().padLeft(2, '0');
+    final min = utc.minute.toString().padLeft(2, '0');
+    final s = utc.second.toString().padLeft(2, '0');
+    return '$y-$m-${d}T$h:$min:${s}Z';
   }
 }

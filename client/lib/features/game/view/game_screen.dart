@@ -832,11 +832,16 @@ class _GameOverScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
               if (resultBanner == null)
                 const Text('🏁', style: TextStyle(fontSize: 60)),
               if (resultBanner != null) resultBanner,
@@ -945,7 +950,11 @@ class _GameOverScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  ),
+),
+),
+);
   }
 }
 
