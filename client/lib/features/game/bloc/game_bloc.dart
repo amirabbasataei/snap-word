@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
+import 'package:wordchain/core/services/ai_opponent.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
@@ -29,9 +30,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   Timer? _turnTimer;
   Timer? _continueTimer;
   Timer? _opponentContinueTimer;
+  Timer? _aiTimer;
   StreamSubscription<WebSocketEvent>? _wsSub;
   DateTime? _turnStartTime;
   int _timeLimitSec = GameConstants.classicTurnTimerSec;
+
+  AIDifficultyConfig _aiDifficulty = aiDifficulties['easy']!;
 
   // Multiplayer session state (reset on each GameStarted)
   bool _isMultiplayer = false;
@@ -61,16 +65,20 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<GameTimerTicked>(_onTimerTicked);
     on<ContinueTimerTicked>(_onContinueTimerTicked);
     on<OpponentContinueTimerTicked>(_onOpponentContinueTimerTicked);
+    on<AITurnStarted>(_onAITurnStarted);
     on<WsEventReceived>(_onWsEventReceived);
   }
 
   bool get _isGuest => _prefs.getString('jwt_access_token') == null;
+
+  bool _isVsAI(GameActive state) => isVsAI(state.opponentType);
 
   @override
   Future<void> close() async {
     _turnTimer?.cancel();
     _continueTimer?.cancel();
     _opponentContinueTimer?.cancel();
+    _aiTimer?.cancel();
     await _wsSub?.cancel();
     if (_wsConnected) {
       _wsService.disconnect();
@@ -168,10 +176,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         localMatchId = await _gameRepository.startLocalGame(mode, opponentType);
       }
 
+      final vsAI = isVsAI(opponentType);
+      if (vsAI) {
+        _aiDifficulty = aiDifficulties[resolveAIDifficulty(opponentType)] ??
+            aiDifficulties['easy']!;
+      }
+
       _timeLimitSec = mode == 'time_attack'
           ? GameConstants.timeAttackTurnTimerSec
           : GameConstants.classicTurnTimerSec;
       _turnStartTime = DateTime.now();
+
+      final difficultyLabel = vsAI
+          ? resolveAIDifficulty(opponentType)[0].toUpperCase() +
+              resolveAIDifficulty(opponentType).substring(1)
+          : '';
 
       emit(GameActive(
         localMatchId: localMatchId,
@@ -187,10 +206,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             : null,
         nextStartLetter: wordChain.isNotEmpty
             ? wordChain.last[wordChain.last.length - 1]
-            : event.startLetter, // daily challenge uses the challenge's start letter
+            : event.startLetter,
         guestHintUsesLeft:
             _isGuest ? GameConstants.guestHintUsesPerSession : 999,
         continueUsed: false,
+        isMyTurn: true,
+        myPlayerId: vsAI ? 'player' : null,
+        opponentId: vsAI ? 'ai' : null,
+        opponentUsername: vsAI ? 'AI ($difficultyLabel)' : null,
+        opponentScore: 0,
+        wordOwners: vsAI
+            ? List<String?>.filled(wordChain.length, 'player')
+            : const [],
       ));
 
       _startTurnTimer();
@@ -275,6 +302,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     final newChain = [...active.wordChain, word];
     final newScores = [...active.wordScores, turnScore];
+    final newOwners = _isVsAI(active)
+        ? [...active.wordOwners, 'player']
+        : active.wordOwners;
 
     await _gameRepository.recordAcceptedWord(active.localMatchId, newChain);
 
@@ -289,7 +319,27 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         score: active.score + turnScore,
         wordChain: newChain,
         canContinue: false,
+        opponentScore: active.opponentScore,
       );
+      return;
+    }
+
+    if (_isVsAI(active)) {
+      // Switch to AI turn — restart turn timer so match timer keeps ticking
+      emit(active.copyWith(
+        wordChain: newChain,
+        wordScores: newScores,
+        wordOwners: newOwners,
+        score: active.score + turnScore,
+        streak: active.streak + 1,
+        turnTimeRemaining: _timeLimitSec,
+        nextStartLetter: word[word.length - 1],
+        hintWord: null,
+        isMyTurn: false,
+      ));
+      _turnStartTime = DateTime.now();
+      _startTurnTimer();
+      _scheduleAITurn();
       return;
     }
 
@@ -332,6 +382,124 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   // ---------------------------------------------------------------------------
+  // AI opponent (offline VS AI)
+  // ---------------------------------------------------------------------------
+
+  void _scheduleAITurn() {
+    _aiTimer?.cancel();
+    _aiTimer = Timer(
+      Duration(milliseconds: _aiDifficulty.delayMs),
+      () => add(const AITurnStarted()),
+    );
+  }
+
+  Future<void> _onAITurnStarted(
+    AITurnStarted event,
+    Emitter<GameState> emit,
+  ) async {
+    final active = state;
+    if (active is! GameActive) return;
+    if (active.isMyTurn) return;
+    if (!_isVsAI(active)) return;
+
+    _stopTurnTimer();
+
+    final usedWords = <String>{};
+    for (final w in active.wordChain) {
+      usedWords.add(w.toLowerCase());
+    }
+
+    final rng = Random();
+    final shouldMistake = rng.nextDouble() < _aiDifficulty.mistakeRate;
+
+    if (shouldMistake) {
+      await _handleAILoss(
+        emit: emit,
+        active: active,
+        reason: 'invalid_word',
+        rejectedWord: '???',
+      );
+      return;
+    }
+
+    final startLetter = active.nextStartLetter;
+    final aiWord = selectAIWord(
+      letter: startLetter,
+      usedWords: usedWords,
+      dictionary: _dictionaryService,
+      difficulty: _aiDifficulty,
+    );
+
+    if (aiWord == null) {
+      await _handleAILoss(
+        emit: emit,
+        active: active,
+        reason: 'no_words',
+      );
+      return;
+    }
+
+    // Validate AI word (safety check)
+    if (await _gameRepository.isWordUsed(active.localMatchId, aiWord)) {
+      await _handleAILoss(
+        emit: emit,
+        active: active,
+        reason: 'invalid_word',
+        rejectedWord: aiWord,
+      );
+      return;
+    }
+
+    // Calculate AI score
+    final turnScore = _calculateScore(
+      aiWord,
+      _aiDifficulty.delayMs / 1000.0,
+      0,
+      _timeLimitSec.toDouble(),
+    );
+
+    final newChain = [...active.wordChain, aiWord];
+    final newOwners = [...active.wordOwners, 'ai'];
+
+    await _gameRepository.recordAcceptedWord(active.localMatchId, newChain);
+
+    // Switch back to player
+    _turnStartTime = DateTime.now();
+    _startTurnTimer();
+
+    emit(active.copyWith(
+      wordChain: newChain,
+      wordOwners: newOwners,
+      opponentScore: active.opponentScore + turnScore,
+      turnTimeRemaining: _timeLimitSec,
+      nextStartLetter: aiWord[aiWord.length - 1],
+      isMyTurn: true,
+    ));
+  }
+
+  Future<void> _handleAILoss({
+    required Emitter<GameState> emit,
+    required GameActive active,
+    required String reason,
+    String? rejectedWord,
+  }) async {
+    _aiTimer?.cancel();
+    _stopContinueTimer();
+
+    await _finalizeGame(
+      emit: emit,
+      localMatchId: active.localMatchId,
+      mode: active.mode,
+      reason: reason == 'timeout' ? 'timeout' : 'invalid_word',
+      score: active.score,
+      wordChain: active.wordChain,
+      canContinue: false,
+      opponentScore: active.opponentScore,
+      opponentType: active.opponentType,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Timer ticks (solo/AI)
   // ---------------------------------------------------------------------------
 
@@ -342,6 +510,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final active = state;
     if (active is! GameActive) return;
 
+    final vsAI = _isVsAI(active);
     final newTurnTime = active.turnTimeRemaining - 1;
     final newMatchTime = active.matchTimeRemaining != null
         ? active.matchTimeRemaining! - 1
@@ -357,12 +526,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         score: active.score,
         wordChain: active.wordChain,
         canContinue: false,
+        opponentScore: active.opponentScore,
       );
       return;
     }
 
     if (newTurnTime <= 0) {
       _stopTurnTimer();
+      if (vsAI && !active.isMyTurn) {
+        await _handleAILoss(
+          emit: emit,
+          active: active,
+          reason: 'timeout',
+        );
+        return;
+      }
       await _handleGameOver(
         emit: emit,
         active: active,
@@ -391,6 +569,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (active is! GameActive) return;
 
     _stopTurnTimer();
+    _aiTimer?.cancel();
     await _finalizeGame(
       emit: emit,
       localMatchId: active.localMatchId,
@@ -399,6 +578,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       score: active.score,
       wordChain: active.wordChain,
       canContinue: false,
+      opponentScore: active.opponentScore,
     );
   }
 
@@ -426,11 +606,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         : GameConstants.classicTurnTimerSec;
     _turnStartTime = DateTime.now();
 
+    final opponentType = over.opponentType ?? 'solo';
+    final vsAI = isVsAI(opponentType);
+    if (vsAI) {
+      _aiDifficulty = aiDifficulties[resolveAIDifficulty(opponentType)] ??
+          aiDifficulties['easy']!;
+    }
+    final difficultyLabel = vsAI
+        ? resolveAIDifficulty(opponentType)[0].toUpperCase() +
+            resolveAIDifficulty(opponentType).substring(1)
+        : '';
+
     final chain = over.wordChain;
     emit(GameActive(
       localMatchId: over.localMatchId,
       mode: over.mode,
-      opponentType: 'solo',
+      opponentType: opponentType,
       wordChain: chain,
       wordScores: const [],
       score: over.score,
@@ -443,6 +634,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       guestHintUsesLeft:
           _isGuest ? GameConstants.guestHintUsesPerSession : 999,
       continueUsed: true,
+      isMyTurn: true,
+      myPlayerId: vsAI ? 'player' : null,
+      opponentId: vsAI ? 'ai' : null,
+      opponentUsername: vsAI ? 'AI ($difficultyLabel)' : null,
+      opponentScore: 0,
+      wordOwners: vsAI
+          ? List<String?>.filled(chain.length, 'player')
+          : const [],
     ));
 
     _startTurnTimer();
@@ -754,12 +953,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     required String? rejectedWord,
     required String? rejectionReason,
   }) async {
+    _aiTimer?.cancel();
     final canContinue = active.mode == 'classic' && !active.continueUsed;
 
     if (canContinue) {
       emit(GameOver(
         localMatchId: active.localMatchId,
         mode: active.mode,
+        opponentType: active.opponentType,
         reason: reason,
         rejectedWord: rejectedWord,
         rejectionReason: rejectionReason,
@@ -782,6 +983,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         canContinue: false,
         rejectedWord: rejectedWord,
         rejectionReason: rejectionReason,
+        opponentScore: active.opponentScore,
+        opponentType: active.opponentType,
       );
     }
   }
@@ -796,6 +999,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     required bool canContinue,
     String? rejectedWord,
     String? rejectionReason,
+    int opponentScore = 0,
+    String? opponentType,
   }) async {
     final over = GameOver(
       localMatchId: localMatchId,
@@ -809,6 +1014,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       canContinue: false,
       continueTimeRemaining: 0,
       isSaved: false,
+      opponentScore: opponentScore,
+      opponentType: opponentType,
     );
     emit(over);
     await _saveAndEmitFinal(emit, over);

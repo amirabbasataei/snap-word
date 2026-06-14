@@ -88,6 +88,14 @@ class OpponentContinueTimerTicked extends GameEvent {
   List<Object?> get props => [];
 }
 
+// Internal — emitted when the AI opponent should play its turn (offline VS AI)
+class AITurnStarted extends GameEvent {
+  const AITurnStarted();
+
+  @override
+  List<Object?> get props => [];
+}
+
 // Internal — raw WebSocket event received from server (multiplayer)
 class WsEventReceived extends GameEvent {
   final String type;

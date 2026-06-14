@@ -124,6 +124,8 @@ class GameActive extends GameState {
 
   bool get isMultiplayer => opponentType == 'multiplayer';
 
+  bool get isVsAI => opponentType.startsWith('ai_');
+
   @override
   List<Object?> get props => [
         localMatchId,
@@ -165,6 +167,7 @@ class GameOver extends GameState {
   final bool isSaved;
   final String? winnerId; // null = solo; player UUID for multiplayer
   final int opponentScore;
+  final String? opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
 
   const GameOver({
     required this.localMatchId,
@@ -180,6 +183,7 @@ class GameOver extends GameState {
     required this.isSaved,
     this.winnerId,
     this.opponentScore = 0,
+    this.opponentType,
   });
 
   GameOver copyWith({
@@ -200,10 +204,11 @@ class GameOver extends GameState {
       isSaved: isSaved ?? this.isSaved,
       winnerId: winnerId,
       opponentScore: opponentScore,
+      opponentType: opponentType,
     );
   }
 
-  bool get isMultiplayer => winnerId != null || opponentScore > 0;
+  bool get isMultiplayer => winnerId != null || opponentScore > 0 || (opponentType != null && opponentType!.startsWith('ai_'));
 
   @override
   List<Object?> get props => [
@@ -220,6 +225,7 @@ class GameOver extends GameState {
         isSaved,
         winnerId,
         opponentScore,
+        opponentType,
       ];
 }
 

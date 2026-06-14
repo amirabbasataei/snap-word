@@ -181,7 +181,7 @@ class _ActiveGameScreen extends StatelessWidget {
                       ? GameConstants.timeAttackTurnTimerSec
                       : GameConstants.classicTurnTimerSec,
                 ),
-                if (state.isMultiplayer) ...[
+                if (state.isMultiplayer || state.isVsAI) ...[
                   _TurnIndicator(state: state),
                   const SizedBox(height: 4),
                 ],
@@ -190,7 +190,7 @@ class _ActiveGameScreen extends StatelessWidget {
                   child: WordChainList(
                     words: state.wordChain,
                     scores: state.wordScores,
-                    wordOwners: state.isMultiplayer ? state.wordOwners : null,
+                    wordOwners: (state.isMultiplayer || state.isVsAI) ? state.wordOwners : null,
                     myPlayerId: state.myPlayerId,
                     opponentUsername: state.opponentUsername,
                   ),
@@ -212,6 +212,8 @@ class _ActiveGameScreen extends StatelessWidget {
                         startLetter: state.nextStartLetter,
                         enabled: state.isMyTurn && !state.opponentContinueWindowActive,
                         hintWord: state.hintWord,
+                        isAIThinking: state.isVsAI && !state.isMyTurn,
+                        aiName: state.opponentUsername ?? 'AI',
                         onSubmit: (word) =>
                             context.read<GameBloc>().add(WordSubmitted(word)),
                       ),
@@ -264,10 +266,11 @@ class _SoloHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final playerLabel = state.opponentType == 'solo' ? 'SOLO' : 'VS AI';
     final headerLabel = switch (state.mode) {
-      'time_attack' => 'SOLO · TIME ATTACK',
+      'time_attack' => '$playerLabel · TIME ATTACK',
       'daily' => 'DAILY CHALLENGE',
-      _ => '${state.opponentType == 'solo' ? 'SOLO' : 'VS AI'} · CLASSIC',
+      _ => '$playerLabel · CLASSIC',
     };
 
     return Padding(
@@ -576,6 +579,7 @@ class _PowerupRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isGuest = state.guestHintUsesLeft != 999;
+    final hintAvailable = (!isGuest || state.guestHintUsesLeft > 0) && state.isMyTurn;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -584,7 +588,7 @@ class _PowerupRow extends StatelessWidget {
           _PowerupButton(
             emoji: '💡',
             label: isGuest ? '×${state.guestHintUsesLeft}' : '∞',
-            enabled: !isGuest || state.guestHintUsesLeft > 0,
+            enabled: hintAvailable,
             onTap: () => context.read<GameBloc>().add(const HintRequested()),
           ),
           const SizedBox(width: 12),
@@ -829,6 +833,39 @@ class _GameOverScreen extends StatelessWidget {
       );
     }
 
+    // VS AI: show win/loss banner based on who made the mistake
+    if (!isMultiplayer &&
+        state.opponentType != null &&
+        state.opponentType!.startsWith('ai_') &&
+        state.opponentScore > 0) {
+      final scoredMore = state.score > state.opponentScore;
+      resultBanner = Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: scoredMore
+              ? AppColors.success.withValues(alpha: 0.15)
+              : AppColors.error.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: scoredMore ? AppColors.success : AppColors.error,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              scoredMore ? '🏆 YOU WIN!' : '😞 YOU LOSE',
+              style: TextStyle(
+                color: scoredMore ? AppColors.success : AppColors.error,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -856,7 +893,7 @@ class _GameOverScreen extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 28),
-              if (isMultiplayer) ...[
+              if (isMultiplayer || state.opponentScore > 0) ...[
                 Row(
                   children: [
                     Expanded(
@@ -930,21 +967,21 @@ class _GameOverScreen extends StatelessWidget {
                   onPressed: () => _navigateHome(context),
                   child: const Text('Back to Home'),
                 ),
-                if (!isMultiplayer) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () {
-                      context.pushReplacement(
-                        '/game',
-                        extra: GameRouteArgs(
-                          mode: state.mode,
-                          opponentType: 'solo',
-                        ),
-                      );
-                    },
-                    child: const Text('Play Again'),
-                  ),
-                ],
+                  if (!isMultiplayer) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () {
+                        context.pushReplacement(
+                          '/game',
+                          extra: GameRouteArgs(
+                            mode: state.mode,
+                            opponentType: state.opponentType ?? 'solo',
+                          ),
+                        );
+                      },
+                      child: const Text('Play Again'),
+                    ),
+                  ],
               ],
             ],
           ),

@@ -6,6 +6,8 @@ class WordInput extends StatefulWidget {
   final bool enabled;
   final String? hintWord;
   final void Function(String word) onSubmit;
+  final bool isAIThinking;
+  final String aiName;
 
   const WordInput({
     super.key,
@@ -13,6 +15,8 @@ class WordInput extends StatefulWidget {
     required this.enabled,
     this.hintWord,
     required this.onSubmit,
+    this.isAIThinking = false,
+    this.aiName = 'AI',
   });
 
   @override
@@ -51,6 +55,46 @@ class _WordInputState extends State<WordInput> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isAIThinking) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.secondary.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.secondary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${widget.aiName} is thinking…',
+                style: const TextStyle(
+                  color: AppColors.secondary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final placeholder = widget.startLetter != null
         ? 'type a word starting with ${widget.startLetter!.toUpperCase()}…'
         : 'type any word to start…';

@@ -8,6 +8,8 @@ class DictionaryService {
 
   late final HashSet<String> _words;
 
+  Set<String> get words => _words;
+
   Future<void> load() async {
     final raw = await rootBundle.loadString(_assetPath);
     _words = HashSet<String>.from(
