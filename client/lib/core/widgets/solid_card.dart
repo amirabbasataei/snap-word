@@ -11,12 +11,18 @@ class SolidCard extends StatelessWidget {
   final double radius;
   final Color? color;
 
+  /// Some cards in the design (e.g. ZHome's streak card) sit flush on
+  /// `surface` with just a 1px `line` border and no offset edge — set to
+  /// `false` to drop the `0 3px 0 line` shadow.
+  final bool elevated;
+
   const SolidCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(ZSpacing.xl),
     this.radius = ZRadius.cardMin,
     this.color,
+    this.elevated = true,
   });
 
   @override
@@ -28,7 +34,9 @@ class SolidCard extends StatelessWidget {
         color: color ?? z.surface,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: z.line, width: 1),
-        boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth),
+        boxShadow: elevated
+            ? ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth)
+            : null,
       ),
       child: child,
     );

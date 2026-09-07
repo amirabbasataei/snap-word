@@ -15,7 +15,7 @@ class CoinPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: 6),
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 6, 8, 6),
       decoration: BoxDecoration(
         color: z.surface,
         borderRadius: BorderRadius.circular(ZRadius.chip),
@@ -24,18 +24,18 @@ class CoinPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: z.amber, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: ZSpacing.sm),
           Text(
             formatPersianNumber(amount),
             style: ZTypography.metaLabel.copyWith(
               color: z.ink,
               fontWeight: FontWeight.w800,
             ),
+          ),
+          const SizedBox(width: ZSpacing.sm),
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(color: z.amber, shape: BoxShape.circle),
           ),
         ],
       ),

@@ -182,6 +182,18 @@ Landed: `core/theme/{app_tokens,app_typography,app_spacing,app_elevation,app_mot
 
 **Structural note:** today one `WordChainList` serves both solo and AI. The design wants **two distinct renderers**. Keep `WordChainList` as the shared scroll / auto-scroll shell and give it two presentation strategies rather than duplicating the controller logic (`features/game/view/widgets/word_chain_list.dart`).
 
+### 3.1 Stage 2 — ZHome done, ZSolo/ZPlay/ZOver pending
+
+Landed: `home_screen.dart` rewritten against `context.z` tokens — wordmark (5 rotated `LetterTile`s, rectangular 38×48 variant), streak card (`StreakStrip` rewritten to render real trailing-7-day weekday letters computed from `StatsDao`'s `dailyStreak`/`lastPlayedDate`, replacing the earlier checkmark-based guess now that the canvas was confirmed), indigo daily-challenge hero (real seed letter + backend `todaysBest` + a locally-computed hours-to-next-midnight-UTC countdown, best-effort network fetch with graceful fallback), 2×2 mode grid (تک‌نفره / حریف هوشمند / رویارویی آنلاین, same nav destinations as the old `_QuickPlayCard`s), and a weekly-rank teaser row (real `playerRank` from `LeaderboardRepository`). `_ResumeCard` and `_GuestBanner` kept their exact trigger conditions, restyled onto `SolidCard`. The mode-select and difficulty bottom sheets were also restyled onto tokens (not in the canvas, but shown directly from ZHome — leaving them on the legacy dark-only `AppColors` would break under light mode).
+
+Widget API additions made to support this (all backward compatible — neither widget had any other call site yet): `LetterTile` gained optional `height`/`radius`/`fontSize` overrides for the wordmark's non-square tiles; `SolidCard` gained `elevated` (the streak card has no offset shadow in the confirmed design, unlike every other card).
+
+The two top-right icon buttons in the canvas (settings-like square, notification-like circle) have no defined behavior in the mock. The first is temporarily wired to `ThemeCubit.toggle()` so light/dark can actually be checked on-device before ZProfile ships the real حالت شب switch in Stage 5 — flagged here so it isn't mistaken for a deliberate final placement; replace when ZProfile lands.
+
+**Verification:** `dart analyze` and `flutter test` clean. Actually launched on an iOS 26 simulator (`flutter run`) — first launch hit a real bug (`Row(crossAxisAlignment: stretch)` inside the unbounded-height scroll column threw `BoxConstraints forces an infinite height` and silently blanked the entire body below the top bar; fixed by wrapping in `IntrinsicHeight`). Confirmed via on-device screenshots, both themes, including a temporary data-injection pass (reverted before commit) to exercise the streak card and daily hero, which a fresh guest session doesn't otherwise populate.
+
+ZSolo, ZPlay, and ZOver are not started — stopping here per instruction, pending confirmation on ZHome.
+
 ---
 
 ## 4. Stage 3 — Daily Challenge

@@ -19,12 +19,27 @@ class LetterTile extends StatelessWidget {
   /// Rotation in radians — used for the wordmark's scattered-letter look.
   final double rotation;
 
+  /// Overrides the tile height (defaults to square, `size` × `size`) — the
+  /// wordmark's tiles are rectangular (38×48) rather than square.
+  final double? height;
+
+  /// Overrides the interpolated corner radius when a design calls for a
+  /// specific value instead of the generic inline→hero ramp.
+  final double? radius;
+
+  /// Overrides the interpolated font size (`size * 0.55`) when a design
+  /// specifies an exact value.
+  final double? fontSize;
+
   const LetterTile({
     super.key,
     required this.letter,
     this.size = ZTileSize.inline,
     this.accent = ZAccent.indigo,
     this.rotation = 0,
+    this.height,
+    this.radius,
+    this.fontSize,
   });
 
   @override
@@ -34,22 +49,23 @@ class LetterTile extends StatelessWidget {
     final t = ((size - ZTileSize.inline) /
             (ZTileSize.heroMax - ZTileSize.inline))
         .clamp(0.0, 1.0);
-    final radius = ZRadius.tileMin + (ZRadius.tileMax - ZRadius.tileMin) * t;
+    final effectiveRadius =
+        radius ?? (ZRadius.tileMin + (ZRadius.tileMax - ZRadius.tileMin) * t);
 
     Widget tile = Container(
       width: size,
-      height: size,
+      height: height ?? size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(effectiveRadius),
         boxShadow: ZElevation.solidEdge(deep, depth: ZElevation.tileDepth),
       ),
       child: Text(
         letter,
         style: ZTypography.chainWordActive.copyWith(
           color: onColor,
-          fontSize: size * 0.55,
+          fontSize: fontSize ?? size * 0.55,
         ),
       ),
     );
