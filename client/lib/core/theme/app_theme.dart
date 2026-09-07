@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/theme/app_tokens.dart';
+import 'package:wordchain/core/theme/app_typography.dart';
 
+/// Legacy flat colour palette. Every screen built before the زنجیر redesign
+/// (Phase 17) references these directly instead of `Theme.of(context)`, so
+/// they must keep working — and keep their exact current values — until
+/// that screen is ported to `context.z.*` tokens in its own redesign stage.
+/// Do not add new usages of this class; use `ZColors` (`context.z`) instead.
 abstract final class AppColors {
   static const background = Color(0xFF0B0E1C);
   static const surface = Color(0xFF131929);
@@ -16,9 +23,16 @@ abstract final class AppColors {
 }
 
 abstract final class AppTheme {
+  /// Unmigrated screens still read `AppColors.*` directly and are visually
+  /// untouched by this theme beyond the global Vazirmatn font swap; the
+  /// `ZColors.dark` extension is attached so widgets already built against
+  /// `context.z` (bottom nav, shared widgets) render correctly alongside
+  /// them in the interim.
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
+        fontFamily: 'Vazirmatn',
+        extensions: const [ZColors.dark],
         scaffoldBackgroundColor: AppColors.background,
         colorScheme: const ColorScheme.dark(
           brightness: Brightness.dark,
@@ -159,5 +173,38 @@ abstract final class AppTheme {
           space: 1,
         ),
         iconTheme: const IconThemeData(color: AppColors.textSecondary),
+      );
+
+  /// زنجیر light theme, built entirely from `ZColors.light` tokens. Backs
+  /// screens/widgets already ported to `context.z` (Stage 1 shared widgets
+  /// onward); unmigrated screens ignore it because they read `AppColors.*`
+  /// directly rather than `Theme.of(context)`.
+  static ThemeData get light => ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        fontFamily: 'Vazirmatn',
+        extensions: const [ZColors.light],
+        scaffoldBackgroundColor: ZColors.light.paper,
+        colorScheme: ColorScheme.light(
+          brightness: Brightness.light,
+          primary: ZColors.light.indigo,
+          onPrimary: ZColors.light.onIndigo,
+          secondary: ZColors.light.teal,
+          onSecondary: ZColors.light.onTeal,
+          surface: ZColors.light.surface,
+          onSurface: ZColors.light.ink,
+          error: ZColors.light.coral,
+          onError: ZColors.light.onCoral,
+        ),
+        textTheme: ZTypography.textTheme(
+          baseColor: ZColors.light.ink,
+          secondaryColor: ZColors.light.ink60,
+        ),
+        dividerTheme: DividerThemeData(
+          color: ZColors.light.line,
+          thickness: 1,
+          space: 1,
+        ),
+        iconTheme: IconThemeData(color: ZColors.light.ink60),
       );
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
+import 'package:wordchain/core/widgets/z_bottom_nav.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/view/login_screen.dart';
 import 'package:wordchain/features/auth/view/register_screen.dart';
@@ -138,41 +139,11 @@ class _MainShell extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: shell,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(
-            top: BorderSide(color: AppColors.divider, width: 1),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: shell.currentIndex,
-          onTap: (index) => shell.goBranch(
-            index,
-            initialLocation: index == shell.currentIndex,
-          ),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.emoji_events_outlined),
-              activeIcon: Icon(Icons.emoji_events),
-              label: 'Ranks',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Friends',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+      bottomNavigationBar: ZBottomNav(
+        currentIndex: shell.currentIndex,
+        onTap: (index) => shell.goBranch(
+          index,
+          initialLocation: index == shell.currentIndex,
         ),
       ),
     );

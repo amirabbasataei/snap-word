@@ -326,3 +326,29 @@ Full end-to-end smoke flows:
 - Registered → matchmaking queue → 1v1 match → shared chain play → continue prompt → game over → leaderboard updated
 - Registered → sends friend request → friend accepts → friend challenge → private match
 - Weekly scheduler job runs → top 3 rewarded → leaderboard resets
+
+---
+
+## Phase 17 — Visual Redesign (زنجیر)
+**Status: [ ] In Progress — Stage 1 (Foundation)**
+
+Full plan, spec-conflict decisions, and stage breakdown live in **REDESIGN_PLAN.md**. Summary:
+
+- Ports the Claude Design canvas (`Zanjir.dc.html` and per-screen files, project `4a90de7c-3340-476f-922d-213a9dcd6307`, fetched via the `DesignSync` `get_file` method) into Flutter as a token-driven light+dark visual system, RTL-native, Vazirmatn typeface. Blocs/cubits/repositories/DI are unchanged; this is a presentation-layer rewrite.
+- **Stage 1 — Foundation** (in progress): token system (`core/theme/`), Vazirmatn font, Persian digit formatting, `ThemeCubit` (light/dark, persisted), RTL audit, custom bottom nav, shared widgets (`LetterTile`, `SolidCard`, `AccentButton`/`NeutralButton`, `CoinPill`, `TintChip`, `AvatarTile`, `SectionHeader`, `StreakStrip`).
+- **Stage 2** — Core loop screens (ZHome, ZSolo, ZPlay, ZOver).
+- **Stage 3** — Daily Challenge (ZDailyBefore/After).
+- **Stage 4** — Multiplayer (ZLobby, ZVersus).
+- **Stage 5** — Secondary screens (ZBoard, ZProfile, ZFriends).
+- **Stage 6** — Undesigned screens (login, register, tutorial, continue prompt) derived from the token system.
+- **Stage 7** — Re-baseline goldens, add token-coverage lint.
+
+**Adopted mechanic changes (see REDESIGN_PLAN.md §1 for full rationale):**
+- **Lives system** — two lives replace instant-death-on-first-mistake, for solo and multiplayer.
+- **Long-word bonus** — added to the scorer (Go + Flutter).
+- **Wager + turn-length picker** (ZLobby) — built as designed, no placeholder gating.
+- **Best-of-5 rounds** (ZVersus) — round count is a **fixed constant** (best of 5), not lobby-configurable. Visual UI (round indicator, "دست ۳ از ۵") builds against a placeholder; real round-tracking (WS protocol + Go backend) is separate follow-up backend work.
+- **Levels & badges** (ZProfile) and **referral codes** (ZFriends/ZLobby) — rendered as designed, wired to placeholders; schema + backend service work is separate follow-up.
+- Drift fixes applied to match existing spec: ZOver continue price uses `GameConstants.continueCostCoins` (25, not the canvas's 50); ZDailyBefore turn timer uses 15s (not the canvas's 10s).
+
+**Done when:** All 11 screens render pixel-close to the design in both light and dark mode, no screen file references a hardcoded color, existing golden tests are re-baselined, and placeholder-gated features (rounds, levels/badges, referrals) have tracked backend follow-up tickets.

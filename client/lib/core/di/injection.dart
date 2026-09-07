@@ -8,6 +8,7 @@ import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
+import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
@@ -25,6 +26,9 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   // Primitives
   getIt.registerSingleton<SharedPreferences>(prefs);
   getIt.registerSingleton<DictionaryService>(dictionaryService);
+
+  // Theme
+  getIt.registerLazySingleton<ThemeCubit>(() => ThemeCubit(prefs));
 
   // Database
   getIt.registerLazySingleton<AppDatabase>(() => AppDatabase());

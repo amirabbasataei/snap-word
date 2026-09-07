@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
@@ -8,6 +9,7 @@ import 'package:wordchain/core/router/app_router.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
+import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 
 Future<void> main() async {
@@ -59,18 +61,25 @@ class _WordChainAppState extends State<WordChainApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'WordChain',
-      theme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
-      routerConfig: getIt<GoRouter>(),
-      debugShowCheckedModeBanner: false,
-      // Persian is RTL; the widget tree itself is not yet audited/redesigned
-      // for RTL layout (see project notes), but the app-wide reading
-      // direction must be correct regardless.
-      builder:
-          (context, child) =>
-              Directionality(textDirection: TextDirection.rtl, child: child!),
+    return BlocBuilder<ThemeCubit, ThemeMode>(
+      bloc: getIt<ThemeCubit>(),
+      builder: (context, themeMode) {
+        return MaterialApp.router(
+          title: 'WordChain',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          routerConfig: getIt<GoRouter>(),
+          debugShowCheckedModeBanner: false,
+          // Persian is RTL; the widget tree itself is not yet audited for
+          // RTL layout screen-by-screen (see REDESIGN_PLAN.md Stage 1), but
+          // the app-wide reading direction must be correct regardless.
+          builder: (context, child) => Directionality(
+            textDirection: TextDirection.rtl,
+            child: child!,
+          ),
+        );
+      },
     );
   }
 }
