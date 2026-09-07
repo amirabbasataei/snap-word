@@ -17,30 +17,23 @@ func TestValidateMove(t *testing.T) {
 		{
 			name:      "first word in chain",
 			prevWord:  "",
-			newWord:   "apple",
+			newWord:   "کتاب",
 			usedWords: map[string]bool{},
 			wantErr:   nil,
 		},
 		{
 			name:      "valid continuation",
-			prevWord:  "apple",
-			newWord:   "eagle",
-			usedWords: map[string]bool{"apple": true},
+			prevWord:  "کتاب", // ends با ب
+			newWord:   "باران", // starts با ب
+			usedWords: map[string]bool{"کتاب": true},
 			wantErr:   nil,
 		},
 
 		// --- Rule 1: normalize ---
 		{
-			name:      "uppercase input normalised",
-			prevWord:  "apple",
-			newWord:   "EAGLE",
-			usedWords: map[string]bool{"apple": true},
-			wantErr:   nil,
-		},
-		{
 			name:      "leading and trailing whitespace trimmed",
 			prevWord:  "",
-			newWord:   "  apple  ",
+			newWord:   "  کتاب  ",
 			usedWords: map[string]bool{},
 			wantErr:   nil,
 		},
@@ -49,44 +42,51 @@ func TestValidateMove(t *testing.T) {
 		{
 			name:      "digit in word",
 			prevWord:  "",
-			newWord:   "app1e",
+			newWord:   "کتاب۱",
 			usedWords: map[string]bool{},
 			wantErr:   ErrInvalidChars,
 		},
 		{
 			name:      "hyphen in word",
 			prevWord:  "",
-			newWord:   "co-op",
-			usedWords: map[string]bool{},
-			wantErr:   ErrInvalidChars,
-		},
-		{
-			name:      "apostrophe in word",
-			prevWord:  "",
-			newWord:   "can't",
+			newWord:   "کتاب-درسی",
 			usedWords: map[string]bool{},
 			wantErr:   ErrInvalidChars,
 		},
 		{
 			name:      "space inside word",
 			prevWord:  "",
-			newWord:   "two words",
+			newWord:   "کتاب درسی",
+			usedWords: map[string]bool{},
+			wantErr:   ErrInvalidChars,
+		},
+		{
+			name:      "latin letters rejected",
+			prevWord:  "",
+			newWord:   "ketab",
+			usedWords: map[string]bool{},
+			wantErr:   ErrInvalidChars,
+		},
+		{
+			name:      "arabic-only letters rejected (ي not ی)",
+			prevWord:  "",
+			newWord:   "يا", // ي + ا — Arabic yeh, not the Persian ی used by the dictionary
 			usedWords: map[string]bool{},
 			wantErr:   ErrInvalidChars,
 		},
 
-		// --- Rule 3: minimum length ---
+		// --- Rule 3: minimum length (counted in runes, not bytes) ---
 		{
 			name:      "two-letter word rejected",
 			prevWord:  "",
-			newWord:   "go",
+			newWord:   "او",
 			usedWords: map[string]bool{},
 			wantErr:   ErrTooShort,
 		},
 		{
 			name:      "single letter rejected",
 			prevWord:  "",
-			newWord:   "a",
+			newWord:   "و",
 			usedWords: map[string]bool{},
 			wantErr:   ErrTooShort,
 		},
@@ -108,15 +108,15 @@ func TestValidateMove(t *testing.T) {
 		// --- Rule 4: starting letter ---
 		{
 			name:      "wrong starting letter",
-			prevWord:  "apple",
-			newWord:   "banana",
-			usedWords: map[string]bool{"apple": true},
+			prevWord:  "کتاب",  // ends با ب
+			newWord:   "نان",   // starts با ن, not ب
+			usedWords: map[string]bool{"کتاب": true},
 			wantErr:   ErrWrongLetter,
 		},
 		{
 			name:      "no constraint on first word",
 			prevWord:  "",
-			newWord:   "banana",
+			newWord:   "نان",
 			usedWords: map[string]bool{},
 			wantErr:   nil,
 		},
@@ -124,17 +124,17 @@ func TestValidateMove(t *testing.T) {
 		// --- Rule 5: no repetition ---
 		{
 			name:      "word already used",
-			prevWord:  "apple",
-			newWord:   "eagle",
-			usedWords: map[string]bool{"apple": true, "eagle": true},
+			prevWord:  "کتاب",
+			newWord:   "باران",
+			usedWords: map[string]bool{"کتاب": true, "باران": true},
 			wantErr:   ErrAlreadyUsed,
 		},
 
 		// --- Rule 6: dictionary ---
 		{
-			name:      "word not in ENABLE",
+			name:      "word not in dictionary",
 			prevWord:  "",
-			newWord:   "zzzxxx",
+			newWord:   "زکسلوپ",
 			usedWords: map[string]bool{},
 			wantErr:   ErrNotInDict,
 		},
@@ -142,11 +142,27 @@ func TestValidateMove(t *testing.T) {
 		// --- rule ordering ---
 		{
 			name:     "wrong letter checked before already_used",
-			prevWord: "eagle",
-			// "apple" starts with 'a' but "eagle" ends with 'e' → Rule 4 fires first
-			newWord:   "apple",
-			usedWords: map[string]bool{"apple": true, "eagle": true},
+			prevWord: "باران", // ends با ن
+			// "کتاب" starts با ک but "باران" ends با ن → Rule 4 fires first
+			newWord:   "کتاب",
+			usedWords: map[string]bool{"کتاب": true, "باران": true},
 			wantErr:   ErrWrongLetter,
+		},
+
+		// --- ZWNJ handling (ported from last-word's dictionary_service.dart) ---
+		{
+			name:      "trailing ZWNJ on previous word is stripped before letter comparison",
+			prevWord:  "کتاب‌", // "کتاب" with a stray trailing ZWNJ
+			newWord:   "باران",      // starts با ب, the real last letter of "کتاب"
+			usedWords: map[string]bool{"کتاب‌": true},
+			wantErr:   nil,
+		},
+		{
+			name:      "compound word with embedded ZWNJ (می‌روم) still yields correct last letter",
+			prevWord:  "می‌روم", // "می‌روم"
+			newWord:   "مداد",        // starts با م, the last letter of "روم"
+			usedWords: map[string]bool{"می‌روم": true},
+			wantErr:   nil,
 		},
 	}
 
@@ -156,6 +172,28 @@ func TestValidateMove(t *testing.T) {
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("ValidateMove(%q, %q, ...) error = %v, want %v",
 					tt.prevWord, tt.newWord, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestLastLetter_StripsZWNJ(t *testing.T) {
+	tests := []struct {
+		word string
+		want rune
+	}{
+		{"کتاب", 'ب'},
+		{"کتاب‌", 'ب'},     // trailing ZWNJ must not be read as the last letter
+		{"می‌روم", 'م'},    // "می‌روم" — embedded ZWNJ, real last letter is م (from روم)
+		{"نمی‌دانم", 'م'},  // "نمی‌دانم"
+		{"", 0},
+		{"‌", 0}, // only a ZWNJ, nothing left after stripping
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			if got := lastLetter(tt.word); got != tt.want {
+				t.Errorf("lastLetter(%q) = %q, want %q", tt.word, got, tt.want)
 			}
 		})
 	}

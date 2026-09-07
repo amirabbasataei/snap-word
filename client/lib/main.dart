@@ -65,6 +65,12 @@ class _WordChainAppState extends State<WordChainApp> {
       themeMode: ThemeMode.dark,
       routerConfig: getIt<GoRouter>(),
       debugShowCheckedModeBanner: false,
+      // Persian is RTL; the widget tree itself is not yet audited/redesigned
+      // for RTL layout (see project notes), but the app-wide reading
+      // direction must be correct regardless.
+      builder:
+          (context, child) =>
+              Directionality(textDirection: TextDirection.rtl, child: child!),
     );
   }
 }

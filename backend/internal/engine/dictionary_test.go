@@ -7,20 +7,15 @@ func TestIsValid(t *testing.T) {
 		word string
 		want bool
 	}{
-		{"apple", true},
-		{"eagle", true},
-		{"game", true},
-		{"play", true},
-		{"run", true},
-		{"zoo", true},
-		{"hello", true},
-		{"elephant", true},
-		// IsValid expects pre-normalised lowercase input
-		{"APPLE", false},
-		{"Apple", false},
-		// not in ENABLE
-		{"zzzxxx", false},
-		{"xyzzy", false},
+		{"کتاب", true},
+		{"باران", true},
+		{"سلام", true},
+		{"دوست", true},
+		{"روباه", true},
+		{"تهران", true},
+		// not in dictionary
+		{"زکسلوپ", false},
+		{"ژژژژژژ", false},
 		{"", false},
 	}
 
@@ -35,6 +30,6 @@ func TestIsValid(t *testing.T) {
 
 func TestDictionaryLoaded(t *testing.T) {
 	if len(dictionary) == 0 {
-		t.Fatal("dictionary is empty — enable.txt was not embedded correctly")
+		t.Fatal("dictionary is empty — fa.txt was not embedded correctly")
 	}
 }

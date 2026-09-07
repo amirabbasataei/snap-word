@@ -78,7 +78,7 @@ wordchain/
 │   │   ├── ws/
 │   │   ├── engine/
 │   │   │   └── data/
-│   │   │       ├── enable.txt                  ← ENABLE wordlist
+│   │   │       ├── fa.txt                       ← Persian dictionary
 │   │   │       └── word_freq_ranks.txt         ← word frequency ranks (see Appendix)
 │   │   ├── scheduler/                          ← background jobs
 │   │   └── middleware/
@@ -88,7 +88,7 @@ wordchain/
 └── client/
     ├── pubspec.yaml
     ├── assets/
-    │   └── words/enable.txt
+    │   └── words/fa.txt
     └── lib/
         ├── main.dart
         ├── core/
@@ -193,11 +193,11 @@ In any multiplayer match (vs AI or 1v1), **both players contribute to a single s
 Apply identically in Go (`engine.ValidateMove`) and Flutter (`DictionaryService.isValid`):
 
 1. **Normalize**: trim whitespace, lowercase.
-2. **Allowed characters**: `[a-z]` only. Reject digits, spaces, hyphens, apostrophes.
+2. **Allowed characters**: Persian letters (incl. hamza forms ء آ أ ؤ ئ) plus ZWNJ (U+200C, legal *within* a word, e.g. "می‌روم"). Reject digits, spaces, hyphens, Latin letters, and non-Persian Arabic letters (e.g. ي, ك).
 3. **Minimum length**: 3 letters. Reject with reason `too_short`.
 4. **Starting letter**: must equal the last letter of the previous accepted word. First word has no constraint.
 5. **No repetition**: reject duplicates with reason `already_used`.
-6. **Dictionary check**: must exist in the ENABLE wordlist.
+6. **Dictionary check**: must exist in the Persian dictionary (`fa.txt`).
 
 ### Streak rules
 - **Match streak**: consecutive successful word submissions by the same player in one match. Resets on rejection/timeout. `streak_bonus` uses the count *before* the current word.
@@ -667,7 +667,7 @@ Tests written **inside the phase that introduces the code**.
 - **Never implement outside the current phase's scope.** Flag missing items from prior phases without silently fixing them.
 - **Always check previous phases' output** before writing code that depends on it (verify actual method signatures).
 - **Keep CLAUDE.md status table and PLAN.md per-phase status lines in sync.**
-- **Dictionary is dual:** `enable.txt` lives in both `backend/internal/engine/data/` and `client/assets/words/`. Keep them byte-identical.
+- **Dictionary is dual:** `fa.txt` lives in both `backend/internal/engine/data/` and `client/assets/words/`. Keep them byte-identical.
 - **`word_freq_ranks.txt` is backend only.** Rarity bonus is server-side; omit it from the Flutter scorer.
 - **Never require login to start a solo or vs-AI game.** Guest mode is first-class.
 - **Local DB is the source of truth for solo/AI games.** The backend is never called during an active solo or AI game.
@@ -699,6 +699,6 @@ Tests written **inside the phase that introduces the code**.
 
 ## 📎 Appendix: Dictionary & Word Frequency List
 
-**ENABLE wordlist** — ~172,820 words, public domain, one lowercase word per line, ASCII only, no proper nouns. Stored at `backend/internal/engine/data/enable.txt` and `client/assets/words/enable.txt` (byte-identical). Memory: ~1.7 MB plain text, ~6–8 MB in-memory set.
+**Persian dictionary (`fa.txt`)** — 162,626 words, one word per line, no spaces. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical). Memory: ~1.9 MB plain text. Source file contains ~16k entries with Arabic teh marbuta (ة) or diacritics (see session notes / final report for the full data-quality flag) — these are kept as-is pending a product decision on whether to normalize or strip them.
 
-**`word_freq_ranks.txt`** — tab-separated `word\trank`, lowercase, sorted by rank ascending. Source: freely licensed corpus (e.g. Wikipedia CC BY-SA) filtered to ENABLE words. Words with rank > 10,000 earn `rarity_bonus`; missing words treated as rank ∞. Backend only at `backend/internal/engine/data/word_freq_ranks.txt`.
+**`word_freq_ranks.txt`** — tab-separated `word\trank`, English words, sorted by rank ascending. **Not yet ported to Persian** — see project notes for the pending decision on how to handle `rarity_bonus` until a Persian frequency list exists. Backend only at `backend/internal/engine/data/word_freq_ranks.txt`.

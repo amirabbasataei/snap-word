@@ -50,4 +50,4 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/words/enable.txt
+    - assets/words/fa.txt

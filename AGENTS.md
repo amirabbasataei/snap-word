@@ -31,7 +31,7 @@ wordchain/
 │   │   └── features/
 │   │       ├── auth/   game/   home/   lobby/
 │   │       ├── daily/  leaderboard/  friends/  profile/
-│   └── assets/words/enable.txt
+│   └── assets/words/fa.txt
 └── figma/             UI design references
 ```
 
@@ -68,11 +68,11 @@ flutter test                                 # widget/bloc tests
 
 ## Dictionary (dual)
 
-`enable.txt` must stay **byte-identical** between:
-- `backend/internal/engine/data/enable.txt`
-- `client/assets/words/enable.txt`
+`fa.txt` (Persian dictionary) must stay **byte-identical** between:
+- `backend/internal/engine/data/fa.txt`
+- `client/assets/words/fa.txt`
 
-`word_freq_ranks.txt` is backend-only. Rarity bonus is server-side only.
+`word_freq_ranks.txt` is backend-only, English, and not yet ported to Persian — rarity_bonus currently applies to every Persian word (see project notes for the pending decision).
 
 ## Drift (Flutter local DB)
 

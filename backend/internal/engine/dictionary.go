@@ -5,13 +5,13 @@ import (
 	"strings"
 )
 
-//go:embed data/enable.txt
-var enableTxt string
+//go:embed data/fa.txt
+var dictionaryTxt string
 
 var dictionary map[string]struct{}
 
 func init() {
-	lines := strings.Split(enableTxt, "\n")
+	lines := strings.Split(dictionaryTxt, "\n")
 	dictionary = make(map[string]struct{}, len(lines))
 	for _, line := range lines {
 		w := strings.TrimSpace(line)
@@ -21,8 +21,8 @@ func init() {
 	}
 }
 
-// IsValid reports whether word exists in the ENABLE wordlist.
-// Expects a pre-normalised (lowercase, trimmed) input.
+// IsValid reports whether word exists in the Persian dictionary (data/fa.txt).
+// Expects a pre-normalised (trimmed) input.
 func IsValid(word string) bool {
 	_, ok := dictionary[word]
 	return ok
