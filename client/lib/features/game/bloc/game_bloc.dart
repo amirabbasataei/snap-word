@@ -268,7 +268,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     if (word.length < GameConstants.minWordLength) {
       rejectionReason = 'too_short';
-    } else if (!RegExp(r'^[a-z]+$').hasMatch(word)) {
+    } else if (!DictionaryService.hasValidChars(word)) {
       rejectionReason = 'invalid_characters';
     } else if (active.nextStartLetter != null &&
         word[0] != active.nextStartLetter) {
@@ -281,10 +281,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     if (rejectionReason != null) {
       if (active.opponentType == 'solo' &&
-          active.mode == 'classic' &&
+          (active.mode == 'classic' || active.mode == 'daily') &&
           active.livesRemaining > 1) {
-        // Lives (solo only, Phase 17) — a mistake costs a life instead of
-        // ending the match while lives remain; the chain is unaffected.
+        // Lives (solo/daily only, Phase 17 — see REDESIGN_PLAN.md §1
+        // decision 1) — a mistake costs a life instead of ending the match
+        // while lives remain; the chain is unaffected. Daily still ends via
+        // the separate dailyMaxWords cap above once the chain is long enough.
         _turnStartTime = DateTime.now();
         _startTurnTimer();
         emit(active.copyWith(
@@ -558,7 +560,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         return;
       }
       if (active.opponentType == 'solo' &&
-          active.mode == 'classic' &&
+          (active.mode == 'classic' || active.mode == 'daily') &&
           active.livesRemaining > 1) {
         _turnStartTime = DateTime.now();
         _startTurnTimer();

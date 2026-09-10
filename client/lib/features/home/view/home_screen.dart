@@ -15,7 +15,6 @@ import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/tint_chip.dart';
 import 'package:wordchain/core/widgets/streak_strip.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
@@ -118,57 +117,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showModeSheet(
-    BuildContext context, {
-    required String title,
-    required String opponentType,
-  }) {
-    final z = context.z;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: z.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(ZRadius.sheetMax),
-        ),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(title, style: ZTypography.screenTitle.copyWith(color: z.ink)),
-              const SizedBox(height: ZSpacing.xxl),
-              AccentButton(
-                label: 'کلاسیک (۱۵ ثانیه هر نوبت)',
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  context.push(
-                    '/game',
-                    extra: GameRouteArgs(mode: 'classic', opponentType: opponentType),
-                  );
-                },
-              ),
-              const SizedBox(height: ZSpacing.md),
-              NeutralButton(
-                label: 'زمان‌دار (۸ ثانیه · ۹۰ ثانیه کل)',
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  context.push(
-                    '/game',
-                    extra: GameRouteArgs(mode: 'time_attack', opponentType: opponentType),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _showDifficultySheet(BuildContext context) {
     final z = context.z;
     showModalBottomSheet<void>(
@@ -200,10 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   accent: entry.$4,
                   onTap: () {
                     Navigator.pop(ctx);
-                    _showModeSheet(
-                      context,
-                      title: 'حریف هوشمند — ${entry.$1}',
-                      opponentType: entry.$2,
+                    context.push(
+                      '/game',
+                      extra: GameRouteArgs(mode: 'classic', opponentType: entry.$2),
                     );
                   },
                 ),

@@ -138,6 +138,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
+    final isDaily = state.mode == 'daily';
     final isTimeAttack = state.mode == 'time_attack';
 
     return Container(
@@ -158,32 +159,41 @@ class _Header extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('تک‌نفره',
+                    Text(isDaily ? 'چالش روزانه' : 'تک‌نفره',
                         style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            isTimeAttack ? 'زمان‌دار · ۸ ثانیه هر نوبت' : 'بی‌وقفه · بدون حریف',
-                            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: ZSpacing.sm),
-                        GestureDetector(
-                          onTap: () => onSwitchMode(isTimeAttack ? 'classic' : 'time_attack'),
-                          child: Text(
-                            isTimeAttack ? '🎯 حالت کلاسیک' : '⏱ حالت زمان‌دار',
-                            style: ZTypography.metaLabel.copyWith(
-                              color: z.indigo,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
+                    // Daily is a fixed, once-a-day variant — no mode toggle
+                    // (switching would silently abandon the tracked attempt).
+                    if (isDaily)
+                      Text(
+                        'روزی یک بار · حداکثر ${toPersianDigits(GameConstants.dailyMaxWords)} کلمه',
+                        style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    else
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              isTimeAttack ? 'زمان‌دار · ۸ ثانیه هر نوبت' : 'بی‌وقفه · بدون حریف',
+                              style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: ZSpacing.sm),
+                          GestureDetector(
+                            onTap: () => onSwitchMode(isTimeAttack ? 'classic' : 'time_attack'),
+                            child: Text(
+                              isTimeAttack ? '🎯 حالت کلاسیک' : '⏱ حالت زمان‌دار',
+                              style: ZTypography.metaLabel.copyWith(
+                                color: z.indigo,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),

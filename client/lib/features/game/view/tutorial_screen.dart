@@ -65,7 +65,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
       return;
     }
 
-    if (!RegExp(r'^[a-z]+$').hasMatch(normalized)) {
+    if (!DictionaryService.hasValidChars(normalized)) {
       setState(() => _errorMessage = 'Only letters allowed!');
       return;
     }

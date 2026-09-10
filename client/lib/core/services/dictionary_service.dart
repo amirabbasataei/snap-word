@@ -36,9 +36,14 @@ class DictionaryService {
   bool isValid(String word) {
     final normalized = word.trim();
     if (normalized.length < _minLength) return false;
-    if (!_allowedChars.hasMatch(normalized)) return false;
+    if (!hasValidChars(normalized)) return false;
     return _words.contains(normalized);
   }
+
+  /// Exposed so callers (e.g. `GameBloc`) can distinguish an
+  /// `invalid_characters` rejection from a `not_in_dictionary` one instead
+  /// of collapsing both into a single `isValid` check.
+  static bool hasValidChars(String word) => _allowedChars.hasMatch(word);
 
   List<String> suggestWords(String startLetter) {
     final letter = startLetter.trim();

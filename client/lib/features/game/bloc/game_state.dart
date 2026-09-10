@@ -36,8 +36,9 @@ class GameActive extends GameState {
   final int guestHintUsesLeft;
   final bool continueUsed;
 
-  // Lives — solo mode only (see GameConstants.soloLives). AI/multiplayer
-  // opponents don't use lives and always report 0 (unused).
+  // Lives — solo opponent only, classic and daily modes (see
+  // GameConstants.soloLives). AI/multiplayer opponents don't use lives and
+  // always report 0 (unused).
   final int livesRemaining;
   final String? lastMistakeReason; // transient — cleared on next word/tick
 
