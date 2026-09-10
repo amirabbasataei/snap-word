@@ -100,7 +100,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startSolo(BuildContext context) {
-    _showModeSheet(context, title: 'تک‌نفره', opponentType: 'solo');
+    context.push(
+      '/game',
+      extra: const GameRouteArgs(mode: 'classic', opponentType: 'solo'),
+    );
   }
 
   void _startVsAi(BuildContext context) {

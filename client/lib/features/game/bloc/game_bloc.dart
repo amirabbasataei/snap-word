@@ -210,6 +210,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         guestHintUsesLeft:
             _isGuest ? GameConstants.guestHintUsesPerSession : 999,
         continueUsed: false,
+        livesRemaining: opponentType == 'solo' ? GameConstants.soloLives : 0,
         isMyTurn: true,
         myPlayerId: vsAI ? 'player' : null,
         opponentId: vsAI ? 'ai' : null,
@@ -279,6 +280,20 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     if (rejectionReason != null) {
+      if (active.opponentType == 'solo' &&
+          active.mode == 'classic' &&
+          active.livesRemaining > 1) {
+        // Lives (solo only, Phase 17) — a mistake costs a life instead of
+        // ending the match while lives remain; the chain is unaffected.
+        _turnStartTime = DateTime.now();
+        _startTurnTimer();
+        emit(active.copyWith(
+          livesRemaining: active.livesRemaining - 1,
+          turnTimeRemaining: _timeLimitSec,
+          lastMistakeReason: rejectionReason,
+        ));
+        return;
+      }
       await _handleGameOver(
         emit: emit,
         active: active,
@@ -354,6 +369,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       turnTimeRemaining: _timeLimitSec,
       nextStartLetter: word[word.length - 1],
       hintWord: null,
+      lastMistakeReason: null,
     ));
   }
 
@@ -541,6 +557,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         );
         return;
       }
+      if (active.opponentType == 'solo' &&
+          active.mode == 'classic' &&
+          active.livesRemaining > 1) {
+        _turnStartTime = DateTime.now();
+        _startTurnTimer();
+        emit(active.copyWith(
+          livesRemaining: active.livesRemaining - 1,
+          turnTimeRemaining: _timeLimitSec,
+          lastMistakeReason: 'timeout',
+        ));
+        return;
+      }
       await _handleGameOver(
         emit: emit,
         active: active,
@@ -634,6 +662,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       guestHintUsesLeft:
           _isGuest ? GameConstants.guestHintUsesPerSession : 999,
       continueUsed: true,
+      livesRemaining: opponentType == 'solo' ? GameConstants.soloLives : 0,
       isMyTurn: true,
       myPlayerId: vsAI ? 'player' : null,
       opponentId: vsAI ? 'ai' : null,
@@ -1045,6 +1074,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       await _statsDao.recordGameResult(
         score: over.score,
         longestWord: longestWord,
+        chainLength: over.chainLength,
       );
 
       // Daily challenge results must be uploaded before the result screen loads
@@ -1072,6 +1102,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         .clamp(0.0, double.infinity)
         .toInt();
     final streakBonus = streak >= 3 ? (baseScore * 0.5).toInt() : 0;
-    return baseScore + speedBonus + streakBonus;
+    final turnScore = baseScore + speedBonus + streakBonus;
+    return word.length >= GameConstants.longWordBonusMinLength
+        ? (turnScore * GameConstants.longWordBonusMultiplier).toInt()
+        : turnScore;
   }
 }

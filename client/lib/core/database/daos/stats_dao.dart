@@ -81,6 +81,7 @@ class StatsDao extends DatabaseAccessor<AppDatabase> with _$StatsDaoMixin {
   Future<void> recordGameResult({
     required int score,
     required String? longestWord,
+    int chainLength = 0,
   }) async {
     final existing = await getStats();
     await upsertStats(
@@ -89,7 +90,8 @@ class StatsDao extends DatabaseAccessor<AppDatabase> with _$StatsDaoMixin {
         totalMatches: Value((existing?.totalMatches ?? 0) + 1),
         wins: Value(existing?.wins ?? 0),
         bestScore: Value(_max(existing?.bestScore ?? 0, score)),
-        bestMatchStreak: Value(existing?.bestMatchStreak ?? 0),
+        bestMatchStreak:
+            Value(_max(existing?.bestMatchStreak ?? 0, chainLength)),
         dailyStreak: Value(existing?.dailyStreak ?? 0),
         longestDailyStreak: Value(existing?.longestDailyStreak ?? 0),
         longestWord: Value(_bestWord(existing?.longestWord, longestWord)),

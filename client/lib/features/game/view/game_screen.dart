@@ -10,6 +10,9 @@ import 'package:wordchain/features/game/view/widgets/continue_prompt.dart';
 import 'package:wordchain/features/game/view/widgets/timer_bar.dart';
 import 'package:wordchain/features/game/view/widgets/word_chain_list.dart';
 import 'package:wordchain/features/game/view/widgets/word_input.dart';
+import 'package:wordchain/features/game/view/z_over_screen.dart';
+import 'package:wordchain/features/game/view/z_play_screen.dart';
+import 'package:wordchain/features/game/view/z_solo_screen.dart';
 
 class GameRouteArgs {
   final String mode; // classic | time_attack | daily
@@ -129,6 +132,14 @@ class _GameView extends StatelessWidget {
         }
 
         if (state is GameOver) {
+          // Phase 17 — solo/vs-AI game-overs always carry an opponentType;
+          // true multiplayer's WS-driven GameOver never sets one (see
+          // GameBloc._handleWsLossEvent/_handleWsGameOver). Multiplayer
+          // (ZVersus) isn't redesigned yet — Stage 4 — so it keeps the
+          // legacy ContinuePrompt/_GameOverScreen pair.
+          if (state.opponentType != null) {
+            return ZOverScreen(state: state);
+          }
           if (!state.isSaved &&
               state.canContinue &&
               state.continueTimeRemaining > 0) {
@@ -147,6 +158,12 @@ class _GameView extends StatelessWidget {
         }
 
         if (state is GameActive) {
+          if (state.opponentType == 'solo') {
+            return ZSoloActiveScreen(state: state);
+          }
+          if (state.isVsAI) {
+            return ZPlayActiveScreen(state: state);
+          }
           return _ActiveGameScreen(state: state);
         }
 

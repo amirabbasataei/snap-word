@@ -36,6 +36,11 @@ class GameActive extends GameState {
   final int guestHintUsesLeft;
   final bool continueUsed;
 
+  // Lives — solo mode only (see GameConstants.soloLives). AI/multiplayer
+  // opponents don't use lives and always report 0 (unused).
+  final int livesRemaining;
+  final String? lastMistakeReason; // transient — cleared on next word/tick
+
   // Multiplayer-specific (solo/AI: isMyTurn=true, rest=default)
   final bool isMyTurn;
   final String? myPlayerId;
@@ -61,6 +66,8 @@ class GameActive extends GameState {
     this.hintWord,
     required this.guestHintUsesLeft,
     required this.continueUsed,
+    this.livesRemaining = 0,
+    this.lastMistakeReason,
     this.isMyTurn = true,
     this.myPlayerId,
     this.opponentId,
@@ -84,6 +91,8 @@ class GameActive extends GameState {
     Object? hintWord = _sentinel,
     int? guestHintUsesLeft,
     bool? continueUsed,
+    int? livesRemaining,
+    Object? lastMistakeReason = _sentinel,
     bool? isMyTurn,
     int? opponentScore,
     bool? opponentContinueWindowActive,
@@ -109,6 +118,10 @@ class GameActive extends GameState {
       hintWord: hintWord == _sentinel ? this.hintWord : hintWord as String?,
       guestHintUsesLeft: guestHintUsesLeft ?? this.guestHintUsesLeft,
       continueUsed: continueUsed ?? this.continueUsed,
+      livesRemaining: livesRemaining ?? this.livesRemaining,
+      lastMistakeReason: lastMistakeReason == _sentinel
+          ? this.lastMistakeReason
+          : lastMistakeReason as String?,
       isMyTurn: isMyTurn ?? this.isMyTurn,
       myPlayerId: myPlayerId,
       opponentId: opponentId,
@@ -142,6 +155,8 @@ class GameActive extends GameState {
         hintWord,
         guestHintUsesLeft,
         continueUsed,
+        livesRemaining,
+        lastMistakeReason,
         isMyTurn,
         myPlayerId,
         opponentId,

@@ -330,7 +330,7 @@ Full end-to-end smoke flows:
 ---
 
 ## Phase 17 — Visual Redesign (زنجیر)
-**Status: [ ] In Progress — Stage 2 (Core loop) — ZHome done**
+**Status: [ ] In Progress — Stage 2 (Core loop) complete (ZHome, ZSolo, ZPlay, ZOver)**
 
 Full plan, spec-conflict decisions, and stage breakdown live in **REDESIGN_PLAN.md**. Summary:
 
