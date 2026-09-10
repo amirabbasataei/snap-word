@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shamsi_date/shamsi_date.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/share_service.dart';
@@ -27,11 +28,10 @@ const _weekdayNamesFull = [
   'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه', 'یکشنبه',
 ];
 
-/// Weekday + numeric Gregorian day/month, in Persian digits. The canvas
-/// shows a full Jalali calendar date ("شنبه ۱۶ شهریور ۱۴۰۵"); the app has
-/// no Jalali calendar conversion anywhere yet, so this substitutes the
-/// weekday name (safe — same technique as `StreakStrip`) plus the real
-/// Gregorian day/month rather than fabricate or hand-roll calendar math.
+/// Weekday + Jalali day/month name, in Persian digits — matches the canvas
+/// ("شنبه ۱۶ شهریور"). Weekday name keyed off the Gregorian `DateTime`
+/// (day-of-week is identical between calendars); day/month converted via
+/// `shamsi_date`.
 String _headerSubtitle(String? challengeDateIso) {
   DateTime date;
   try {
@@ -42,9 +42,8 @@ String _headerSubtitle(String? challengeDateIso) {
     date = DateTime.now();
   }
   final weekday = _weekdayNamesFull[date.weekday - 1];
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  return '$weekday ${toPersianDigits('$day/$month')}';
+  final jalali = Jalali.fromDateTime(date);
+  return '$weekday ${toPersianDigits(jalali.day)} ${jalali.formatter.mN}';
 }
 
 class DailyScreen extends StatelessWidget {

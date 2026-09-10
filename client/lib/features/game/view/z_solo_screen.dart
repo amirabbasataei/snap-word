@@ -182,13 +182,17 @@ class _Header extends StatelessWidget {
                           ),
                           const SizedBox(width: ZSpacing.sm),
                           GestureDetector(
+                            behavior: HitTestBehavior.opaque,
                             onTap: () => onSwitchMode(isTimeAttack ? 'classic' : 'time_attack'),
-                            child: Text(
-                              isTimeAttack ? '🎯 حالت کلاسیک' : '⏱ حالت زمان‌دار',
-                              style: ZTypography.metaLabel.copyWith(
-                                color: z.indigo,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: ZSpacing.sm),
+                              child: Text(
+                                isTimeAttack ? '🎯 حالت کلاسیک' : '⏱ حالت زمان‌دار',
+                                style: ZTypography.metaLabel.copyWith(
+                                  color: z.indigo,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ),

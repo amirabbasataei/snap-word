@@ -37,6 +37,7 @@ dependencies:
   logger: ^2.5.0
   connectivity_plus: ^6.1.4
   share_plus: ^10.1.4
+  shamsi_date: ^1.1.1
 
 dev_dependencies:
   flutter_test:
