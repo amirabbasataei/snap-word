@@ -8,9 +8,9 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 
-/// Shared pieces of the ZSolo/ZPlay game screens — header back button,
-/// timer row, powerup tile atom, dashed "next word" tile, and the restyled
-/// word-input bar. Kept out of the legacy (unmigrated) multiplayer screen.
+/// Shared pieces of the ZSolo/ZPlay/ZVersus game screens — header back
+/// button, timer row, powerup tile atom, dashed "next word" tile, and the
+/// restyled word-input bar.
 
 /// Back/close button — 34×34 rounded square, `ink60` arrow on `paper`.
 class ZBackButton extends StatelessWidget {

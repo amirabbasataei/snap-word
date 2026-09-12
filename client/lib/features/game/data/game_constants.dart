@@ -17,4 +17,9 @@ abstract final class GameConstants {
   // Phase 17 — long-word bonus (see REDESIGN_PLAN.md §1 decision 4).
   static const int longWordBonusMinLength = 7;
   static const double longWordBonusMultiplier = 2.0;
+
+  // Phase 17 Stage 4 — best-of-5 rounds (see REDESIGN_PLAN.md §1 decision 3).
+  // Visual-only placeholder: no round-tracking WS/backend logic exists yet,
+  // so ZVersus always displays round 1 of this constant.
+  static const int multiplayerRoundsTotal = 5;
 }

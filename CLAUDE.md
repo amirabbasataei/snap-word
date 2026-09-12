@@ -39,7 +39,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | 14 | Flutter: Leaderboard, Friends & Profile | [x] Complete |
 | 15 | Flutter: Daily Challenge & Sharing | [x] Complete |
 | 16 | Monetization Hooks & Final Wiring | [x] Complete |
-| 17 | Visual Redesign (زنجیر) | [ ] In Progress — Stage 3 (Daily Challenge) complete (ZDailyBefore, ZDailyAfter) |
+| 17 | Visual Redesign (زنجیر) | [ ] In Progress — Stage 4 (ZLobby, ZVersus) coded, on-device verification pending |
 
 ---
 

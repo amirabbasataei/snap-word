@@ -330,7 +330,7 @@ Full end-to-end smoke flows:
 ---
 
 ## Phase 17 — Visual Redesign (زنجیر)
-**Status: [ ] In Progress — Stage 3 (Daily Challenge) complete (ZDailyBefore, ZDailyAfter)**
+**Status: [ ] In Progress — Stage 4 (ZLobby, ZVersus) coded, on-device verification pending**
 
 Full plan, spec-conflict decisions, and stage breakdown live in **REDESIGN_PLAN.md**. Summary:
 
