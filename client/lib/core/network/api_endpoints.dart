@@ -2,9 +2,12 @@ abstract final class ApiEndpoints {
   static const String _base = '/api/v1';
 
   // Auth
-  static const String register = '$_base/auth/register';
-  static const String login = '$_base/auth/login';
+  static const String sendOtp = '$_base/auth/send-otp';
+  static const String verifyOtp = '$_base/auth/verify-otp';
   static const String refresh = '$_base/auth/refresh';
+
+  // Referral
+  static const String referralRedeem = '$_base/referral/redeem';
 
   // Game
   static const String soloGame = '$_base/game/solo';

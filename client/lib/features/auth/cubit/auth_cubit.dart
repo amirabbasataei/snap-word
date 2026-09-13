@@ -30,7 +30,7 @@ class AuthCubit extends Cubit<AuthState> {
       final userId = _repo.storedUserId;
       final username = _repo.storedUsername;
       if (userId != null && username != null) {
-        emit(AuthAuthenticated(userId: userId, username: username));
+        emit(AuthAuthenticated(userId: userId, username: username, coins: _repo.storedCoins));
         unawaited(_syncService.sync());
         return;
       }
@@ -41,7 +41,7 @@ class AuthCubit extends Cubit<AuthState> {
         await _repo.refreshToken();
         final userId = _repo.storedUserId ?? '';
         final username = _repo.storedUsername ?? '';
-        emit(AuthAuthenticated(userId: userId, username: username));
+        emit(AuthAuthenticated(userId: userId, username: username, coins: _repo.storedCoins));
         unawaited(_syncService.sync());
         return;
       } catch (e) {
@@ -53,34 +53,36 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthGuest());
   }
 
-  Future<void> login(String email, String password) async {
-    emit(const AuthLoading());
-    try {
-      final result = await _repo.login(email, password);
-      emit(AuthAuthenticated(userId: result.userId, username: result.username));
-      unawaited(_syncService.sync());
-    } on AuthException catch (e) {
-      emit(AuthError(e.message));
-    } on NetworkException catch (e) {
-      emit(AuthError(e.message));
-    }
+  /// Sends (or resends) a 4-digit OTP to [phone]. Throws AuthException /
+  /// NetworkException on failure — the caller (OtpFlowCubit) owns the
+  /// countdown/error UI, so this does not touch AuthCubit's own state.
+  Future<SendOtpResult> sendOtp({required String phone, bool voice = false}) {
+    return _repo.sendOtp(phone: phone, voice: voice);
   }
 
-  Future<void> register(
-    String username,
-    String email,
-    String password,
-  ) async {
-    emit(const AuthLoading());
-    try {
-      final result = await _repo.register(username, email, password);
-      emit(AuthAuthenticated(userId: result.userId, username: result.username));
-      unawaited(_syncService.sync());
-    } on AuthException catch (e) {
-      emit(AuthError(e.message));
-    } on NetworkException catch (e) {
-      emit(AuthError(e.message));
+  /// Verifies the OTP and, on success, transitions to AuthAuthenticated.
+  /// Throws AuthException / NetworkException on failure so the OTP screen
+  /// can show inline/per-box errors instead of a page-level banner.
+  Future<AuthResult> verifyOtp({
+    required String phone,
+    required String code,
+    String? referralCode,
+  }) async {
+    final result = await _repo.verifyOtp(phone: phone, code: code, referralCode: referralCode);
+    emit(AuthAuthenticated(userId: result.userId, username: result.username, coins: result.coins));
+    unawaited(_syncService.sync());
+    return result;
+  }
+
+  /// Entry point (b): post-login, one-time referral redemption. Throws on
+  /// failure (self-referral, not found, or already used).
+  Future<int> redeemReferral(String code) async {
+    final awarded = await _repo.redeemReferral(code);
+    final current = state;
+    if (current is AuthAuthenticated) {
+      emit(current.copyWith(coins: current.coins + awarded));
     }
+    return awarded;
   }
 
   void continueAsGuest() => emit(const AuthGuest());

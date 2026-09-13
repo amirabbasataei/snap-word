@@ -214,9 +214,15 @@ Match ends when the player submits an invalid word, the timer hits 0, or they ta
 ```sql
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(32) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    username VARCHAR(32) UNIQUE,               -- NULL until signup completes (first verify-otp)
+    phone VARCHAR(11) UNIQUE NOT NULL,         -- normalized 09XXXXXXXXX (Iran mobile)
+    otp_code CHAR(4),
+    otp_expires_at TIMESTAMPTZ,
+    otp_attempts SMALLINT NOT NULL DEFAULT 0,
+    otp_sent_at TIMESTAMPTZ,                   -- last send, for the resend cooldown
+    phone_verified_at TIMESTAMPTZ,             -- NULL = signup not yet completed
+    referral_code VARCHAR(6) UNIQUE,           -- NULL until signup completes
+    referred_by UUID REFERENCES users(id),     -- NULL if no referrer linked
     coins INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -407,7 +413,9 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 ### Endpoint list
 
-**Auth:** `POST /auth/register` · `POST /auth/login` · `POST /auth/refresh`
+**Auth:** `POST /auth/send-otp` · `POST /auth/verify-otp` · `POST /auth/refresh`
+
+**Referral:** `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
 
 **Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `GET /powerup/inventory` · `POST /powerup/use`
 
@@ -473,6 +481,8 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 
 **Core principle: never block a player from playing before they're hooked.**
 
+Identity is phone number + OTP (Kavenegar SMS, with a voice-call fallback), not email/password — there is no username/email login. `POST /auth/send-otp` generates and delivers a 4-digit code (~2min expiry, ~42s resend cooldown, rate-limited); `POST /auth/verify-otp` checks it and issues a session. First-time verification of a phone number **is** signup — a username and referral code are auto-generated at that point (`AuthService.VerifyOTP`, `backend/internal/service/auth.go`). Guest local/offline data (below) is intentionally **not** tied to this schema and is not migrated into a phone account on signup — open item, not yet built.
+
 ### What guests can do
 - Play Solo and vs AI — fully offline, no server calls
 - Accumulate stats persisted to local Drift DB, preserved across restarts
@@ -504,6 +514,21 @@ Tap "Find Match", "Leaderboard", "Friends", or "Daily Challenge"
 
 ---
 
+## 🔗 Referral Code System
+
+Every user gets a unique 6-char alphanumeric `referral_code` (charset excludes ambiguous `0/O/1/I`), assigned when signup completes (first successful `verify-otp`, not at row creation). Two entry points, both landing on the same server-side link/reward logic:
+
+1. **At signup** — an optional `referral_code` on `POST /auth/verify-otp` for a phone verifying for the first time. If it resolves, `referred_by` is linked and the **new** user gets **+100 coins**. An unresolvable code never blocks signup — it comes back as a soft `referral_warning: "referral_not_found"` field on the 200 response, not an error.
+2. **Post-login** — `POST /referral/redeem` (protected), for an existing account that hasn't linked a referrer yet. One-time only (`referred_by IS NULL` check, atomic) — `409 referral_already_used` on a second attempt. Awards **+50 coins**.
+
+Self-referral (code equals the caller's own) is rejected (`400 self_referral`) — structurally impossible at signup since the new code doesn't exist yet, checked explicitly for the post-login path.
+
+**No referrer-side reward exists** — `referred_by` is recorded only. Open product question, not decided.
+
+Client: both entry points are served by one shared widget, `ReferralBottomSheet` (`client/lib/features/auth/view/widgets/referral_bottom_sheet.dart`), which branches on `AuthCubit`'s state (authenticated → redeem directly; not yet authenticated → stash the code and forward it into `verify-otp`). Triggered from the ZLogin phone screen's referral teaser card (entry point a) and from Profile → Settings (entry point b) — the latter is a deliberate small addition beyond the two named screens (`ZLobby`'s `_InviteRow` referral placeholder is unrelated and stays a stub).
+
+---
+
 ## 💸 Monetization Model
 
 **Hybrid freemium: ads + soft IAP. No hard paywalls. No pay-to-win.**
@@ -517,7 +542,7 @@ Tap "Find Match", "Leaderboard", "Friends", or "Daily Challenge"
 
 ### Coin economy
 
-**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100
+**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 — no referrer-side reward exists yet, open product question
 
 **Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
@@ -695,6 +720,10 @@ Tests written **inside the phase that introduces the code**.
 | `FCM_PROJECT_ID` | yes | `wordchain-prod` | Firebase project ID |
 | `FCM_SERVICE_ACCOUNT_JSON` | yes | (path or inline JSON) | Service account for FCM auth |
 | `GAME_EPOCH_DATE` | no | `2025-01-01` | Day #1 for Daily Challenge numbering |
+| `KAVENEGAR_API_KEY` | no | (Kavenegar panel API key) | OTP SMS/voice delivery. Empty = dev no-op (logs instead of sending) |
+| `KAVENEGAR_OTP_TEMPLATE` | no | `wordchain-otp` | Verify Lookup API template name, provisioned in the Kavenegar panel |
+| `OTP_CODE_TTL` | no | `2m` | OTP code expiry |
+| `OTP_RESEND_COOLDOWN` | no | `42s` | Minimum time between OTP sends to the same phone |
 
 ---
 

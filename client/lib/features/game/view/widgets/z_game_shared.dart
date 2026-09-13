@@ -5,6 +5,7 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
+import 'package:wordchain/core/widgets/dashed_tile.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 
@@ -244,7 +245,7 @@ class ZDashedTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     return CustomPaint(
-      painter: _DashedRRectPainter(radius: 10, color: z.line),
+      painter: DashedBorderPainter(radius: 10, color: z.line),
       child: SizedBox(
         width: size,
         height: size,
@@ -257,41 +258,6 @@ class ZDashedTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DashedRRectPainter extends CustomPainter {
-  final double radius;
-  final Color color;
-
-  const _DashedRRectPainter({required this.radius, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius));
-    final path = Path()..addRRect(rrect);
-    final dashPath = Path();
-    const dashWidth = 4.0;
-    const dashGap = 3.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = (distance + dashWidth).clamp(0.0, metric.length);
-        dashPath.addPath(metric.extractPath(distance, next), Offset.zero);
-        distance = next + dashGap;
-      }
-    }
-    canvas.drawPath(
-      dashPath,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 /// Restyled word-input bar — same functional contract as the legacy

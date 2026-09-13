@@ -4,7 +4,7 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 
-enum ZAccentColor { indigo, teal, amber, coral }
+enum ZAccentColor { indigo, teal, amber, coral, ink }
 
 (Color, Color, Color) _accentColorsFor(ZColors z, ZAccentColor accent) {
   switch (accent) {
@@ -16,6 +16,10 @@ enum ZAccentColor { indigo, teal, amber, coral }
       return (z.amber, z.onAmber, z.amberDeep);
     case ZAccentColor.coral:
       return (z.coral, z.onCoral, z.coralDeep);
+    // Dark/light-inverting fill used for ZLogin's primary CTA — same pairing
+    // the canvas uses for the "player's own" hero surface (ink/paper/inkSurfaceDeep).
+    case ZAccentColor.ink:
+      return (z.ink, z.paper, z.inkSurfaceDeep);
   }
 }
 

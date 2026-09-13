@@ -22,11 +22,22 @@ class AuthGuest extends AuthState {
 class AuthAuthenticated extends AuthState {
   final String userId;
   final String username;
+  final int coins;
 
-  const AuthAuthenticated({required this.userId, required this.username});
+  const AuthAuthenticated({
+    required this.userId,
+    required this.username,
+    this.coins = 0,
+  });
+
+  AuthAuthenticated copyWith({int? coins}) => AuthAuthenticated(
+        userId: userId,
+        username: username,
+        coins: coins ?? this.coins,
+      );
 
   @override
-  List<Object?> get props => [userId, username];
+  List<Object?> get props => [userId, username, coins];
 }
 
 class AuthError extends AuthState {

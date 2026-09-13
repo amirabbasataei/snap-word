@@ -6,6 +6,7 @@ import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
+import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
 import 'package:wordchain/features/profile/cubit/profile_cubit.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
 
@@ -244,6 +245,15 @@ class _LoadedView extends StatelessWidget {
             title: 'Remove Ads',
             subtitle: 'One-time purchase · \$2.99',
             onTap: () => _purchaseProduct(context, 'remove_ads'),
+          ),
+        // Entry point (b) for the referral system (see ReferralBottomSheet):
+        // an already-authenticated user submitting a code after the fact.
+        // Gated to non-guests since only a phone-verified account has one.
+        if (!state.isGuest)
+          _SettingsRow(
+            title: 'I have a referral code',
+            subtitle: 'Enter it once, get 50 coins',
+            onTap: () => ReferralBottomSheet.show(context),
           ),
         if (!state.isGuest)
           _SettingsRow(

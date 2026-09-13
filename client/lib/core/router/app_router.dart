@@ -7,8 +7,8 @@ import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/core/widgets/z_bottom_nav.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
-import 'package:wordchain/features/auth/view/login_screen.dart';
-import 'package:wordchain/features/auth/view/register_screen.dart';
+import 'package:wordchain/features/auth/view/z_login_screen.dart';
+import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
 import 'package:wordchain/features/daily/view/daily_screen.dart';
 import 'package:wordchain/features/friends/view/friends_screen.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
@@ -103,12 +103,15 @@ GoRouter buildAppRouter() {
         path: '/login',
         builder: (context, state) {
           final returnPath = state.uri.queryParameters['return'];
-          return LoginScreen(returnPath: returnPath);
+          return ZLoginScreen(returnPath: returnPath);
         },
       ),
       GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        path: '/login/otp',
+        builder: (context, state) {
+          final args = state.extra as OtpVerifyArgs;
+          return ZOtpVerifyScreen(args: args);
+        },
       ),
       GoRoute(
         path: '/game',

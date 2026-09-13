@@ -21,6 +21,11 @@ type Config struct {
 	FCMProjectID      string
 	FCMServiceAccount string
 	GameEpochDate     string
+
+	KavenegarAPIKey      string
+	KavenegarOTPTemplate string
+	OTPCodeTTL           time.Duration
+	OTPResendCooldown    time.Duration
 }
 
 // Load reads all values from environment variables, falling back to safe defaults.
@@ -38,6 +43,11 @@ func Load() *Config {
 		FCMProjectID:      getEnv("FCM_PROJECT_ID", ""),
 		FCMServiceAccount: getEnv("FCM_SERVICE_ACCOUNT_JSON", ""),
 		GameEpochDate:     getEnv("GAME_EPOCH_DATE", "2025-01-01"),
+
+		KavenegarAPIKey:      getEnv("KAVENEGAR_API_KEY", ""),
+		KavenegarOTPTemplate: getEnv("KAVENEGAR_OTP_TEMPLATE", "wordchain-otp"),
+		OTPCodeTTL:           parseDuration("OTP_CODE_TTL", 2*time.Minute),
+		OTPResendCooldown:    parseDuration("OTP_RESEND_COOLDOWN", 42*time.Second),
 	}
 }
 
@@ -109,6 +119,8 @@ const (
 	DailyRetryCoins        = 25  // coins spent to retry Daily Challenge
 	HintSessionLimit       = 5   // free hint uses per guest session
 	AIFallbackWaitSec      = 30  // matchmaking waits this long before pairing with AI
+	OTPMaxAttempts         = 5   // failed verify-otp attempts allowed before lockout
+	OTPMaxSendsPerDay      = 10  // send-otp requests allowed per phone per rolling day
 
 	// Coin rewards
 	CoinWinMatch         = 30
@@ -121,6 +133,8 @@ const (
 	CoinWeeklyRank1      = 500
 	CoinWeeklyRank2      = 300
 	CoinWeeklyRank3      = 100
+	CoinReferralSignup   = 100 // new user, valid referral code supplied at signup
+	CoinReferralRedeem   = 50  // existing user, one-time post-login referral redemption
 
 	// Power-up costs
 	CoinHint      = 10

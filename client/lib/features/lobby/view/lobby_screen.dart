@@ -515,6 +515,7 @@ class _Chip extends StatelessWidget {
       ZAccentColor.amber => (z.amber, z.onAmber),
       ZAccentColor.teal => (z.teal, z.onTeal),
       ZAccentColor.coral => (z.coral, z.onCoral),
+      ZAccentColor.ink => (z.ink, z.paper),
     };
     return GestureDetector(
       onTap: onTap,

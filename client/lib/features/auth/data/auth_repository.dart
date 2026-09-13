@@ -21,11 +21,33 @@ class NetworkException implements Exception {
   String toString() => 'NetworkException: $message';
 }
 
+class SendOtpResult {
+  final int expiresInSeconds;
+  final int resendCooldownSeconds;
+
+  const SendOtpResult({
+    required this.expiresInSeconds,
+    required this.resendCooldownSeconds,
+  });
+}
+
 class AuthResult {
   final String userId;
   final String username;
+  final int coins;
+  final bool isNewUser;
 
-  const AuthResult({required this.userId, required this.username});
+  /// "referral_not_found" if a referral code was supplied at signup but
+  /// didn't resolve — signup still succeeded, this is informational only.
+  final String? referralWarning;
+
+  const AuthResult({
+    required this.userId,
+    required this.username,
+    required this.coins,
+    required this.isNewUser,
+    this.referralWarning,
+  });
 }
 
 class AuthRepository {
@@ -40,34 +62,39 @@ class AuthRepository {
   bool get hasRefreshToken => _prefs.getString('jwt_refresh_token') != null;
   String? get storedUserId => _prefs.getString('user_id');
   String? get storedUsername => _prefs.getString('username');
+  int get storedCoins => _prefs.getInt('coins') ?? 0;
 
-  Future<AuthResult> register(
-    String username,
-    String email,
-    String password,
-  ) async {
+  Future<SendOtpResult> sendOtp({required String phone, bool voice = false}) async {
     try {
       final response = await _dio.post(
-        ApiEndpoints.register,
-        data: {'username': username, 'email': email, 'password': password},
+        ApiEndpoints.sendOtp,
+        data: {'phone': phone, 'voice': voice},
         options: Options(headers: {'Authorization': null}),
       );
       final data = response.data['data'] as Map<String, dynamic>;
-      await _saveSession(data);
-      return AuthResult(
-        userId: data['user_id'] as String,
-        username: data['username'] as String,
+      return SendOtpResult(
+        expiresInSeconds: data['expires_in_seconds'] as int,
+        resendCooldownSeconds: data['resend_cooldown_seconds'] as int,
       );
     } on DioException catch (e) {
       throw _mapError(e);
     }
   }
 
-  Future<AuthResult> login(String email, String password) async {
+  Future<AuthResult> verifyOtp({
+    required String phone,
+    required String code,
+    String? referralCode,
+  }) async {
     try {
       final response = await _dio.post(
-        ApiEndpoints.login,
-        data: {'email': email, 'password': password},
+        ApiEndpoints.verifyOtp,
+        data: {
+          'phone': phone,
+          'code': code,
+          if (referralCode != null && referralCode.isNotEmpty)
+            'referral_code': referralCode,
+        },
         options: Options(headers: {'Authorization': null}),
       );
       final data = response.data['data'] as Map<String, dynamic>;
@@ -75,7 +102,27 @@ class AuthRepository {
       return AuthResult(
         userId: data['user_id'] as String,
         username: data['username'] as String,
+        coins: data['coins'] as int? ?? 0,
+        isNewUser: data['is_new_user'] as bool? ?? false,
+        referralWarning: data['referral_warning'] as String?,
       );
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Entry point (b): an already-authenticated user submitting a referral
+  /// code after the fact. One-time per account — the server rejects reuse.
+  Future<int> redeemReferral(String code) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.referralRedeem,
+        data: {'referral_code': code},
+      );
+      final data = response.data['data'] as Map<String, dynamic>;
+      final awarded = data['coins_awarded'] as int;
+      await _prefs.setInt('coins', storedCoins + awarded);
+      return awarded;
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -108,6 +155,7 @@ class AuthRepository {
       _prefs.remove('jwt_refresh_token'),
       _prefs.remove('user_id'),
       _prefs.remove('username'),
+      _prefs.remove('coins'),
     ]);
   }
 
@@ -117,6 +165,7 @@ class AuthRepository {
       _prefs.setString('jwt_refresh_token', data['refresh_token'] as String),
       _prefs.setString('user_id', data['user_id'] as String),
       _prefs.setString('username', data['username'] as String),
+      _prefs.setInt('coins', data['coins'] as int? ?? 0),
     ]);
   }
 

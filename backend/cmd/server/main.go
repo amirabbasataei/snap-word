@@ -74,7 +74,8 @@ func main() {
 	streakSvc := service.NewStreakService(statsRepo, userRepo, notifSvc)
 	leaderboardSvc := service.NewLeaderboardService(rdb, userRepo, friendRepo, lbRepo, notifSvc)
 
-	authSvc := service.NewAuthService(userRepo, cfg)
+	kavenegarClient := service.NewKavenegarClient(cfg)
+	authSvc := service.NewAuthService(userRepo, kavenegarClient, rdb, cfg)
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc)
 	powerupSvc := service.NewPowerupService(powerupRepo)
 	_ = service.NewMonetizationService(userRepo) // available for handlers; no routes in Phase 16
@@ -98,7 +99,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authHandler := handler.NewAuthHandler(authSvc)
+	authHandler := handler.NewAuthHandler(authSvc, cfg)
 	gameHandler := handler.NewGameHandler(gameSvc)
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 	matchHandler := handler.NewMatchHandler(matchSvc)
@@ -119,12 +120,13 @@ func main() {
 
 	// Auth routes (public)
 	auth := api.Group("/auth")
-	auth.POST("/register", authHandler.Register)
-	auth.POST("/login", authHandler.Login)
+	auth.POST("/send-otp", authHandler.SendOTP)
+	auth.POST("/verify-otp", authHandler.VerifyOTP)
 	auth.POST("/refresh", authHandler.Refresh)
 
 	// Protected routes
 	protected := api.Group("/", middleware.RequireAuth(authSvc))
+	protected.POST("/referral/redeem", authHandler.RedeemReferral)
 	protected.POST("/game/solo", gameHandler.CreateSolo)
 	protected.GET("/game/:id", gameHandler.GetGame)
 	protected.GET("/profile/stats", gameHandler.GetStats)

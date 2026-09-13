@@ -59,7 +59,7 @@ Additional smaller drift:
 3. **Best-of-5 rounds (ZVersus)** — Build the visual UI as designed (round indicator, "دست ۳ از ۵"), wired to a placeholder. Round count is a **fixed constant (best of 5)**, not lobby-configurable — confirmed by the user; not a canvas-driven decision (canvas access wasn't needed for this one in the end). Real round-tracking logic (WS protocol + Go backend: round wins, round transitions, match-level winner) is separate follow-up backend work, not part of this visual redesign.
 4. **Long-word bonus** — Adopted as designed.
 5. **Levels & badges (ZProfile)** — Rendered as designed, wired to placeholders. Backend work (schema + fields) is follow-up.
-6. **Referral codes** — Rendered as designed, wired to placeholders. Backend work is follow-up.
+6. **Referral codes** — Backend implemented (migration `003_phone_auth_referral`, `POST /auth/verify-otp` signup-time linking + `POST /referral/redeem` post-login). Client wired via `ReferralBottomSheet`, shared by ZLogin's teaser card (signup, +100 coins) and a new Profile → Settings entry (post-login, +50 coins, one-time). `ZLobby`'s `_InviteRow` room-code-invite placeholder is a different, unrelated feature and remains a stub.
 
 **Drift fixed to match spec (not the canvas):**
 - ZOver continue price: 25 coins (`GameConstants.continueCostCoins`), not the canvas's 50.
@@ -255,6 +255,21 @@ The two top-right icon buttons in the canvas (settings-like square, notification
 **Real-data-only policy, again**: the canvas's "حریف‌های اخیر" list (fabricated per-opponent win/loss records) and "۳٬۴۰۱ آنلاین" badge on the Find-Match button have no backing endpoint. Dropped the online-count badge outright; replaced the recent-opponents list with a "دوستان" card backed by the real `FriendsRepository.fetchFriends()` (real username + real weekly score, no fabricated record), and wired its "دعوت" button to the **real** `POST /challenges` call (`FriendsRepository.sendChallenge`) instead of a fake room-code join — arguably more useful than the canvas's non-functional version, since Friends/Challenges (Phases 11/12/14) are already fully built. A small "نوع بازی" (classic/زمان‌دار) toggle was added above the decorative pickers — not in the canvas at all — because the canvas drops the classic/time-attack choice entirely in favor of the turn-length picker, and silently losing the ability to queue for multiplayer Time Attack would repeat the exact regression class just fixed for VS-AI earlier this stage.
 
 **Verification**: `flutter analyze` clean across the whole client throughout. **Not yet verified interactively on-device** — this stage was implemented code-only per explicit instruction, unlike Stages 1–3 which each got a live simulator pass (light + dark, real tap-throughs where possible). Do that before considering Stage 4 done: both screens, both themes, and in particular confirm the `_TurnBanner` color swap and `ZWordInput`'s locked state actually read correctly turn-to-turn in a real (or at least WS-mocked) match.
+
+### Stage 4 (continued) — ZLogin (ZPhone), ZOtpVerify (ZOtp)
+
+- Screens: 3l (Login), 3m (OTP Verify) — canvas files `ZPhone.dc.html`/`ZOtp.dc.html`. Superseded the email/password `ZLogin`/`ZRegister` pair this section originally described: the design moved to phone number + 4-digit OTP (no password at all), so email/password auth was **fully removed**, not incrementally wired — `backend/internal/service/auth.go`, `repository/user.go`, `handler/auth.go` all rewritten; migration `003_phone_auth_referral` drops `email`/`password_hash` and adds `phone`, `otp_*`, `referral_code`, `referred_by`, `phone_verified_at`.
+- Implementation checklist:
+  - [x] `ZLoginScreen` (`features/auth/view/z_login_screen.dart`) — phone input (grouped Persian digits, LTR), carrier auto-detect line, terms checkbox gating submit, `POST /auth/send-otp`, referral teaser card
+  - [x] `ZOtpVerifyScreen` (`features/auth/view/z_otp_verify_screen.dart`) — 4-box OTP row (auto-advance via a custom keypad, not the system keyboard — matches the canvas's own hand-drawn keypad), "ویرایش" pops back to ZLogin preserving the entered phone (route push, not go), server-driven resend countdown + voice-call fallback, `POST /auth/verify-otp` incl. optional referral code
+  - [x] Error states mapped to Persian messages client-side from the server's machine-readable codes (`invalid_code`, `code_expired`, `too_many_attempts`, etc.) — see `_mapOtpError`/`_mapSendError` in the two screens
+  - [x] Loading/submit state on both screens
+  - [x] Success flow: both new- and existing-user verify-otp success → `context.go(returnPath ?? '/home')`
+  - [ ] Real on-device/simulator interactive verification (taps, keypad, countdown, RTL + Persian-digit rendering, both referral entry points) — not yet done this session, see note below
+
+**Referral system** (decision 6, §1): built alongside this screen pair since the referral teaser card lives on ZLogin itself. See the updated §1 decision-table row and `CLAUDE.md`'s new "Referral Code System" section for the full design (two entry points sharing one `ReferralBottomSheet` widget, +100/+50 coins, no referrer-side reward yet).
+
+**Verification note**: backend (`go build`, `go vet`, `go test`) is clean, including new nil-DB unit tests for the OTP/referral paths. `flutter analyze` and `flutter test` are clean across the whole client. The Postgres migration was **not** verified against a live database this session (no Docker daemon available in the environment) — run it against a real Postgres before shipping. Neither screen has had a live on-device/simulator tap-through yet, matching this same gap flagged at the top of Stage 4 for ZVersus/ZLobby — do both together in the next session with device/simulator access, paying particular attention to RTL OTP-box behavior and Persian digit rendering in the countdown timer, per project convention.
 
 ---
 
