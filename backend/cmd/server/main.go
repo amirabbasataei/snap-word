@@ -124,6 +124,14 @@ func main() {
 	auth.POST("/verify-otp", authHandler.VerifyOTP)
 	auth.POST("/refresh", authHandler.Refresh)
 
+	// Not behind RequireAuth: a WebSocket handshake cannot carry an
+	// Authorization header, so ServeWS authenticates itself via the
+	// `?token=` query param instead (see ws.go). Mounting it under
+	// `protected` previously made every real WS connection fail — the
+	// header-only middleware rejected the handshake before ServeWS's own
+	// query-param check ever ran.
+	api.GET("/ws/game/:roomID", wsHandler.ServeWS)
+
 	// Protected routes
 	protected := api.Group("/", middleware.RequireAuth(authSvc))
 	protected.POST("/referral/redeem", authHandler.RedeemReferral)
@@ -132,7 +140,6 @@ func main() {
 	protected.GET("/profile/stats", gameHandler.GetStats)
 	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
 	protected.POST("/powerup/use", powerupHandler.Use)
-	protected.GET("/ws/game/:roomID", wsHandler.ServeWS)
 	protected.POST("/match/queue", matchHandler.JoinQueue)
 	protected.DELETE("/match/queue", matchHandler.CancelQueue)
 	protected.GET("/leaderboard", leaderboardHandler.Get)

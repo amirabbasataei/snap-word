@@ -305,7 +305,7 @@ func (r *Room) processSubmitWord(client *Client, word string) {
 	r.scores[client.userID] += score
 	r.streaks[client.userID]++
 
-	nextLetter := string(word[len(word)-1])
+	nextLetter := string(engine.LastLetter(word))
 
 	r.turnSeq++
 	r.cancelTimerUpdates()
@@ -722,8 +722,7 @@ func (r *Room) sendCurrentState(client *Client) {
 	// Must be called with r.mu held.
 	nextLetter := ""
 	if len(r.chain) > 0 {
-		last := r.chain[len(r.chain)-1]
-		nextLetter = string(last[len(last)-1])
+		nextLetter = string(engine.LastLetter(r.chain[len(r.chain)-1]))
 	}
 	scoresCopy := make(map[string]int, len(r.scores))
 	for k, v := range r.scores {

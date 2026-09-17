@@ -192,8 +192,8 @@ func TestLastLetter_StripsZWNJ(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.word, func(t *testing.T) {
-			if got := lastLetter(tt.word); got != tt.want {
-				t.Errorf("lastLetter(%q) = %q, want %q", tt.word, got, tt.want)
+			if got := LastLetter(tt.word); got != tt.want {
+				t.Errorf("LastLetter(%q) = %q, want %q", tt.word, got, tt.want)
 			}
 		})
 	}

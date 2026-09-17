@@ -9,9 +9,13 @@ abstract final class GameConstants {
   static const int dailyMaxWords = 20;
   static const int dailyRetryCostCoins = 25;
 
-  // Phase 17 (زنجیر redesign) — Lives, adopted for the solo opponent only
-  // (classic + daily modes; see REDESIGN_PLAN.md §1 decision 1); AI and
-  // multiplayer keep instant-loss until Stage 4 extends lives to ZVersus.
+  // Phase 17 (زنجیر redesign) — Lives, adopted for solo (classic + daily
+  // modes) only; see REDESIGN_PLAN.md §1 decision 1. AI keeps instant-loss.
+  // Multiplayer also keeps instant-loss, permanently: Stage 4 decided
+  // *against* extending lives there — the server is fully authoritative
+  // for word validation with no grace period (word_rejected → loss_event
+  // immediately), so a lives chip would be decorative and misleading. See
+  // REDESIGN_PLAN.md §5's "Decision-table items resolved for this stage".
   static const int soloLives = 2;
 
   // Phase 17 — long-word bonus (see REDESIGN_PLAN.md §1 decision 4).

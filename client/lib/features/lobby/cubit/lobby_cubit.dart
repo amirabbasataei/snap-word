@@ -8,10 +8,6 @@ import 'package:wordchain/features/lobby/data/lobby_repository.dart';
 
 export 'lobby_state.dart';
 
-// How long to wait before giving up — server AI fallback is at 30s,
-// so 35s gives a short grace period for the notification to arrive.
-const _searchTimeoutSec = 35;
-
 class LobbyCubit extends Cubit<LobbyState> {
   final LobbyRepository _repo;
   final SyncService _syncService;
@@ -39,22 +35,33 @@ class LobbyCubit extends Cubit<LobbyState> {
     if (state is LobbySearching) return;
 
     emit(LobbySearching(mode: mode, elapsedSeconds: 0));
+    // Backup signal only (per CLAUDE.md's "Match found" push trigger) —
+    // covers the app being backgrounded mid-wait, where iOS can suspend the
+    // in-flight HTTP call. In the normal foreground case below, `joinQueue`
+    // itself already resolves with the match once the server pairs it.
+    _subscribeToNotifications(mode);
+    _startElapsedTicker();
 
     try {
       await _syncService.sync();
-      await _repo.joinQueue(mode);
+      // joinQueue long-polls server-side (see LobbyRepository) and returns
+      // the resolved match directly — this IS the match-found signal, not
+      // just a queue-join ack. Emitting here (rather than waiting on the
+      // push listener above) is what actually gets the player into a match:
+      // FCM isn't configured for local/simulator use, so relying solely on
+      // the notification path silently never navigates anywhere.
+      final result = await _repo.joinQueue(mode);
+      _cancelTimers();
+      if (state is LobbySearching) {
+        emit(LobbyMatchFound(roomId: result.roomId, mode: mode));
+      }
     } on LobbyException catch (e) {
       _cancelTimers();
       emit(LobbyError(e.message));
-      return;
     } catch (e) {
       _cancelTimers();
-      emit(const LobbyError('Network error. Check your connection.'));
-      return;
+      emit(const LobbyError('خطا در اتصال به اینترنت'));
     }
-
-    _subscribeToNotifications(mode);
-    _startElapsedTimer(mode);
   }
 
   Future<void> cancelSearch() async {
@@ -80,20 +87,16 @@ class LobbyCubit extends Cubit<LobbyState> {
     });
   }
 
-  void _startElapsedTimer(String mode) {
+  // Visual-only tick for the "۰۰:۱۱" elapsed display — the actual timeout
+  // is enforced server-side (matchmaking.go's AIFallbackWaitSec+5) and
+  // surfaces as a real `no_match` error from `joinQueue` above, so this no
+  // longer needs its own separate cutoff.
+  void _startElapsedTicker() {
     _elapsedTimer?.cancel();
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       final s = state;
       if (s is! LobbySearching) return;
-
-      final next = s.elapsedSeconds + 1;
-      if (next >= _searchTimeoutSec) {
-        _cancelTimers();
-        _repo.cancelQueue().ignore();
-        emit(const LobbyError('No opponent found. Try again.'));
-      } else {
-        emit(s.copyWith(elapsedSeconds: next));
-      }
+      emit(s.copyWith(elapsedSeconds: s.elapsedSeconds + 1));
     });
   }
 

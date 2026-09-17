@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
+import 'package:wordchain/core/network/dio_client.dart';
 import 'package:wordchain/core/services/ai_opponent.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
@@ -230,9 +231,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   void _connectMultiplayerWs(String roomId) {
     final token = _prefs.getString('jwt_access_token') ?? '';
+    final wsHost = DioClient.baseUrl.replaceFirst('http://', 'ws://');
     final uri = token.isNotEmpty
-        ? 'ws://10.0.2.2:8080/api/v1/ws/game/$roomId?token=$token'
-        : 'ws://10.0.2.2:8080/api/v1/ws/game/$roomId';
+        ? '$wsHost/api/v1/ws/game/$roomId?token=$token'
+        : '$wsHost/api/v1/ws/game/$roomId';
 
     _wsSub?.cancel();
     _wsService.connect(uri);
@@ -762,23 +764,26 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   void _handleWsGameStart(Map<String, dynamic> data, Emitter<GameState> emit) {
     final gameState = data['state'] as Map<String, dynamic>? ?? data;
+    // Backend contract (gameStartState in room.go): `players` is a plain
+    // []string of user IDs, and the turn field is `current_turn` — not the
+    // List<Map> with an id/username per player, or `current_player`, this
+    // used to assume. The mismatched cast threw on every game_start (typed
+    // 'String' is not a subtype of 'Map<String, dynamic>'), which silently
+    // broke every multiplayer match before it could render; the current_turn
+    // mismatch separately meant `isMyTurn` always fell back to true. No
+    // username is sent over WS at all, so opponentUsername stays null here —
+    // ZVersusActiveScreen already falls back to a generic "حریف" label.
     final players = (gameState['players'] as List<dynamic>?) ?? [];
     final mode = gameState['mode'] as String? ?? 'classic';
-    final currentPlayer = gameState['current_player'] as String? ?? '';
+    final currentPlayer = gameState['current_turn'] as String? ?? '';
 
     _timeLimitSec = mode == 'time_attack'
         ? GameConstants.timeAttackTurnTimerSec
         : GameConstants.classicTurnTimerSec;
 
-    String? opponentId;
-    String? opponentUsername;
-    for (final p in players) {
-      final pm = p as Map<String, dynamic>;
-      if (pm['id'] != _myPlayerId) {
-        opponentId = pm['id'] as String?;
-        opponentUsername = pm['username'] as String?;
-      }
-    }
+    final opponentId = players
+        .cast<String>()
+        .firstWhere((id) => id != _myPlayerId, orElse: () => '');
 
     emit(GameActive(
       localMatchId: -1,
@@ -796,8 +801,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       continueUsed: false,
       isMyTurn: currentPlayer == _myPlayerId || currentPlayer.isEmpty,
       myPlayerId: _myPlayerId,
-      opponentId: opponentId,
-      opponentUsername: opponentUsername,
+      opponentId: opponentId.isEmpty ? null : opponentId,
     ));
   }
 

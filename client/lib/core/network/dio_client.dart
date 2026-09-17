@@ -1,9 +1,15 @@
+import 'dart:io' show Platform;
+
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 
 class DioClient {
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  // Android emulator maps the host loopback to 10.0.2.2; iOS Simulator
+  // shares the host's network stack directly, so localhost works as-is.
+  static String get baseUrl =>
+      Platform.isAndroid ? 'http://10.0.2.2:8080' : 'http://localhost:8080';
+  static String get _baseUrl => baseUrl;
 
   late final Dio dio;
 

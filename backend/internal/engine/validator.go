@@ -42,10 +42,10 @@ func isPersianLetter(r rune) bool {
 	}
 }
 
-// lastLetter returns the last meaningful letter of word as a rune, stripping
+// LastLetter returns the last meaningful letter of word as a rune, stripping
 // any ZWNJ first so it is never mistaken for a letter. Returns 0 for an
 // empty (post-strip) word.
-func lastLetter(word string) rune {
+func LastLetter(word string) rune {
 	cleaned := strings.ReplaceAll(strings.TrimRightFunc(word, unicode.IsSpace), string(zwnj), "")
 	if cleaned == "" {
 		return 0
@@ -81,7 +81,7 @@ func ValidateMove(prevWord, newWord string, usedWords map[string]bool) error {
 
 	// Rule 4: starting letter (skipped for the very first word)
 	if prevWord != "" {
-		if firstLetter(newWord) != lastLetter(prevWord) {
+		if firstLetter(newWord) != LastLetter(prevWord) {
 			return ErrWrongLetter
 		}
 	}
