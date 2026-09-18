@@ -76,7 +76,7 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 		return nil, false, fmt.Errorf("CreateSoloGame: %w", err)
 	}
 
-	if err := s.matchRepo.AddMatchPlayer(ctx, m.ID, userID, in.Score); err != nil {
+	if err := s.matchRepo.AddMatchPlayer(ctx, m.ID, userID, in.Score, false); err != nil {
 		return nil, false, fmt.Errorf("CreateSoloGame add player: %w", err)
 	}
 

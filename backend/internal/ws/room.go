@@ -458,6 +458,23 @@ func (r *Room) startGame() {
 	r.state = stateActive
 	r.currentTurn = 0
 
+	// Persist the match + match_players rows synchronously (unlike the
+	// fire-and-forget DB calls elsewhere in this file) so they are guaranteed
+	// to exist before finalizeToDB's later UPDATEs can possibly run — those
+	// UPDATEs silently affect zero rows against a matches.id with no INSERT.
+	if r.deps.MatchRepo != nil {
+		ctx := context.Background()
+		if err := r.deps.MatchRepo.CreateMatchWithID(ctx, r.id, r.mode, "active", time.Now().UTC()); err != nil {
+			slog.Error("ws: CreateMatchWithID failed", "room", r.id, "error", err)
+		}
+		for _, pid := range r.playerOrder {
+			isAI := pid == config.SystemAIUserID
+			if err := r.deps.MatchRepo.AddMatchPlayer(ctx, r.id, pid, 0, isAI); err != nil {
+				slog.Error("ws: AddMatchPlayer failed", "room", r.id, "player", pid, "error", err)
+			}
+		}
+	}
+
 	scoresCopy := make(map[string]int, len(r.scores))
 	for k, v := range r.scores {
 		scoresCopy[k] = v
@@ -701,8 +718,10 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 			slog.Error("ws: UpdatePlayerScore failed", "room", r.id, "player", playerID, "error", err)
 		}
 
-		// Skip AI players — they have no real user account.
-		if strings.HasPrefix(playerID, "ai:") {
+		// Skip the AI opponent — it has a real users/match_players row now
+		// (config.SystemAIUserID) so score persistence works, but it must
+		// never contribute to player_stats or the weekly leaderboard.
+		if playerID == config.SystemAIUserID {
 			continue
 		}
 		if r.deps.StreakSvc != nil {

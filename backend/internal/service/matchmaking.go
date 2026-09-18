@@ -201,8 +201,7 @@ func (s *MatchmakingService) processQueue(mode string) {
 		roomID := newRoomID()
 		room := s.hub.GetOrCreateRoom(roomID, mode)
 
-		aiUserID := "ai:" + difficulty + ":" + roomID[:8]
-		aiClient := ws.NewAIClient(room, aiUserID, difficulty)
+		aiClient := ws.NewAIClient(room, config.SystemAIUserID, difficulty)
 		if err := room.Join(aiClient); err != nil {
 			slog.Error("matchmaking: AI join failed", "room", roomID, "error", err)
 			continue

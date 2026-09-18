@@ -55,13 +55,29 @@ func (r *MatchRepository) CreateMatch(
 		mode, status, winnerID, []byte(gameState), startedAt, endedAt))
 }
 
-func (r *MatchRepository) AddMatchPlayer(ctx context.Context, matchID, userID string, score int) error {
+func (r *MatchRepository) AddMatchPlayer(ctx context.Context, matchID, userID string, score int, isAI bool) error {
 	const q = `
-		INSERT INTO match_players (match_id, user_id, score)
-		VALUES ($1, $2, $3)`
-	_, err := r.db.ExecContext(ctx, q, matchID, userID, score)
+		INSERT INTO match_players (match_id, user_id, score, is_ai)
+		VALUES ($1, $2, $3, $4)`
+	_, err := r.db.ExecContext(ctx, q, matchID, userID, score, isAI)
 	if err != nil {
 		return fmt.Errorf("AddMatchPlayer: %w", err)
+	}
+	return nil
+}
+
+// CreateMatchWithID inserts a matches row using an explicit id instead of the
+// gen_random_uuid() default. Used by the ws room lifecycle (internal/ws/room.go)
+// so the WebSocket room id can double as the matches.id used by every
+// subsequent score/state update for that match.
+func (r *MatchRepository) CreateMatchWithID(ctx context.Context, id, mode, status string, startedAt time.Time) error {
+	const q = `
+		INSERT INTO matches (id, mode, status, started_at)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (id) DO NOTHING`
+	_, err := r.db.ExecContext(ctx, q, id, mode, status, startedAt)
+	if err != nil {
+		return fmt.Errorf("CreateMatchWithID: %w", err)
 	}
 	return nil
 }

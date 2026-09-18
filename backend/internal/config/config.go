@@ -122,6 +122,13 @@ const (
 	OTPMaxAttempts         = 5   // failed verify-otp attempts allowed before lockout
 	OTPMaxSendsPerDay      = 10  // send-otp requests allowed per phone per rolling day
 
+	// SystemAIUserID is the fixed, well-known users.id row for the matchmaking
+	// AI-fallback opponent (backend/internal/service/matchmaking.go). A single
+	// shared identity is used regardless of difficulty — difficulty only
+	// affects in-memory AI behavior (internal/ws/ai_client.go) and is never
+	// persisted per-player. Seeded by migration 004_ai_system_user.
+	SystemAIUserID = "00000000-0000-0000-0000-000000000001"
+
 	// Coin rewards
 	CoinWinMatch         = 30
 	CoinDailyLogin       = 10
