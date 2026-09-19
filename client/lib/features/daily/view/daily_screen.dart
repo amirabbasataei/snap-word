@@ -240,7 +240,7 @@ class _SeedHero extends StatelessWidget {
             decoration: BoxDecoration(
               color: z.surface,
               borderRadius: BorderRadius.circular(22),
-              boxShadow: const [BoxShadow(color: Color(0x33000000), offset: Offset(0, 5))],
+              boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.tileDepth),
             ),
             child: Text(
               challenge.startLetter,

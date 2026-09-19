@@ -541,9 +541,7 @@ class _DailyHero extends StatelessWidget {
               decoration: BoxDecoration(
                 color: z.surface,
                 borderRadius: BorderRadius.circular(14),
-                // rgba(0,0,0,.2) in the design — a fixed neutral drop shadow,
-                // not a token, same in both themes.
-                boxShadow: const [BoxShadow(color: Color(0x33000000), offset: Offset(0, 4))],
+                boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.tileDepth),
               ),
               child: Text(
                 letter ?? '؟',
