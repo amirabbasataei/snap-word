@@ -21,9 +21,9 @@ class DailyCubit extends Cubit<DailyState> {
         emit(DailyAvailable(challenge: challenge));
       }
     } on DailyException catch (e) {
-      emit(DailyError(e.message));
+      emit(DailyError(e.code, e.message));
     } catch (_) {
-      emit(const DailyError('Failed to load daily challenge'));
+      emit(const DailyError('unknown_error', 'Failed to load daily challenge'));
     }
   }
 
@@ -35,9 +35,9 @@ class DailyCubit extends Cubit<DailyState> {
       await _repo.retryChallenge();
       emit(DailyRetryAvailable(challenge: challenge));
     } on DailyException catch (e) {
-      emit(DailyError(e.message));
+      emit(DailyError(e.code, e.message));
     } catch (_) {
-      emit(const DailyError('Could not start retry'));
+      emit(const DailyError('unknown_error', 'Could not start retry'));
     }
   }
 }

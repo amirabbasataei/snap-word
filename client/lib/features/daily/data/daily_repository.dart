@@ -2,8 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 
 class DailyException implements Exception {
+  final String code;
   final String message;
-  const DailyException(this.message);
+  const DailyException({required this.code, required this.message});
   @override
   String toString() => message;
 }
@@ -89,7 +90,8 @@ class DailyRepository {
       );
     } on DioException catch (e) {
       throw DailyException(
-        e.response?.data?['error']?['message'] as String? ??
+        code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
+        message: e.response?.data?['error']?['message'] as String? ??
             'Failed to load daily challenge',
       );
     }
@@ -100,7 +102,8 @@ class DailyRepository {
       await _dio.post(ApiEndpoints.dailyRetry);
     } on DioException catch (e) {
       throw DailyException(
-        e.response?.data?['error']?['message'] as String? ??
+        code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
+        message: e.response?.data?['error']?['message'] as String? ??
             'Not enough coins or retry already used',
       );
     }

@@ -120,7 +120,7 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'یک کد چهاررقمی برایت می‌فرستیم. رمزی در کار نیست.',
+                      'یک کد چهاررقمی برات می‌فرستیم. رمزی در کار نیست.',
                       style: ZTypography.body.copyWith(color: z.ink60),
                     ),
                     const SizedBox(height: ZSpacing.xl),

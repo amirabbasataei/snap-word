@@ -46,10 +46,11 @@ class DailyRetryAvailable extends DailyState {
 }
 
 class DailyError extends DailyState {
+  final String code;
   final String message;
 
-  const DailyError(this.message);
+  const DailyError(this.code, this.message);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [code, message];
 }

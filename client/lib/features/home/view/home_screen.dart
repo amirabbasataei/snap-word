@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -19,7 +20,6 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
-import 'package:wordchain/features/profile/data/profile_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,10 +37,28 @@ class _HomeScreenState extends State<HomeScreen> {
   DailyChallenge? _daily;
   int? _weeklyRank;
 
+  StreamSubscription<AuthState>? _authSub;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+    // Home lives inside `_MainShell`'s `StatefulShellRoute.indexedStack`
+    // (`app_router.dart`), which keeps every branch's widget alive forever —
+    // switching tabs never rebuilds it. Without this, signing in or out
+    // from another screen (e.g. ZLogin, ZProfile's sign-out) never
+    // refreshed Home's coin pill / daily hero / weekly-rank teaser, exactly
+    // the same reactivity gap already found and fixed on ZProfile/ZFriends/
+    // ZBoard (those use `BlocBuilder<AuthCubit>`; Home is a plain
+    // `StatefulWidget` with local fetch state, so it listens to the stream
+    // directly instead).
+    _authSub = getIt<AuthCubit>().stream.listen((_) => _loadData());
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -55,18 +73,28 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (_isAuthenticated) {
-      _fetchCoins();
+      _updateCoinsFromAuth();
       _fetchDailyChallenge();
       _fetchWeeklyRank();
+    } else if (mounted) {
+      setState(() {
+        _coins = 0;
+        _daily = null;
+        _weeklyRank = null;
+      });
     }
   }
 
-  Future<void> _fetchCoins() async {
-    try {
-      final stats = await getIt<ProfileRepository>().fetchStats();
-      if (mounted) setState(() => _coins = stats.coins);
-    } catch (_) {
-      // Best-effort — home screen still renders without a live coin count.
+  // No endpoint anywhere returns a live coin balance for an authenticated
+  // user — `ProfileRepository.fetchStats().coins` reads a JSON key the
+  // backend's statsResponse never sends, so this used to always read 0
+  // regardless of the real balance (same bug found and fixed on ZProfile's
+  // coin pill). `AuthCubit`'s own `coins` field is the real, live value:
+  // set at login and bumped on referral redemption / earned coins.
+  void _updateCoinsFromAuth() {
+    final state = getIt<AuthCubit>().state;
+    if (mounted) {
+      setState(() => _coins = state is AuthAuthenticated ? state.coins : 0);
     }
   }
 

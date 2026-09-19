@@ -58,18 +58,18 @@ class ProfileCubit extends Cubit<ProfileState> {
       _repo.fetchInventory(),
     ]);
 
-    final stats = results[0] as ProfileStats;
+    final remoteStats = results[0] as ProfileStats;
     final powerups = results[1] as List<PowerupItem>;
 
     // Update local cache with backend stats
     await _statsDao.mergeWithRemote(RemoteStats(
-      totalMatches: stats.totalMatches,
-      wins: stats.wins,
-      bestScore: stats.bestScore,
-      bestMatchStreak: stats.bestMatchStreak,
-      dailyStreak: stats.dailyStreak,
-      longestDailyStreak: stats.longestDailyStreak,
-      longestWord: stats.longestWord,
+      totalMatches: remoteStats.totalMatches,
+      wins: remoteStats.wins,
+      bestScore: remoteStats.bestScore,
+      bestMatchStreak: remoteStats.bestMatchStreak,
+      dailyStreak: remoteStats.dailyStreak,
+      longestDailyStreak: remoteStats.longestDailyStreak,
+      longestWord: remoteStats.longestWord,
     ));
 
     // Update powerup cache
@@ -80,8 +80,25 @@ class ProfileCubit extends Cubit<ProfileState> {
           .toList(),
     );
 
+    // The server never writes bestScore/bestMatchStreak (no call site
+    // upserts those columns — see ZProfile Stage 5 backend audit), so
+    // showing remoteStats directly would silently discard real solo/AI
+    // progress that only exists locally. Re-read the just-merged (max of
+    // local/remote) row instead — dailyStreak/totalMatches/longestWord stay
+    // server-authoritative since those ARE written server-side.
+    final merged = await _statsDao.getStats();
+
     emit(ProfileLoaded(
-      stats: stats,
+      stats: ProfileStats(
+        totalMatches: remoteStats.totalMatches,
+        wins: remoteStats.wins,
+        bestScore: merged?.bestScore ?? remoteStats.bestScore,
+        bestMatchStreak: merged?.bestMatchStreak ?? remoteStats.bestMatchStreak,
+        dailyStreak: remoteStats.dailyStreak,
+        longestDailyStreak: remoteStats.longestDailyStreak,
+        longestWord: remoteStats.longestWord,
+        coins: remoteStats.coins,
+      ),
       powerups: powerups,
       isGuest: false,
     ));

@@ -28,6 +28,21 @@ const _weekdayNamesFull = [
   'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه', 'یکشنبه',
 ];
 
+String _mapDailyError(String code) {
+  switch (code) {
+    case 'no_daily_challenge':
+      return 'چالش امروز هنوز آماده نشده';
+    case 'not_attempted':
+      return 'اول باید چالش امروز رو انجام بدی';
+    case 'already_retried':
+      return 'تلاش دوباره‌ی امروز رو قبلاً استفاده کردی';
+    case 'insufficient_coins':
+      return 'سکه‌ات برای تلاش دوباره کافی نیست';
+    default:
+      return 'مشکلی پیش آمد، دوباره تلاش کن';
+  }
+}
+
 /// Weekday + Jalali day/month name, in Persian digits — matches the canvas
 /// ("شنبه ۱۶ شهریور"). Weekday name keyed off the Gregorian `DateTime`
 /// (day-of-week is identical between calendars); day/month converted via
@@ -88,7 +103,7 @@ class _DailyView extends StatelessWidget {
         }
         if (state is DailyError) {
           return _ErrorView(
-            message: state.message,
+            message: _mapDailyError(state.code),
             onRetry: () => context.read<DailyCubit>().load(),
           );
         }

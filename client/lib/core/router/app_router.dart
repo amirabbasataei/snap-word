@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/core/widgets/z_bottom_nav.dart';
@@ -10,13 +9,12 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/view/z_login_screen.dart';
 import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
 import 'package:wordchain/features/daily/view/daily_screen.dart';
-import 'package:wordchain/features/friends/view/friends_screen.dart';
+import 'package:wordchain/features/friends/view/z_friends_screen.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
-import 'package:wordchain/features/game/view/tutorial_screen.dart';
 import 'package:wordchain/features/home/view/home_screen.dart';
-import 'package:wordchain/features/leaderboard/view/leaderboard_screen.dart';
+import 'package:wordchain/features/leaderboard/view/z_board_screen.dart';
 import 'package:wordchain/features/lobby/view/lobby_screen.dart';
-import 'package:wordchain/features/profile/view/profile_screen.dart';
+import 'package:wordchain/features/profile/view/z_profile_screen.dart';
 
 /// Notifies GoRouter whenever AuthCubit emits a new state.
 class _AuthStateNotifier extends ChangeNotifier {
@@ -39,12 +37,7 @@ GoRouter buildAppRouter() {
     initialLocation: '/home',
     refreshListenable: _AuthStateNotifier(getIt<AuthCubit>()),
     redirect: (context, state) {
-      final prefs = getIt<SharedPreferences>();
-      final tutorialDone = prefs.getBool('tutorial_completed') ?? false;
       final path = state.uri.toString();
-      final onTutorial = path.startsWith('/tutorial');
-      if (!tutorialDone && !onTutorial) return '/tutorial';
-
       final authState = getIt<AuthCubit>().state;
       final onAuthScreen =
           path.startsWith('/login') || path.startsWith('/register');
@@ -58,10 +51,6 @@ GoRouter buildAppRouter() {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/tutorial',
-        builder: (context, state) => const TutorialScreen(),
-      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => _MainShell(shell: shell),
         branches: [
@@ -77,7 +66,7 @@ GoRouter buildAppRouter() {
             routes: [
               GoRoute(
                 path: '/leaderboard',
-                builder: (context, state) => const LeaderboardScreen(),
+                builder: (context, state) => const ZBoardScreen(),
               ),
             ],
           ),
@@ -85,7 +74,7 @@ GoRouter buildAppRouter() {
             routes: [
               GoRoute(
                 path: '/friends',
-                builder: (context, state) => const FriendsScreen(),
+                builder: (context, state) => const ZFriendsScreen(),
               ),
             ],
           ),
@@ -93,7 +82,7 @@ GoRouter buildAppRouter() {
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (context, state) => const ProfileScreen(),
+                builder: (context, state) => const ZProfileScreen(),
               ),
             ],
           ),
