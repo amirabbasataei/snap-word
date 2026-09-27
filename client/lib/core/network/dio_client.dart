@@ -58,7 +58,12 @@ class _AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final alreadyRetried = err.requestOptions.extra['retriedAfterRefresh'] == true;
-    if (err.response?.statusCode != 401 || alreadyRetried) {
+    final isRefreshCall = err.requestOptions.extra['isAuthRefresh'] == true;
+    if (err.response?.statusCode != 401 || alreadyRetried || isRefreshCall) {
+      // The refresh call's own errors must not re-enter this dance: it would
+      // await _refreshFuture while still being the request _refreshFuture is
+      // suspended on, deadlocking forever. Let it surface to _performRefresh's
+      // own try/catch instead.
       handler.next(err);
       return;
     }
@@ -96,7 +101,10 @@ class _AuthInterceptor extends Interceptor {
       final response = await _dio.post(
         ApiEndpoints.refresh,
         data: {'refresh_token': refreshToken},
-        options: Options(headers: {'Authorization': null}),
+        options: Options(
+          headers: {'Authorization': null},
+          extra: {'isAuthRefresh': true},
+        ),
       );
       final newToken = response.data['data']['access_token'] as String;
       await _prefs.setString('jwt_access_token', newToken);

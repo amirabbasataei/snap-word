@@ -78,6 +78,30 @@ void main() {
     expect(prefs.getString('jwt_access_token'), 'new-token');
   });
 
+  test('a 401 from the refresh endpoint itself does not deadlock', () async {
+    // Regression test: the refresh POST goes through this same interceptor.
+    // If it returns 401 (e.g. the refresh token's user no longer exists —
+    // exactly what happens after a DB reset with a stale token still on
+    // device) and that error re-entered the same refresh-and-retry dance,
+    // it would await the very future it is running inside of, hanging
+    // forever with no response and no error.
+    SharedPreferences.setMockInitialValues({
+      'jwt_access_token': 'expired-token',
+      'jwt_refresh_token': 'refresh-token-for-deleted-user',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final client = DioClient(prefs);
+    client.dio.httpClientAdapter = _RejectingRefreshAdapter();
+
+    await expectLater(
+      client.dio.get('/api/v1/daily'),
+      throwsA(isA<DioException>()),
+    ).timeout(const Duration(seconds: 5));
+
+    expect(prefs.getString('jwt_access_token'), isNull,
+        reason: 'a genuinely invalid refresh token should clear the stored session');
+  });
+
   test('a refresh-endpoint network error leaves stored tokens intact', () async {
     SharedPreferences.setMockInitialValues({
       'jwt_access_token': 'expired-token',
@@ -92,6 +116,29 @@ void main() {
     expect(prefs.getString('jwt_refresh_token'), 'valid-refresh-token',
         reason: 'a transient failure refreshing must not log the user out');
   });
+}
+
+class _RejectingRefreshAdapter implements HttpClientAdapter {
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    // Every request, including /auth/refresh itself, gets a real HTTP 401.
+    return ResponseBody.fromString(
+      jsonEncode({
+        'error': {'code': 'invalid_token', 'message': 'token is invalid or expired'},
+      }),
+      401,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
 }
 
 class _ThrowingRefreshAdapter implements HttpClientAdapter {
