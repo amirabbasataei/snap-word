@@ -18,6 +18,7 @@ type Scheduler struct {
 	statsRepo      *repository.StatsRepository
 	notifSvc       *service.NotificationService
 	challengeSvc   *service.ChallengeService
+	dailySvc       *service.DailyService
 	rdb            *redis.Client
 }
 
@@ -27,6 +28,7 @@ func New(
 	statsRepo *repository.StatsRepository,
 	notifSvc *service.NotificationService,
 	challengeSvc *service.ChallengeService,
+	dailySvc *service.DailyService,
 	rdb *redis.Client,
 ) *Scheduler {
 	return &Scheduler{
@@ -34,6 +36,7 @@ func New(
 		statsRepo:      statsRepo,
 		notifSvc:       notifSvc,
 		challengeSvc:   challengeSvc,
+		dailySvc:       dailySvc,
 		rdb:            rdb,
 	}
 }
@@ -74,6 +77,26 @@ func (s *Scheduler) tick(ctx context.Context, now time.Time) {
 	// Expire overdue friend challenges every 5 minutes
 	if now.Minute()%5 == 0 {
 		s.challengeSvc.ExpireOldChallenges(ctx)
+	}
+
+	// Ensure today's and tomorrow's Daily Challenge rows exist, every 5 minutes.
+	// Checking (not just running once at midnight) makes this self-healing if the
+	// scheduler was down when a day rolled over, and provisioning tomorrow's ahead
+	// of time means it's already there when the midnight reminder above fires.
+	if now.Minute()%5 == 0 {
+		s.ensureDailyChallenges(ctx, now)
+	}
+}
+
+func (s *Scheduler) ensureDailyChallenges(ctx context.Context, now time.Time) {
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	tomorrow := today.AddDate(0, 0, 1)
+
+	if err := s.dailySvc.EnsureChallenge(ctx, today); err != nil {
+		slog.Error("scheduler: ensure today's daily challenge failed", "error", err)
+	}
+	if err := s.dailySvc.EnsureChallenge(ctx, tomorrow); err != nil {
+		slog.Error("scheduler: ensure tomorrow's daily challenge failed", "error", err)
 	}
 }
 

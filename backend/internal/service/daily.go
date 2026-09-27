@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"wordchain/backend/internal/config"
+	"wordchain/backend/internal/engine"
 	"wordchain/backend/internal/repository"
 )
 
@@ -148,6 +149,18 @@ func (s *DailyService) Retry(ctx context.Context, userID string) error {
 
 	if err := s.userRepo.SpendCoins(ctx, userID, config.DailyRetryCoins); err != nil {
 		return err
+	}
+	return nil
+}
+
+// EnsureChallenge generates and stores a daily_challenges row for date if one
+// doesn't already exist. The seed is derived from date, so a row regenerated
+// after being manually deleted comes back with the same start letter.
+func (s *DailyService) EnsureChallenge(ctx context.Context, date time.Time) error {
+	seed := date.Unix()
+	startLetter := engine.PickDailyStartLetter(seed)
+	if _, err := s.dailyRepo.CreateChallengeIfMissing(ctx, date, seed, startLetter); err != nil {
+		return fmt.Errorf("EnsureChallenge: %w", err)
 	}
 	return nil
 }

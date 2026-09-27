@@ -111,7 +111,7 @@ func main() {
 	dailyHandler := handler.NewDailyHandler(dailySvc)
 
 	// Start background scheduler
-	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc, rdb)
+	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc, dailySvc, rdb)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go sched.Start(ctx)

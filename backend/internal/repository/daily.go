@@ -49,6 +49,25 @@ func (r *DailyRepository) GetChallenge(ctx context.Context, date time.Time) (*Da
 	return row, nil
 }
 
+// CreateChallengeIfMissing inserts a daily_challenges row for date unless one
+// already exists, and reports whether it inserted one.
+func (r *DailyRepository) CreateChallengeIfMissing(ctx context.Context, date time.Time, seed int64, startLetter string) (bool, error) {
+	const q = `
+		INSERT INTO daily_challenges (challenge_date, seed, start_letter)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (challenge_date) DO NOTHING`
+
+	res, err := r.db.ExecContext(ctx, q, date, seed, startLetter)
+	if err != nil {
+		return false, fmt.Errorf("CreateChallengeIfMissing: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("CreateChallengeIfMissing: %w", err)
+	}
+	return n > 0, nil
+}
+
 // GetUserAttempts returns attempts ordered by attempt_number ASC.
 func (r *DailyRepository) GetUserAttempts(ctx context.Context, userID string, date time.Time) ([]*DailyAttemptRow, error) {
 	const q = `
