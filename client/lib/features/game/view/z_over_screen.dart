@@ -16,10 +16,9 @@ import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 
-/// ZOver — the unified loss/continue/results screen for solo and vs-AI
-/// matches (true multiplayer keeps the legacy `ContinuePrompt` +
-/// `_GameOverScreen` pair; see game_screen.dart's dispatch and
-/// REDESIGN_PLAN.md §3). The canvas merges what used to be two separate
+/// ZOver — the unified loss/continue/results screen for every match type:
+/// solo, vs-AI, and true multiplayer (Stage 6 retired the legacy
+/// `ContinuePrompt` + `_GameOverScreen` pair). The canvas merges what used to be two separate
 /// screens (continue offer, then final results) into one: the score/chain
 /// summary is always shown, with continue actions layered on top only
 /// while the 15s continue window is open.
@@ -101,8 +100,14 @@ class _ZOverScreenState extends State<ZOverScreen> {
       );
     }
 
-    final isDuel = state.opponentType != null && state.opponentType!.startsWith('ai_') && state.opponentScore > 0;
-    final iWon = isDuel && state.score > state.opponentScore;
+    // True multiplayer's WS-driven GameOver never sets opponentType (see
+    // GameBloc._handleWsLossEvent/_handleWsGameOver).
+    final isVersus = state.opponentType == null;
+    final isAIDuel = state.opponentType != null && state.opponentType!.startsWith('ai_') && state.opponentScore > 0;
+    final isDuel = isVersus || isAIDuel;
+    // Versus: the server decides (a mistake loses regardless of score); null
+    // while my own continue window is still open.
+    final bool? iWon = isVersus ? state.iWon : (isAIDuel ? state.score > state.opponentScore : null);
     final showContinue = !state.isSaved && state.canContinue && state.continueTimeRemaining > 0;
 
     return Scaffold(
@@ -111,12 +116,17 @@ class _ZOverScreenState extends State<ZOverScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              _Hero(state: state, isDuel: isDuel, iWon: iWon),
+              _Hero(state: state, iWon: iWon),
               Padding(
                 padding: const EdgeInsets.all(ZSpacing.xxl),
                 child: Column(
                   children: [
-                    _ScoreCard(state: state, recordChainLength: _recordChainLength),
+                    _ScoreCard(
+                      state: state,
+                      recordChainLength: _recordChainLength,
+                      showOpponent: isDuel,
+                      showRecord: !isVersus,
+                    ),
                     const SizedBox(height: ZSpacing.lg),
                     if (!isDuel && _recordChainLength > state.chainLength)
                       _NearMissBar(gap: _recordChainLength - state.chainLength),
@@ -151,13 +161,12 @@ class _ZOverScreenState extends State<ZOverScreen> {
 
 class _Hero extends StatelessWidget {
   final GameOver state;
-  final bool isDuel;
-  final bool iWon;
+  final bool? iWon; // null = no opponent, or result not decided yet
 
-  const _Hero({required this.state, required this.isDuel, required this.iWon});
+  const _Hero({required this.state, required this.iWon});
 
   String get _title {
-    if (isDuel) return iWon ? 'بردی! 🏆' : 'باختی 😞';
+    if (iWon != null) return iWon! ? 'بردی! 🏆' : 'باختی 😞';
     if (state.reason == 'ended_by_user') return 'بازی را پایان دادی';
     return 'زنجیر پاره شد!';
   }
@@ -244,8 +253,15 @@ class _Hero extends StatelessWidget {
 class _ScoreCard extends StatelessWidget {
   final GameOver state;
   final int recordChainLength;
+  final bool showOpponent;
+  final bool showRecord;
 
-  const _ScoreCard({required this.state, required this.recordChainLength});
+  const _ScoreCard({
+    required this.state,
+    required this.recordChainLength,
+    required this.showOpponent,
+    required this.showRecord,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -274,11 +290,18 @@ class _ScoreCard extends StatelessWidget {
             children: [
               _StatLine(label: 'طول زنجیر', value: '${toPersianDigits(state.chainLength)} کلمه'),
               if (longestWord != null) _StatLine(label: 'بلندترین کلمه', value: longestWord),
-              _StatLine(
-                label: 'رکورد تو',
-                value: '${toPersianDigits(recordChainLength)} کلمه',
-                valueColor: z.teal,
-              ),
+              if (showOpponent)
+                _StatLine(
+                  label: 'امتیاز حریف',
+                  value: toPersianDigits(state.opponentScore),
+                  valueColor: z.coral,
+                ),
+              if (showRecord)
+                _StatLine(
+                  label: 'رکورد تو',
+                  value: '${toPersianDigits(recordChainLength)} کلمه',
+                  valueColor: z.teal,
+                ),
             ],
           ),
         ],

@@ -137,15 +137,16 @@ func (r *StatsRepository) GetUsersWithStreakAtRisk(ctx context.Context, today ti
 	return ids, rows.Err()
 }
 
-// IncrementMatchStats atomically increments total_matches and updates longest_word / last_played_date.
-// All other fields are left unchanged by this operation.
-func (r *StatsRepository) IncrementMatchStats(ctx context.Context, userID, longestWord string, playedAt time.Time) error {
+// IncrementMatchStats atomically increments total_matches and updates longest_word.
+// It deliberately does not touch last_played_date: StreakService.RecordGamePlayed
+// owns that column, and writing it here first made every solo game look like
+// "already played today", so the daily streak never advanced.
+func (r *StatsRepository) IncrementMatchStats(ctx context.Context, userID, longestWord string) error {
 	const q = `
-		INSERT INTO player_stats (user_id, total_matches, last_played_date, longest_word, updated_at)
-		VALUES ($1, 1, $2, $3, now())
+		INSERT INTO player_stats (user_id, total_matches, longest_word, updated_at)
+		VALUES ($1, 1, $2, now())
 		ON CONFLICT (user_id) DO UPDATE SET
 		    total_matches    = player_stats.total_matches + 1,
-		    last_played_date = EXCLUDED.last_played_date,
 		    longest_word     = CASE
 		        WHEN EXCLUDED.longest_word <> '' AND (
 		             player_stats.longest_word IS NULL
@@ -155,7 +156,7 @@ func (r *StatsRepository) IncrementMatchStats(ctx context.Context, userID, longe
 		    END,
 		    updated_at = now()`
 
-	_, err := r.db.ExecContext(ctx, q, userID, playedAt, longestWord)
+	_, err := r.db.ExecContext(ctx, q, userID, longestWord)
 	if err != nil {
 		return fmt.Errorf("IncrementMatchStats: %w", err)
 	}

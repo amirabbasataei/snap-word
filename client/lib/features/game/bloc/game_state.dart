@@ -182,6 +182,9 @@ class GameOver extends GameState {
   final int continueTimeRemaining;
   final bool isSaved;
   final String? winnerId; // null = solo; player UUID for multiplayer
+  // True multiplayer only: set from `winner == myPlayerId` on game_over. Null
+  // while the match is still undecided (my loss_event, continue window open).
+  final bool? iWon;
   final int opponentScore;
   final String? opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
 
@@ -198,6 +201,7 @@ class GameOver extends GameState {
     required this.continueTimeRemaining,
     required this.isSaved,
     this.winnerId,
+    this.iWon,
     this.opponentScore = 0,
     this.opponentType,
   });
@@ -219,6 +223,7 @@ class GameOver extends GameState {
       continueTimeRemaining: continueTimeRemaining ?? this.continueTimeRemaining,
       isSaved: isSaved ?? this.isSaved,
       winnerId: winnerId,
+      iWon: iWon,
       opponentScore: opponentScore,
       opponentType: opponentType,
     );
@@ -240,6 +245,7 @@ class GameOver extends GameState {
         continueTimeRemaining,
         isSaved,
         winnerId,
+        iWon,
         opponentScore,
         opponentType,
       ];

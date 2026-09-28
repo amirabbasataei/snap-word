@@ -2,7 +2,11 @@ import 'dart:math';
 
 import 'package:wordchain/core/services/dictionary_service.dart';
 
-const _trapLetters = {'q', 'x', 'z', 'j', 'v'};
+/// The Persian letters the fewest fa.txt words start with (ژ ظ ث ذ ض).
+/// Ending a word on one leaves the opponent few follow-ups. ی is excluded:
+/// few words start with it but ~2.6k end with it. Keep in sync with Go's
+/// `config.AITrapLetters`.
+const aiTrapLetters = {'ژ', 'ظ', 'ث', 'ذ', 'ض'};
 
 class AIDifficultyConfig {
   final int delayMs;
@@ -59,7 +63,7 @@ String? selectAIWord({
     if (letter != null && letter.isNotEmpty && w[0] != letter) continue;
     if (usedWords.contains(w)) continue;
     candidates.add(w);
-    if (_trapLetters.contains(w[w.length - 1])) {
+    if (aiTrapLetters.contains(DictionaryService.lastLetterOf(w))) {
       trapCandidates.add(w);
     }
   }

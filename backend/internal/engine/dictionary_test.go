@@ -11,8 +11,8 @@ func TestIsValid(t *testing.T) {
 		{"باران", true},
 		{"سلام", true},
 		{"دوست", true},
-		{"روباه", true},
-		{"تهران", true},
+		{"سیب", true},
+		{"خانه", true},
 		// not in dictionary
 		{"زکسلوپ", false},
 		{"ژژژژژژ", false},

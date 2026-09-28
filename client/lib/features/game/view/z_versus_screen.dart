@@ -179,7 +179,7 @@ class _TurnBanner extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: fraction,
                 minHeight: 6,
-                backgroundColor: Colors.black.withValues(alpha: 0.08),
+                backgroundColor: accent.withValues(alpha: 0.18),
                 valueColor: AlwaysStoppedAnimation(accent),
               ),
             ),

@@ -943,10 +943,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     Emitter<GameState> emit,
   ) {
     final active = state is GameActive ? state as GameActive : null;
+    // After a forfeit/expired continue the bloc is already in GameOver —
+    // keep that chain rather than rebuilding the result with an empty one.
+    final prevOver = state is GameOver ? state as GameOver : null;
     final scores = data['scores'] as Map<String, dynamic>? ?? {};
     final winner = data['winner'] as String?;
 
-    final myScore = scores[_myPlayerId] as int? ?? (active?.score ?? 0);
+    final myScore = scores[_myPlayerId] as int? ?? (active?.score ?? prevOver?.score ?? 0);
     final opponentScore = scores.entries
         .where((e) => e.key != _myPlayerId)
         .fold<int>(0, (sum, e) => sum + (e.value as int? ?? 0));
@@ -956,15 +959,16 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     emit(GameOver(
       localMatchId: -1,
-      mode: active?.mode ?? 'classic',
+      mode: active?.mode ?? prevOver?.mode ?? 'classic',
       reason: 'game_over',
       score: myScore,
-      chainLength: active?.wordChain.length ?? 0,
-      wordChain: active?.wordChain ?? const [],
+      chainLength: active?.wordChain.length ?? prevOver?.chainLength ?? 0,
+      wordChain: active?.wordChain ?? prevOver?.wordChain ?? const [],
       canContinue: false,
       continueTimeRemaining: 0,
       isSaved: true, // server manages persistence
       winnerId: winner,
+      iWon: winner != null && winner == _myPlayerId,
       opponentScore: opponentScore,
     ));
   }

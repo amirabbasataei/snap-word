@@ -1,36 +1,36 @@
 package engine
 
-import "math/rand"
+import (
+	"math/rand"
+	"unicode/utf8"
 
-// trapLetters are letters that offer few valid follow-ups for the opponent.
-var trapLetters = map[byte]bool{
-	'q': true, 'x': true, 'z': true, 'j': true, 'v': true,
-}
+	"wordchain/backend/internal/config"
+)
 
 // SelectAIWord picks a valid word for the AI based on difficulty constraints.
 //
-//   - letter: required starting byte (0 = first word, no constraint)
+//   - letter: required starting letter (0 = first word, no constraint)
 //   - usedWords: words already played — must be excluded
-//   - minLen: minimum word length
+//   - minLen: minimum word length, in letters (runes), not bytes
 //   - trapPref: probability [0,1] of preferring a word ending in a trap letter
 //   - preferLongest: when trap preference fires, choose the longest trap word
 //
 // Returns "" when no eligible word exists.
-func SelectAIWord(letter byte, usedWords map[string]bool, minLen int, trapPref float64, preferLongest bool) string {
+func SelectAIWord(letter rune, usedWords map[string]bool, minLen int, trapPref float64, preferLongest bool) string {
 	var candidates, trapCandidates []string
 
 	for w := range dictionary {
-		if len(w) < minLen {
+		if utf8.RuneCountInString(w) < minLen {
 			continue
 		}
-		if letter != 0 && w[0] != letter {
+		if letter != 0 && firstLetter(w) != letter {
 			continue
 		}
 		if usedWords[w] {
 			continue
 		}
 		candidates = append(candidates, w)
-		if trapLetters[w[len(w)-1]] {
+		if config.AITrapLetters[LastLetter(w)] {
 			trapCandidates = append(trapCandidates, w)
 		}
 	}
@@ -48,11 +48,16 @@ func SelectAIWord(letter byte, usedWords map[string]bool, minLen int, trapPref f
 	return candidates[rand.Intn(len(candidates))]
 }
 
+// longestIn returns the word with the most letters. Ties go to the
+// lexicographically smaller word so the choice is deterministic despite
+// Go's randomized map iteration order.
 func longestIn(words []string) string {
 	var best string
+	bestLen := 0
 	for _, w := range words {
-		if len(w) > len(best) {
-			best = w
+		n := utf8.RuneCountInString(w)
+		if n > bestLen || (n == bestLen && w < best) {
+			best, bestLen = w, n
 		}
 	}
 	return best

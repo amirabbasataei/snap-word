@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+	"unicode/utf8"
 
 	"wordchain/backend/internal/repository"
 )
@@ -80,7 +81,7 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 		return nil, false, fmt.Errorf("CreateSoloGame add player: %w", err)
 	}
 
-	if err := s.updateStatsAfterSoloGame(ctx, userID, in.WordChain, in.EndedAt); err != nil {
+	if err := s.updateStatsAfterSoloGame(ctx, userID, in.WordChain); err != nil {
 		// non-fatal: match is already created; log and continue
 		slog.Error("CreateSoloGame: stats update failed", "userID", userID, "error", err)
 	}
@@ -143,16 +144,17 @@ func (s *GameService) EndGame(ctx context.Context, matchID, winnerID string) err
 	return nil
 }
 
-func (s *GameService) updateStatsAfterSoloGame(ctx context.Context, userID string, wordChain []string, endedAt time.Time) error {
-	lw := longestWordIn(wordChain)
-	return s.statsRepo.IncrementMatchStats(ctx, userID, lw, endedAt)
+func (s *GameService) updateStatsAfterSoloGame(ctx context.Context, userID string, wordChain []string) error {
+	return s.statsRepo.IncrementMatchStats(ctx, userID, longestWordIn(wordChain))
 }
 
+// longestWordIn compares by letters (runes), not bytes.
 func longestWordIn(chain []string) string {
 	var longest string
+	longestLen := 0
 	for _, w := range chain {
-		if len(w) > len(longest) {
-			longest = w
+		if n := utf8.RuneCountInString(w); n > longestLen {
+			longest, longestLen = w, n
 		}
 	}
 	return longest

@@ -3,6 +3,7 @@ abstract final class GameConstants {
   static const int timeAttackTurnTimerSec = 8;
   static const int timeAttackMatchDurationSec = 90;
   static const int continueWindowSec = 15;
+  static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;
   static const int guestHintUsesPerSession = 5;
   static const int minWordLength = 3;

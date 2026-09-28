@@ -4,7 +4,7 @@ Screen-by-screen plan for implementing the Claude Design canvas in Flutter.
 
 **Design source:** `https://claude.ai/design/p/4a90de7c-3340-476f-922d-213a9dcd6307` (`Zanjir.dc.html`)
 **Access note:** WebFetch/browser access to `claude.ai/design/...` URLs returns 403 (needs claude.ai login not available to those tools). The reliable path is the `DesignSync` tool: `method: "get_file"` with `projectId: "4a90de7c-3340-476f-922d-213a9dcd6307"` and `path: "<File>.dc.html"` — this works even though `list_projects` doesn't surface this project (it's a canvas, not a design-system project). Per-screen files confirmed present via `list_files`: `ZHome`, `ZSolo`, `ZPlay`, `ZOver`, `ZLobby`, `ZVersus`, `ZDailyBefore`, `ZDailyAfter`, `ZBoard`, `ZProfile`, `ZFriends` (each `<Name>.dc.html`), plus `Zanjir.dc.html` (token sheet + screen imports) and `Vajechin Word Chain.dc.html`.
-**Status:** Decisions made (see §1). Stage 1 (Foundation) in progress.
+**Status:** Stages 1–4 complete and on-device verified; Stages 5–6 code complete (on-device verification pending); Stage 7 partially complete.
 **Phase:** Phase 17 in the CLAUDE.md status table and PLAN.md (added — see PLAN.md Phase 17).
 
 ---
@@ -291,27 +291,48 @@ All five are real client/backend contract bugs caught only by an actual live mat
 
 ---
 
-## 6. Stage 5 — Secondary screens
+## 6. Stage 5 — Secondary screens — complete, verified on-device 2026-09-28
 
-- **ZBoard** ← `features/leaderboard/view/leaderboard_screen.dart` (693 ln) — three staggered podium pedestals, rank rows, sticky self-row on `inkSurface`. 4 tabs vs. spec's 2 → see conflict table.
-- **ZProfile** ← `features/profile/view/profile_screen.dart` (789 ln) — 2×2 stat grid, level progress bar, badge row, settings list with the dark-mode toggle.
-- **ZFriends** ← `features/friends/view/friends_screen.dart` (664 ln) — requests / online / offline sections, which map cleanly onto the existing cubit.
+- **ZBoard** → `features/leaderboard/view/z_board_screen.dart` (replaces `leaderboard_screen.dart`) — podium pedestals, rank rows, sticky self-row on `inkSurface`. **Ships 2 of the canvas's 4 tabs** (این هفته / دوستان): «امروز» and «همیشه» have no data source (the backend only keeps the weekly Redis set), so they were dropped rather than faked. Restoring them is scheduled in PLAN.md Phase 18.
+- **ZProfile** → `features/profile/view/z_profile_screen.dart` (replaces `profile_screen.dart`) — stat grid, `_LevelCard`/`_BadgesCard` as honest placeholders (level 1, no fabricated badges; decision 5), settings list with the real حالت شب switch and the Settings → referral entry.
+- **ZFriends** → `features/friends/view/z_friends_screen.dart` (replaces `friends_screen.dart`) — requests / friends sections on the existing `FriendsCubit`.
+- **Tutorial dropped** in the same commit (`tutorial_screen.dart`, `/tutorial` route, first-launch redirect, Profile → Help). Confirmed by the user as a product decision — not to be rebuilt.
+
+**Follow-ups done 2026-09-28**: ZHome's top-right square was a temporary `ThemeCubit.toggle()` QA affordance; now that ZProfile has the real switch it opens `/profile` (settings) with a settings icon. `ThemeCubit` now defaults to `ThemeMode.system` (see Stage 6) and `toggle()` takes the on-screen `Brightness`, so ZProfile's switch reads correctly under a system default.
+
+**Verification (2026-09-28, Android 16 emulator, real local backend, both themes)**: ZBoard (both tabs), ZFriends, ZProfile (incl. the حالت شب switch flipping the whole app live), ZHome, ZSolo and ZOver tapped through with real data. Fixed on the spot:
+1. **ZHome weekly-rank row**: the three overlapping dots needed 66px but sat in a 46px box and overlapped the «جدول هفته» title. Widened, added a gap, and made the offset direction-aware (`PositionedDirectional`).
+2. **ZProfile settings rows** rendered empty icon squares. They now carry Material icons (moon / speaker / bell), same stand-in approach as `ZBottomNav`.
+3. **Solo matches never reached the server** (pre-existing, Phase 1/7): `SyncService` sent `word_chain` as the Drift JSON *string* while the API binds `[]string`, so every upload got 400. And since any non-409 error aborted the loop, the oldest row blocked all later ones forever. It also uploaded still-`active` matches with no `ended_at`. Fixed: decode the chain, skip active matches, and skip (log) a row rejected with 4xx instead of aborting. Verified: the 6 backlogged matches uploaded, and ZProfile's «بازی‌شده» went 0 → 6.
+4. **Daily streak never advanced from solo games** (pre-existing, Phase 7/10): `StatsRepository.IncrementMatchStats` wrote `last_played_date` *before* `StreakService.RecordGamePlayed` ran, so the streak service always saw "already played today". `IncrementMatchStats` no longer touches that column. Verified: after backdating the dev account's last-played date by one day, a new solo game moved `daily_streak` 0 → 1.
+
+Known cosmetic-only elements (scheduled in PLAN.md Phase 18): «صدا و لرزش» / «یادآور چالش روزانه» rows, ZHome's bell.
 
 ---
 
-## 7. Stage 6 — Undesigned screens
+## 7. Stage 6 — Undesigned screens — code complete 2026-09-28; needs a live multiplayer match to verify
 
-`login_screen.dart`, `register_screen.dart`, `tutorial_screen.dart` (437 ln), and `continue_prompt.dart` have **no reference images** in the canvas.
+Tutorial is out of scope (dropped, see Stage 5). Login/register were superseded by ZLogin/ZOtp in Stage 4. What remained were the multiplayer-only legacy screens:
 
-Per `CLAUDE.md` ("if a detail is ambiguous, match the overall visual style and spacing of the nearest reference image"), derive these from the token system rather than inventing layouts.
+- **Multiplayer game-over + continue prompt → `ZOverScreen`.** Rather than design a new screen, ZOver now serves every match type. `game_screen.dart` routes every `GameOver` to it. ZOver identifies true multiplayer by `opponentType == null` and adds an «امتیاز حریف» line for duels. It hides «رکورد تو» (a solo chain-length record) in multiplayer.
+- **New `GameOver.iWon`** (set in `_handleWsGameOver` from `winner == myPlayerId`). The legacy screen guessed the winner from scores (`score > opponentScore`), which is wrong whenever the higher scorer loses by making the mistake. `iWon` is null while my own continue window is open, so the hero reads «زنجیر پاره شد!» until the server decides.
+- **Bug fixed in passing**: after a forfeit, the bloc is already in `GameOver` when the server's `game_over` arrives. `_handleWsGameOver` then rebuilt the result from a null `GameActive`, giving an empty chain and 0 length. It now falls back to the previous `GameOver`'s chain/mode/score.
+- `_OpponentContinueOverlay` and `_DisconnectedBanner` restyled on tokens, in Persian. The scrim is `paper` at 88% so it works in both themes. The grace period reads `GameConstants.reconnectGraceSec` (new, 30).
+- `friend_challenge_sheet.dart` restyled on tokens, in Persian. Timer copy is read from `GameConstants`, and it closes via `context.pop()`.
+- Loading/error states in `game_screen.dart` restyled. The error state uses `NeutralButton`.
+- **Deleted as dead code**: `continue_prompt.dart`, `word_chain_list.dart`, `timer_bar.dart`, `word_input.dart` (no remaining references; the Z screens use `z_game_shared.dart`).
+- **Legacy palette removed**: `AppColors` and the hand-built `AppTheme.dark` are gone. `AppTheme.light`/`dark` are now both built from `ZColors` by one `_build()`. `ThemeCubit` defaults to `ThemeMode.system` now that every screen honours both themes (the design is light-first).
+- ZVersus's timer track used `Colors.black` at 8%, invisible on dark tints. It is now the accent colour at 18%.
 
 ---
 
-## 8. Stage 7 — Tests
+## 8. Stage 7 — Tests — partially complete 2026-09-28
 
-- Existing golden tests for `WordChainList` and `TimerBar` will break **by design** — re-baseline them.
-- Add light + dark goldens for each shared widget in `core/widgets/`.
-- Add a token-coverage check that fails on hardcoded `Color(0x…)` literals inside `features/`.
+- **No goldens existed** (the plan's "re-baseline `WordChainList`/`TimerBar`" was moot, and both widgets are now deleted).
+- Added `test/core/widgets/shared_widgets_golden_test.dart`: a light + dark golden of every shared widget (Vazirmatn loaded via `test/helpers/z_test_app.dart`). `StreakStrip` is excluded because it depends on `DateTime.now()`. Goldens were generated on Linux; regenerate with `flutter test --update-goldens` if rendering differs on macOS CI.
+- Added `test/core/theme/token_coverage_test.dart`: fails on `Color(0x`, named `Colors.*` hues, or `AppColors.` in `lib/features`, `lib/core/widgets`, `lib/core/router`.
+- Added `test/features/game/z_over_screen_test.dart` covering the multiplayer win/loss/continue variants and solo/AI regressions.
+- **Remaining**: goldens for the ZSolo/ZPlay chain renderers and widget tests for the other Z screens' primary states.
 
 ---
 

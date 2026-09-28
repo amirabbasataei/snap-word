@@ -96,18 +96,18 @@ func TestRoomWordAccepted(t *testing.T) {
 	drainAll(c1)
 	drainAll(c2)
 
-	// Player 1 goes first. Submit "apple" (starts with any letter — first move).
-	room.handleMessage(c1, []byte(`{"type":"submit_word","word":"apple"}`))
+	// Player 1 goes first. Submit "کتاب" (any letter is fine on the first move).
+	room.handleMessage(c1, []byte(`{"type":"submit_word","word":"کتاب"}`))
 
 	wa := drainMsg(c1)
 	if wa.Type != "word_accepted" {
 		t.Fatalf("expected word_accepted, got %q", wa.Type)
 	}
-	if wa.Word != "apple" {
-		t.Errorf("word: want apple, got %q", wa.Word)
+	if wa.Word != "کتاب" {
+		t.Errorf("word: want کتاب, got %q", wa.Word)
 	}
-	if wa.NextLetter != "e" {
-		t.Errorf("next_letter: want e, got %q", wa.NextLetter)
+	if wa.NextLetter != "ب" {
+		t.Errorf("next_letter: want ب, got %q", wa.NextLetter)
 	}
 	if wa.Score <= 0 {
 		t.Errorf("score should be positive, got %d", wa.Score)
@@ -132,12 +132,12 @@ func TestRoomWordRejectedWrongLetter(t *testing.T) {
 	drainAll(c2)
 
 	// First word sets the chain: "apple" → next must start with 'e'.
-	room.handleMessage(c1, []byte(`{"type":"submit_word","word":"apple"}`))
+	room.handleMessage(c1, []byte(`{"type":"submit_word","word":"کتاب"}`))
 	drainAll(c1)
 	drainAll(c2)
 
-	// Now it's c2's turn. Submit "dog" which does not start with 'e'.
-	room.handleMessage(c2, []byte(`{"type":"submit_word","word":"dog"}`))
+	// Now it's c2's turn. Submit "سیب", which does not start with ب.
+	room.handleMessage(c2, []byte(`{"type":"submit_word","word":"سیب"}`))
 
 	msgs := drainAll(c2)
 	found := false
@@ -163,7 +163,7 @@ func TestRoomNotYourTurnIgnored(t *testing.T) {
 	drainAll(c2)
 
 	// c2 tries to submit when it's c1's turn — should be silently ignored.
-	room.handleMessage(c2, []byte(`{"type":"submit_word","word":"apple"}`))
+	room.handleMessage(c2, []byte(`{"type":"submit_word","word":"کتاب"}`))
 
 	select {
 	case raw := <-c2.send:
@@ -205,19 +205,19 @@ func TestRoomAlternatingTurns(t *testing.T) {
 	drainAll(c1)
 	drainAll(c2)
 
-	// c1: apple → next letter e
-	room.handleMessage(c1, []byte(`{"type":"submit_word","word":"apple"}`))
+	// c1: کتاب → next letter ب
+	room.handleMessage(c1, []byte(`{"type":"submit_word","word":"کتاب"}`))
 	drainAll(c1)
 	drainAll(c2)
 
-	// c2: "era" starts with 'e'
-	room.handleMessage(c2, []byte(`{"type":"submit_word","word":"era"}`))
+	// c2: "باران" starts with ب
+	room.handleMessage(c2, []byte(`{"type":"submit_word","word":"باران"}`))
 	wa := drainMsg(c2)
 	if wa.Type != "word_accepted" {
-		t.Fatalf("c2 expected word_accepted after era, got %q", wa.Type)
+		t.Fatalf("c2 expected word_accepted after باران, got %q", wa.Type)
 	}
-	if wa.NextLetter != "a" {
-		t.Errorf("next_letter after era: want a, got %q", wa.NextLetter)
+	if wa.NextLetter != "ن" {
+		t.Errorf("next_letter after باران: want ن, got %q", wa.NextLetter)
 	}
 }
 

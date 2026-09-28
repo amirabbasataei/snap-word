@@ -9,7 +9,6 @@ import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/coin_pill.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
@@ -281,11 +280,10 @@ class _TopBar extends StatelessWidget {
       children: [
         CoinPill(amount: coins),
         const Spacer(),
-        // Temporary QA affordance: toggles light/dark until ZProfile ships
-        // the real حالت شب switch (Stage 5). Remove once that toggle lands.
+        // Settings (incl. the حالت شب switch) live in ZProfile.
         _IconSquare(
-          icon: Icons.dark_mode_outlined,
-          onTap: () => getIt<ThemeCubit>().toggle(),
+          icon: Icons.settings_outlined,
+          onTap: () => context.go('/profile'),
         ),
         const SizedBox(width: ZSpacing.sm),
         const _IconSquare(icon: Icons.notifications_none_rounded),
@@ -687,7 +685,8 @@ class _WeeklyRankTeaser extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: 46,
+              // 3 dots × 28px, each offset 19px → 2×19 + 28 = 66.
+              width: 66,
               height: 28,
               child: Stack(
                 children: [
@@ -697,6 +696,7 @@ class _WeeklyRankTeaser extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: ZSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -723,8 +723,8 @@ class _RankDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      right: offset * 19.0,
+    return PositionedDirectional(
+      start: offset * 19.0,
       child: Container(
         width: 28,
         height: 28,

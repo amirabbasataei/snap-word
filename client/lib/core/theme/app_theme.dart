@@ -2,209 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 
-/// Legacy flat colour palette. Every screen built before the زنجیر redesign
-/// (Phase 17) references these directly instead of `Theme.of(context)`, so
-/// they must keep working — and keep their exact current values — until
-/// that screen is ported to `context.z.*` tokens in its own redesign stage.
-/// Do not add new usages of this class; use `ZColors` (`context.z`) instead.
-abstract final class AppColors {
-  static const background = Color(0xFF0B0E1C);
-  static const surface = Color(0xFF131929);
-  static const card = Color(0xFF1A2440);
-  static const inputFill = Color(0xFF1E2A3F);
-  static const primary = Color(0xFF5B7FFC);
-  static const primaryDark = Color(0xFF4A6EEB);
-  static const secondary = Color(0xFFFFB800);
-  static const error = Color(0xFFFF5252);
-  static const success = Color(0xFF4CAF50);
-  static const textPrimary = Color(0xFFFFFFFF);
-  static const textSecondary = Color(0xFF7B8EAF);
-  static const divider = Color(0xFF253050);
-}
-
+/// زنجیر light/dark themes. Both are built from the same `ZColors` token
+/// set, so light and dark are the same widgets with different values —
+/// screens read `context.z.*`, never `Theme.of(context)` colours directly.
 abstract final class AppTheme {
-  /// Unmigrated screens still read `AppColors.*` directly and are visually
-  /// untouched by this theme beyond the global Vazirmatn font swap; the
-  /// `ZColors.dark` extension is attached so widgets already built against
-  /// `context.z` (bottom nav, shared widgets) render correctly alongside
-  /// them in the interim.
-  static ThemeData get dark => ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        fontFamily: 'Vazirmatn',
-        extensions: const [ZColors.dark],
-        scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.dark(
-          brightness: Brightness.dark,
-          primary: AppColors.primary,
-          onPrimary: AppColors.textPrimary,
-          secondary: AppColors.secondary,
-          onSecondary: AppColors.background,
-          surface: AppColors.surface,
-          onSurface: AppColors.textPrimary,
-          error: AppColors.error,
-          onError: AppColors.textPrimary,
-        ),
-        cardTheme: const CardThemeData(
-          color: AppColors.card,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
-          elevation: 0,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: AppColors.inputFill,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.divider, width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.error, width: 1),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-          ),
-          labelStyle: const TextStyle(color: AppColors.textSecondary),
-          hintStyle: const TextStyle(color: AppColors.textSecondary),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.textPrimary,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.textPrimary,
-            minimumSize: const Size.fromHeight(52),
-            side: const BorderSide(color: AppColors.divider),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            textStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-          ),
-          headlineLarge: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-          ),
-          headlineMedium: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-          titleLarge: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-          titleMedium: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-          bodyLarge: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 16,
-          ),
-          bodyMedium: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-          ),
-          bodySmall: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-          ),
-          labelLarge: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: AppColors.surface,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-        ),
-        dividerTheme: const DividerThemeData(
-          color: AppColors.divider,
-          thickness: 1,
-          space: 1,
-        ),
-        iconTheme: const IconThemeData(color: AppColors.textSecondary),
-      );
+  static ThemeData get light => _build(ZColors.light, Brightness.light);
+  static ThemeData get dark => _build(ZColors.dark, Brightness.dark);
 
-  /// زنجیر light theme, built entirely from `ZColors.light` tokens. Backs
-  /// screens/widgets already ported to `context.z` (Stage 1 shared widgets
-  /// onward); unmigrated screens ignore it because they read `AppColors.*`
-  /// directly rather than `Theme.of(context)`.
-  static ThemeData get light => ThemeData(
+  static ThemeData _build(ZColors z, Brightness brightness) => ThemeData(
         useMaterial3: true,
-        brightness: Brightness.light,
+        brightness: brightness,
         fontFamily: 'Vazirmatn',
-        extensions: const [ZColors.light],
-        scaffoldBackgroundColor: ZColors.light.paper,
-        colorScheme: ColorScheme.light(
-          brightness: Brightness.light,
-          primary: ZColors.light.indigo,
-          onPrimary: ZColors.light.onIndigo,
-          secondary: ZColors.light.teal,
-          onSecondary: ZColors.light.onTeal,
-          surface: ZColors.light.surface,
-          onSurface: ZColors.light.ink,
-          error: ZColors.light.coral,
-          onError: ZColors.light.onCoral,
+        extensions: [z],
+        scaffoldBackgroundColor: z.paper,
+        colorScheme: ColorScheme(
+          brightness: brightness,
+          primary: z.indigo,
+          onPrimary: z.onIndigo,
+          secondary: z.teal,
+          onSecondary: z.onTeal,
+          surface: z.surface,
+          onSurface: z.ink,
+          error: z.coral,
+          onError: z.onCoral,
         ),
         textTheme: ZTypography.textTheme(
-          baseColor: ZColors.light.ink,
-          secondaryColor: ZColors.light.ink60,
+          baseColor: z.ink,
+          secondaryColor: z.ink60,
         ),
+        dialogTheme: DialogThemeData(backgroundColor: z.surface),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: z.inkSurface,
+          contentTextStyle: ZTypography.body.copyWith(color: z.onInkSurface),
+          behavior: SnackBarBehavior.floating,
+        ),
+        progressIndicatorTheme: ProgressIndicatorThemeData(color: z.indigo),
         dividerTheme: DividerThemeData(
-          color: ZColors.light.line,
+          color: z.line,
           thickness: 1,
           space: 1,
         ),
-        iconTheme: IconThemeData(color: ZColors.light.ink60),
+        iconTheme: IconThemeData(color: z.ink60),
       );
 }

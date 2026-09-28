@@ -4,12 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _prefsKey = 'theme_mode';
 
-/// Persists the user's حالت شب (night mode) choice. Defaults to dark: most
-/// screens are still built against the legacy dark-only `AppColors` palette
-/// (see `app_theme.dart`) and don't respond to `ThemeMode.light` yet — the
-/// toggle itself is surfaced in ZProfile once that screen is ported
-/// (Phase 17 Stage 5). Safe to construct and wire into `MaterialApp` now:
-/// unmigrated screens simply ignore whichever theme is active.
+/// Persists the user's حالت شب (night mode) choice, toggled from ZProfile.
+/// With no saved choice the app follows the system setting.
 class ThemeCubit extends Cubit<ThemeMode> {
   final SharedPreferences _prefs;
 
@@ -23,7 +19,7 @@ class ThemeCubit extends Cubit<ThemeMode> {
       case 'dark':
         return ThemeMode.dark;
       default:
-        return ThemeMode.dark;
+        return ThemeMode.system;
     }
   }
 
@@ -32,6 +28,8 @@ class ThemeCubit extends Cubit<ThemeMode> {
     await _prefs.setString(_prefsKey, mode == ThemeMode.light ? 'light' : 'dark');
   }
 
-  Future<void> toggle() =>
-      setThemeMode(state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
+  /// Flips relative to what's actually on screen, so the first toggle from
+  /// [ThemeMode.system] always does something visible.
+  Future<void> toggle(Brightness current) => setThemeMode(
+      current == Brightness.dark ? ThemeMode.light : ThemeMode.dark);
 }

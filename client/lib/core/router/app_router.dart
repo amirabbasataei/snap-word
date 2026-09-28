@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/theme/app_theme.dart';
+import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/widgets/z_bottom_nav.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/view/z_login_screen.dart';
@@ -129,7 +129,7 @@ class _MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.z.paper,
       body: shell,
       bottomNavigationBar: ZBottomNav(
         currentIndex: shell.currentIndex,

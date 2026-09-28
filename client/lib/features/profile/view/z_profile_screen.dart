@@ -232,11 +232,13 @@ class _LoadedView extends StatelessWidget {
               if (!state.isGuest) ...[
                 const _CosmeticToggleRow(
                   title: 'صدا و لرزش',
+                  icon: Icons.volume_up_outlined,
                   valueLabel: 'روشن',
                   showTopBorder: true,
                 ),
                 const _CosmeticToggleRow(
                   title: 'یادآور چالش روزانه',
+                  icon: Icons.notifications_none_rounded,
                   valueLabel: '۲۱:۰۰',
                   showTopBorder: true,
                 ),
@@ -498,12 +500,15 @@ class _NightModeRow extends StatelessWidget {
     return BlocBuilder<ThemeCubit, ThemeMode>(
       bloc: themeCubit,
       builder: (context, mode) {
-        final isDark = mode == ThemeMode.dark;
+        // Actual on-screen brightness, so ThemeMode.system shows correctly.
+        final brightness = Theme.of(context).brightness;
+        final isDark = brightness == Brightness.dark;
         return _SettingsShell(
           title: 'حالت شب',
+          icon: Icons.dark_mode_outlined,
           showTopBorder: false,
           trailing: GestureDetector(
-            onTap: () => themeCubit.toggle(),
+            onTap: () => themeCubit.toggle(brightness),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 44,
@@ -535,11 +540,13 @@ class _NightModeRow extends StatelessWidget {
 /// Stage 5 report rather than silently faking persistence.
 class _CosmeticToggleRow extends StatelessWidget {
   final String title;
+  final IconData icon;
   final String valueLabel;
   final bool showTopBorder;
 
   const _CosmeticToggleRow({
     required this.title,
+    required this.icon,
     required this.valueLabel,
     required this.showTopBorder,
   });
@@ -549,6 +556,7 @@ class _CosmeticToggleRow extends StatelessWidget {
     final z = context.z;
     return _SettingsShell(
       title: title,
+      icon: icon,
       showTopBorder: showTopBorder,
       trailing: Text(valueLabel, style: ZTypography.metaLabel.copyWith(color: z.ink40)),
     );
@@ -557,11 +565,15 @@ class _CosmeticToggleRow extends StatelessWidget {
 
 class _SettingsShell extends StatelessWidget {
   final String title;
+  final IconData icon;
   final bool showTopBorder;
   final Widget trailing;
 
+  // Material icons stand in for the canvas's bespoke square glyphs, same as
+  // ZBottomNav (no glyph assets exist).
   const _SettingsShell({
     required this.title,
+    required this.icon,
     required this.showTopBorder,
     required this.trailing,
   });
@@ -576,7 +588,13 @@ class _SettingsShell extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(width: 30, height: 30, decoration: BoxDecoration(color: z.wash, borderRadius: BorderRadius.circular(9))),
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: z.wash, borderRadius: BorderRadius.circular(9)),
+            child: Icon(icon, size: 17, color: z.ink60),
+          ),
           const SizedBox(width: ZSpacing.md),
           Expanded(
             child: Text(title, style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink)),

@@ -39,7 +39,11 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | 14 | Flutter: Leaderboard, Friends & Profile | [x] Complete |
 | 15 | Flutter: Daily Challenge & Sharing | [x] Complete |
 | 16 | Monetization Hooks & Final Wiring | [x] Complete |
-| 17 | Visual Redesign (زنجیر) | [ ] In Progress — Stages 1–4 complete and on-device verified (ZHome/ZSolo/ZPlay/ZOver/ZDailyBefore/ZDailyAfter/ZLobby/ZVersus/ZLogin/ZOtp); Stage 5 (ZBoard, ZProfile, ZFriends) coded (`fa5811d`), not yet written up in REDESIGN_PLAN.md or verified on-device; Stages 6–7 pending |
+| 17 | Visual Redesign (زنجیر) | [ ] In Progress — Stages 1–5 complete and on-device verified; Stage 6 code complete (multiplayer game-over/overlays on tokens, legacy `AppColors` removed) — needs a live multiplayer match to verify; Stage 7 partial (shared-widget goldens + token lint done, chain-renderer goldens remaining) |
+| 18 | Bug Fixes & Quick Wins | [ ] Not Started |
+| 19 | Multiplayer Lives & Best-of-5 Rounds | [ ] Not Started |
+| 20 | Progression & Lobby Economy | [ ] Not Started |
+| 21 | Production Readiness | [ ] Not Started |
 
 ---
 
@@ -80,7 +84,6 @@ wordchain/
 │   │   ├── engine/
 │   │   │   └── data/
 │   │   │       ├── fa.txt                       ← Persian dictionary
-│   │   │       └── word_freq_ranks.txt         ← word frequency ranks (see Appendix)
 │   │   ├── scheduler/                          ← background jobs
 │   │   └── middleware/
 │   ├── migrations/
@@ -131,17 +134,17 @@ wordchain/
 - Screen files: `ZHome`, `ZSolo`, `ZPlay`, `ZOver`, `ZLobby`, `ZVersus`, `ZDailyBefore`, `ZDailyAfter`, `ZBoard`, `ZProfile`, `ZFriends`, `ZPhone`, `ZOtp`; `Zanjir.dc.html` holds the token sheet.
 - The PNGs in `figma/` are the **legacy** Phase 1–16 references, superseded by the canvas for any screen it covers.
 
-Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference. Screens with no canvas design (continue prompt, etc.) are derived from the token system (REDESIGN_PLAN.md Stage 6).
+Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference. Screens with no canvas design (e.g. the opponent-deciding overlay, friend challenge sheet) are derived from the token system (REDESIGN_PLAN.md Stage 6). `ZOverScreen` is the single game-over/continue screen for solo, vs-AI and multiplayer.
 
 ### Visual system rules (Phase 17)
 - **A screen never names a hex value.** Read colors from the `ZColors` theme extension via `context.z.<token>` (`core/theme/app_tokens.dart`). Light/dark are the same widgets with different token values. Any `Color(0x…)` in a screen file is a bug.
-- Legacy `AppColors`/`AppTheme.dark` still exist only for not-yet-migrated widgets (e.g. the multiplayer `ContinuePrompt`/`_GameOverScreen`); don't use them in new code.
+- The legacy `AppColors` palette is **removed**; `AppTheme.light`/`dark` are both built from `ZColors`. `test/core/theme/token_coverage_test.dart` fails the build on hardcoded colours.
 - Typeface: Vazirmatn (vendored in `assets/fonts/`). Spacing/radii/elevation/motion come from `core/theme/app_spacing.dart`, `app_elevation.dart`, `app_motion.dart`.
 - **Zero-blur elevation**: solid offset edges only (`solidEdge(...)`); pressed state removes the offset and translates Y +3.
 - **Persian digits everywhere** (۰۱۲…, thousands separator «٬») via `core/utils/persian_digits.dart`. Dates use Jalali (`shamsi_date`).
 - **RTL-native**: use `EdgeInsetsDirectional`, `start`/`end` alignment — never `left`/`right`.
 - Reuse the shared widgets in `core/widgets/` (`LetterTile`, `SolidCard`, `AccentButton`/`NeutralButton`, `CoinPill`, `TintChip`, `AvatarTile`, `SectionHeader`, `StreakStrip`, `ZBottomNav`).
-- Theme mode: `ThemeCubit` (persisted in `shared_preferences`), toggled from ZProfile's حالت شب switch. ZHome's top-right icon button is also temporarily wired to `ThemeCubit.toggle()` — replace now that ZProfile has the real switch.
+- Theme mode: `ThemeCubit` (persisted in `shared_preferences`, defaults to `ThemeMode.system`), toggled from ZProfile's حالت شب switch.
 - **Real-data-only**: never fabricate stats the API doesn't provide (player counts, percentiles, opponent records). Substitute a real field or drop the element, and note it in REDESIGN_PLAN.md.
 
 ---
@@ -485,18 +488,18 @@ Client reconnect: exponential backoff (1s, 2s, 4s, capped at 8s) for up to 30 se
 ## 💰 Scoring Formula
 
 ```
-base_score   = word.length × 10
+base_score   = letters(word) × 10          ← letters/runes, never UTF-8 bytes
 speed_bonus  = max(0, (time_limit - response_time_sec) × 2)
 streak_bonus = streak >= 3 ? base_score × 0.5 : 0
-rarity_bonus = freq_rank(word) > 10000 ? 20 : 0
-turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
+turn_score   = base_score + speed_bonus + streak_bonus
 ```
 
 - **Long-word bonus (Phase 17, Flutter solo/AI only)**: words with ≥ `GameConstants.longWordBonusMinLength` (7) letters have their turn score multiplied by `longWordBonusMultiplier` (2.0) in `GameBloc._calculateScore`. The Go scorer does **not** apply it yet — multiplayer support is follow-up work.
 
 - `time_limit` is the turn timer for the current match variant.
 - `streak` is consecutive successes *before* this word.
-- `rarity_bonus` is **not applied in solo/AI mode** — the Flutter scorer omits it (frequency file is backend-only). Solo scores are excluded from the competitive leaderboard, so this asymmetry is acceptable.
+- **No rarity bonus.** It depended on an English word-frequency list (`word_freq_ranks.txt`), removed 2026-09-28 — no Persian frequency data exists. Go and Flutter scorers are now identical apart from the long-word bonus above.
+- Go counts letters with `utf8.RuneCountInString` (it previously used `len(word)`, i.e. bytes, which doubled every Persian multiplayer score).
 
 ---
 
@@ -598,7 +601,7 @@ Both players' inventories are visible at match start. Multiplayer limits enforce
 
 The matchmaking AI-fallback opponent is persisted as a single fixed user, `config.SystemAIUserID` (`00000000-0000-0000-0000-000000000001`, seeded by migration `004_ai_system_user`), with `match_players.is_ai = true`. It is never recorded in `player_stats` or the weekly leaderboard.
 
-**Trap letters**: Q, X, Z, J, V. Trap preference only when at least one trap-ending word exists for the required starting letter; otherwise falls back to weighted random. Implemented in `internal/service/ai.go`.
+**Trap letters**: ژ ظ ث ذ ض — the five letters that the fewest `fa.txt` words start with (26–54 words each). ی is deliberately excluded (few words start with it, ~2.6k end with it). Trap preference applies only when at least one trap-ending word exists for the required starting letter; otherwise it falls back to random. Go: `config.AITrapLetters` + `engine.SelectAIWord` (rune-based); Flutter: `aiTrapLetters` in `core/services/ai_opponent.dart`. Keep both in sync. The table's "Min word length" is in letters, not bytes.
 
 ---
 
@@ -726,7 +729,7 @@ flutter test
 
 ## 🚧 Open Issues & Follow-ups
 
-Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
+Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. **Each item is scheduled in PLAN.md Phases 18–21** (with the product decisions made for it).
 
 **Phase 17 placeholders (canvas UI rendered, no backend yet — never fake client-side):**
 - **Wager + turn-length picker** (ZLobby) — interactive but not sent to `POST /match/queue`; needs a wager field, coin hold/refund/payout, and a coin-economy entry.
@@ -739,7 +742,8 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 
 **Known bugs / gaps (pre-existing, flagged not fixed):**
 - Time Attack ends on the player's first mistake instead of running the full 90s (`GameBloc`).
-- `go test ./internal/ws/...` (3 failures) and `./internal/engine/...` (4 `TestSelectAIWord_*` failures) were failing before Phase 17 as of 2026-09-17 — re-check.
+- ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).
+- ZHome's notification bell has no behavior.
 - Kavenegar SMS delivery unverified end-to-end (no account yet; dev bypass OTP `1111`).
 - **FCM permission is never requested.** `NotificationService.requestPermission()` has no call site anywhere in `client/lib` (true even before the tutorial was removed — the spec'd "after tutorial" trigger was never wired), so push notifications won't be authorized on iOS/Android 13+. Needs a trigger point (e.g. after the first completed game or on first login).
 
@@ -753,7 +757,7 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 - **Always check previous phases' output** before writing code that depends on it (verify actual method signatures).
 - **Keep CLAUDE.md status table and PLAN.md per-phase status lines in sync.**
 - **Dictionary is dual:** `fa.txt` lives in both `backend/internal/engine/data/` and `client/assets/words/`. Keep them byte-identical.
-- **`word_freq_ranks.txt` is backend only.** Rarity bonus is server-side; omit it from the Flutter scorer.
+- **Persian text is multi-byte.** Never index or measure a Persian string by bytes in Go (`w[0]`, `w[len(w)-1]`, `len(w)`). Use `engine.LastLetter`/`firstLetter` and `utf8.RuneCountInString`. Four separate byte-vs-rune bugs have been fixed so far (WS next letter, scorer, AI word picker, longest word).
 - **Never require login to start a solo or vs-AI game.** Guest mode is first-class.
 - **Local DB is the source of truth for solo/AI games.** The backend is never called during an active solo or AI game.
 - **Daily Challenge never appears in the multiplayer lobby.**
@@ -788,6 +792,8 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 
 ## 📎 Appendix: Dictionary & Word Frequency List
 
-**Persian dictionary (`fa.txt`)** — 17,414 words after the cleanup in commit `2758a1c` (was 162,626), one word per line, no spaces, no teh marbuta (ة) or diacritics. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical).
+**Persian dictionary (`fa.txt`)** — the only word data in the project. 17,414 words after the cleanup in commit `2758a1c` (was 162,626), one word per line, no spaces, no teh marbuta (ة) or diacritics. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical).
 
-**`word_freq_ranks.txt`** — tab-separated `word\trank`, English words, sorted by rank ascending. **Not yet ported to Persian** — since no Persian word has a rank, `Rank()` returns `math.MaxInt` and `rarity_bonus` (+20) currently applies to **every** multiplayer word. Pending decision until a Persian frequency list exists. Backend only at `backend/internal/engine/data/word_freq_ranks.txt`.
+**Decision (2026-09-28): the 17,414-word list is final.** The larger original contained many incomplete entries; do not restore it. Common words missing from it (e.g. «روباه», «تهران») are accepted as a known gap.
+
+The English `word_freq_ranks.txt` and `engine/frequency.go` were deleted — there is no English data left in the project.

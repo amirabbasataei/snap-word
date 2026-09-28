@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,24 +38,32 @@ class SyncService {
   Future<void> _uploadUnsyncedMatches() async {
     final matches = await _matchDao.getUnsyncedMatches();
     for (final match in matches) {
+      // An active match is still resumable locally — upload it once it ends.
+      if (match.status == 'active' || match.endedAt == null) continue;
       try {
         final response = await _dio.post(
           ApiEndpoints.soloGame,
           data: {
             'mode': match.mode,
             'score': match.score,
-            'word_chain': match.wordChain,
+            // Stored as a JSON string in Drift; the API expects an array.
+            'word_chain': (jsonDecode(match.wordChain) as List<dynamic>).cast<String>(),
             'started_at': _toRfc3339(match.startedAt),
-            'ended_at': match.endedAt != null ? _toRfc3339(match.endedAt!) : null,
+            'ended_at': _toRfc3339(match.endedAt!),
           },
         );
         final remoteId = response.data['data']['id'] as String;
         await _matchDao.markSynced(match.id, remoteId);
       } on DioException catch (e) {
-        if (e.response?.statusCode == 409) {
+        final status = e.response?.statusCode;
+        if (status == 409) {
           // Already exists server-side — mark synced silently
           final remoteId = e.response?.data['data']?['id'] as String? ?? '';
           await _matchDao.markSynced(match.id, remoteId);
+        } else if (status != null && status >= 400 && status < 500) {
+          // The server rejected this row; retrying won't help, and aborting
+          // here would block every later match behind it. Skip it.
+          _log.e('Match ${match.id} rejected by server ($status): ${e.response?.data}');
         } else {
           _log.w('Match sync failed, will retry: $e');
           return; // abort remaining; retry on next trigger

@@ -70,9 +70,15 @@ func parseDuration(key string, fallback time.Duration) time.Duration {
 	return d
 }
 
+// AITrapLetters are the Persian letters that the fewest fa.txt words start
+// with (ژ 26, ظ 28, ث 38, ذ 46, ض 54 words of ≥3 letters). Ending a word on
+// one leaves the opponent few follow-ups — the AI prefers them when TrapPref
+// fires. ی is deliberately excluded: few words start with it but ~2.6k end
+// with it, so it would make the hard AI trap constantly. Keep in sync with
+// Flutter's `aiTrapLetters` (client/lib/core/services/ai_opponent.dart).
+var AITrapLetters = map[rune]bool{'ژ': true, 'ظ': true, 'ث': true, 'ذ': true, 'ض': true}
+
 // AIDifficulty holds the configuration for one AI skill level.
-// Trap letters (Q, X, Z, J, V) end a word in a position that offers few valid
-// follow-ups for the opponent — the AI prefers them when TrapPref fires.
 type AIDifficulty struct {
 	DelayMs       int     // milliseconds before the AI submits its word
 	MistakeRate   float64 // probability [0,1] of submitting an intentionally invalid word

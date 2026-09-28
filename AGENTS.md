@@ -1,7 +1,7 @@
 # AGENTS.md — WordChain
 
 > **Read CLAUDE.md and PLAN.md at the start of every session** — and **REDESIGN_PLAN.md** while Phase 17 is in progress.  
-> Phases 1–16 are complete. Phase 17 (زنجیر visual redesign) is in progress: Stages 1–4 done and verified on-device, Stage 5 (ZBoard/ZProfile/ZFriends) coded but not verified, Stages 6–7 pending. Never skip a phase scope.
+> Phases 1–16 are complete. Phase 17 (زنجیر visual redesign) is in progress: Stages 1–5 done and verified on-device, Stage 6 code complete (needs a live multiplayer check), Stage 7 partial. Phases 18–21 are planned in PLAN.md. Never skip a phase scope.
 
 ## Monorepo layout
 
@@ -74,9 +74,9 @@ flutter test                                 # widget/bloc tests
 - `backend/internal/engine/data/fa.txt`
 - `client/assets/words/fa.txt`
 
-`fa.txt` is ~17.4k cleaned words (no ة, no diacritics).
+`fa.txt` is ~17.4k cleaned words (no ة, no diacritics) and is final — don't restore the old larger list. It is the only word data; the English frequency list and the rarity bonus were removed.
 
-`word_freq_ranks.txt` is backend-only, English, and not yet ported to Persian — rarity_bonus currently applies to every Persian word (pending decision).
+**Persian is multi-byte in Go**: never use `w[0]`, `w[len(w)-1]` or `len(w)` on words — use `engine.LastLetter`, `firstLetter`, `utf8.RuneCountInString`. AI trap letters are ژ ظ ث ذ ض (`config.AITrapLetters`, mirrored in Flutter's `aiTrapLetters`).
 
 ## Drift (Flutter local DB)
 
@@ -126,7 +126,8 @@ SQL files embedded via `io/fs` (`migrations/embed.go`). Auto-run at server start
 ## UI (Phase 17 visual system)
 
 - Design source: the زنجیر Claude Design canvas (project `4a90de7c-3340-476f-922d-213a9dcd6307`). Fetch with `DesignSync` `get_file` (`path: "<Screen>.dc.html"`); WebFetch returns 403. `figma/` PNGs are legacy. Follow the designs; don't invent layouts.
-- **Never hardcode colors in screens** — use `context.z.<token>` (`ZColors`). Light and dark mode are the same widgets with different token values.
+- **Never hardcode colors in screens** — use `context.z.<token>` (`ZColors`). Light and dark mode are the same widgets with different token values. `AppColors` no longer exists; `test/core/theme/token_coverage_test.dart` enforces this.
+- `ZOverScreen` is the single game-over/continue screen for solo, vs-AI and multiplayer.
 - Vazirmatn font, Persian digits (`persian_digits.dart`), Jalali dates (`shamsi_date`), RTL-native (`EdgeInsetsDirectional`, `start`/`end`).
 - Zero-blur elevation: solid offset edges only.
 - Real data only — never fabricate stats the API doesn't provide.

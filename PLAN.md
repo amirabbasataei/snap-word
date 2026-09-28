@@ -117,7 +117,7 @@ At the start of each session: read **both** files, then implement the requested 
 
 **Scope:**
 - `internal/engine/dictionary.go` — embed ENABLE wordlist (`data/enable.txt`), load into `map[string]struct{}` at startup, expose `IsValid(word string) bool`
-- `internal/engine/frequency.go` — embed `data/word_freq_ranks.txt`, load into `map[string]int` at startup, expose `Rank(word string) int` (returns `math.MaxInt` if missing)
+- ~~`internal/engine/frequency.go`~~ (removed 2026-09-28 with the English frequency list) — embed `data/word_freq_ranks.txt`, load into `map[string]int` at startup, expose `Rank(word string) int` (returns `math.MaxInt` if missing)
 - `internal/engine/validator.go` — `ValidateMove(prevWord, newWord string, usedWords map[string]bool) error` — covers all six Word Validation Rules from CLAUDE.md; returns typed sentinel errors
 - `internal/engine/scorer.go` — `CalculateScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int` using the scoring formula from CLAUDE.md (includes rarity_bonus via `frequency.Rank`)
 - Unit tests for all four engine files
@@ -186,7 +186,7 @@ At the start of each session: read **both** files, then implement the requested 
   Medium: 1.5s delay, 10% mistake rate, min length 4, 30% trap-letter preference
   Hard:   0.6s delay, 2% mistake rate, min length 6, 70% trap-letter preference + longest valid trap word preferred
   ```
-  Trap letters: Q, X, Z, J, V. AI selects a trap-ending word only when at least one exists; otherwise falls back to weighted random.
+  Trap letters: Q, X, Z, J, V (later replaced by Persian ژ ظ ث ذ ض — see CLAUDE.md AI Opponent). AI selects a trap-ending word only when at least one exists; otherwise falls back to weighted random.
 
 **Done when:** Matchmaking pairs two real clients. AI plays at all three difficulty levels with correct trap letter behaviour.
 
@@ -338,7 +338,7 @@ Full end-to-end smoke flows:
 ---
 
 ## Phase 17 — Visual Redesign (زنجیر)
-**Status: [ ] In Progress — Stages 1–4 complete and on-device verified (ZHome/ZSolo/ZPlay/ZOver/ZDailyBefore/ZDailyAfter/ZLobby/ZVersus/ZLogin/ZOtp); Stage 5 (ZBoard, ZProfile, ZFriends) coded (`fa5811d`), not yet written up in REDESIGN_PLAN.md or verified on-device; Stages 6–7 pending**
+**Status: [ ] In Progress — Stages 1–5 complete and on-device verified; Stage 6 code complete (multiplayer game-over/overlays on tokens, legacy `AppColors` removed) — needs a live multiplayer match to verify; Stage 7 partial (shared-widget goldens + token lint done, chain-renderer goldens remaining)**
 
 Full plan, token values, spec-conflict decisions, and per-stage notes live in **REDESIGN_PLAN.md**. Summary:
 
@@ -350,9 +350,9 @@ Full plan, token values, spec-conflict decisions, and per-stage notes live in **
 | 2 — Core loop | ZHome, ZSolo (`z_solo_screen.dart`), ZPlay (`z_play_screen.dart`), ZOver (`z_over_screen.dart`) | [x] Complete, on-device verified |
 | 3 — Daily Challenge | ZDailyBefore / ZDailyAfter (`daily_screen.dart`), Jalali date, lives extended to Daily | [x] Complete, on-device verified |
 | 4 — Multiplayer + auth | ZLobby, ZVersus (`z_versus_screen.dart`); ZLogin / ZOtp (phone + OTP auth, email/password removed); referral system | [x] Complete, on-device verified 2026-09-17 (auth screens tap-through by AmirAbbas) |
-| 5 — Secondary screens | ZBoard (`z_board_screen.dart`), ZProfile (`z_profile_screen.dart`, incl. حالت شب toggle), ZFriends (`z_friends_screen.dart`) | [ ] Coded (`fa5811d`), needs REDESIGN_PLAN.md write-up + on-device verification |
-| 6 — Undesigned screens | Multiplayer continue prompt (`ContinuePrompt`) and multiplayer game-over (`_GameOverScreen`) — derived from the token system. (Tutorial dropped — not rebuilt.) | [ ] Pending |
-| 7 — Tests | Re-baseline `WordChainList`/`TimerBar` goldens, light+dark goldens for `core/widgets/`, lint against `Color(0x…)` in `features/` | [ ] Pending |
+| 5 — Secondary screens | ZBoard (`z_board_screen.dart`), ZProfile (`z_profile_screen.dart`, incl. حالت شب toggle), ZFriends (`z_friends_screen.dart`) | [x] Complete — verified on the Android emulator 2026-09-28, both themes |
+| 6 — Undesigned screens | Multiplayer game-over + continue → `ZOverScreen`; opponent-deciding overlay, disconnect banner, friend challenge sheet on tokens; legacy `AppColors` + dead widgets removed. (Tutorial dropped — not rebuilt.) | [ ] Code complete 2026-09-28; needs a live multiplayer match (win, loss, continue, disconnect) to verify |
+| 7 — Tests | Create goldens (none exist yet — `client/test` has no golden files) for the chain renderers, light+dark goldens for `core/widgets/`, lint against `Color(0x…)` in `features/` | [ ] Partial — shared-widget goldens, token-coverage test, ZOver widget tests done; chain-renderer goldens + other Z-screen widget tests remaining |
 
 **Adopted / decided mechanic changes (see REDESIGN_PLAN.md §1 and stage notes for rationale):**
 - **Lives** — `GameConstants.soloLives = 2` for **solo Classic and Daily** only. Not applied to vs-AI, Time Attack, or multiplayer (server-authoritative; Go WS protocol has no lives concept — «۲ جان» omitted from ZVersus rather than faked).
@@ -368,3 +368,81 @@ Full plan, token values, spec-conflict decisions, and per-stage notes live in **
 **Out-of-scope fixes made during Phase 17** (bugs in "Complete" phases, user-approved): Persian-rejecting `^[a-z]+$` word regex in `GameBloc` (→ `DictionaryService.hasValidChars()`); `StatsDao.recordGameResult` never updating `bestMatchStreak`; five multiplayer contract bugs that made 1v1 non-functional (queue long-poll timeout, match-found signal, WS route behind header auth, `game_start` parsing, byte-vs-rune next letter); AI opponent's non-UUID id (→ `SystemAIUserID`, migration `004_ai_system_user`); daily challenge auto-generation scheduler job; `fa.txt` cleanup (162,626 → 17,414 words).
 
 **Done when:** All screens render pixel-close to the design in both light and dark mode and are verified on-device, no screen file references a hardcoded color, existing golden tests are re-baselined, and placeholder features (wager, rounds, multiplayer lives, levels/badges, typing indicator) have tracked backend follow-up tickets.
+
+---
+
+## Phase 18 — Bug Fixes & Quick Wins
+**Status: [ ] Not Started**
+
+> Planned 2026-09-28. Pre-existing bugs found during Phase 17 plus the cheapest placeholder features. Product decisions below were made by Claude on the user's instruction ("make the best decision yourself") — revise here if the product owner disagrees.
+
+**Scope:**
+- **Time Attack fix** — solo/vs-AI Time Attack currently ends on the first mistake. A mistake/timeout in `time_attack` resets the streak, awards 0 for the turn, and restarts the turn timer; the match ends only when `matchTimeRemaining` hits 0. Bloc tests for both paths.
+- **FCM permission** — `NotificationService.requestPermission()` has no call site. Call it once after the first completed game **or** first successful login (whichever comes first), persisting `notif_permission_asked` in `shared_preferences`; register the token on grant.
+- **Long-word bonus in Go** — `engine.CalculateScore` doubles the turn score for words ≥ `config.LongWordBonusMinLength` (7), matching Flutter's `GameConstants`. Unit tests.
+- **Typing indicator** — new WS events: client → `{ "type": "typing" }` (sent at most once per 2s while the input is non-empty and it's my turn); server → `{ "type": "opponent_typing" }` relayed to the other player only, dropped if not the sender's turn. ZVersus turn banner shows «[نام] دارد می‌نویسد…» for 3s after the last event.
+- **Leaderboard today / all-time tabs** — *Decision: same sources as weekly (multiplayer + Daily Challenge only, never solo).* `AddScore` also writes `leaderboard:global:daily:{YYYY-MM-DD}` (TTL 48h) and `leaderboard:global:alltime` (never reset). `GET /leaderboard?type=global|friends&period=weekly|daily|alltime` (default `weekly`). ZBoard restores the canvas's 4 tabs: این هفته / امروز / همیشه / دوستان (friends stays weekly).
+
+- **ZProfile cosmetic settings** — persist «صدا و لرزش» locally (`shared_preferences`) and wire «یادآور چالش روزانه» to a local notification at the chosen time; give ZHome's bell a destination (pending friend requests/challenges).
+
+> Already done ahead of this phase (2026-09-28): stale WS/engine test fixtures rewritten in Persian; rarity bonus removed with the English frequency list; Go scorer and multiplayer AI made rune-based; Persian AI trap letters.
+
+**Done when:** all Go + Flutter tests green; Time Attack runs the full 90s on-device; the permission prompt appears once; ZBoard shows 4 tabs with real data.
+
+---
+
+## Phase 19 — Multiplayer Lives & Best-of-5 Rounds
+**Status: [ ] Not Started**
+
+> Both change the WS room's end-of-turn logic, so they ship together. Decisions by Claude (see Phase 18 note).
+
+**Decisions:**
+- **Lives**: each player has `config.MultiplayerLives = 2` per round. An invalid word or timeout costs a life and **passes the turn to the opponent** (same required letter — the chain is unchanged). Losing the last life is a round loss.
+- **Shield** is consumed before a life. **Continue** is offered only when the last life is lost (once per player per match, as today) and restores 1 life.
+- **Rounds**: best of `config.MultiplayerRoundsTotal = 5` — first to 3 round wins takes the match. Each round starts a fresh chain and resets lives; the round loser starts the next round. Round scores accumulate; the match winner is decided by round wins, not score.
+- Time Attack matches keep today's rules (single 90s round, highest score wins, no lives).
+
+**Scope:**
+- `internal/ws/room.go` — per-player lives, round state (`round`, `roundWins`), round transition.
+- WS protocol additions: `word_rejected` gains `lives_remaining`; new `life_lost { player_id, lives_remaining, reason }`, `round_over { winner, round, round_wins }`, `round_start { round, starting_player, start_letter? }`. `loss_event` now means "lost the last life". Update CLAUDE.md § WebSocket Event Protocol.
+- Migration `005_match_rounds` — `match_players.round_wins SMALLINT DEFAULT 0`.
+- Flutter: `GameBloc` WS handlers for the new events; ZVersus shows the «۲ جان» chip and a live «دست N از ۵»; a short between-rounds interstitial (derived from the token system).
+- WS tests for: life loss → turn passes, shield-before-life, continue restores a life, 3 round wins end the match.
+
+**Done when:** a real 1v1 (and AI-fallback) match plays through multiple rounds with lives on-device; all WS tests pass.
+
+---
+
+## Phase 20 — Progression & Lobby Economy
+**Status: [ ] Not Started**
+
+> Decisions by Claude (see Phase 18 note).
+
+**Levels & XP** — *Decision:* XP earned = final match score ÷ 10 (rounded down), all modes including solo (solo XP arrives via the existing `POST /game/solo` sync). Level L needs `100 × L` XP to reach L+1 (config constant). Migration adds `player_stats.xp`, `player_stats.level`. `GET /profile/stats` returns `xp`, `level`, `xp_to_next`. ZProfile `_LevelCard` wired. Level titles (e.g. «واژه‌باز») from a small client-side table keyed by level range.
+
+**Badges** — *Decision:* start with 12 server-defined badges (first win, 10/100 wins, streak 3/7/30 days, 7+-letter word, 20-word chain, perfect Daily (20 words), 5 friends, first referral redeemed, level 10). Table `player_badges(user_id, badge_id, earned_at)`; evaluated at game end and on the relevant events; `GET /profile/badges`. ZProfile `_BadgesCard` shows «N از ۱۲». Push notification on earn.
+
+**Wager + turn length** — *Decision:*
+- Turn length 10/15/20s applies to **Classic only** (Time Attack stays 8s). Wager options 0 / 20 / 100 coins (config).
+- `POST /match/queue` gains `turn_sec` and `wager`; queues are keyed by `(mode, turn_sec, wager)`.
+- Coins are held (deducted) atomically at queue join; refunded on cancel or timeout. Winner receives both stakes; on abandonment the remaining player wins.
+- Wagered queues **never fall back to AI** — after the 30s wait they return `404 no_opponent` and refund. Unwagered queues keep the AI fallback.
+- Add the wager rows to the CLAUDE.md coin economy table.
+
+**Join by code** — `POST /rooms` returns a 6-char code (same charset as referral codes, stored in Redis, 10-min TTL); `POST /rooms/join {code}` pairs the two players into a private room (same path as friend challenges). ZLobby `_InviteRow` wired.
+
+**Done when:** levels/badges/wager/room codes work end-to-end with real data; coin balances are correct after every wager path (win, loss, cancel, timeout, disconnect).
+
+---
+
+## Phase 21 — Production Readiness
+**Status: [ ] Not Started**
+
+**Scope:**
+- Real `MonetizationService` (AdMob rewarded/interstitial + RevenueCat IAP); backend `ValidateReceipt` performs real store validation (currently always returns nil).
+- Kavenegar account + end-to-end SMS/voice OTP verification; remove or env-gate the `1111` bypass for production builds.
+- Guest → phone account migration: on first `verify-otp`, the client uploads all unsynced local matches and merges local stats (already mostly covered by `SyncService.sync()` — verify and close the gap noted in CLAUDE.md § Guest Mode).
+- Referrer-side reward — *Decision:* +50 coins to the referrer when the referred user completes their first game (not at signup, to deter fake accounts). Push notification to the referrer.
+- Full Phase 16 integration smoke flows re-run on real devices.
+
+**Done when:** store builds pass review requirements; no mock services in release builds.
