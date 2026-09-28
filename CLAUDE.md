@@ -24,7 +24,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | # | Phase | Status |
 |---|---|---|
 | 1 | Flutter: Core Setup | [x] Complete |
-| 2 | Flutter: Game Feature (Solo + Tutorial) | [x] Complete |
+| 2 | Flutter: Game Feature (Solo + Tutorial — tutorial later removed) | [x] Complete |
 | 3 | Flutter: Auth Feature | [x] Complete |
 | 4 | Foundation & Database | [x] Complete |
 | 5 | Backend: Dictionary & Game Engine | [x] Complete |
@@ -39,7 +39,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | 14 | Flutter: Leaderboard, Friends & Profile | [x] Complete |
 | 15 | Flutter: Daily Challenge & Sharing | [x] Complete |
 | 16 | Monetization Hooks & Final Wiring | [x] Complete |
-| 17 | Visual Redesign (زنجیر) | [ ] In Progress — Stages 1–4 complete and on-device verified (ZHome/ZSolo/ZPlay/ZOver/ZDailyBefore/ZDailyAfter/ZLobby/ZVersus); Stage 5 (ZBoard, ZProfile, ZFriends) next |
+| 17 | Visual Redesign (زنجیر) | [ ] In Progress — Stages 1–4 complete and on-device verified (ZHome/ZSolo/ZPlay/ZOver/ZDailyBefore/ZDailyAfter/ZLobby/ZVersus/ZLogin/ZOtp); Stage 5 (ZBoard, ZProfile, ZFriends) coded (`fa5811d`), not yet written up in REDESIGN_PLAN.md or verified on-device; Stages 6–7 pending |
 
 ---
 
@@ -53,7 +53,7 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 |
 | Dictionary | Hybrid — Flutter `HashSet<String>` (solo/AI, instant, offline) + Go `map[string]struct{}` (multiplayer, authoritative) |
-| Auth | JWT (access + refresh tokens) |
+| Auth | Phone number + 4-digit OTP (Kavenegar SMS / voice fallback) → JWT (access + refresh tokens). No email/password. |
 | Migrations | `golang-migrate/migrate` (numbered `NNN_name.up.sql` / `.down.sql`) |
 | Logging | Go: `slog` (structured JSON in prod, text in dev). Flutter: `logger` package. |
 | Push Notifications | Firebase Cloud Messaging (FCM) — Android + iOS via `firebase_messaging` Flutter package |
@@ -126,7 +126,23 @@ wordchain/
 
 ## 🎨 UI Design Reference
 
-All Flutter screens must be implemented pixel-close to the designs in `figma/`. Each PLAN.md Flutter phase lists the specific reference image(s) for that phase. Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference image.
+**Current source of truth (Phase 17): the زنجیر Claude Design canvas**, project `4a90de7c-3340-476f-922d-213a9dcd6307`. Full plan, token values, spec-conflict decisions, and per-stage notes live in **REDESIGN_PLAN.md** — read it before touching any screen.
+- Fetch screens with the `DesignSync` tool: `method: "get_file"`, `projectId: "4a90de7c-3340-476f-922d-213a9dcd6307"`, `path: "<File>.dc.html"`. WebFetch/browser access to `claude.ai/design/...` returns 403, and `list_projects` doesn't surface this canvas — `get_file` still works.
+- Screen files: `ZHome`, `ZSolo`, `ZPlay`, `ZOver`, `ZLobby`, `ZVersus`, `ZDailyBefore`, `ZDailyAfter`, `ZBoard`, `ZProfile`, `ZFriends`, `ZPhone`, `ZOtp`; `Zanjir.dc.html` holds the token sheet.
+- The PNGs in `figma/` are the **legacy** Phase 1–16 references, superseded by the canvas for any screen it covers.
+
+Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference. Screens with no canvas design (continue prompt, etc.) are derived from the token system (REDESIGN_PLAN.md Stage 6).
+
+### Visual system rules (Phase 17)
+- **A screen never names a hex value.** Read colors from the `ZColors` theme extension via `context.z.<token>` (`core/theme/app_tokens.dart`). Light/dark are the same widgets with different token values. Any `Color(0x…)` in a screen file is a bug.
+- Legacy `AppColors`/`AppTheme.dark` still exist only for not-yet-migrated widgets (e.g. the multiplayer `ContinuePrompt`/`_GameOverScreen`); don't use them in new code.
+- Typeface: Vazirmatn (vendored in `assets/fonts/`). Spacing/radii/elevation/motion come from `core/theme/app_spacing.dart`, `app_elevation.dart`, `app_motion.dart`.
+- **Zero-blur elevation**: solid offset edges only (`solidEdge(...)`); pressed state removes the offset and translates Y +3.
+- **Persian digits everywhere** (۰۱۲…, thousands separator «٬») via `core/utils/persian_digits.dart`. Dates use Jalali (`shamsi_date`).
+- **RTL-native**: use `EdgeInsetsDirectional`, `start`/`end` alignment — never `left`/`right`.
+- Reuse the shared widgets in `core/widgets/` (`LetterTile`, `SolidCard`, `AccentButton`/`NeutralButton`, `CoinPill`, `TintChip`, `AvatarTile`, `SectionHeader`, `StreakStrip`, `ZBottomNav`).
+- Theme mode: `ThemeCubit` (persisted in `shared_preferences`), toggled from ZProfile's حالت شب switch. ZHome's top-right icon button is also temporarily wired to `ThemeCubit.toggle()` — replace now that ZProfile has the real switch.
+- **Real-data-only**: never fabricate stats the API doesn't provide (player counts, percentiles, opponent records). Substitute a real field or drop the element, and note it in REDESIGN_PLAN.md.
 
 ---
 
@@ -171,11 +187,16 @@ All Flutter screens must be implemented pixel-close to the designs in `figma/`. 
 |---|---|---|---|
 | **Classic** | Solo, AI, 1v1 Multiplayer | 15s per turn | First invalid/timeout move loses; one continue per player allowed |
 | **Time Attack** | Solo, AI, 1v1 Multiplayer | 8s per turn | Total match time hits 90s; highest score wins |
-| **Daily Challenge** | **Solo only** | 15s per turn | First mistake or after 20 words; score posted to daily leaderboard |
+| **Daily Challenge** | **Solo only** | 15s per turn | Out of lives (see Lives below) or after 20 words; score posted to daily leaderboard |
 
 **Daily Challenge never appears in the multiplayer lobby.**
 
-Defaults above are tunable in `internal/config/config.go` and via a `GameConfig` constant on the Flutter side. Do not hardcode magic numbers in handlers, blocs, or widgets.
+Defaults above are tunable in `internal/config/config.go` and via `GameConstants` on the Flutter side (`client/lib/features/game/data/game_constants.dart`). Do not hardcode magic numbers in handlers, blocs, or widgets.
+
+### Lives (Phase 17, Flutter-only)
+- **Solo Classic and Daily Challenge** give the player `GameConstants.soloLives` (**2**) lives. A mistake (invalid word or timeout) with lives remaining costs a life and the match continues; the match ends when lives reach 0. So "first invalid move loses" above applies to these modes only once lives are exhausted.
+- **Not applied** to vs-AI, Time Attack, or 1v1 multiplayer. Multiplayer is server-authoritative and the Go WS protocol has no lives concept — the canvas's «۲ جان» chip is intentionally omitted from ZVersus until the backend supports it.
+- Daily's `dailyMaxWords` (20) cap is unchanged.
 
 ### Multiplayer shared chain
 In any multiplayer match (vs AI or 1v1), **both players contribute to a single shared word chain**:
@@ -471,6 +492,8 @@ rarity_bonus = freq_rank(word) > 10000 ? 20 : 0
 turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 ```
 
+- **Long-word bonus (Phase 17, Flutter solo/AI only)**: words with ≥ `GameConstants.longWordBonusMinLength` (7) letters have their turn score multiplied by `longWordBonusMultiplier` (2.0) in `GameBloc._calculateScore`. The Go scorer does **not** apply it yet — multiplayer support is follow-up work.
+
 - `time_limit` is the turn timer for the current match variant.
 - `streak` is consecutive successes *before* this word.
 - `rarity_bonus` is **not applied in solo/AI mode** — the Flutter scorer omits it (frequency file is backend-only). Solo scores are excluded from the competitive leaderboard, so this asymmetry is acceptable.
@@ -480,6 +503,8 @@ turn_score   = base_score + speed_bonus + streak_bonus + rarity_bonus
 ## 🔐 Guest Mode & Auth Strategy
 
 **Core principle: never block a player from playing before they're hooked.**
+
+Screens: `ZLoginScreen` (`/login`, phone entry) and `ZOtpVerifyScreen` (`/login/otp`, 4-box OTP with custom keypad) in `features/auth/view/`. The old email/password `login_screen.dart`/`register_screen.dart` and `/register` route are gone. A dev/test bypass code `1111` exists while no Kavenegar account is purchased; real SMS delivery is still unverified end-to-end.
 
 Identity is phone number + OTP (Kavenegar SMS, with a voice-call fallback), not email/password — there is no username/email login. `POST /auth/send-otp` generates and delivers a 4-digit code (~2min expiry, ~42s resend cooldown, rate-limited); `POST /auth/verify-otp` checks it and issues a session. First-time verification of a phone number **is** signup — a username and referral code are auto-generated at that point (`AuthService.VerifyOTP`, `backend/internal/service/auth.go`). Guest local/offline data (below) is intentionally **not** tied to this schema and is not migrated into a phone account on signup — open item, not yet built.
 
@@ -571,6 +596,8 @@ Both players' inventories are visible at match start. Multiplayer limits enforce
 | Medium | 1.5s | 10% | 4 | 30% trap-letter preference |
 | Hard | 0.6s | 2% | 6 | 70% trap-letter preference; longest valid trap word when available |
 
+The matchmaking AI-fallback opponent is persisted as a single fixed user, `config.SystemAIUserID` (`00000000-0000-0000-0000-000000000001`, seeded by migration `004_ai_system_user`), with `match_players.is_ai = true`. It is never recorded in `player_stats` or the weekly leaderboard.
+
 **Trap letters**: Q, X, Z, J, V. Trap preference only when at least one trap-ending word exists for the required starting letter; otherwise falls back to weighted random. Implemented in `internal/service/ai.go`.
 
 ---
@@ -612,7 +639,7 @@ Score: [score] | Chain: [chain_length] words
 [word1] → [word2] → ... → [last_word]
 Play at wordchain.app
 ```
-Day N = days since `GAME_EPOCH_DATE`, 1-indexed. `share_service.dart` → `shareDaily(DailyChallengeResult)` → `Share.share()`.
+Day N = days since `GAME_EPOCH_DATE`, 1-indexed. Each day's `daily_challenges` row (seed + start letter) is auto-generated by a scheduler job (every 5 min it makes sure today's and tomorrow's rows exist; the start letter comes from `engine/daily_letter.go`). `share_service.dart` → `shareDaily(DailyChallengeResult)` → `Share.share()`.
 
 ---
 
@@ -633,24 +660,13 @@ All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout
 
 **Backend**: `internal/service/notification.go` — `SendToUser(userID, title, body)`.
 **Scheduler** (1-min ticker): midnight daily challenge push · every-minute streak-at-risk check · every-5-min challenge expiry · Sunday 00:00 weekly reset.
-**Flutter**: `notification_service.dart` — FCM permission after tutorial, token registration, foreground banners, payload stream for deep-link routing (`/daily`, `/friends`).
+**Flutter**: `notification_service.dart` — FCM permission request, token registration, foreground banners, payload stream for deep-link routing (`/daily`, `/friends`).
 
 ---
 
-## 🎓 Tutorial (First-Time Player)
+## 🎓 Tutorial
 
-Auto-triggered on first launch. Skippable; replayable from Profile → Help. Completion flag: `tutorial_completed` in `shared_preferences`.
-
-| Step | Instruction | Action |
-|---|---|---|
-| 1 | "Type any word to start the chain!" | Any valid word ≥ 3 letters |
-| 2 | "Now type a word starting with **[letter]**!" | Valid continuation |
-| 3 | "Great! Keep going — you can't reuse words." | One more valid word |
-| 4 | "You're ready! Try Classic, Time Attack, or the Daily Challenge." | Tap "Start Playing" |
-
-- Sandboxed in-memory state; no match record created.
-- Invalid words show inline prompt, not game-over.
-- After tutorial (if still guest): soft upsell *"Register free to save your progress and unlock power-ups."*
+**Removed — no tutorial.** Product decision (Phase 17): the first-time tutorial was dropped. `tutorial_screen.dart`, the `/tutorial` route, the `tutorial_completed` first-launch redirect, and Profile → Help "replay tutorial" were deleted in `fa5811d`. Do not rebuild it.
 
 ---
 
@@ -688,8 +704,51 @@ Tests written **inside the phase that introduces the code**.
 
 ---
 
+## 🛠️ Developer Commands & Environment
+
+```bash
+# Backend (run from backend/)
+go run ./cmd/server                 # start (reads backend/.env — not the repo root)
+go test ./internal/...              # all tests
+docker-compose up                   # app + postgres:16 + redis:7
+
+# Flutter (run from client/)
+flutter run
+dart run build_runner build         # regenerate Drift .g.dart files (gitignored)
+flutter analyze
+flutter test
+```
+
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`.
+- `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
+
+---
+
+## 🚧 Open Issues & Follow-ups
+
+Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
+
+**Phase 17 placeholders (canvas UI rendered, no backend yet — never fake client-side):**
+- **Wager + turn-length picker** (ZLobby) — interactive but not sent to `POST /match/queue`; needs a wager field, coin hold/refund/payout, and a coin-economy entry.
+- **Best-of-5 rounds** (ZVersus) — static «دست ۱ از ۵» (`GameConstants.multiplayerRoundsTotal`); needs new WS round events + server round state + match-level winner rule.
+- **Multiplayer lives** — not built (see Lives).
+- **Levels & badges** (ZProfile) — placeholders; no schema fields.
+- **Typing indicator** (ZVersus) — not built; needs a new WS event.
+- **Long-word bonus in Go scorer** — Flutter-only today.
+- ZLobby's room-code `_InviteRow` — snackbar stub (no join-by-code backend).
+
+**Known bugs / gaps (pre-existing, flagged not fixed):**
+- Time Attack ends on the player's first mistake instead of running the full 90s (`GameBloc`).
+- `go test ./internal/ws/...` (3 failures) and `./internal/engine/...` (4 `TestSelectAIWord_*` failures) were failing before Phase 17 as of 2026-09-17 — re-check.
+- Kavenegar SMS delivery unverified end-to-end (no account yet; dev bypass OTP `1111`).
+- **FCM permission is never requested.** `NotificationService.requestPermission()` has no call site anywhere in `client/lib` (true even before the tutorial was removed — the spec'd "after tutorial" trigger was never wired), so push notifications won't be authorized on iOS/Android 13+. Needs a trigger point (e.g. after the first completed game or on first login).
+
+---
+
 ## ⚠️ Important Notes for Claude Code
 
+- **Read REDESIGN_PLAN.md too while Phase 17 is in progress.** Record each stage's outcome, decisions, and flagged issues there.
+- **Verify on-device.** Phase 17 found multiple bugs that only a live run exposed (Stage 4 multiplayer was non-functional end-to-end despite passing analysis). Don't mark a stage complete from `flutter analyze`/tests alone.
 - **Never implement outside the current phase's scope.** Flag missing items from prior phases without silently fixing them.
 - **Always check previous phases' output** before writing code that depends on it (verify actual method signatures).
 - **Keep CLAUDE.md status table and PLAN.md per-phase status lines in sync.**
@@ -729,6 +788,6 @@ Tests written **inside the phase that introduces the code**.
 
 ## 📎 Appendix: Dictionary & Word Frequency List
 
-**Persian dictionary (`fa.txt`)** — 162,626 words, one word per line, no spaces. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical). Memory: ~1.9 MB plain text. Source file contains ~16k entries with Arabic teh marbuta (ة) or diacritics (see session notes / final report for the full data-quality flag) — these are kept as-is pending a product decision on whether to normalize or strip them.
+**Persian dictionary (`fa.txt`)** — 17,414 words after the cleanup in commit `2758a1c` (was 162,626), one word per line, no spaces, no teh marbuta (ة) or diacritics. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical).
 
-**`word_freq_ranks.txt`** — tab-separated `word\trank`, English words, sorted by rank ascending. **Not yet ported to Persian** — see project notes for the pending decision on how to handle `rarity_bonus` until a Persian frequency list exists. Backend only at `backend/internal/engine/data/word_freq_ranks.txt`.
+**`word_freq_ranks.txt`** — tab-separated `word\trank`, English words, sorted by rank ascending. **Not yet ported to Persian** — since no Persian word has a rank, `Rank()` returns `math.MaxInt` and `rarity_bonus` (+20) currently applies to **every** multiplayer word. Pending decision until a Persian frequency list exists. Backend only at `backend/internal/engine/data/word_freq_ranks.txt`.

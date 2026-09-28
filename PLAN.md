@@ -11,6 +11,8 @@ At the start of each session: read **both** files, then implement the requested 
 ## Phase 1 — Flutter: Core Setup
 **Status: [x] Complete**
 
+> **Later change:** the English ENABLE wordlist (`enable.txt`) was replaced by the Persian `fa.txt` (see CLAUDE.md Dictionary appendix). `core/theme/` was rewritten into the Phase 17 token system.
+
 > Solo and AI games run entirely on-device. The backend is not involved until Phase 4+.
 > This phase also creates the monorepo root structure.
 
@@ -44,6 +46,8 @@ At the start of each session: read **both** files, then implement the requested 
 ## Phase 2 — Flutter: Game Feature (Solo + Tutorial)
 **Status: [x] Complete**
 
+> **Later changes (Phase 17):** solo Classic/Daily now use 2 lives instead of instant game-over; `game_screen.dart` now routes to `z_solo_screen.dart`/`z_play_screen.dart`/`z_over_screen.dart`. The tutorial was dropped by product decision: `tutorial_screen.dart`, the `/tutorial` route, and Profile → Help were deleted in `fa5811d`.
+
 **Scope:**
 - `features/game/data/game_repository.dart` — `startLocalGame(mode, opponentType) → Future<int>`: inserts a row into `local_matches` (status `active`) and returns its local id; `finishLocalGame(localMatchId, score, wordChain)`: updates status, score, chainLength, wordChain, endedAt and runs `deleteWordsForMatch` — all inside one Drift transaction; `usePowerup(type)` (authenticated only): calls `POST /api/v1/powerup/use` then updates `local_powerup_cache` on success
 - `features/game/bloc/game_bloc.dart` — states: `GameInitial`, `GameLoading`, `GameActive`, `GameOver`, `GameError`; events: `GameStarted`, `WordSubmitted`, `PowerupUsed`, `TimerTicked`, `GameEnded`, `ContinueRequested`, `ContinueResolved`
@@ -69,6 +73,8 @@ At the start of each session: read **both** files, then implement the requested 
 
 ## Phase 3 — Flutter: Auth Feature
 **Status: [x] Complete**
+
+> **Superseded (Phase 17 Stage 4):** email/password auth was fully removed. Auth is now phone + OTP via `z_login_screen.dart` (`/login`) and `z_otp_verify_screen.dart` (`/login/otp`); `login_screen.dart`, `register_screen.dart`, and `/register` no longer exist. See CLAUDE.md § Guest Mode & Auth Strategy.
 
 > Auth UI and cubit are fully implementable now. The actual API calls (`register`, `login`, `refreshToken`) will return network errors until Phase 4 brings the backend up — guest mode continues to work perfectly throughout.
 
@@ -122,6 +128,8 @@ At the start of each session: read **both** files, then implement the requested 
 
 ## Phase 6 — Backend: Auth
 **Status: [x] Complete**
+
+> **Superseded (Phase 17 Stage 4):** `Register`/`Login`/bcrypt were replaced by `SendOTP`/`VerifyOTP` (`POST /auth/send-otp`, `POST /auth/verify-otp`), plus `POST /referral/redeem`. Migration `003_phone_auth_referral` drops `email`/`password_hash`. See CLAUDE.md § Guest Mode & Auth Strategy and § Referral Code System.
 
 **Scope:**
 - `internal/repository/user.go` — `CreateUser`, `GetUserByEmail`, `GetUserByID`
@@ -266,7 +274,7 @@ At the start of each session: read **both** files, then implement the requested 
 - `features/friends/view/friends_screen.dart` — friend list, pending requests banner, username search, per-friend profile with Challenge button
 - `features/friends/view/friend_challenge_sheet.dart` — mode selector (Classic / Time Attack), send challenge button
 - `features/profile/cubit/profile_cubit.dart` — authenticated: fetch stats/coins/powerups from backend, update local cache; guest: read from `StatsDao`, show "Register to back up" banner
-- `features/profile/view/profile_screen.dart` — stats, coin balance, powerup inventory (authenticated); guest banner; Help button (replays tutorial)
+- `features/profile/view/profile_screen.dart` — stats, coin balance, powerup inventory (authenticated); guest banner; Help button (replays tutorial — removed in Phase 17)
 - Handle notification deep links: friend request/challenge notification → `/friends`
 
 **Design reference:** `figma/leaderboard.png`, `figma/friends-screen.png`, `figma/profile-screen.png`
@@ -320,7 +328,7 @@ At the start of each session: read **both** files, then implement the requested 
 ## Integration Tests (Phase 16)
 
 Full end-to-end smoke flows:
-- Guest → tutorial → solo → game over → watch ad continue → game ends → score shown
+- Guest → solo → game over → watch ad continue → game ends → score shown
 - Guest → completes solo → registers → score transferred to new account
 - Registered → Daily Challenge → completes → share card generated → retry costs 25 coins
 - Registered → matchmaking queue → 1v1 match → shared chain play → continue prompt → game over → leaderboard updated
@@ -330,25 +338,33 @@ Full end-to-end smoke flows:
 ---
 
 ## Phase 17 — Visual Redesign (زنجیر)
-**Status: [ ] In Progress — Stage 4 (ZLobby, ZVersus) coded, on-device verification pending**
+**Status: [ ] In Progress — Stages 1–4 complete and on-device verified (ZHome/ZSolo/ZPlay/ZOver/ZDailyBefore/ZDailyAfter/ZLobby/ZVersus/ZLogin/ZOtp); Stage 5 (ZBoard, ZProfile, ZFriends) coded (`fa5811d`), not yet written up in REDESIGN_PLAN.md or verified on-device; Stages 6–7 pending**
 
-Full plan, spec-conflict decisions, and stage breakdown live in **REDESIGN_PLAN.md**. Summary:
+Full plan, token values, spec-conflict decisions, and per-stage notes live in **REDESIGN_PLAN.md**. Summary:
 
-- Ports the Claude Design canvas (`Zanjir.dc.html` and per-screen files, project `4a90de7c-3340-476f-922d-213a9dcd6307`, fetched via the `DesignSync` `get_file` method) into Flutter as a token-driven light+dark visual system, RTL-native, Vazirmatn typeface. Blocs/cubits/repositories/DI are unchanged; this is a presentation-layer rewrite.
-- **Stage 1 — Foundation** (in progress): token system (`core/theme/`), Vazirmatn font, Persian digit formatting, `ThemeCubit` (light/dark, persisted), RTL audit, custom bottom nav, shared widgets (`LetterTile`, `SolidCard`, `AccentButton`/`NeutralButton`, `CoinPill`, `TintChip`, `AvatarTile`, `SectionHeader`, `StreakStrip`).
-- **Stage 2** — Core loop screens (ZHome, ZSolo, ZPlay, ZOver).
-- **Stage 3** — Daily Challenge (ZDailyBefore/After).
-- **Stage 4** — Multiplayer (ZLobby, ZVersus).
-- **Stage 5** — Secondary screens (ZBoard, ZProfile, ZFriends).
-- **Stage 6** — Undesigned screens (login, register, tutorial, continue prompt) derived from the token system.
-- **Stage 7** — Re-baseline goldens, add token-coverage lint.
+- Ports the Claude Design canvas (`Zanjir.dc.html` and per-screen files, project `4a90de7c-3340-476f-922d-213a9dcd6307`, fetched via the `DesignSync` `get_file` method) into Flutter as a token-driven light+dark visual system, RTL-native, Vazirmatn typeface. Blocs/cubits/repositories/DI stay unchanged except where a stage fixed a real bug or adopted a mechanic.
 
-**Adopted mechanic changes (see REDESIGN_PLAN.md §1 for full rationale):**
-- **Lives system** — two lives replace instant-death-on-first-mistake, for solo and multiplayer.
-- **Long-word bonus** — added to the scorer (Go + Flutter).
-- **Wager + turn-length picker** (ZLobby) — built as designed, no placeholder gating.
-- **Best-of-5 rounds** (ZVersus) — round count is a **fixed constant** (best of 5), not lobby-configurable. Visual UI (round indicator, "دست ۳ از ۵") builds against a placeholder; real round-tracking (WS protocol + Go backend) is separate follow-up backend work.
-- **Levels & badges** (ZProfile) and **referral codes** (ZFriends/ZLobby) — rendered as designed, wired to placeholders; schema + backend service work is separate follow-up.
-- Drift fixes applied to match existing spec: ZOver continue price uses `GameConstants.continueCostCoins` (25, not the canvas's 50); ZDailyBefore turn timer uses 15s (not the canvas's 10s).
+| Stage | Scope | Status |
+|---|---|---|
+| 1 — Foundation | `core/theme/` token system (`ZColors`), Vazirmatn, `persian_digits.dart`, `ThemeCubit`, RTL audit, `ZBottomNav`, shared widgets in `core/widgets/` | [x] Complete |
+| 2 — Core loop | ZHome, ZSolo (`z_solo_screen.dart`), ZPlay (`z_play_screen.dart`), ZOver (`z_over_screen.dart`) | [x] Complete, on-device verified |
+| 3 — Daily Challenge | ZDailyBefore / ZDailyAfter (`daily_screen.dart`), Jalali date, lives extended to Daily | [x] Complete, on-device verified |
+| 4 — Multiplayer + auth | ZLobby, ZVersus (`z_versus_screen.dart`); ZLogin / ZOtp (phone + OTP auth, email/password removed); referral system | [x] Complete, on-device verified 2026-09-17 (auth screens tap-through by AmirAbbas) |
+| 5 — Secondary screens | ZBoard (`z_board_screen.dart`), ZProfile (`z_profile_screen.dart`, incl. حالت شب toggle), ZFriends (`z_friends_screen.dart`) | [ ] Coded (`fa5811d`), needs REDESIGN_PLAN.md write-up + on-device verification |
+| 6 — Undesigned screens | Multiplayer continue prompt (`ContinuePrompt`) and multiplayer game-over (`_GameOverScreen`) — derived from the token system. (Tutorial dropped — not rebuilt.) | [ ] Pending |
+| 7 — Tests | Re-baseline `WordChainList`/`TimerBar` goldens, light+dark goldens for `core/widgets/`, lint against `Color(0x…)` in `features/` | [ ] Pending |
 
-**Done when:** All 11 screens render pixel-close to the design in both light and dark mode, no screen file references a hardcoded color, existing golden tests are re-baselined, and placeholder-gated features (rounds, levels/badges, referrals) have tracked backend follow-up tickets.
+**Adopted / decided mechanic changes (see REDESIGN_PLAN.md §1 and stage notes for rationale):**
+- **Lives** — `GameConstants.soloLives = 2` for **solo Classic and Daily** only. Not applied to vs-AI, Time Attack, or multiplayer (server-authoritative; Go WS protocol has no lives concept — «۲ جان» omitted from ZVersus rather than faked).
+- **Long-word bonus** — ≥7 letters doubles the turn score, **Flutter scorer only** (`GameBloc._calculateScore`). Go scorer unchanged; follow-up.
+- **Wager + turn-length picker** (ZLobby) — interactive UI, **not wired** to `POST /match/queue` (no backend support). A classic/زمان‌دار toggle was added so multiplayer Time Attack stays reachable.
+- **Best-of-5 rounds** (ZVersus) — fixed constant (`GameConstants.multiplayerRoundsTotal = 5`), rendered as a static «دست ۱ از ۵» placeholder; round tracking is follow-up backend work.
+- **Levels & badges** (ZProfile) — rendered as designed, wired to placeholders; schema + backend is follow-up.
+- **Referral codes** — **fully implemented**: migration `003_phone_auth_referral`, signup-time code on `POST /auth/verify-otp` (+100 coins) and `POST /referral/redeem` post-login (+50, one-time), shared `ReferralBottomSheet` client widget. ZLobby's room-code `_InviteRow` is a separate, still-stubbed feature.
+- **Typing indicator** (ZVersus) — not built (needs a new WS event).
+- **Real-data-only** — canvas stats with no API field (player counts, percentiles, fake opponent records) replaced with real fields or dropped.
+- Drift fixes to match spec: ZOver continue price = `GameConstants.continueCostCoins` (25, not 50); Daily turn timer = 15s (not 10s).
+
+**Out-of-scope fixes made during Phase 17** (bugs in "Complete" phases, user-approved): Persian-rejecting `^[a-z]+$` word regex in `GameBloc` (→ `DictionaryService.hasValidChars()`); `StatsDao.recordGameResult` never updating `bestMatchStreak`; five multiplayer contract bugs that made 1v1 non-functional (queue long-poll timeout, match-found signal, WS route behind header auth, `game_start` parsing, byte-vs-rune next letter); AI opponent's non-UUID id (→ `SystemAIUserID`, migration `004_ai_system_user`); daily challenge auto-generation scheduler job; `fa.txt` cleanup (162,626 → 17,414 words).
+
+**Done when:** All screens render pixel-close to the design in both light and dark mode and are verified on-device, no screen file references a hardcoded color, existing golden tests are re-baselined, and placeholder features (wager, rounds, multiplayer lives, levels/badges, typing indicator) have tracked backend follow-up tickets.

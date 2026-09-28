@@ -1,7 +1,7 @@
 # AGENTS.md — WordChain
 
-> **Read CLAUDE.md and PLAN.md at the start of every session.**  
-> This project was built phase-by-phase (1–16, all complete). Never skip a phase scope.
+> **Read CLAUDE.md and PLAN.md at the start of every session** — and **REDESIGN_PLAN.md** while Phase 17 is in progress.  
+> Phases 1–16 are complete. Phase 17 (زنجیر visual redesign) is in progress: Stages 1–4 done and verified on-device, Stage 5 (ZBoard/ZProfile/ZFriends) coded but not verified, Stages 6–7 pending. Never skip a phase scope.
 
 ## Monorepo layout
 
@@ -27,26 +27,28 @@ wordchain/
 │   │   │   ├── network/                 dio_client, api_endpoints
 │   │   │   ├── router/                  go_router
 │   │   │   ├── database/                Drift (SQLite) + DAOs
-│   │   │   └── services/                dictionary, ws, sync, etc.
+│   │   │   ├── services/                dictionary, ws, sync, etc.
+│   │   │   ├── theme/                   ZColors tokens, typography, spacing, elevation, motion, ThemeCubit
+│   │   │   ├── utils/persian_digits.dart
+│   │   │   └── widgets/                 shared LetterTile, SolidCard, AccentButton, ZBottomNav, …
 │   │   └── features/
 │   │       ├── auth/   game/   home/   lobby/
 │   │       ├── daily/  leaderboard/  friends/  profile/
-│   └── assets/words/fa.txt
-└── figma/             UI design references
+│   └── assets/words/fa.txt, assets/fonts/ (Vazirmatn)
+├── figma/             legacy PNG design references (superseded by the canvas)
+└── REDESIGN_PLAN.md   Phase 17 plan, tokens, decisions, stage notes
 ```
 
 ## Developer commands
 
 ```bash
 # Backend (run from backend/)
-cd backend
 go run ./cmd/server                          # start (reads backend/.env)
 go test ./internal/...                       # all tests
 go test ./internal/engine/...                # engine only
 docker-compose up                            # full stack (app + postgres + redis)
 
 # Flutter (run from client/)
-cd client
 flutter run                                  # start app
 dart run build_runner build                  # regenerate Drift .g.dart files
 flutter analyze                              # lint + static analysis
@@ -72,7 +74,9 @@ flutter test                                 # widget/bloc tests
 - `backend/internal/engine/data/fa.txt`
 - `client/assets/words/fa.txt`
 
-`word_freq_ranks.txt` is backend-only, English, and not yet ported to Persian — rarity_bonus currently applies to every Persian word (see project notes for the pending decision).
+`fa.txt` is ~17.4k cleaned words (no ة, no diacritics).
+
+`word_freq_ranks.txt` is backend-only, English, and not yet ported to Persian — rarity_bonus currently applies to every Persian word (pending decision).
 
 ## Drift (Flutter local DB)
 
@@ -85,7 +89,14 @@ flutter test                                 # widget/bloc tests
 
 Never hardcode magic numbers. Read from:
 - Go: `internal/config/config.go` (`TurnTimerClassicSec`, `ContinueWindowSec`, etc.)
-- Flutter: `lib/features/game/data/game_constants.dart`
+- Flutter: `lib/features/game/data/game_constants.dart` (`GameConstants`, incl. `soloLives`, `longWordBonusMinLength`, `multiplayerRoundsTotal`)
+
+## Game rule changes (Phase 17)
+
+- **Lives**: 2 lives (`GameConstants.soloLives`) for **solo Classic and Daily only**. Not vs-AI, Time Attack, or multiplayer (server-authoritative; no lives in the WS protocol).
+- **Long-word bonus**: ≥7 letters doubles the turn score — Flutter scorer only; Go scorer unchanged.
+- **No tutorial**: removed by product decision. Don't rebuild it.
+- Wager/turn-length picker, best-of-5 rounds, levels/badges, typing indicator are **UI placeholders with no backend** — never fake them client-side.
 
 ## Guest mode
 
@@ -93,19 +104,30 @@ Never hardcode magic numbers. Read from:
 - Guests get 5 free Hint uses per session (tracked in `GameBloc` state, not DB).
 - Tapping "Find Match", "Leaderboard", "Friends", or "Daily Challenge" as guest → redirect to `/login?return=<destination>`.
 
+## Auth
+
+- Phone number + 4-digit OTP only (`POST /auth/send-otp`, `POST /auth/verify-otp`); email/password was removed. First verify = signup.
+- Screens: `z_login_screen.dart` (`/login`), `z_otp_verify_screen.dart` (`/login/otp`). Dev bypass OTP: `1111` (no Kavenegar account yet).
+- Referral codes: optional code at signup (+100 coins) or `POST /referral/redeem` once post-login (+50). Shared `ReferralBottomSheet`.
+
 ## Power-up limits (multiplayer)
 
 Server enforces one-use-per-type-per-match. Server rejects second use regardless of client state.
 
 ## Migrations (backend)
 
-SQL files embedded via `io/fs` (`migrations/embed.go`). Auto-run at server startup. Numbered `NNN_name.up.sql` / `.down.sql`.
+SQL files embedded via `io/fs` (`migrations/embed.go`). Auto-run at server startup. Numbered `NNN_name.up.sql` / `.down.sql`. Current: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral`, `004_ai_system_user` (the AI opponent is the fixed user `config.SystemAIUserID`, excluded from stats/leaderboard).
 
 ## Error handling
 
 - **Go**: `fmt.Errorf("...: %w", err)`. Sentinels in service layer (`ErrInvalidWord`, `ErrNotYourTurn`). Handlers map to HTTP via `respondError`.
 - **Flutter**: typed exceptions (`AuthException`, `NetworkException`, `ValidationException`). Cubits/Blocs catch and emit error states. Never let exceptions bubble to widgets.
 
-## UI
+## UI (Phase 17 visual system)
 
-All Flutter screens reference designs in `figma/`. Follow the designs; don't invent layouts.
+- Design source: the زنجیر Claude Design canvas (project `4a90de7c-3340-476f-922d-213a9dcd6307`). Fetch with `DesignSync` `get_file` (`path: "<Screen>.dc.html"`); WebFetch returns 403. `figma/` PNGs are legacy. Follow the designs; don't invent layouts.
+- **Never hardcode colors in screens** — use `context.z.<token>` (`ZColors`). Light and dark mode are the same widgets with different token values.
+- Vazirmatn font, Persian digits (`persian_digits.dart`), Jalali dates (`shamsi_date`), RTL-native (`EdgeInsetsDirectional`, `start`/`end`).
+- Zero-blur elevation: solid offset edges only.
+- Real data only — never fabricate stats the API doesn't provide.
+- Verify UI changes on a device/simulator, not just with `flutter analyze`.
