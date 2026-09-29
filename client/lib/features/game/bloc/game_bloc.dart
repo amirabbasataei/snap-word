@@ -41,6 +41,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   // Multiplayer session state (reset on each GameStarted)
   bool _isMultiplayer = false;
   String _myPlayerId = '';
+  // Multiplayer state at the moment I lost, restored if my continue is accepted
+  // (the bloc is in GameOver by then, so the WS handlers can't read it).
+  GameActive? _activeBeforeLoss;
   bool _wsConnected = false;
 
   GameBloc({
@@ -879,6 +882,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (playerId == _myPlayerId) {
       // My loss — show continue prompt (Classic only)
       final canContinue = active.mode == 'classic' && !active.continueUsed;
+      _activeBeforeLoss = active;
       emit(GameOver(
         localMatchId: -1,
         mode: active.mode,
@@ -924,11 +928,31 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     Map<String, dynamic> data,
     Emitter<GameState> emit,
   ) {
+    final decision = data['decision'] as String? ?? 'forfeit';
+
+    // My own continue was accepted: leave the game-over screen and resume.
+    final playerId = data['player_id'] as String? ?? '';
+    final before = _activeBeforeLoss;
+    if (state is GameOver &&
+        decision == 'continue' &&
+        playerId == _myPlayerId &&
+        before != null) {
+      _activeBeforeLoss = null;
+      _stopContinueTimer();
+      emit(before.copyWith(
+        continueUsed: true,
+        isMyTurn: true,
+        turnTimeRemaining: _timeLimitSec,
+        opponentContinueWindowActive: false,
+        opponentContinueWindowRemaining: 0,
+      ));
+      return;
+    }
+
     final active = state;
     if (active is! GameActive) return;
 
     _stopOpponentContinueTimer();
-    final decision = data['decision'] as String? ?? 'forfeit';
 
     if (decision == 'continue') {
       emit(active.copyWith(
