@@ -390,7 +390,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (_isGuest && active.guestHintUsesLeft <= 0) return;
 
     final startLetter = active.nextStartLetter ?? 'a';
-    final suggestions = _dictionaryService.suggestWords(startLetter);
+    final suggestions = _dictionaryService.suggestWords(
+      startLetter,
+      exclude: active.wordChain.toSet(),
+    );
     if (suggestions.isEmpty) return;
 
     final hint = suggestions[Random().nextInt(suggestions.length)];

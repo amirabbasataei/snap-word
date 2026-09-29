@@ -45,12 +45,15 @@ class DictionaryService {
   /// of collapsing both into a single `isValid` check.
   static bool hasValidChars(String word) => _allowedChars.hasMatch(word);
 
-  List<String> suggestWords(String startLetter) {
+  /// Valid words starting with [startLetter] that are not in [exclude]
+  /// (the words already played in the current chain).
+  List<String> suggestWords(String startLetter, {Set<String> exclude = const {}}) {
     final letter = startLetter.trim();
     if (letter.isEmpty) return const [];
     return _words
-        .where((w) => w.startsWith(letter) && w.length >= _minLength)
-        .take(5)
+        .where((w) =>
+            w.startsWith(letter) && w.length >= _minLength && !exclude.contains(w))
+        .take(20)
         .toList();
   }
 
