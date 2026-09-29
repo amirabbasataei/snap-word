@@ -93,10 +93,28 @@ class _LobbyViewState extends State<_LobbyView> {
 
   Future<void> _challengeFriend(FriendModel friend) async {
     try {
-      await getIt<FriendsRepository>().sendChallenge(friend.userId, _mode);
+      final repo = getIt<FriendsRepository>();
+      final mode = _mode;
+      final challengeId = await repo.sendChallenge(friend.userId, mode);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('دعوت‌نامه برای ${friend.username} ارسال شد')),
+        );
+      }
+      if (challengeId == null) return;
+      // Wait for the friend to accept, then join the same room.
+      final roomId = await repo.waitForChallengeRoom(
+        challengeId,
+        isCancelled: () => !mounted,
+      );
+      if (roomId != null && mounted) {
+        context.push(
+          '/game',
+          extra: GameRouteArgs(
+            mode: mode,
+            opponentType: 'multiplayer',
+            roomId: roomId,
+          ),
         );
       }
     } catch (_) {

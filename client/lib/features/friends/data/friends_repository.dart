@@ -184,6 +184,31 @@ class FriendsRepository {
     }
   }
 
+  /// Polls until the challenged player answers. Returns the room id on accept,
+  /// null on decline/expiry/timeout or once [isCancelled] turns true.
+  Future<String?> waitForChallengeRoom(
+    String challengeId, {
+    bool Function()? isCancelled,
+    Duration interval = const Duration(seconds: 2),
+    Duration timeout = const Duration(minutes: 2),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(interval);
+      if (isCancelled?.call() ?? false) return null;
+      try {
+        final response = await _dio.get(ApiEndpoints.challenge(challengeId));
+        final data = response.data['data'] as Map<String, dynamic>?;
+        final status = data?['status'] as String?;
+        if (status == 'accepted') return data?['room_id'] as String?;
+        if (status != null && status != 'pending') return null;
+      } on DioException catch (_) {
+        // Transient network error — keep polling until the deadline.
+      }
+    }
+    return null;
+  }
+
   Future<String?> respondToChallenge(String challengeId, bool accept) async {
     try {
       final response = await _dio.post(

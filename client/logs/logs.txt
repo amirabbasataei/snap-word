@@ -1,50 +1,35 @@
 
-I/ImeTracker(12838): com.ataei.client:97e17b1e: onRequestShow at ORIGIN_CLIENT reason SHOW_SOFT_INPUT fromUser false
-D/InsetsController(12838): show(ime(), fromIme=false)
-D/InsetsController(12838): Setting requestedVisibleTypes to -1 (was -9)
-I/AssistStructure(12838): Flattened final assist data: 488 bytes, containing 1 windows, 3 views
-D/InputConnectionAdaptor(12838): The input method toggled cursor monitoring on
-19
-D/FlutterJNI(12838): Sending viewport metrics to the engine.
-I/ImeTracker(12838): com.ataei.client:97e17b1e: onShown
-2
-D/FlutterJNI(12838): Sending viewport metrics to the engine.
-I/ImeTracker(12838): com.ataei.client:c9fbbc74: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT fromUser false
-D/InsetsController(12838): hide(ime(), fromIme=false)
-W/WindowOnBackDispatcher(12838): sendCancelIfRunning: isInProgress=false callback=android.view.ImeBackAnimationController@70fd241
-D/InsetsController(12838): Setting requestedVisibleTypes to -9 (was -1)
-2
-D/FlutterJNI(12838): Sending viewport metrics to the engine.
-I/flutter (12838): *** Request ***
-I/flutter (12838): uri: http://10.0.2.2:8080/api/v1/game/solo
-I/flutter (12838): method: POST
-I/flutter (12838): responseType: ResponseType.json
-I/flutter (12838): followRedirects: true
-I/flutter (12838): persistentConnection: true
-I/flutter (12838): connectTimeout: 0:00:10.000000
-I/flutter (12838): sendTimeout: null
-I/flutter (12838): receiveTimeout: 0:00:10.000000
-I/flutter (12838): receiveDataWhenStatusError: true
-I/flutter (12838): extra: {}
-I/flutter (12838): headers:
-I/flutter (12838):  Content-Type: application/json
-I/flutter (12838):  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkNGU3YTY5MC03Zjc5LTRkZGMtYmI3ZC05Y2UyMGNkNWE2YjAiLCJ1c2VybmFtZSI6IlBsYXllcjcyMjY1NiIsInR5cGUiOiJhY2Nlc3MiLCJleHAiOjE3OTA2OTA4MzQsImlhdCI6MTc5MDY4OTkzNH0.pC3PBGFXlIdTxdGXHepPek42SYYSGrVutcGscvz4uB8
-I/flutter (12838): data:
-I/flutter (12838): {mode: daily, score: 523, word_chain: [ظالمانه, هدایت, تدبیر, رنگ, گشایش, شهید], started_at: 2026-09-29T14:05:49Z, ended_at: 2026-09-29T14:06:38Z}
-I/flutter (12838): 
-D/FlutterJNI(12838): Sending viewport metrics to the engine.
-I/flutter (12838): *** Response ***
-I/flutter (12838): uri: http://10.0.2.2:8080/api/v1/game/solo
-I/flutter (12838): statusCode: 201
-I/flutter (12838): statusMessage: Created
-I/flutter (12838): headers:
-I/flutter (12838):  content-type: application/json; charset=utf-8
-I/flutter (12838):  date: Tue, 29 Sep 2026 14:06:43 GMT
-I/flutter (12838):  content-length: 319
-I/flutter (12838): Response Text:
-I/flutter (12838): {"data":{"id":"a3b10284-020b-4b37-9eba-f1fdb26314c4","mode":"daily","status":"finished","game_state":{"score":523,"word_chain":["ظالمانه","هدایت","تدبیر","رنگ","گشایش","شهید"]},"started_at":"2026-09-29T14:05:49Z","ended_at":"2026-09-29T14:06:38Z","created_at":"2026-09-29T14:06:43.55962Z"}}
-I/flutter (12838): 
-D/FlutterJNI(12838): Sending viewport metrics to the engine.
-I/flutter (12838): *** Request ***
-I/flutter (12838): uri: http://10.0.2.2:8080/api/v1/profile/stats
-
+I/flutter ( 3926): *** Request ***
+I/flutter ( 3926): uri: http://10.0.2.2:8080/api/v1/challenges/c16dee66-9cb0-4840-b8c9-9081bf50ecca/respond
+I/flutter ( 3926): method: POST
+I/flutter ( 3926): responseType: ResponseType.json
+I/flutter ( 3926): followRedirects: true
+I/flutter ( 3926): persistentConnection: true
+I/flutter ( 3926): connectTimeout: 0:00:10.000000
+I/flutter ( 3926): sendTimeout: null
+I/flutter ( 3926): receiveTimeout: 0:00:10.000000
+I/flutter ( 3926): receiveDataWhenStatusError: true
+I/flutter ( 3926): extra: {}
+I/flutter ( 3926): headers:
+I/flutter ( 3926):  Content-Type: application/json
+I/flutter ( 3926):  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNmI2M2NlZC00MzRmLTRlMTUtOWYxZi05NmJkNWRmNTZmNTkiLCJ1c2VybmFtZSI6IlBsYXllcjk4OTg1MyIsInR5cGUiOiJhY2Nlc3MiLCJleHAiOjE3OTA2OTI3NjMsImlhdCI6MTc5MDY5MTg2M30.Q2ZTBUGsfedK19vYWQoeEJk-RDaaNiDq5zm0CXfjiew
+I/flutter ( 3926): data:
+I/flutter ( 3926): {action: accept}
+I/flutter ( 3926): 
+I/flutter ( 3926): *** Response ***
+I/flutter ( 3926): uri: http://10.0.2.2:8080/api/v1/challenges/c16dee66-9cb0-4840-b8c9-9081bf50ecca/respond
+I/flutter ( 3926): statusCode: 200
+I/flutter ( 3926): statusMessage: OK
+I/flutter ( 3926): headers:
+I/flutter ( 3926):  content-type: application/json; charset=utf-8
+I/flutter ( 3926):  date: Tue, 29 Sep 2026 14:27:57 GMT
+I/flutter ( 3926):  content-length: 73
+I/flutter ( 3926): Response Text:
+I/flutter ( 3926): {"data":{"action":"accept","room_id":"8cb5dfc4aea7178090a311122c3a35d0"}}
+I/flutter ( 3926): 
+I/flutter ( 3926): ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+I/flutter ( 3926): │ #0   WebSocketService.connect (package:wordchain/core/services/websocket_service.dart:24:10)
+I/flutter ( 3926): │ #1   GameBloc._connectMultiplayerWs (package:wordchain/features/game/bloc/game_bloc.dart:240:16)
+I/flutter ( 3926): ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+I/flutter ( 3926): │ 💡 WebSocket connecting to ws://10.0.2.2:8080/api/v1/ws/game/8cb5dfc4aea7178090a311122c3a35d0?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNmI2M2NlZC00MzRmLTRlMTUtOWYxZi05NmJkNWRmNTZmNTkiLCJ1c2VybmFtZSI6IlBsYXllcjk4OTg1MyIsInR5cGUiOiJhY2Nlc3MiLCJleHAiOjE3OTA2OTI3NjMsImlhdCI6MTc5MDY5MTg2M30.Q2ZTBUGsfedK19vYWQoeEJk-RDaaNiDq5zm0CXfjiew
+I/flutter ( 3926): └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

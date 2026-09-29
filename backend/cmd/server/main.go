@@ -155,6 +155,7 @@ func main() {
 	protected.POST("/challenges", challengeHandler.Create)
 	protected.POST("/challenges/:id/respond", challengeHandler.Respond)
 	protected.GET("/challenges/pending", challengeHandler.GetPending)
+	protected.GET("/challenges/:id", challengeHandler.Get)
 
 	// Daily challenge
 	protected.GET("/daily", dailyHandler.GetDaily)

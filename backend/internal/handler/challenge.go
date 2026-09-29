@@ -109,6 +109,24 @@ func (h *ChallengeHandler) Respond(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
+// Get handles GET /api/v1/challenges/:id — the challenger polls it to learn
+// when the challenged player accepted and which room to join.
+func (h *ChallengeHandler) Get(c *gin.Context) {
+	userID := c.GetString(middleware.ContextKeyUserID)
+
+	ch, err := h.svc.GetChallenge(c.Request.Context(), c.Param("id"), userID)
+	if errors.Is(err, service.ErrChallengeNotFound) {
+		respondError(c, http.StatusNotFound, "challenge_not_found", "challenge not found")
+		return
+	}
+	if err != nil {
+		slog.Error("GetChallenge failed", "userID", userID, "error", err)
+		respondError(c, http.StatusInternalServerError, "internal_error", "failed to fetch challenge")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": toChallResp(ch)})
+}
+
 // GetPending handles GET /api/v1/challenges/pending.
 func (h *ChallengeHandler) GetPending(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)

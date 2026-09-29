@@ -96,6 +96,18 @@ class FriendsCubit extends Cubit<FriendsState> {
     }
   }
 
+  // The challenger has no other channel for the room id (push isn't wired),
+  // so poll until the friend accepts, then enter the same room.
+  Future<void> _joinRoomOnAccept(String challengeId, String mode) async {
+    final roomId = await _repo.waitForChallengeRoom(
+      challengeId,
+      isCancelled: () => isClosed,
+    );
+    if (roomId != null && !isClosed) {
+      emit(ChallengAccepted(roomId: roomId, mode: mode));
+    }
+  }
+
   Future<void> removeFriend(String friendId) async {
     try {
       await _repo.removeFriend(friendId);
@@ -107,10 +119,11 @@ class FriendsCubit extends Cubit<FriendsState> {
 
   Future<void> sendChallenge(String friendId, String mode) async {
     try {
-      await _repo.sendChallenge(friendId, mode);
+      final challengeId = await _repo.sendChallenge(friendId, mode);
       emit(const FriendActionSuccess('Challenge sent!'));
       // Reload to get fresh state
       await load();
+      if (challengeId != null) _joinRoomOnAccept(challengeId, mode);
     } on FriendsException catch (e) {
       final current = state;
       if (current is FriendsLoaded) {

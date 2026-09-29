@@ -140,6 +140,21 @@ func (s *ChallengeService) RespondToChallenge(ctx context.Context, challengeID, 
 	return roomID, nil
 }
 
+// GetChallenge returns a challenge to either of its two participants.
+func (s *ChallengeService) GetChallenge(ctx context.Context, challengeID, userID string) (*repository.FriendChallenge, error) {
+	ch, err := s.challengeRepo.GetChallenge(ctx, challengeID)
+	if err != nil {
+		if errors.Is(err, repository.ErrChallengeNotFound) {
+			return nil, ErrChallengeNotFound
+		}
+		return nil, fmt.Errorf("GetChallenge: %w", err)
+	}
+	if ch.ChallengerID != userID && ch.ChallengedID != userID {
+		return nil, ErrChallengeNotFound
+	}
+	return ch, nil
+}
+
 // GetPendingChallenges returns non-expired pending challenges for the given user.
 func (s *ChallengeService) GetPendingChallenges(ctx context.Context, userID string) ([]*repository.FriendChallenge, error) {
 	return s.challengeRepo.GetPendingChallenges(ctx, userID)
