@@ -524,7 +524,7 @@ class _ContinueActions extends StatelessWidget {
                     border: Border.all(color: z.line),
                     boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth),
                   ),
-                  child: Text('هم‌رسانی نتیجه', style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
+                  child: Text('اشتراک‌گذاری نتیجه', style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
                 ),
               ),
             ),
@@ -562,7 +562,7 @@ class _FinalActions extends StatelessWidget {
       children: [
         AccentButton(
           accent: ZAccentColor.teal,
-          label: 'هم‌رسانی نتیجه',
+          label: 'اشتراک‌گذاری نتیجه',
           onPressed: () => getIt<ShareService>().shareMatch(score: state.score, chainLength: state.chainLength),
         ),
         const SizedBox(height: ZSpacing.md),

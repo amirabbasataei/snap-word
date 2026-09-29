@@ -549,7 +549,7 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
               const SizedBox(height: ZSpacing.md),
               AccentButton(
                 accent: ZAccentColor.coral,
-                label: 'هم‌رسانی نتیجه',
+                label: 'اشتراک‌گذاری نتیجه',
                 onPressed: () => getIt<ShareService>().shareDaily(
                   DailyChallengeResult(
                     dayNumber: challenge.dayNumber,

@@ -3,20 +3,18 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 
-/// A row of day chips marking a streak, labelled with the Persian weekday
-/// initial (شنبه..جمعه) for each of the trailing [totalDays] calendar days
-/// ending today. A day is "done" when it falls within the trailing
+/// A row of day chips for the current Persian week (شنبه..جمعه), Saturday at
+/// the start (right in RTL) and Friday at the end. A day is "done" when it falls within the trailing
 /// [streakCount]-day run ending at [lastPlayedDate] — filled `teal`; other
-/// days (typically just today, still pending) render as an outlined `paper`
+/// days (today if pending, and days still to come) render as an outlined `paper`
 /// chip. Per the design token sheet these chips carry no offset shadow.
 class StreakStrip extends StatelessWidget {
-  final int totalDays;
+  static const totalDays = 7;
   final int streakCount;
   final DateTime? lastPlayedDate;
 
   const StreakStrip({
     super.key,
-    this.totalDays = 7,
     required this.streakCount,
     this.lastPlayedDate,
   });
@@ -37,17 +35,20 @@ class StreakStrip extends StatelessWidget {
         : DateTime(
             lastPlayedDate!.year, lastPlayedDate!.month, lastPlayedDate!.day);
 
+    // Most recent Saturday (weekday 6) on or before today.
+    final weekStart = today.subtract(Duration(days: (today.weekday + 1) % 7));
+
     return Row(
       children: List.generate(totalDays, (i) {
-        final day = today.subtract(Duration(days: totalDays - 1 - i));
+        final day = weekStart.add(Duration(days: i));
         final done = last != null &&
             !day.isAfter(last) &&
             last.difference(day).inDays < streakCount;
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(
-              left: i == totalDays - 1 ? 0 : ZSpacing.sm / 2,
-              right: i == 0 ? 0 : ZSpacing.sm / 2,
+            padding: EdgeInsetsDirectional.only(
+              end: i == totalDays - 1 ? 0 : ZSpacing.sm / 2,
+              start: i == 0 ? 0 : ZSpacing.sm / 2,
             ),
             child: Container(
               height: 30,
