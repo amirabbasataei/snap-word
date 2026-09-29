@@ -127,3 +127,50 @@ func (r *DailyRepository) GetUserRank(ctx context.Context, date time.Time, userI
 	}
 	return &rank, nil
 }
+
+// InsertAttempt stores a completed daily attempt.
+func (r *DailyRepository) InsertAttempt(ctx context.Context, userID string, date time.Time, attemptNumber, score int, wordChain []string) error {
+	const q = `
+		INSERT INTO daily_challenge_attempts (user_id, challenge_date, attempt_number, score, chain_length, word_chain)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT DO NOTHING`
+
+	if wordChain == nil {
+		wordChain = []string{}
+	}
+	if _, err := r.db.ExecContext(ctx, q, userID, date, attemptNumber, score, len(wordChain), pq.Array(wordChain)); err != nil {
+		return fmt.Errorf("InsertAttempt: %w", err)
+	}
+	return nil
+}
+
+// RecordRetry marks the paid retry as purchased; false means it already was.
+func (r *DailyRepository) RecordRetry(ctx context.Context, userID string, date time.Time) (bool, error) {
+	const q = `INSERT INTO daily_retries (user_id, challenge_date) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+	res, err := r.db.ExecContext(ctx, q, userID, date)
+	if err != nil {
+		return false, fmt.Errorf("RecordRetry: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("RecordRetry: %w", err)
+	}
+	return n > 0, nil
+}
+
+func (r *DailyRepository) DeleteRetry(ctx context.Context, userID string, date time.Time) error {
+	const q = `DELETE FROM daily_retries WHERE user_id = $1 AND challenge_date = $2`
+	if _, err := r.db.ExecContext(ctx, q, userID, date); err != nil {
+		return fmt.Errorf("DeleteRetry: %w", err)
+	}
+	return nil
+}
+
+func (r *DailyRepository) HasRetry(ctx context.Context, userID string, date time.Time) (bool, error) {
+	const q = `SELECT EXISTS (SELECT 1 FROM daily_retries WHERE user_id = $1 AND challenge_date = $2)`
+	var ok bool
+	if err := r.db.QueryRowContext(ctx, q, userID, date).Scan(&ok); err != nil {
+		return false, fmt.Errorf("HasRetry: %w", err)
+	}
+	return ok, nil
+}

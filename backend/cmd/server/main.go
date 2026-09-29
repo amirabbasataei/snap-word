@@ -76,7 +76,7 @@ func main() {
 
 	kavenegarClient := service.NewKavenegarClient(cfg)
 	authSvc := service.NewAuthService(userRepo, kavenegarClient, rdb, cfg)
-	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc)
+	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc, repository.NewDailyRepository(db))
 	powerupSvc := service.NewPowerupService(powerupRepo)
 	_ = service.NewMonetizationService(userRepo) // available for handlers; no routes in Phase 16
 

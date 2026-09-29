@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"wordchain/backend/internal/config"
@@ -147,7 +148,17 @@ func (s *DailyService) Retry(ctx context.Context, userID string) error {
 		return ErrDailyNotAttempted
 	}
 
+	fresh, err := s.dailyRepo.RecordRetry(ctx, userID, today)
+	if err != nil {
+		return fmt.Errorf("Retry: %w", err)
+	}
+	if !fresh {
+		return ErrDailyAlreadyRetried
+	}
 	if err := s.userRepo.SpendCoins(ctx, userID, config.DailyRetryCoins); err != nil {
+		if delErr := s.dailyRepo.DeleteRetry(ctx, userID, today); delErr != nil {
+			slog.Error("Retry: rollback failed", "userID", userID, "error", delErr)
+		}
 		return err
 	}
 	return nil

@@ -16,6 +16,8 @@ var (
 	ErrMatchExists    = errors.New("match_already_exists")
 	ErrMatchForbidden = errors.New("match_forbidden")
 	ErrMatchNotFound  = errors.New("match_not_found")
+	// ErrDailyNotAllowed: today's free attempt (and any paid retry) is already used.
+	ErrDailyNotAllowed = errors.New("daily_attempt_not_allowed")
 )
 
 // SoloGameInput is the payload sent by the Flutter SyncService for a completed solo game.
@@ -44,10 +46,34 @@ type GameService struct {
 	matchRepo *repository.MatchRepository
 	statsRepo *repository.StatsRepository
 	streakSvc *StreakService
+	dailyRepo *repository.DailyRepository
 }
 
-func NewGameService(matchRepo *repository.MatchRepository, statsRepo *repository.StatsRepository, streakSvc *StreakService) *GameService {
-	return &GameService{matchRepo: matchRepo, statsRepo: statsRepo, streakSvc: streakSvc}
+func NewGameService(matchRepo *repository.MatchRepository, statsRepo *repository.StatsRepository, streakSvc *StreakService, dailyRepo *repository.DailyRepository) *GameService {
+	return &GameService{matchRepo: matchRepo, statsRepo: statsRepo, streakSvc: streakSvc, dailyRepo: dailyRepo}
+}
+
+// dailyAttemptNumber decides which daily attempt slot an upload fills: 1 is
+// the free attempt, 2 requires a paid retry. Returns ErrDailyNotAllowed when
+// neither is available.
+func (s *GameService) dailyAttemptNumber(ctx context.Context, userID string, date time.Time) (int, error) {
+	attempts, err := s.dailyRepo.GetUserAttempts(ctx, userID, date)
+	if err != nil {
+		return 0, err
+	}
+	switch len(attempts) {
+	case 0:
+		return 1, nil
+	case 1:
+		paid, err := s.dailyRepo.HasRetry(ctx, userID, date)
+		if err != nil {
+			return 0, err
+		}
+		if paid {
+			return 2, nil
+		}
+	}
+	return 0, ErrDailyNotAllowed
 }
 
 // CreateSoloGame persists a finished solo match uploaded by the Flutter SyncService.
@@ -61,6 +87,17 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 	}
 	if !errors.Is(err, repository.ErrMatchNotFound) {
 		return nil, false, fmt.Errorf("CreateSoloGame lookup: %w", err)
+	}
+
+	attemptNumber := 0
+	var challengeDate time.Time
+	if in.Mode == "daily" {
+		d := in.StartedAt.UTC()
+		challengeDate = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
+		attemptNumber, err = s.dailyAttemptNumber(ctx, userID, challengeDate)
+		if err != nil {
+			return nil, false, fmt.Errorf("CreateSoloGame daily: %w", err)
+		}
 	}
 
 	gs, err := json.Marshal(soloGameState{WordChain: in.WordChain, Score: in.Score})
@@ -79,6 +116,12 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 
 	if err := s.matchRepo.AddMatchPlayer(ctx, m.ID, userID, in.Score, false); err != nil {
 		return nil, false, fmt.Errorf("CreateSoloGame add player: %w", err)
+	}
+
+	if attemptNumber > 0 {
+		if err := s.dailyRepo.InsertAttempt(ctx, userID, challengeDate, attemptNumber, in.Score, in.WordChain); err != nil {
+			return nil, false, fmt.Errorf("CreateSoloGame daily attempt: %w", err)
+		}
 	}
 
 	if err := s.updateStatsAfterSoloGame(ctx, userID, in.WordChain); err != nil {

@@ -81,6 +81,10 @@ func (h *GameHandler) CreateSolo(c *gin.Context) {
 	}
 
 	match, alreadyExisted, err := h.gameSvc.CreateSoloGame(c.Request.Context(), userID, in)
+	if errors.Is(err, service.ErrDailyNotAllowed) {
+		respondError(c, http.StatusConflict, "daily_attempt_not_allowed", "today's daily challenge attempts are used up")
+		return
+	}
 	if err != nil {
 		slog.Error("CreateSolo failed", "userID", userID, "error", err)
 		respondError(c, http.StatusInternalServerError, "internal_error", "failed to create game")
