@@ -168,6 +168,9 @@ func (s *AuthService) VerifyOTP(ctx context.Context, rawPhone, code, referralCod
 				return nil, VerifyResult{}, fmt.Errorf("VerifyOTP award signup bonus: %w", err)
 			}
 			user.Coins += config.CoinReferralSignup
+			if err := s.userRepo.CreateReferralReward(ctx, referredByID, user.ID, config.CoinReferralInviter); err != nil {
+				return nil, VerifyResult{}, fmt.Errorf("VerifyOTP referrer reward: %w", err)
+			}
 		}
 	} else {
 		if err := s.userRepo.MarkVerified(ctx, user.ID); err != nil {
@@ -261,7 +264,24 @@ func (s *AuthService) RedeemReferral(ctx context.Context, userID, referralCode s
 	if err := s.userRepo.AwardCoins(ctx, userID, config.CoinReferralRedeem); err != nil {
 		return 0, fmt.Errorf("RedeemReferral award: %w", err)
 	}
+	if err := s.userRepo.CreateReferralReward(ctx, referrer.ID, userID, config.CoinReferralInviter); err != nil {
+		return 0, fmt.Errorf("RedeemReferral referrer reward: %w", err)
+	}
 	return config.CoinReferralRedeem, nil
+}
+
+// ListInbox returns the caller's referral-reward messages.
+func (s *AuthService) ListInbox(ctx context.Context, userID string) ([]*repository.ReferralReward, error) {
+	items, err := s.userRepo.ListReferralRewards(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("ListInbox: %w", err)
+	}
+	return items, nil
+}
+
+// ClaimInboxReward credits an unclaimed referral reward to its referrer.
+func (s *AuthService) ClaimInboxReward(ctx context.Context, userID, rewardID string) (int, error) {
+	return s.userRepo.ClaimReferralReward(ctx, rewardID, userID)
 }
 
 // checkAndIncrSendRate enforces a per-phone daily send cap via Redis. It

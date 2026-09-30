@@ -128,6 +128,8 @@ class AuthRepository {
     }
   }
 
+  Future<void> creditCoins(int amount) => _prefs.setInt('coins', storedCoins + amount);
+
   /// The caller's own referral code, for sharing with friends.
   Future<String> fetchMyReferralCode() async {
     try {

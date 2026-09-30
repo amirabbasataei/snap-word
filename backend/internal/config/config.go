@@ -148,6 +148,7 @@ const (
 	CoinWeeklyRank3      = 100
 	CoinReferralSignup   = 100 // new user, valid referral code supplied at signup
 	CoinReferralRedeem   = 50  // existing user, one-time post-login referral redemption
+	CoinReferralInviter  = 50  // referrer, per invited user; claimed from the inbox
 
 	// Power-up costs
 	CoinHint      = 10

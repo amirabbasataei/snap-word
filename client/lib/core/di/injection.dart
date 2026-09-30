@@ -14,6 +14,8 @@ import 'package:wordchain/features/auth/data/auth_repository.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
+import 'package:wordchain/features/inbox/cubit/inbox_cubit.dart';
+import 'package:wordchain/features/inbox/data/inbox_repository.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 import 'package:wordchain/features/lobby/data/lobby_repository.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
@@ -114,5 +116,13 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   // Daily challenge
   getIt.registerLazySingleton<DailyRepository>(
     () => DailyRepository(dio: getIt<DioClient>().dio),
+  );
+
+  // Inbox
+  getIt.registerLazySingleton<InboxRepository>(
+    () => InboxRepository(dio: getIt<DioClient>().dio),
+  );
+  getIt.registerLazySingleton<InboxCubit>(
+    () => InboxCubit(repo: getIt<InboxRepository>(), auth: getIt<AuthCubit>()),
   );
 }

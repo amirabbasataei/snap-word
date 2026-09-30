@@ -15,6 +15,7 @@ var (
 	ErrUsernameExists      = errors.New("username already exists")
 	ErrReferralCodeExists  = errors.New("referral code already exists")
 	ErrReferralAlreadyUsed = errors.New("referral code already used")
+	ErrRewardNotFound      = errors.New("referral reward not found or already claimed")
 	ErrInsufficientCoins   = errors.New("insufficient_coins")
 )
 
@@ -50,13 +51,13 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 	var (
-		u            User
-		username     sql.NullString
-		referralCode sql.NullString
-		referredBy   sql.NullString
-		otpCode      sql.NullString
-		otpExpires   sql.NullTime
-		otpSent      sql.NullTime
+		u             User
+		username      sql.NullString
+		referralCode  sql.NullString
+		referredBy    sql.NullString
+		otpCode       sql.NullString
+		otpExpires    sql.NullTime
+		otpSent       sql.NullTime
 		phoneVerified sql.NullTime
 	)
 	err := row.Scan(&u.ID, &u.Phone, &username, &u.Coins, &referralCode, &referredBy,
@@ -279,4 +280,70 @@ func (r *UserRepository) GetUsernames(ctx context.Context, userIDs []string) (ma
 		result[id] = username
 	}
 	return result, rows.Err()
+}
+
+// ReferralReward is an inbox message telling a referrer that someone joined
+// with their code; the coins are credited only when it is claimed.
+type ReferralReward struct {
+	ID               string
+	ReferredUsername string
+	Coins            int
+	Claimed          bool
+	CreatedAt        time.Time
+}
+
+// CreateReferralReward records the (unclaimed) inviter reward. Idempotent per
+// referred user.
+func (r *UserRepository) CreateReferralReward(ctx context.Context, referrerID, referredID string, coins int) error {
+	const q = `INSERT INTO referral_rewards (referrer_id, referred_id, coins)
+		VALUES ($1, $2, $3) ON CONFLICT (referred_id) DO NOTHING`
+	if _, err := r.db.ExecContext(ctx, q, referrerID, referredID, coins); err != nil {
+		return fmt.Errorf("CreateReferralReward: %w", err)
+	}
+	return nil
+}
+
+// ListReferralRewards returns the referrer's inbox, newest first.
+func (r *UserRepository) ListReferralRewards(ctx context.Context, referrerID string) ([]*ReferralReward, error) {
+	const q = `SELECT rr.id, COALESCE(u.username, ''), rr.coins, rr.claimed_at IS NOT NULL, rr.created_at
+		FROM referral_rewards rr JOIN users u ON u.id = rr.referred_id
+		WHERE rr.referrer_id = $1 ORDER BY rr.created_at DESC LIMIT 100`
+	rows, err := r.db.QueryContext(ctx, q, referrerID)
+	if err != nil {
+		return nil, fmt.Errorf("ListReferralRewards: %w", err)
+	}
+	defer rows.Close()
+
+	var out []*ReferralReward
+	for rows.Next() {
+		var rw ReferralReward
+		if err := rows.Scan(&rw.ID, &rw.ReferredUsername, &rw.Coins, &rw.Claimed, &rw.CreatedAt); err != nil {
+			return nil, fmt.Errorf("ListReferralRewards scan: %w", err)
+		}
+		out = append(out, &rw)
+	}
+	return out, rows.Err()
+}
+
+// ClaimReferralReward atomically marks the reward claimed and credits the
+// coins. Returns the coins awarded, or ErrRewardNotFound if the reward does
+// not exist, belongs to someone else, or was already claimed.
+func (r *UserRepository) ClaimReferralReward(ctx context.Context, rewardID, referrerID string) (int, error) {
+	const q = `
+		WITH c AS (
+			UPDATE referral_rewards SET claimed_at = now()
+			WHERE id = $1 AND referrer_id = $2 AND claimed_at IS NULL
+			RETURNING coins, referrer_id
+		)
+		UPDATE users SET coins = users.coins + c.coins FROM c
+		WHERE users.id = c.referrer_id RETURNING c.coins`
+	var coins int
+	err := r.db.QueryRowContext(ctx, q, rewardID, referrerID).Scan(&coins)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrRewardNotFound
+	}
+	if err != nil {
+		return 0, fmt.Errorf("ClaimReferralReward: %w", err)
+	}
+	return coins, nil
 }

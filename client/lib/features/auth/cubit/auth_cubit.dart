@@ -74,6 +74,15 @@ class AuthCubit extends Cubit<AuthState> {
     return result;
   }
 
+  /// Adds server-credited coins (e.g. a claimed inbox reward) to the live balance.
+  Future<void> creditCoins(int amount) async {
+    await _repo.creditCoins(amount);
+    final current = state;
+    if (current is AuthAuthenticated) {
+      emit(current.copyWith(coins: current.coins + amount));
+    }
+  }
+
   Future<String> fetchMyReferralCode() => _repo.fetchMyReferralCode();
 
   /// Entry point (b): post-login, one-time referral redemption. Throws on

@@ -326,7 +326,7 @@ class _InviteCardState extends State<_InviteCard> {
           Text('دعوت از دوستان', style: ZTypography.cardTitle.copyWith(color: z.ink)),
           const SizedBox(height: 4),
           Text(
-            'دوستت با کد تو ثبت‌نام کند و ۱۰۰ سکه بگیرد',
+            'دوستت ۱۰۰ سکه می‌گیرد و تو هم ۵۰ سکه!',
             style: ZTypography.metaLabel.copyWith(color: z.ink60),
           ),
           const SizedBox(height: ZSpacing.md),

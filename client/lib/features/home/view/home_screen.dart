@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
@@ -18,6 +19,7 @@ import 'package:wordchain/core/widgets/streak_strip.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/inbox/cubit/inbox_cubit.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -73,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_isAuthenticated) {
       _updateCoinsFromAuth();
+      getIt<InboxCubit>().refresh();
       _fetchDailyChallenge();
       _fetchWeeklyRank();
     } else if (mounted) {
@@ -81,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _daily = null;
         _weeklyRank = null;
       });
+      getIt<InboxCubit>().refresh(); // clears it for guests
     }
   }
 
@@ -286,7 +290,16 @@ class _TopBar extends StatelessWidget {
           onTap: () => context.go('/profile'),
         ),
         const SizedBox(width: ZSpacing.sm),
-        const _IconSquare(icon: Icons.notifications_none_rounded),
+        BlocBuilder<InboxCubit, InboxState>(
+          bloc: getIt<InboxCubit>(),
+          builder: (context, inbox) => _IconSquare(
+            icon: Icons.notifications_none_rounded,
+            badgeCount: inbox.unclaimedCount,
+            onTap: () => context.push(
+              getIt<AuthCubit>().state is AuthAuthenticated ? '/inbox' : '/login?return=/inbox',
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -295,24 +308,54 @@ class _TopBar extends StatelessWidget {
 class _IconSquare extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
+  final int badgeCount;
 
-  const _IconSquare({required this.icon, this.onTap});
+  const _IconSquare({required this.icon, this.onTap, this.badgeCount = 0});
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: z.surface,
-          border: Border.all(color: z.line),
-          borderRadius: BorderRadius.circular(ZRadius.tileMax),
-        ),
-        child: Icon(icon, size: 18, color: z.ink40),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: z.surface,
+              border: Border.all(color: z.line),
+              borderRadius: BorderRadius.circular(ZRadius.tileMax),
+            ),
+            child: Icon(icon, size: 18, color: badgeCount > 0 ? z.ink : z.ink40),
+          ),
+          if (badgeCount > 0)
+            PositionedDirectional(
+              top: -5,
+              end: -5,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: z.coral,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: z.paper, width: 2),
+                ),
+                child: Text(
+                  toPersianDigits(badgeCount),
+                  style: ZTypography.metaLabel.copyWith(
+                    color: z.onCoral,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

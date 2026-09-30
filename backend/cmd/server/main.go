@@ -136,6 +136,8 @@ func main() {
 	protected := api.Group("/", middleware.RequireAuth(authSvc))
 	protected.POST("/referral/redeem", authHandler.RedeemReferral)
 	protected.GET("/referral/me", authHandler.GetMyReferral)
+	protected.GET("/inbox", authHandler.GetInbox)
+	protected.POST("/inbox/:id/claim", authHandler.ClaimInboxReward)
 	protected.POST("/game/solo", gameHandler.CreateSolo)
 	protected.GET("/game/:id", gameHandler.GetGame)
 	protected.GET("/profile/stats", gameHandler.GetStats)

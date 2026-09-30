@@ -439,7 +439,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Auth:** `POST /auth/send-otp` · `POST /auth/verify-otp` · `POST /auth/refresh`
 
-**Referral:** `GET /referral/me` (own code, for sharing) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
+**Referral:** `GET /referral/me` (own code, for sharing) · `GET /inbox` · `POST /inbox/:id/claim` (inviter reward messages) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
 
 **Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `GET /powerup/inventory` · `POST /powerup/use`
 
@@ -553,7 +553,7 @@ Self-referral (code equals the caller's own) is rejected (`400 self_referral`) �
 
 **Sharing your own code:** ZProfile's `_InviteCard` loads it via `GET /referral/me` and shares a short Persian invite text + code through `ShareService.shareInvite` (system share sheet → social apps/SMS).
 
-**No referrer-side reward exists** — `referred_by` is recorded only. Open product question, not decided.
+**Inviter reward (+50 coins, `config.CoinReferralInviter`):** whenever a referral is linked (either entry point) a `referral_rewards` row (migration `006`, backfilled from existing `referred_by`) is created **unclaimed**. It appears as a message in the home bell's inbox (`/inbox`, `features/inbox/`) with a claim button; the bell shows a badge with the unclaimed count. `POST /inbox/:id/claim` credits the coins atomically, once.
 
 Client: both entry points are served by one shared widget, `ReferralBottomSheet` (`client/lib/features/auth/view/widgets/referral_bottom_sheet.dart`), which branches on `AuthCubit`'s state (authenticated → redeem directly; not yet authenticated → stash the code and forward it into `verify-otp`). Triggered from the ZLogin phone screen's referral teaser card (entry point a) and from Profile → Settings (entry point b) — the latter is a deliberate small addition beyond the two named screens (`ZLobby`'s `_InviteRow` referral placeholder is unrelated and stays a stub).
 
@@ -572,7 +572,7 @@ Client: both entry points are served by one shared widget, `ReferralBottomSheet`
 
 ### Coin economy
 
-**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 — no referrer-side reward exists yet, open product question
+**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 · Referral inviter reward +50 per invited user (claimed from the inbox)
 
 **Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
@@ -724,7 +724,7 @@ flutter analyze
 flutter test
 ```
 
-- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`.
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards`.
 - `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
 
 ---
@@ -745,7 +745,7 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. **Each i
 **Known bugs / gaps (pre-existing, flagged not fixed):**
 - Time Attack ends on the player's first mistake instead of running the full 90s (`GameBloc`).
 - ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).
-- ZHome's notification bell has no behavior.
+- ZHome's notification bell opens the inbox (`/inbox`), which only carries referral-reward messages so far.
 - Kavenegar SMS delivery unverified end-to-end (no account yet; dev bypass OTP `1111`).
 - **FCM permission is never requested.** `NotificationService.requestPermission()` has no call site anywhere in `client/lib` (true even before the tutorial was removed — the spec'd "after tutorial" trigger was never wired), so push notifications won't be authorized on iOS/Android 13+. Needs a trigger point (e.g. after the first completed game or on first login).
 

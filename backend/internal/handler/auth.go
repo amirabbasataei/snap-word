@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -177,6 +178,51 @@ func (h *AuthHandler) RedeemReferral(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": redeemReferralResponse{CoinsAwarded: coins}})
 }
 
+type inboxItemResponse struct {
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	Username  string    `json:"username"`
+	Coins     int       `json:"coins"`
+	Claimed   bool      `json:"claimed"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// GetInbox handles GET /api/v1/inbox (protected): referral-reward messages.
+func (h *AuthHandler) GetInbox(c *gin.Context) {
+	userID := c.GetString(middleware.ContextKeyUserID)
+
+	items, err := h.authSvc.ListInbox(c.Request.Context(), userID)
+	if err != nil {
+		respondAuthError(c, err)
+		return
+	}
+
+	resp := make([]inboxItemResponse, 0, len(items))
+	unclaimed := 0
+	for _, it := range items {
+		if !it.Claimed {
+			unclaimed++
+		}
+		resp = append(resp, inboxItemResponse{
+			ID: it.ID, Type: "referral_reward", Username: it.ReferredUsername,
+			Coins: it.Coins, Claimed: it.Claimed, CreatedAt: it.CreatedAt,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"items": resp, "unclaimed_count": unclaimed}})
+}
+
+// ClaimInboxReward handles POST /api/v1/inbox/:id/claim (protected).
+func (h *AuthHandler) ClaimInboxReward(c *gin.Context) {
+	userID := c.GetString(middleware.ContextKeyUserID)
+
+	coins, err := h.authSvc.ClaimInboxReward(c.Request.Context(), userID, c.Param("id"))
+	if err != nil {
+		respondAuthError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": redeemReferralResponse{CoinsAwarded: coins}})
+}
+
 // respondAuthError maps service/repository sentinel errors to HTTP status codes.
 func respondAuthError(c *gin.Context, err error) {
 	switch {
@@ -200,6 +246,8 @@ func respondAuthError(c *gin.Context, err error) {
 		respondError(c, http.StatusNotFound, "referral_not_found", "referral code not found")
 	case errors.Is(err, repository.ErrReferralAlreadyUsed):
 		respondError(c, http.StatusConflict, "referral_already_used", "a referral code has already been used on this account")
+	case errors.Is(err, repository.ErrRewardNotFound):
+		respondError(c, http.StatusNotFound, "reward_not_found", "reward not found or already claimed")
 	case errors.Is(err, service.ErrInvalidToken):
 		respondError(c, http.StatusUnauthorized, "invalid_token", "token is invalid or expired")
 	default:
