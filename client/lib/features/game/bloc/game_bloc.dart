@@ -438,7 +438,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   /// Whether [type] may be used right now — the same rules the tiles use.
   static bool canUsePowerup(GameActive g, String type) {
     if (g.usedPowerups.contains(type) &&
-        (g.isMultiplayer || type == 'shield')) {
+        (g.isMultiplayer || g.mode == 'daily' || type == 'shield')) {
       return false;
     }
     switch (type) {
@@ -536,6 +536,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         emit(
           cur.copyWith(
             hintWord: hint,
+            usedPowerups: {...cur.usedPowerups, 'hint'},
             guestHintUsesLeft:
                 _isGuest
                     ? max(0, cur.guestHintUsesLeft - 1)
@@ -547,6 +548,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       case 'extra_time':
         emit(
           cur.copyWith(
+            usedPowerups: {...cur.usedPowerups, 'extra_time'},
             turnTimeRemaining:
                 cur.turnTimeRemaining + GameConstants.extraTimeBonusSec,
             powerupCounts: counts,

@@ -54,7 +54,7 @@ class GameActive extends GameState {
   final bool opponentDisconnected;
 
   // Power-ups. `powerupCounts` is the owned inventory (authenticated only);
-  // `usedPowerups` enforces once-per-match (multiplayer) / once-per-game
+  // `usedPowerups` enforces once-per-match (multiplayer, daily) / once-per-game
   // (shield); `shieldActive` is solo/AI's armed shield. `powerupNotice` is a
   // transient message — `powerupNoticeSeq` bumps so an identical message still
   // re-triggers the UI listener. `coinBalance` is the balance reported by the
