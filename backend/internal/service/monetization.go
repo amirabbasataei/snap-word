@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/repository"
 )
 
@@ -28,6 +29,19 @@ func (s *MonetizationService) AwardCoins(ctx context.Context, userID string, amo
 		return fmt.Errorf("AwardCoins: %w", err)
 	}
 	return nil
+}
+
+// ClaimRewardedAd credits the rewarded-ad bonus and returns the amount and the
+// new balance.
+func (s *MonetizationService) ClaimRewardedAd(ctx context.Context, userID string) (int, int, error) {
+	if err := s.AwardCoins(ctx, userID, config.CoinRewardedAd); err != nil {
+		return 0, 0, err
+	}
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("ClaimRewardedAd balance: %w", err)
+	}
+	return config.CoinRewardedAd, user.Coins, nil
 }
 
 // SpendCoins deducts amount coins from the user's balance atomically.

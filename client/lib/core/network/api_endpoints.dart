@@ -20,6 +20,7 @@ abstract final class ApiEndpoints {
   static const String profileStats = '$_base/profile/stats';
   static const String powerupInventory = '$_base/powerup/inventory';
   static const String powerupUse = '$_base/powerup/use';
+  static const String rewardedAdClaim = '$_base/rewarded-ad/claim';
 
   // Matchmaking
   static const String matchQueue = '$_base/match/queue';

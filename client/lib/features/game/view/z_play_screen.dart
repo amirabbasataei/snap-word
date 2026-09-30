@@ -409,8 +409,6 @@ class _Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final isGuest = state.guestHintUsesLeft != 999;
-    final hintAvailable = (!isGuest || state.guestHintUsesLeft > 0) && state.isMyTurn;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -421,43 +419,9 @@ class _Footer extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              ZPowerupTile(
-                icon: const ZHintIcon(),
-                count: state.guestHintUsesLeft == 999 ? 0 : state.guestHintUsesLeft,
-                label: 'راهنما',
-                enabled: hintAvailable,
-                onTap: () => context.read<GameBloc>().add(const HintRequested()),
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              ZPowerupTile(
-                icon: Transform.rotate(
-                  angle: 0.785398,
-                  child: Container(width: 20, height: 20, decoration: BoxDecoration(color: z.teal, borderRadius: BorderRadius.circular(5))),
-                ),
-                count: 0,
-                label: 'انجماد حریف',
-                enabled: false,
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              ZPowerupTile(
-                icon: DecoratedBox(
-                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: z.amber, width: 4)),
-                  child: const SizedBox(width: 22, height: 22),
-                ),
-                count: 0,
-                label: 'وقت بیشتر',
-                enabled: false,
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              ZPowerupTile(
-                icon: Container(width: 19, height: 22, decoration: BoxDecoration(color: z.coral, borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4), bottomLeft: Radius.circular(10), bottomRight: Radius.circular(10)))),
-                count: 0,
-                label: 'سپر',
-                enabled: false,
-              ),
-            ],
+          ZPowerupBar(
+            state: state,
+            types: const ['hint', 'extra_time', 'shield'],
           ),
           const SizedBox(height: ZSpacing.md),
           ZWordInput(

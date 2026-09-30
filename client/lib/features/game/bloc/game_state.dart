@@ -53,6 +53,19 @@ class GameActive extends GameState {
   final int opponentContinueWindowRemaining;
   final bool opponentDisconnected;
 
+  // Power-ups. `powerupCounts` is the owned inventory (authenticated only);
+  // `usedPowerups` enforces once-per-match (multiplayer) / once-per-game
+  // (shield); `shieldActive` is solo/AI's armed shield. `powerupNotice` is a
+  // transient message — `powerupNoticeSeq` bumps so an identical message still
+  // re-triggers the UI listener. `coinBalance` is the balance reported by the
+  // last paid use, for the UI to push into AuthCubit.
+  final Map<String, int> powerupCounts;
+  final Set<String> usedPowerups;
+  final bool shieldActive;
+  final String? powerupNotice;
+  final int powerupNoticeSeq;
+  final int? coinBalance;
+
   const GameActive({
     required this.localMatchId,
     required this.mode,
@@ -78,6 +91,12 @@ class GameActive extends GameState {
     this.opponentContinueWindowActive = false,
     this.opponentContinueWindowRemaining = 0,
     this.opponentDisconnected = false,
+    this.powerupCounts = const {},
+    this.usedPowerups = const {},
+    this.shieldActive = false,
+    this.powerupNotice,
+    this.powerupNoticeSeq = 0,
+    this.coinBalance,
   });
 
   GameActive copyWith({
@@ -99,6 +118,11 @@ class GameActive extends GameState {
     bool? opponentContinueWindowActive,
     int? opponentContinueWindowRemaining,
     bool? opponentDisconnected,
+    Map<String, int>? powerupCounts,
+    Set<String>? usedPowerups,
+    bool? shieldActive,
+    String? powerupNotice,
+    int? coinBalance,
   }) {
     return GameActive(
       localMatchId: localMatchId,
@@ -133,6 +157,13 @@ class GameActive extends GameState {
       opponentContinueWindowRemaining:
           opponentContinueWindowRemaining ?? this.opponentContinueWindowRemaining,
       opponentDisconnected: opponentDisconnected ?? this.opponentDisconnected,
+      powerupCounts: powerupCounts ?? this.powerupCounts,
+      usedPowerups: usedPowerups ?? this.usedPowerups,
+      shieldActive: shieldActive ?? this.shieldActive,
+      powerupNotice: powerupNotice ?? this.powerupNotice,
+      powerupNoticeSeq:
+          powerupNotice != null ? powerupNoticeSeq + 1 : powerupNoticeSeq,
+      coinBalance: coinBalance ?? this.coinBalance,
     );
   }
 
@@ -142,31 +173,36 @@ class GameActive extends GameState {
 
   @override
   List<Object?> get props => [
-        localMatchId,
-        mode,
-        opponentType,
-        wordChain,
-        wordScores,
-        wordOwners,
-        score,
-        streak,
-        turnTimeRemaining,
-        matchTimeRemaining,
-        nextStartLetter,
-        hintWord,
-        guestHintUsesLeft,
-        continueUsed,
-        livesRemaining,
-        lastMistakeReason,
-        isMyTurn,
-        myPlayerId,
-        opponentId,
-        opponentUsername,
-        opponentScore,
-        opponentContinueWindowActive,
-        opponentContinueWindowRemaining,
-        opponentDisconnected,
-      ];
+    localMatchId,
+    mode,
+    opponentType,
+    wordChain,
+    wordScores,
+    wordOwners,
+    score,
+    streak,
+    turnTimeRemaining,
+    matchTimeRemaining,
+    nextStartLetter,
+    hintWord,
+    guestHintUsesLeft,
+    continueUsed,
+    livesRemaining,
+    lastMistakeReason,
+    isMyTurn,
+    myPlayerId,
+    opponentId,
+    opponentUsername,
+    opponentScore,
+    opponentContinueWindowActive,
+    opponentContinueWindowRemaining,
+    opponentDisconnected,
+    powerupCounts,
+    usedPowerups,
+    shieldActive,
+    powerupNoticeSeq,
+    coinBalance,
+  ];
 }
 
 class GameOver extends GameState {

@@ -45,6 +45,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   // (the bloc is in GameOver by then, so the WS handlers can't read it).
   GameActive? _activeBeforeLoss;
   bool _wsConnected = false;
+  // Owned power-up inventory (authenticated only), kept in step with the
+  // server so rebuilt GameActive states (game start / continue) carry it.
+  Map<String, int> _powerupCounts = const {};
 
   GameBloc({
     required GameRepository gameRepository,
@@ -62,7 +65,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         super(const GameInitial()) {
     on<GameStarted>(_onGameStarted);
     on<WordSubmitted>(_onWordSubmitted);
-    on<HintRequested>(_onHintRequested);
+    on<HintRequested>((_, _) => add(const PowerupRequested('hint')));
+    on<PowerupRequested>(_onPowerupRequested);
+    on<GamePaused>(_onGamePaused);
+    on<GameResumed>(_onGameResumed);
     on<GameEnded>(_onGameEnded);
     on<ContinueRequested>(_onContinueRequested);
     on<AcceptDefeat>(_onAcceptDefeat);
@@ -146,6 +152,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     _isMultiplayer = event.roomId != null;
     _myPlayerId = event.myPlayerId ?? '';
+    _powerupCounts = _isGuest ? const {} : await _loadPowerupCounts();
 
     if (_isMultiplayer) {
       _connectMultiplayerWs(event.roomId!);
@@ -191,39 +198,46 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           : GameConstants.classicTurnTimerSec;
       _turnStartTime = DateTime.now();
 
-      final difficultyLabel = vsAI
-          ? resolveAIDifficulty(opponentType)[0].toUpperCase() +
-              resolveAIDifficulty(opponentType).substring(1)
-          : '';
+      final difficultyLabel =
+          vsAI
+              ? resolveAIDifficulty(opponentType)[0].toUpperCase() +
+                  resolveAIDifficulty(opponentType).substring(1)
+              : '';
 
-      emit(GameActive(
-        localMatchId: localMatchId,
-        mode: mode,
-        opponentType: opponentType,
-        wordChain: wordChain,
-        wordScores: const [],
-        score: score,
-        streak: 0,
-        turnTimeRemaining: _timeLimitSec,
-        matchTimeRemaining: mode == 'time_attack'
-            ? GameConstants.timeAttackMatchDurationSec
-            : null,
-        nextStartLetter: wordChain.isNotEmpty
-            ? wordChain.last[wordChain.last.length - 1]
-            : event.startLetter,
-        guestHintUsesLeft:
-            _isGuest ? GameConstants.guestHintUsesPerSession : 999,
-        continueUsed: false,
-        livesRemaining: opponentType == 'solo' ? GameConstants.soloLives : 0,
-        isMyTurn: true,
-        myPlayerId: vsAI ? 'player' : null,
-        opponentId: vsAI ? 'ai' : null,
-        opponentUsername: vsAI ? 'AI ($difficultyLabel)' : null,
-        opponentScore: 0,
-        wordOwners: vsAI
-            ? List<String?>.filled(wordChain.length, 'player')
-            : const [],
-      ));
+      emit(
+        GameActive(
+          localMatchId: localMatchId,
+          mode: mode,
+          opponentType: opponentType,
+          wordChain: wordChain,
+          wordScores: const [],
+          score: score,
+          streak: 0,
+          turnTimeRemaining: _timeLimitSec,
+          matchTimeRemaining:
+              mode == 'time_attack'
+                  ? GameConstants.timeAttackMatchDurationSec
+                  : null,
+          nextStartLetter:
+              wordChain.isNotEmpty
+                  ? wordChain.last[wordChain.last.length - 1]
+                  : event.startLetter,
+          guestHintUsesLeft:
+              _isGuest ? GameConstants.guestHintUsesPerSession : 999,
+          continueUsed: false,
+          powerupCounts: _powerupCounts,
+          livesRemaining: opponentType == 'solo' ? GameConstants.soloLives : 0,
+          isMyTurn: true,
+          myPlayerId: vsAI ? 'player' : null,
+          opponentId: vsAI ? 'ai' : null,
+          opponentUsername: vsAI ? 'AI ($difficultyLabel)' : null,
+          opponentScore: 0,
+          wordOwners:
+              vsAI
+                  ? List<String?>.filled(wordChain.length, 'player')
+                  : const [],
+        ),
+      );
 
       _startTurnTimer();
     } catch (e) {
@@ -285,6 +299,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     if (rejectionReason != null) {
+      if (active.shieldActive) {
+        _consumeShield(active, emit);
+        return;
+      }
       if (active.opponentType == 'solo' &&
           (active.mode == 'classic' || active.mode == 'daily') &&
           active.livesRemaining > 1) {
@@ -381,30 +399,186 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   // ---------------------------------------------------------------------------
-  // HintRequested
+  // Power-ups
   // ---------------------------------------------------------------------------
 
-  Future<void> _onHintRequested(
-    HintRequested event,
+  Future<Map<String, int>> _loadPowerupCounts() async {
+    try {
+      return await _gameRepository.getPowerupCounts();
+    } catch (e) {
+      _log.w('Powerup cache read failed: $e');
+      return const {};
+    }
+  }
+
+  bool _paused = false;
+  DateTime? _pausedAt;
+
+  void _onGamePaused(GamePaused event, Emitter<GameState> emit) {
+    if (_isMultiplayer || _paused || state is! GameActive) return;
+    _paused = true;
+    _pausedAt = DateTime.now();
+    _stopTurnTimer();
+    _aiTimer?.cancel();
+  }
+
+  void _onGameResumed(GameResumed event, Emitter<GameState> emit) {
+    if (!_paused) return;
+    _paused = false;
+    final active = state;
+    if (active is! GameActive) return;
+    // Keep the speed bonus fair: the pause doesn't count as thinking time.
+    if (_turnStartTime != null && _pausedAt != null) {
+      _turnStartTime = _turnStartTime!.add(DateTime.now().difference(_pausedAt!));
+    }
+    _startTurnTimer();
+    if (_isVsAI(active) && !active.isMyTurn) _scheduleAITurn();
+  }
+
+  /// Whether [type] may be used right now — the same rules the tiles use.
+  static bool canUsePowerup(GameActive g, String type) {
+    if (g.usedPowerups.contains(type) &&
+        (g.isMultiplayer || type == 'shield')) {
+      return false;
+    }
+    switch (type) {
+      case 'hint':
+        return g.isMyTurn;
+      case 'extra_time':
+        return g.isMyTurn;
+      case 'freeze':
+        return g.isMultiplayer; // spec: N/A in solo and vs-AI
+      case 'shield':
+        return !g.shieldActive;
+    }
+    return false;
+  }
+
+  GameActive _withNotice(GameActive g, String notice) =>
+      g.copyWith(powerupNotice: notice);
+
+  Future<void> _onPowerupRequested(
+    PowerupRequested event,
     Emitter<GameState> emit,
   ) async {
     final active = state;
     if (active is! GameActive) return;
-    if (_isGuest && active.guestHintUsesLeft <= 0) return;
+    final type = event.type;
+    if (!canUsePowerup(active, type)) return;
 
-    final startLetter = active.nextStartLetter ?? 'a';
-    final suggestions = _dictionaryService.suggestWords(
-      startLetter,
-      exclude: active.wordChain.toSet(),
+    if (_isGuest) {
+      // Guests only get the free hint allowance; everything else is a soft upsell.
+      if (type != 'hint') {
+        emit(_withNotice(active, 'برای استفاده از این آیتم ثبت‌نام کن'));
+        return;
+      }
+      if (active.guestHintUsesLeft <= 0) {
+        emit(
+          _withNotice(
+            active,
+            'راهنمای رایگان تمام شد — برای راهنمای بیشتر ثبت‌نام کن',
+          ),
+        );
+        return;
+      }
+    }
+
+    if (_isMultiplayer) {
+      // Server is the authority: it deducts, applies, and answers with
+      // powerup_used / powerup_rejected (handled in the WS handlers).
+      _wsService.send({'type': 'use_powerup', 'powerup': type});
+      return;
+    }
+
+    // Solo / vs-AI: effect is local, payment (authenticated) is server-first.
+    String? hint;
+    if (type == 'hint') {
+      final suggestions = _dictionaryService.suggestWords(
+        active.nextStartLetter ?? 'a',
+        exclude: active.wordChain.toSet(),
+      );
+      if (suggestions.isEmpty) {
+        emit(_withNotice(active, 'کلمهٔ پیشنهادی پیدا نشد'));
+        return;
+      }
+      hint = suggestions[Random().nextInt(suggestions.length)];
+    }
+
+    var counts = active.powerupCounts;
+    int? coins;
+    if (!_isGuest) {
+      try {
+        final result = await _gameRepository.usePowerup(type);
+        counts = {...counts, type: result.remaining};
+        _powerupCounts = counts;
+        coins = result.coins;
+      } on PowerupUnavailableException {
+        final now = state;
+        if (now is GameActive) {
+          emit(_withNotice(now, 'موجودی یا سکهٔ کافی نداری'));
+        }
+        return;
+      } catch (e) {
+        _log.w('usePowerup failed: $e');
+        final now = state;
+        if (now is GameActive) {
+          emit(_withNotice(now, 'اتصال برقرار نشد؛ دوباره تلاش کن'));
+        }
+        return;
+      }
+    }
+
+    final cur = state;
+    if (cur is! GameActive) return; // game ended while the request was in flight
+
+    switch (type) {
+      case 'hint':
+        emit(
+          cur.copyWith(
+            hintWord: hint,
+            guestHintUsesLeft:
+                _isGuest
+                    ? max(0, cur.guestHintUsesLeft - 1)
+                    : cur.guestHintUsesLeft,
+            powerupCounts: counts,
+            coinBalance: coins,
+          ),
+        );
+      case 'extra_time':
+        emit(
+          cur.copyWith(
+            turnTimeRemaining:
+                cur.turnTimeRemaining + GameConstants.extraTimeBonusSec,
+            powerupCounts: counts,
+            coinBalance: coins,
+            powerupNotice:
+                '+${GameConstants.extraTimeBonusSec} ثانیه وقت اضافه',
+          ),
+        );
+      case 'shield':
+        emit(
+          cur.copyWith(
+            shieldActive: true,
+            usedPowerups: {...cur.usedPowerups, 'shield'},
+            powerupCounts: counts,
+            coinBalance: coins,
+            powerupNotice: 'سپر فعال شد؛ اولین اشتباهت خنثی می‌شود',
+          ),
+        );
+    }
+  }
+
+  /// Shield absorbs a solo/AI mistake: the turn restarts, no life or game lost.
+  void _consumeShield(GameActive active, Emitter<GameState> emit) {
+    _turnStartTime = DateTime.now();
+    _startTurnTimer();
+    emit(
+      active.copyWith(
+        shieldActive: false,
+        turnTimeRemaining: _timeLimitSec,
+        powerupNotice: 'سپر اشتباهت را خنثی کرد',
+      ),
     );
-    if (suggestions.isEmpty) return;
-
-    final hint = suggestions[Random().nextInt(suggestions.length)];
-    final newHintUses = _isGuest
-        ? max(0, active.guestHintUsesLeft - 1)
-        : active.guestHintUsesLeft;
-
-    emit(active.copyWith(hintWord: hint, guestHintUsesLeft: newHintUses));
   }
 
   // ---------------------------------------------------------------------------
@@ -567,6 +741,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         );
         return;
       }
+      if (active.shieldActive) {
+        _consumeShield(active, emit);
+        return;
+      }
       if (active.opponentType == 'solo' &&
           (active.mode == 'classic' || active.mode == 'daily') &&
           active.livesRemaining > 1) {
@@ -656,32 +834,33 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         : '';
 
     final chain = over.wordChain;
-    emit(GameActive(
-      localMatchId: over.localMatchId,
-      mode: over.mode,
-      opponentType: opponentType,
-      wordChain: chain,
-      wordScores: const [],
-      score: over.score,
-      streak: 0,
-      turnTimeRemaining: _timeLimitSec,
-      matchTimeRemaining: null,
-      nextStartLetter: chain.isNotEmpty
-          ? chain.last[chain.last.length - 1]
-          : null,
-      guestHintUsesLeft:
-          _isGuest ? GameConstants.guestHintUsesPerSession : 999,
-      continueUsed: true,
-      livesRemaining: opponentType == 'solo' ? GameConstants.soloLives : 0,
-      isMyTurn: true,
-      myPlayerId: vsAI ? 'player' : null,
-      opponentId: vsAI ? 'ai' : null,
-      opponentUsername: vsAI ? 'AI ($difficultyLabel)' : null,
-      opponentScore: 0,
-      wordOwners: vsAI
-          ? List<String?>.filled(chain.length, 'player')
-          : const [],
-    ));
+    emit(
+      GameActive(
+        localMatchId: over.localMatchId,
+        mode: over.mode,
+        opponentType: opponentType,
+        wordChain: chain,
+        wordScores: const [],
+        score: over.score,
+        streak: 0,
+        turnTimeRemaining: _timeLimitSec,
+        matchTimeRemaining: null,
+        nextStartLetter:
+            chain.isNotEmpty ? chain.last[chain.last.length - 1] : null,
+        guestHintUsesLeft:
+            _isGuest ? GameConstants.guestHintUsesPerSession : 999,
+        continueUsed: true,
+        powerupCounts: _powerupCounts,
+        livesRemaining: opponentType == 'solo' ? GameConstants.soloLives : 0,
+        isMyTurn: true,
+        myPlayerId: vsAI ? 'player' : null,
+        opponentId: vsAI ? 'ai' : null,
+        opponentUsername: vsAI ? 'AI ($difficultyLabel)' : null,
+        opponentScore: 0,
+        wordOwners:
+            vsAI ? List<String?>.filled(chain.length, 'player') : const [],
+      ),
+    );
 
     _startTurnTimer();
   }
@@ -763,9 +942,72 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         _handleWsGameOver(event.data, emit);
       case 'opponent_disconnected':
         _handleWsOpponentDisconnected(emit);
+      case 'powerup_used':
+        _handleWsPowerupUsed(event.data, emit);
+      case 'powerup_rejected':
+        _handleWsPowerupRejected(emit);
       default:
         break;
     }
+  }
+
+  static const _powerupNames = {
+    'hint': 'راهنما',
+    'freeze': 'انجماد',
+    'extra_time': 'وقت بیشتر',
+    'shield': 'سپر',
+  };
+
+  void _handleWsPowerupUsed(
+    Map<String, dynamic> data,
+    Emitter<GameState> emit,
+  ) {
+    final active = state;
+    if (active is! GameActive) return;
+
+    final type = data['powerup'] as String? ?? '';
+    final name = _powerupNames[type] ?? type;
+    final mine = (data['by'] as String? ?? '') == _myPlayerId;
+
+    if (!mine) {
+      emit(_withNotice(active, 'حریف از $name استفاده کرد'));
+      return;
+    }
+
+    // A second shield event for me is the shield firing, not another purchase.
+    final shieldFired =
+        type == 'shield' && active.usedPowerups.contains('shield');
+    final remaining = data['remaining'] as int?;
+    var counts = active.powerupCounts;
+    if (remaining != null) {
+      counts = {...counts, type: remaining};
+      _powerupCounts = counts;
+    }
+    final hint = data['hint'] as String?;
+
+    emit(
+      active.copyWith(
+        usedPowerups: {...active.usedPowerups, type},
+        powerupCounts: counts,
+        coinBalance: data['coins'] as int?,
+        hintWord:
+            type == 'hint' && hint != null && hint.isNotEmpty
+                ? hint
+                : active.hintWord,
+        powerupNotice:
+            shieldFired
+                ? 'سپر اشتباهت را خنثی کرد'
+                : type == 'hint' && (hint == null || hint.isEmpty)
+                ? 'کلمهٔ پیشنهادی پیدا نشد'
+                : '$name فعال شد',
+      ),
+    );
+  }
+
+  void _handleWsPowerupRejected(Emitter<GameState> emit) {
+    final active = state;
+    if (active is! GameActive) return;
+    emit(_withNotice(active, 'موجودی یا سکهٔ کافی نداری'));
   }
 
   void _handleWsGameStart(Map<String, dynamic> data, Emitter<GameState> emit) {
@@ -791,24 +1033,28 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         .cast<String>()
         .firstWhere((id) => id != _myPlayerId, orElse: () => '');
 
-    emit(GameActive(
-      localMatchId: -1,
-      mode: mode,
-      opponentType: 'multiplayer',
-      wordChain: const [],
-      wordScores: const [],
-      score: 0,
-      streak: 0,
-      turnTimeRemaining: _timeLimitSec,
-      matchTimeRemaining: mode == 'time_attack'
-          ? GameConstants.timeAttackMatchDurationSec
-          : null,
-      guestHintUsesLeft: 999,
-      continueUsed: false,
-      isMyTurn: currentPlayer == _myPlayerId || currentPlayer.isEmpty,
-      myPlayerId: _myPlayerId,
-      opponentId: opponentId.isEmpty ? null : opponentId,
-    ));
+    emit(
+      GameActive(
+        localMatchId: -1,
+        mode: mode,
+        opponentType: 'multiplayer',
+        wordChain: const [],
+        wordScores: const [],
+        score: 0,
+        streak: 0,
+        turnTimeRemaining: _timeLimitSec,
+        matchTimeRemaining:
+            mode == 'time_attack'
+                ? GameConstants.timeAttackMatchDurationSec
+                : null,
+        guestHintUsesLeft: 999,
+        continueUsed: false,
+        powerupCounts: _powerupCounts,
+        isMyTurn: currentPlayer == _myPlayerId || currentPlayer.isEmpty,
+        myPlayerId: _myPlayerId,
+        opponentId: opponentId.isEmpty ? null : opponentId,
+      ),
+    );
   }
 
   void _handleWsWordAccepted(

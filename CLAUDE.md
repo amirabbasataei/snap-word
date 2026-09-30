@@ -597,6 +597,8 @@ No energy systems, no artificial wait timers, no interstitial ads during an acti
 | **Extra Time** | Adds 8s to current player's turn timer | Unlimited | 1 per match | ❌ Registered only |
 | **Shield** | Auto-negates next loss-causing event. Fires before continue prompt. Does not stack. | 1 per game | 1 per match | ❌ Registered only |
 
+**How a use is paid for (server-authoritative, `PowerupService.UseItem`):** owned inventory first; when the count is 0 it costs coins — Hint 10 · Freeze 20 · Extra Time 15 · Shield 20 (`config.PowerupPrice` / `GameConstants.powerupCostCoins`; Shield's price was not in the original spec). There is no separate shop yet, so inventory only grows via future rewards. The tile badge shows owned count, with the coin price beneath when it is 0. Solo/vs-AI apply the effect locally after the server call succeeds (Freeze is not offered there); multiplayer sends `use_powerup` over WS and the server answers `powerup_used` (with the caller's `coins`/`remaining`) or `powerup_rejected`. Guests: free Hint only; other tiles raise the register upsell.
+
 Both players' inventories are visible at match start. Multiplayer limits enforced server-side — server rejects any second use regardless of client state.
 
 ---

@@ -41,6 +41,31 @@ class HintRequested extends GameEvent {
   List<Object?> get props => [];
 }
 
+class PowerupRequested extends GameEvent {
+  final String type; // hint | freeze | extra_time | shield
+
+  const PowerupRequested(this.type);
+
+  @override
+  List<Object?> get props => [type];
+}
+
+/// Freezes the solo/vs-AI clocks (turn timer and the AI's pending move) while
+/// something modal, like a rewarded ad, is on screen. No-op in multiplayer.
+class GamePaused extends GameEvent {
+  const GamePaused();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class GameResumed extends GameEvent {
+  const GameResumed();
+
+  @override
+  List<Object?> get props => [];
+}
+
 class GameEnded extends GameEvent {
   const GameEnded();
 

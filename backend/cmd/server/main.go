@@ -77,12 +77,12 @@ func main() {
 	kavenegarClient := service.NewKavenegarClient(cfg)
 	authSvc := service.NewAuthService(userRepo, kavenegarClient, rdb, cfg)
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc, repository.NewDailyRepository(db))
-	powerupSvc := service.NewPowerupService(powerupRepo)
-	_ = service.NewMonetizationService(userRepo) // available for handlers; no routes in Phase 16
+	powerupSvc := service.NewPowerupService(powerupRepo, userRepo)
+	monetizationSvc := service.NewMonetizationService(userRepo)
 
 	hub := ws.NewHub(ws.RoomDeps{
 		MatchRepo:      matchRepo,
-		PowerupSvc:     powerupSvc,
+		PowerupSvc:     powerupDeductor{powerupSvc},
 		StreakSvc:      streakSvc,
 		LeaderboardSvc: leaderboardSvc,
 	})
@@ -102,6 +102,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(authSvc, cfg)
 	gameHandler := handler.NewGameHandler(gameSvc)
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
+	monetizationHandler := handler.NewMonetizationHandler(monetizationSvc)
 	matchHandler := handler.NewMatchHandler(matchSvc)
 	wsHandler := handler.NewWSHandler(hub, authSvc)
 	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
@@ -143,6 +144,7 @@ func main() {
 	protected.GET("/profile/stats", gameHandler.GetStats)
 	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
 	protected.POST("/powerup/use", powerupHandler.Use)
+	protected.POST("/rewarded-ad/claim", monetizationHandler.RewardedAd)
 	protected.POST("/match/queue", matchHandler.JoinQueue)
 	protected.DELETE("/match/queue", matchHandler.CancelQueue)
 	protected.GET("/leaderboard", leaderboardHandler.Get)
@@ -270,4 +272,16 @@ func connectRedis(rawURL string) (*redis.Client, error) {
 	}
 	slog.Info("redis connected")
 	return rdb, nil
+}
+
+// powerupDeductor adapts service.PowerupService to ws.PowerupDeductor (the ws
+// package cannot import service without a cycle).
+type powerupDeductor struct{ svc *service.PowerupService }
+
+func (d powerupDeductor) UseItem(ctx context.Context, userID, powerupType string) (ws.PowerupReceipt, error) {
+	use, err := d.svc.UseItem(ctx, userID, powerupType)
+	if err != nil {
+		return ws.PowerupReceipt{}, err
+	}
+	return ws.PowerupReceipt{Remaining: use.Remaining, Coins: use.Coins}, nil
 }

@@ -76,6 +76,30 @@ class _GameView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocListener<GameBloc, GameState>(
+      // Power-up feedback: transient notices, and the balance reported by a
+      // paid use pushed into the app-wide coin balance.
+      listenWhen: (prev, curr) =>
+          curr is GameActive &&
+          (prev is! GameActive ||
+              curr.powerupNoticeSeq != prev.powerupNoticeSeq ||
+              curr.coinBalance != prev.coinBalance),
+      listener: (context, state) {
+        if (state is! GameActive) return;
+        final coins = state.coinBalance;
+        if (coins != null) getIt<AuthCubit>().setCoins(coins);
+        final notice = state.powerupNotice;
+        if (notice != null) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(notice, textDirection: TextDirection.rtl)));
+        }
+      },
+      child: _buildGame(context),
+    );
+  }
+
+  Widget _buildGame(BuildContext context) {
     return BlocConsumer<GameBloc, GameState>(
       listenWhen: (prev, curr) =>
           curr is GameOver && curr.isSaved && prev is GameOver && !prev.isSaved,

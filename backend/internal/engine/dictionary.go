@@ -3,6 +3,7 @@ package engine
 import (
 	_ "embed"
 	"strings"
+	"unicode/utf8"
 )
 
 //go:embed data/fa.txt
@@ -30,9 +31,9 @@ func IsValid(word string) bool {
 
 // SuggestWord returns a valid word of at least 3 letters that starts with letter
 // and is not present in usedWords. Returns "" if none found.
-func SuggestWord(letter byte, usedWords map[string]bool) string {
+func SuggestWord(letter rune, usedWords map[string]bool) string {
 	for w := range dictionary {
-		if len(w) >= 3 && w[0] == letter && !usedWords[w] {
+		if utf8.RuneCountInString(w) >= 3 && firstLetter(w) == letter && !usedWords[w] {
 			return w
 		}
 	}

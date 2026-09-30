@@ -52,6 +52,9 @@ type outMsg struct {
 	Scores      map[string]int  `json:"scores,omitempty"`
 	State       *gameStartState `json:"state,omitempty"`
 	Hint        string          `json:"hint,omitempty"`
+	// Payment receipt, sent only to the player who used the power-up.
+	Coins     *int `json:"coins,omitempty"`
+	Remaining *int `json:"remaining,omitempty"`
 }
 
 type gameStartState struct {
@@ -68,7 +71,13 @@ type gameStartState struct {
 // Implemented by service.PowerupService — defined here as an interface so the
 // ws package does not need to import the service package.
 type PowerupDeductor interface {
-	UseItem(ctx context.Context, userID, powerupType string) (int, error)
+	UseItem(ctx context.Context, userID, powerupType string) (PowerupReceipt, error)
+}
+
+// PowerupReceipt reports how a power-up use was paid for (inventory or coins).
+type PowerupReceipt struct {
+	Remaining int // inventory left for this type
+	Coins     int // coin balance after the use
 }
 
 // StreakRecorder records game completion for daily streak tracking.
@@ -349,20 +358,27 @@ func (r *Room) processUsePowerup(client *Client, powerupType string) {
 	}
 
 	// Deduct from DB inventory
+	var receipt *PowerupReceipt
 	if r.deps.PowerupSvc != nil {
-		if _, err := r.deps.PowerupSvc.UseItem(context.Background(), client.userID, powerupType); err != nil {
+		rc, err := r.deps.PowerupSvc.UseItem(context.Background(), client.userID, powerupType)
+		if err != nil {
 			slog.Warn("ws: powerup deduction failed", "type", powerupType, "userID", client.userID, "error", err)
+			r.sendTo(client.userID, mustMarshal(outMsg{
+				Type:    "powerup_rejected",
+				Powerup: powerupType,
+				Reason:  "insufficient_powerup",
+			}))
 			return
 		}
+		receipt = &rc
 	}
 	r.powerupUsedInMatch[client.userID][powerupType] = true
 
 	switch powerupType {
 	case "hint":
-		var letter byte
+		var letter rune
 		if len(r.chain) > 0 {
-			last := r.chain[len(r.chain)-1]
-			letter = last[len(last)-1]
+			letter = engine.LastLetter(r.chain[len(r.chain)-1])
 		}
 		hint := ""
 		if letter != 0 {
@@ -370,10 +386,12 @@ func (r *Room) processUsePowerup(client *Client, powerupType string) {
 		}
 		// Send hint word only to the requester; broadcast usage to everyone.
 		r.sendTo(client.userID, mustMarshal(outMsg{
-			Type:    "powerup_used",
-			Powerup: "hint",
-			By:      client.userID,
-			Hint:    hint,
+			Type:      "powerup_used",
+			Powerup:   "hint",
+			By:        client.userID,
+			Hint:      hint,
+			Coins:     receiptCoins(receipt),
+			Remaining: receiptRemaining(receipt),
 		}))
 		r.broadcastExcept(client.userID, mustMarshal(outMsg{
 			Type:    "powerup_used",
@@ -410,11 +428,32 @@ func (r *Room) processUsePowerup(client *Client, powerupType string) {
 		r.shieldActive[client.userID] = true
 	}
 
-	r.broadcast(mustMarshal(outMsg{
+	r.sendTo(client.userID, mustMarshal(outMsg{
+		Type:      "powerup_used",
+		Powerup:   powerupType,
+		By:        client.userID,
+		Coins:     receiptCoins(receipt),
+		Remaining: receiptRemaining(receipt),
+	}))
+	r.broadcastExcept(client.userID, mustMarshal(outMsg{
 		Type:    "powerup_used",
 		Powerup: powerupType,
 		By:      client.userID,
 	}))
+}
+
+func receiptCoins(rc *PowerupReceipt) *int {
+	if rc == nil {
+		return nil
+	}
+	return &rc.Coins
+}
+
+func receiptRemaining(rc *PowerupReceipt) *int {
+	if rc == nil {
+		return nil
+	}
+	return &rc.Remaining
 }
 
 func (r *Room) processContinue(client *Client, method string) {

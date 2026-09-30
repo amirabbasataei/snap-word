@@ -6,6 +6,17 @@ abstract final class GameConstants {
   static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;
   static const int guestHintUsesPerSession = 5;
+
+  // Power-ups: a use comes out of the owned inventory first, otherwise it costs
+  // coins (server-authoritative). Mirror config.CoinHint/Freeze/ExtraTime/Shield.
+  static const Map<String, int> powerupCostCoins = {
+    'hint': 10,
+    'freeze': 20,
+    'extra_time': 15,
+    'shield': 20,
+  };
+  static const int extraTimeBonusSec = 8;
+  static const int rewardedAdCoins = 20; // mirrors config.CoinRewardedAd
   static const int minWordLength = 3;
   static const int dailyMaxWords = 20;
   static const int dailyRetryCostCoins = 25;

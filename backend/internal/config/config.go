@@ -159,4 +159,21 @@ const (
 	CoinHint      = 10
 	CoinFreeze    = 20
 	CoinExtraTime = 15
+	CoinShield    = 20 // not in the original spec's price list; priced between Extra Time and Freeze
 )
+
+// PowerupPrice returns the coin cost of one use of a power-up when the player's
+// inventory is empty, and false for an unknown type.
+func PowerupPrice(powerupType string) (int, bool) {
+	switch powerupType {
+	case "hint":
+		return CoinHint, true
+	case "freeze":
+		return CoinFreeze, true
+	case "extra_time":
+		return CoinExtraTime, true
+	case "shield":
+		return CoinShield, true
+	}
+	return 0, false
+}

@@ -59,13 +59,13 @@ func (h *PowerupHandler) Use(c *gin.Context) {
 
 	slog.Info("powerup use", "userID", userID, "type", req.PowerupType)
 
-	remaining, err := h.powerupSvc.UseItem(c.Request.Context(), userID, req.PowerupType)
+	use, err := h.powerupSvc.UseItem(c.Request.Context(), userID, req.PowerupType)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidPowerupType):
 			respondError(c, http.StatusBadRequest, "invalid_powerup_type", "unknown powerup type")
 		case errors.Is(err, service.ErrInsufficientPowerup):
-			respondError(c, http.StatusConflict, "insufficient_powerup", "no charges remaining for this powerup")
+			respondError(c, http.StatusConflict, "insufficient_powerup", "no inventory and not enough coins for this powerup")
 		default:
 			slog.Error("UseItem failed", "userID", userID, "type", req.PowerupType, "error", err)
 			respondError(c, http.StatusInternalServerError, "internal_error", "failed to use powerup")
@@ -75,6 +75,8 @@ func (h *PowerupHandler) Use(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
 		"powerup_type":       req.PowerupType,
-		"quantity_remaining": remaining,
+		"quantity_remaining": use.Remaining,
+		"coins_spent":        use.CoinsSpent,
+		"coins":              use.Coins,
 	}})
 }
