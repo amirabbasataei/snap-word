@@ -39,6 +39,9 @@ dependencies:
   share_plus: ^10.1.4
   shamsi_date: ^1.1.1
 
+  # Ads
+  tapsell_plus: ^2.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
