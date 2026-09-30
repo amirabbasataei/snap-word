@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -191,12 +192,13 @@ func (s *LeaderboardService) RunWeeklyReset(ctx context.Context, weekStart time.
 			continue
 		}
 
-		if err := s.userRepo.AwardCoins(ctx, entry.UserID, coins); err != nil {
-			slog.Error("weekly reset: AwardCoins failed", "userID", entry.UserID, "error", err)
+		if _, err := s.userRepo.CreateInboxReward(ctx, entry.UserID, repository.RewardWeeklyRank,
+			weekStart.Format("2006-01-02"), strconv.Itoa(entry.Rank), coins); err != nil {
+			slog.Error("weekly reset: CreateInboxReward failed", "userID", entry.UserID, "error", err)
 		}
 		if err := s.notifSvc.SendToUser(ctx, entry.UserID,
 			"Weekly Leaderboard Reward",
-			fmt.Sprintf("You finished #%d and earned %d coins!", entry.Rank, coins),
+			fmt.Sprintf("You finished #%d and earned %d coins — claim them in your inbox!", entry.Rank, coins),
 		); err != nil {
 			slog.Warn("weekly reset: notification failed", "userID", entry.UserID, "error", err)
 		}

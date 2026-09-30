@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"wordchain/backend/internal/config"
@@ -81,13 +82,18 @@ func (s *StreakService) awardMilestone(ctx context.Context, userID string, strea
 	if !hit {
 		return
 	}
-	if err := s.userRepo.AwardCoins(ctx, userID, coins); err != nil {
-		slog.Error("streak milestone: AwardCoins failed", "userID", userID, "streak", streak, "error", err)
+	ref := fmt.Sprintf("%d:%s", streak, time.Now().UTC().Format("2006-01-02"))
+	created, err := s.userRepo.CreateInboxReward(ctx, userID, repository.RewardStreak, ref, strconv.Itoa(streak), coins)
+	if err != nil {
+		slog.Error("streak milestone: CreateInboxReward failed", "userID", userID, "streak", streak, "error", err)
+		return
+	}
+	if !created {
 		return
 	}
 	_ = s.notifSvc.SendToUser(ctx, userID,
 		fmt.Sprintf("%d-day streak!", streak),
-		fmt.Sprintf("You've earned %d coins.", coins),
+		fmt.Sprintf("You've earned %d coins — claim them in your inbox.", coins),
 	)
 	slog.Info("streak milestone awarded", "userID", userID, "streak", streak, "coins", coins)
 }

@@ -128,6 +128,8 @@ class AuthRepository {
     }
   }
 
+  Future<void> setCoins(int coins) => _prefs.setInt('coins', coins);
+
   Future<void> creditCoins(int amount) => _prefs.setInt('coins', storedCoins + amount);
 
   /// The caller's own referral code, for sharing with friends.

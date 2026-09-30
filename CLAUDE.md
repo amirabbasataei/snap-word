@@ -439,7 +439,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Auth:** `POST /auth/send-otp` · `POST /auth/verify-otp` · `POST /auth/refresh`
 
-**Referral:** `GET /referral/me` (own code, for sharing) · `GET /inbox` · `POST /inbox/:id/claim` (inviter reward messages) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
+**Referral:** `GET /referral/me` (own code, for sharing) · `GET /inbox` · `POST /inbox/:id/claim` (claimable prize messages) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
 
 **Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `GET /powerup/inventory` · `POST /powerup/use`
 
@@ -553,9 +553,15 @@ Self-referral (code equals the caller's own) is rejected (`400 self_referral`) �
 
 **Sharing your own code:** ZProfile's `_InviteCard` loads it via `GET /referral/me` and shares a short Persian invite text + code through `ShareService.shareInvite` (system share sheet → social apps/SMS).
 
-**Inviter reward (+50 coins, `config.CoinReferralInviter`):** whenever a referral is linked (either entry point) a `referral_rewards` row (migration `006`, backfilled from existing `referred_by`) is created **unclaimed**. It appears as a message in the home bell's inbox (`/inbox`, `features/inbox/`) with a claim button; the bell shows a badge with the unclaimed count. `POST /inbox/:id/claim` credits the coins atomically, once.
+**Inviter reward (+50 coins, `config.CoinReferralInviter`):** whenever a referral is linked (either entry point) an unclaimed `inbox_rewards` row is created for the referrer.
 
 Client: both entry points are served by one shared widget, `ReferralBottomSheet` (`client/lib/features/auth/view/widgets/referral_bottom_sheet.dart`), which branches on `AuthCubit`'s state (authenticated → redeem directly; not yet authenticated → stash the code and forward it into `verify-otp`). Triggered from the ZLogin phone screen's referral teaser card (entry point a) and from Profile → Settings (entry point b) — the latter is a deliberate small addition beyond the two named screens (`ZLobby`'s `_InviteRow` referral placeholder is unrelated and stays a stub).
+
+---
+
+## 📬 Prize Inbox
+
+Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `referral_reward` · `streak` · `weekly_rank` · `daily_login`, unique per `(user_id, kind, ref)` so awards are idempotent). Coins are credited only by `POST /inbox/:id/claim` (atomic, once). The home bell (`features/inbox/`, route `/inbox`) shows a badge with the unclaimed count; `GET /inbox` also returns the live server coin balance, which the client uses to overwrite its stale local balance. Streak milestones, weekly top-3 rewards and referrals also send an FCM push (no-op while FCM is unconfigured). **Daily login +10** is created lazily on the first `GET /inbox` of each UTC day. **Welcome bonus +50** (`config.CoinWelcome`) is credited directly at signup, on top of any referral bonus.
 
 ---
 
@@ -572,7 +578,7 @@ Client: both entry points are served by one shared widget, `ReferralBottomSheet`
 
 ### Coin economy
 
-**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 · Referral inviter reward +50 per invited user (claimed from the inbox)
+**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 · Welcome bonus +50 (every new account) · Referral inviter reward +50 per invited user. Streak, weekly-rank, daily-login and inviter prizes are claimed from the inbox
 
 **Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
@@ -724,7 +730,7 @@ flutter analyze
 flutter test
 ```
 
-- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards`.
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`).
 - `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
 
 ---

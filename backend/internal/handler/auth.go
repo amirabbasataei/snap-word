@@ -180,35 +180,35 @@ func (h *AuthHandler) RedeemReferral(c *gin.Context) {
 
 type inboxItemResponse struct {
 	ID        string    `json:"id"`
-	Type      string    `json:"type"`
-	Username  string    `json:"username"`
+	Kind      string    `json:"kind"`
+	Detail    string    `json:"detail"`
 	Coins     int       `json:"coins"`
 	Claimed   bool      `json:"claimed"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// GetInbox handles GET /api/v1/inbox (protected): referral-reward messages.
+// GetInbox handles GET /api/v1/inbox (protected): claimable prize messages.
 func (h *AuthHandler) GetInbox(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
 
-	items, err := h.authSvc.ListInbox(c.Request.Context(), userID)
+	view, err := h.authSvc.ListInbox(c.Request.Context(), userID)
 	if err != nil {
 		respondAuthError(c, err)
 		return
 	}
 
-	resp := make([]inboxItemResponse, 0, len(items))
+	resp := make([]inboxItemResponse, 0, len(view.Items))
 	unclaimed := 0
-	for _, it := range items {
+	for _, it := range view.Items {
 		if !it.Claimed {
 			unclaimed++
 		}
 		resp = append(resp, inboxItemResponse{
-			ID: it.ID, Type: "referral_reward", Username: it.ReferredUsername,
+			ID: it.ID, Kind: it.Kind, Detail: it.Detail,
 			Coins: it.Coins, Claimed: it.Claimed, CreatedAt: it.CreatedAt,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"data": gin.H{"items": resp, "unclaimed_count": unclaimed}})
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"items": resp, "unclaimed_count": unclaimed, "coins": view.Coins}})
 }
 
 // ClaimInboxReward handles POST /api/v1/inbox/:id/claim (protected).

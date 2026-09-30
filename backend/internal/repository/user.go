@@ -282,68 +282,82 @@ func (r *UserRepository) GetUsernames(ctx context.Context, userIDs []string) (ma
 	return result, rows.Err()
 }
 
-// ReferralReward is an inbox message telling a referrer that someone joined
-// with their code; the coins are credited only when it is claimed.
-type ReferralReward struct {
-	ID               string
-	ReferredUsername string
-	Coins            int
-	Claimed          bool
-	CreatedAt        time.Time
+// Inbox reward kinds.
+const (
+	RewardReferral   = "referral_reward"
+	RewardStreak     = "streak"
+	RewardWeeklyRank = "weekly_rank"
+	RewardDailyLogin = "daily_login"
+)
+
+// InboxReward is a claimable prize message; coins are credited only when it
+// is claimed. Detail carries the kind-specific text (friend's username,
+// streak days, leaderboard rank).
+type InboxReward struct {
+	ID        string
+	Kind      string
+	Detail    string
+	Coins     int
+	Claimed   bool
+	CreatedAt time.Time
 }
 
-// CreateReferralReward records the (unclaimed) inviter reward. Idempotent per
-// referred user.
-func (r *UserRepository) CreateReferralReward(ctx context.Context, referrerID, referredID string, coins int) error {
-	const q = `INSERT INTO referral_rewards (referrer_id, referred_id, coins)
-		VALUES ($1, $2, $3) ON CONFLICT (referred_id) DO NOTHING`
-	if _, err := r.db.ExecContext(ctx, q, referrerID, referredID, coins); err != nil {
-		return fmt.Errorf("CreateReferralReward: %w", err)
-	}
-	return nil
-}
-
-// ListReferralRewards returns the referrer's inbox, newest first.
-func (r *UserRepository) ListReferralRewards(ctx context.Context, referrerID string) ([]*ReferralReward, error) {
-	const q = `SELECT rr.id, COALESCE(u.username, ''), rr.coins, rr.claimed_at IS NOT NULL, rr.created_at
-		FROM referral_rewards rr JOIN users u ON u.id = rr.referred_id
-		WHERE rr.referrer_id = $1 ORDER BY rr.created_at DESC LIMIT 100`
-	rows, err := r.db.QueryContext(ctx, q, referrerID)
+// CreateInboxReward records an unclaimed reward. Idempotent per (user, kind,
+// ref); returns whether a new row was created.
+func (r *UserRepository) CreateInboxReward(ctx context.Context, userID, kind, ref, detail string, coins int) (bool, error) {
+	const q = `INSERT INTO inbox_rewards (user_id, kind, ref, detail, coins)
+		VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, kind, ref) DO NOTHING`
+	res, err := r.db.ExecContext(ctx, q, userID, kind, ref, detail, coins)
 	if err != nil {
-		return nil, fmt.Errorf("ListReferralRewards: %w", err)
+		return false, fmt.Errorf("CreateInboxReward: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("CreateInboxReward rows: %w", err)
+	}
+	return n > 0, nil
+}
+
+// ListInboxRewards returns the user's inbox, newest first.
+func (r *UserRepository) ListInboxRewards(ctx context.Context, userID string) ([]*InboxReward, error) {
+	const q = `SELECT id, kind, detail, coins, claimed_at IS NOT NULL, created_at
+		FROM inbox_rewards WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100`
+	rows, err := r.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, fmt.Errorf("ListInboxRewards: %w", err)
 	}
 	defer rows.Close()
 
-	var out []*ReferralReward
+	var out []*InboxReward
 	for rows.Next() {
-		var rw ReferralReward
-		if err := rows.Scan(&rw.ID, &rw.ReferredUsername, &rw.Coins, &rw.Claimed, &rw.CreatedAt); err != nil {
-			return nil, fmt.Errorf("ListReferralRewards scan: %w", err)
+		var rw InboxReward
+		if err := rows.Scan(&rw.ID, &rw.Kind, &rw.Detail, &rw.Coins, &rw.Claimed, &rw.CreatedAt); err != nil {
+			return nil, fmt.Errorf("ListInboxRewards scan: %w", err)
 		}
 		out = append(out, &rw)
 	}
 	return out, rows.Err()
 }
 
-// ClaimReferralReward atomically marks the reward claimed and credits the
+// ClaimInboxReward atomically marks the reward claimed and credits the
 // coins. Returns the coins awarded, or ErrRewardNotFound if the reward does
 // not exist, belongs to someone else, or was already claimed.
-func (r *UserRepository) ClaimReferralReward(ctx context.Context, rewardID, referrerID string) (int, error) {
+func (r *UserRepository) ClaimInboxReward(ctx context.Context, rewardID, userID string) (int, error) {
 	const q = `
 		WITH c AS (
-			UPDATE referral_rewards SET claimed_at = now()
-			WHERE id = $1 AND referrer_id = $2 AND claimed_at IS NULL
-			RETURNING coins, referrer_id
+			UPDATE inbox_rewards SET claimed_at = now()
+			WHERE id = $1 AND user_id = $2 AND claimed_at IS NULL
+			RETURNING coins, user_id
 		)
 		UPDATE users SET coins = users.coins + c.coins FROM c
-		WHERE users.id = c.referrer_id RETURNING c.coins`
+		WHERE users.id = c.user_id RETURNING c.coins`
 	var coins int
-	err := r.db.QueryRowContext(ctx, q, rewardID, referrerID).Scan(&coins)
+	err := r.db.QueryRowContext(ctx, q, rewardID, userID).Scan(&coins)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrRewardNotFound
 	}
 	if err != nil {
-		return 0, fmt.Errorf("ClaimReferralReward: %w", err)
+		return 0, fmt.Errorf("ClaimInboxReward: %w", err)
 	}
 	return coins, nil
 }

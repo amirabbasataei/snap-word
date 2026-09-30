@@ -29,7 +29,9 @@ class InboxCubit extends Cubit<InboxState> {
     }
     emit(InboxState(items: state.items, loading: true));
     try {
-      emit(InboxState(items: await _repo.fetch()));
+      final snapshot = await _repo.fetch();
+      await _auth.setCoins(snapshot.coins);
+      emit(InboxState(items: snapshot.items));
     } on InboxException {
       emit(InboxState(items: state.items));
     }

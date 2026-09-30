@@ -74,6 +74,15 @@ class AuthCubit extends Cubit<AuthState> {
     return result;
   }
 
+  /// Overwrites the balance with the authoritative server value.
+  Future<void> setCoins(int coins) async {
+    await _repo.setCoins(coins);
+    final current = state;
+    if (current is AuthAuthenticated && current.coins != coins) {
+      emit(current.copyWith(coins: coins));
+    }
+  }
+
   /// Adds server-credited coins (e.g. a claimed inbox reward) to the live balance.
   Future<void> creditCoins(int amount) async {
     await _repo.creditCoins(amount);

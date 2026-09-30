@@ -83,6 +83,27 @@ class _InboxScreenState extends State<InboxScreen> {
   }
 }
 
+(String, String) _messageFor(InboxItem item) {
+  final coins = toPersianDigits(item.coins);
+  switch (item.kind) {
+    case 'streak':
+      return (
+        'پاداش روزهای پیاپی',
+        '${toPersianDigits(item.detail)} روز پیاپی بازی کردی! $coins سکه هدیه بگیر.',
+      );
+    case 'weekly_rank':
+      return (
+        'پاداش جدول هفتگی',
+        'در جدول هفتگی رتبهٔ ${toPersianDigits(item.detail)} شدی! $coins سکه هدیه بگیر.',
+      );
+    case 'daily_login':
+      return ('پاداش ورود روزانه', 'برای سر زدن امروز $coins سکه هدیه بگیر.');
+    default:
+      final name = item.detail.isEmpty ? 'دوستت' : item.detail;
+      return ('هدیهٔ دعوت', '$name با کد دعوت تو وارد بازی شد. $coins سکه هدیه بگیر!');
+  }
+}
+
 class _RewardTile extends StatefulWidget {
   final InboxItem item;
 
@@ -118,7 +139,7 @@ class _RewardTileState extends State<_RewardTile> {
   Widget build(BuildContext context) {
     final z = context.z;
     final item = widget.item;
-    final name = item.username.isEmpty ? 'دوستت' : item.username;
+    final (title, body) = _messageFor(item);
     return SolidCard(
       padding: const EdgeInsets.all(ZSpacing.lg),
       radius: ZRadius.cardMax,
@@ -126,12 +147,12 @@ class _RewardTileState extends State<_RewardTile> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'هدیهٔ دعوت',
+            title,
             style: ZTypography.cardTitle.copyWith(color: item.claimed ? z.ink40 : z.ink),
           ),
           const SizedBox(height: 4),
           Text(
-            '$name با کد دعوت تو وارد بازی شد. ${toPersianDigits(item.coins)} سکه هدیه بگیر!',
+            body,
             style: ZTypography.body.copyWith(color: z.ink60),
           ),
           const SizedBox(height: ZSpacing.md),

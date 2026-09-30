@@ -163,12 +163,17 @@ func (s *AuthService) VerifyOTP(ctx context.Context, rawPhone, code, referralCod
 		user.Username = username
 		user.ReferralCode = newReferralCode
 
+		if err := s.userRepo.AwardCoins(ctx, user.ID, config.CoinWelcome); err != nil {
+			return nil, VerifyResult{}, fmt.Errorf("VerifyOTP award welcome bonus: %w", err)
+		}
+		user.Coins += config.CoinWelcome
+
 		if referredByID != "" {
 			if err := s.userRepo.AwardCoins(ctx, user.ID, config.CoinReferralSignup); err != nil {
 				return nil, VerifyResult{}, fmt.Errorf("VerifyOTP award signup bonus: %w", err)
 			}
 			user.Coins += config.CoinReferralSignup
-			if err := s.userRepo.CreateReferralReward(ctx, referredByID, user.ID, config.CoinReferralInviter); err != nil {
+			if _, err := s.userRepo.CreateInboxReward(ctx, referredByID, repository.RewardReferral, user.ID, username, config.CoinReferralInviter); err != nil {
 				return nil, VerifyResult{}, fmt.Errorf("VerifyOTP referrer reward: %w", err)
 			}
 		}
@@ -264,24 +269,40 @@ func (s *AuthService) RedeemReferral(ctx context.Context, userID, referralCode s
 	if err := s.userRepo.AwardCoins(ctx, userID, config.CoinReferralRedeem); err != nil {
 		return 0, fmt.Errorf("RedeemReferral award: %w", err)
 	}
-	if err := s.userRepo.CreateReferralReward(ctx, referrer.ID, userID, config.CoinReferralInviter); err != nil {
+	if _, err := s.userRepo.CreateInboxReward(ctx, referrer.ID, repository.RewardReferral, userID, user.Username, config.CoinReferralInviter); err != nil {
 		return 0, fmt.Errorf("RedeemReferral referrer reward: %w", err)
 	}
 	return config.CoinReferralRedeem, nil
 }
 
-// ListInbox returns the caller's referral-reward messages.
-func (s *AuthService) ListInbox(ctx context.Context, userID string) ([]*repository.ReferralReward, error) {
-	items, err := s.userRepo.ListReferralRewards(ctx, userID)
+// InboxView is the caller's prize messages plus their live coin balance (the
+// client only learns balances at login otherwise).
+type InboxView struct {
+	Items []*repository.InboxReward
+	Coins int
+}
+
+// ListInbox returns the caller's prize messages. Today's daily-login bonus is
+// created lazily here (idempotent per UTC day), so it needs no scheduler.
+func (s *AuthService) ListInbox(ctx context.Context, userID string) (*InboxView, error) {
+	today := time.Now().UTC().Format("2006-01-02")
+	if _, err := s.userRepo.CreateInboxReward(ctx, userID, repository.RewardDailyLogin, today, "", config.CoinDailyLogin); err != nil {
+		return nil, fmt.Errorf("ListInbox daily login: %w", err)
+	}
+	items, err := s.userRepo.ListInboxRewards(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("ListInbox: %w", err)
 	}
-	return items, nil
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("ListInbox user: %w", err)
+	}
+	return &InboxView{Items: items, Coins: user.Coins}, nil
 }
 
-// ClaimInboxReward credits an unclaimed referral reward to its referrer.
+// ClaimInboxReward credits an unclaimed prize to its owner.
 func (s *AuthService) ClaimInboxReward(ctx context.Context, userID, rewardID string) (int, error) {
-	return s.userRepo.ClaimReferralReward(ctx, rewardID, userID)
+	return s.userRepo.ClaimInboxReward(ctx, rewardID, userID)
 }
 
 // checkAndIncrSendRate enforces a per-phone daily send cap via Redis. It
