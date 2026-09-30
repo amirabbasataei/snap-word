@@ -9,6 +9,7 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/view/z_login_screen.dart';
 import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
 import 'package:wordchain/features/daily/view/daily_screen.dart';
+import 'package:wordchain/features/daily/view/daily_board_screen.dart';
 import 'package:wordchain/features/friends/view/z_friends_screen.dart';
 import 'package:wordchain/features/inbox/view/inbox_screen.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
@@ -88,6 +89,10 @@ GoRouter buildAppRouter() {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/daily/board',
+        builder: (context, state) => const DailyBoardScreen(),
       ),
       GoRoute(
         path: '/inbox',

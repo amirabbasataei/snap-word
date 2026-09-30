@@ -105,3 +105,36 @@ func toAttemptResp(a *service.DailyAttemptInfo) *dailyAttemptResponse {
 		WordChain:     wc,
 	}
 }
+
+type dailyBoardEntry struct {
+	Rank        int    `json:"rank"`
+	UserID      string `json:"user_id"`
+	Username    string `json:"username"`
+	Score       int    `json:"score"`
+	ChainLength int    `json:"chain_length"`
+}
+
+// GetLeaderboard handles GET /api/v1/daily/leaderboard: today's ranking.
+func (h *DailyHandler) GetLeaderboard(c *gin.Context) {
+	userID := c.GetString(middleware.ContextKeyUserID)
+
+	board, err := h.svc.Leaderboard(c.Request.Context(), userID, 100)
+	if err != nil {
+		slog.Error("daily leaderboard failed", "userID", userID, "error", err)
+		respondError(c, http.StatusInternalServerError, "internal_error", "failed to load daily leaderboard")
+		return
+	}
+
+	entries := make([]dailyBoardEntry, 0, len(board.Entries))
+	for _, e := range board.Entries {
+		entries = append(entries, dailyBoardEntry{
+			Rank: e.Rank, UserID: e.UserID, Username: e.Username, Score: e.Score, ChainLength: e.ChainLength,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{
+		"challenge_date": board.ChallengeDate,
+		"day_number":     board.DayNumber,
+		"entries":        entries,
+		"my_rank":        board.MyRank,
+	}})
+}

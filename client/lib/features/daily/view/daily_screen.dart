@@ -11,6 +11,7 @@ import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/utils/iran_time.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/streak_strip.dart';
@@ -214,7 +215,7 @@ class _DailyBeforeViewState extends State<_DailyBeforeView> {
               const SizedBox(height: ZSpacing.sm),
               NeutralButton(
                 label: 'دیدن جدول امروز',
-                onPressed: () => context.push('/leaderboard'),
+                onPressed: () => context.push('/daily/board'),
               ),
             ],
           ),
@@ -565,7 +566,7 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
                   Expanded(
                     child: NeutralButton(
                       label: 'جدول امروز',
-                      onPressed: () => context.push('/leaderboard'),
+                      onPressed: () => context.push('/daily/board'),
                     ),
                   ),
                   const SizedBox(width: ZSpacing.sm),
@@ -730,9 +731,7 @@ class _NextChallengeRowState extends State<_NextChallengeRow> {
   }
 
   void _tick() {
-    final now = DateTime.now().toUtc();
-    final nextMidnight = DateTime.utc(now.year, now.month, now.day + 1);
-    final remaining = nextMidnight.difference(now);
+    final remaining = untilIranMidnight();
     if (mounted) setState(() => _remaining = remaining);
   }
 

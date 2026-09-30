@@ -174,3 +174,43 @@ func (r *DailyRepository) HasRetry(ctx context.Context, userID string, date time
 	}
 	return ok, nil
 }
+
+// DailyBoardRow is one player's best result for a challenge date.
+type DailyBoardRow struct {
+	Rank        int
+	UserID      string
+	Username    string
+	Score       int
+	ChainLength int
+}
+
+// GetDailyLeaderboard ranks players by their best score for the date (ties
+// share a rank).
+func (r *DailyRepository) GetDailyLeaderboard(ctx context.Context, date time.Time, limit int) ([]*DailyBoardRow, error) {
+	const q = `
+		SELECT rank, user_id, username, score, chain_length FROM (
+			SELECT a.user_id, COALESCE(u.username, '') AS username,
+			       MAX(a.score) AS score,
+			       (array_agg(a.chain_length ORDER BY a.score DESC))[1] AS chain_length,
+			       RANK() OVER (ORDER BY MAX(a.score) DESC) AS rank
+			FROM daily_challenge_attempts a JOIN users u ON u.id = a.user_id
+			WHERE a.challenge_date = $1
+			GROUP BY a.user_id, u.username
+		) t ORDER BY rank, username LIMIT $2`
+
+	rows, err := r.db.QueryContext(ctx, q, date, limit)
+	if err != nil {
+		return nil, fmt.Errorf("GetDailyLeaderboard: %w", err)
+	}
+	defer rows.Close()
+
+	var out []*DailyBoardRow
+	for rows.Next() {
+		var b DailyBoardRow
+		if err := rows.Scan(&b.Rank, &b.UserID, &b.Username, &b.Score, &b.ChainLength); err != nil {
+			return nil, fmt.Errorf("GetDailyLeaderboard scan: %w", err)
+		}
+		out = append(out, &b)
+	}
+	return out, rows.Err()
+}

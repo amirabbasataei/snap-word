@@ -96,6 +96,13 @@ class _InboxScreenState extends State<InboxScreen> {
         'پاداش جدول هفتگی',
         'در جدول هفتگی رتبهٔ ${toPersianDigits(item.detail)} شدی! $coins سکه هدیه بگیر.',
       );
+    case 'daily_rank':
+      return (
+        'جایزهٔ چالش روزانه',
+        'در چالش دیروز رتبهٔ ${toPersianDigits(item.detail)} شدی! $coins سکه هدیه بگیر.',
+      );
+    case 'daily_done':
+      return ('پاداش چالش روزانه', 'برای شرکت در چالش دیروز $coins سکه هدیه بگیر.');
     case 'daily_login':
       return ('پاداش ورود روزانه', 'برای سر زدن امروز $coins سکه هدیه بگیر.');
     default:

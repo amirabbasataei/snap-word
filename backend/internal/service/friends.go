@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ErrSelfRequest          = errors.New("cannot send friend request to yourself")
-	ErrFriendRequestExists  = errors.New("friend request already exists")
+	ErrSelfRequest           = errors.New("cannot send friend request to yourself")
+	ErrFriendRequestExists   = errors.New("friend request already exists")
 	ErrFriendRequestNotFound = errors.New("friend request not found")
 )
 

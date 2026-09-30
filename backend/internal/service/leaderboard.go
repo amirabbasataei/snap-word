@@ -163,7 +163,7 @@ func (s *LeaderboardService) GetFriendsLeaderboard(ctx context.Context, userID s
 	return entries, nil
 }
 
-// RunWeeklyReset is called by the scheduler on Sunday 00:00 UTC.
+// RunWeeklyReset is called by the scheduler on Saturday 00:00 Iran time (end of Friday).
 // It rewards the top 3 players, records the rewards, and clears the Redis key.
 func (s *LeaderboardService) RunWeeklyReset(ctx context.Context, weekStart time.Time) {
 	slog.Info("leaderboard: weekly reset starting", "weekStart", weekStart)

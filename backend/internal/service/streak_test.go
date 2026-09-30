@@ -24,7 +24,7 @@ func TestStreakMilestoneCoins(t *testing.T) {
 		{30, 500, true},
 		{60, 500, true},
 		{90, 500, true},
-		{9, 30, true},  // multiple of 3, not 7 or 30
+		{9, 30, true}, // multiple of 3, not 7 or 30
 		{0, 0, false},
 		{-1, 0, false},
 	}
@@ -52,10 +52,10 @@ func TestComputeNewStreak(t *testing.T) {
 	twoDaysAgo := base.AddDate(0, 0, -2)
 
 	cases := []struct {
-		name        string
-		stats       *repository.PlayerStats
-		today       time.Time
-		wantStreak  int
+		name       string
+		stats      *repository.PlayerStats
+		today      time.Time
+		wantStreak int
 	}{
 		{
 			name:       "first game ever",

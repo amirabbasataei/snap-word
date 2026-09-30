@@ -288,6 +288,8 @@ const (
 	RewardStreak     = "streak"
 	RewardWeeklyRank = "weekly_rank"
 	RewardDailyLogin = "daily_login"
+	RewardDailyDone  = "daily_done"
+	RewardDailyRank  = "daily_rank"
 )
 
 // InboxReward is a claimable prize message; coins are credited only when it

@@ -30,6 +30,7 @@ abstract final class ApiEndpoints {
   // Daily challenge
   static const String daily = '$_base/daily';
   static const String dailyRetry = '$_base/daily/retry';
+  static const String dailyLeaderboard = '$_base/daily/leaderboard';
 
   // Friends
   static const String friendsRequest = '$_base/friends/request';

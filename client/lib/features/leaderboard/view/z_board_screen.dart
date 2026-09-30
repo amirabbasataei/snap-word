@@ -18,7 +18,7 @@ import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart'
 ///
 /// Canvas shows 4 tabs (این هفته / امروز / همیشه / دوستان). The backend only
 /// ever maintains one leaderboard construct — a single Redis sorted set that
-/// resets every Sunday 00:00 UTC (`leaderboard:global:weekly`) — so "امروز"
+/// resets every Saturday 00:00 Iran time (end of Friday) (`leaderboard:global:weekly`) — so "امروز"
 /// (today) and "همیشه" (all-time) have no real data source anywhere. Per the
 /// project's no-fake-mechanics policy (same one applied to ZLobby's wager
 /// picker and ZVersus's best-of-5 placeholder), those two tabs are dropped

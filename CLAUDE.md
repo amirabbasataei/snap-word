@@ -226,7 +226,7 @@ Apply identically in Go (`engine.ValidateMove`) and Flutter (`DictionaryService.
 
 ### Streak rules
 - **Match streak**: consecutive successful word submissions by the same player in one match. Resets on rejection/timeout. `streak_bonus` uses the count *before* the current word.
-- **Daily streak**: consecutive calendar days (UTC) with at least one completed game. Tracked server-side in `player_stats`.
+- **Daily streak**: consecutive calendar days (Iran time, UTC+3:30) with at least one completed game. Tracked server-side in `player_stats`.
 
 ### Solo end conditions
 Match ends when the player submits an invalid word, the timer hits 0, or they tap "End game".
@@ -447,7 +447,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Leaderboard:** `GET /leaderboard?type=global&limit=100` · `GET /leaderboard?type=friends&limit=100`
 
-**Daily Challenge:** `GET /daily` · `POST /daily/retry`
+**Daily Challenge:** `GET /daily` · `GET /daily/leaderboard` · `POST /daily/retry`
 
 **Friends:** `POST /friends/request` · `GET /friends` · `GET /friends/requests` · `POST /friends/respond` · `DELETE /friends/:friendId`
 
@@ -561,7 +561,9 @@ Client: both entry points are served by one shared widget, `ReferralBottomSheet`
 
 ## 📬 Prize Inbox
 
-Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `referral_reward` · `streak` · `weekly_rank` · `daily_login`, unique per `(user_id, kind, ref)` so awards are idempotent). Coins are credited only by `POST /inbox/:id/claim` (atomic, once). The home bell (`features/inbox/`, route `/inbox`) shows a badge with the unclaimed count; `GET /inbox` also returns the live server coin balance, which the client uses to overwrite its stale local balance. Streak milestones, weekly top-3 rewards and referrals also send an FCM push (no-op while FCM is unconfigured). **Daily login +10** is created lazily on the first `GET /inbox` of each UTC day. **Welcome bonus +50** (`config.CoinWelcome`) is credited directly at signup, on top of any referral bonus.
+**Time zone:** all server day boundaries (Daily Challenge day, streak days, daily-login, prize payouts, scheduler) use Iran time, fixed UTC+3:30 (`config.IranLocation`/`config.IranDate`; no DST since 2022). Client countdowns use `core/utils/iran_time.dart`.
+
+Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `referral_reward` · `streak` · `weekly_rank` · `daily_login` · `daily_done` · `daily_rank`, unique per `(user_id, kind, ref)` so awards are idempotent). Coins are credited only by `POST /inbox/:id/claim` (atomic, once). The home bell (`features/inbox/`, route `/inbox`) shows a badge with the unclaimed count; `GET /inbox` also returns the live server coin balance, which the client uses to overwrite its stale local balance. Streak milestones, weekly top-3 rewards and referrals also send an FCM push (no-op while FCM is unconfigured). **Daily login +10** is created lazily on the first `GET /inbox` of each UTC day. **Daily Challenge prizes** (`DailyService.RunDailyPayout`, scheduler checks every 5 min for the day that just ended at Iran midnight, Redis flag `payout:daily:<date>`): every finisher gets +10 (`daily_done`), the top 3 an extra +100/+60/+30 (`daily_rank`, ties share a rank). Today's ranking is `GET /daily/leaderboard` (ZDailyAfter/Before «جدول امروز» → `/daily/board`). **Welcome bonus +50** (`config.CoinWelcome`) is credited directly at signup, on top of any referral bonus.
 
 ---
 
@@ -578,7 +580,7 @@ Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `re
 
 ### Coin economy
 
-**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 · Welcome bonus +50 (every new account) · Referral inviter reward +50 per invited user. Streak, weekly-rank, daily-login and inviter prizes are claimed from the inbox
+**Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 · Welcome bonus +50 (every new account) · Referral inviter reward +50 per invited user. Streak, weekly-rank, daily-login, daily-challenge and inviter prizes are claimed from the inbox
 
 **Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
@@ -615,7 +617,7 @@ The matchmaking AI-fallback opponent is persisted as a single fixed user, `confi
 
 ## 📅 Daily Streak
 
-- Completing any game (solo, AI, multiplayer, or Daily Challenge) before midnight UTC counts for that day.
+- Completing any game (solo, AI, multiplayer, or Daily Challenge) before midnight Iran time counts for that day.
 - Missing a day resets the streak to 0.
 - Tracked in `player_stats.daily_streak` and `player_stats.last_played_date`.
 - `RecordGamePlayed(userID string, date time.Time)` called at every game end — updates streak, awards milestone coins, enqueues push notification.
@@ -660,7 +662,7 @@ All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout
 
 | Trigger | Message |
 |---|---|
-| Daily Challenge available (midnight UTC) | "Today's Word Chain challenge is ready." |
+| Daily Challenge available (midnight Iran time) | "Today's Word Chain challenge is ready." |
 | Streak at risk (20:00 local, streak ≥ 3) | "Your [N]-day streak is at risk!" |
 | Streak milestone | "[N]-day streak! You've earned [coins] coins." |
 | Friend request | "[Username] wants to be your friend." |
@@ -670,7 +672,7 @@ All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout
 | Weekly leaderboard reward | "You finished #[rank] and earned [coins] coins!" |
 
 **Backend**: `internal/service/notification.go` — `SendToUser(userID, title, body)`.
-**Scheduler** (1-min ticker): midnight daily challenge push · every-minute streak-at-risk check · every-5-min challenge expiry · Sunday 00:00 weekly reset.
+**Scheduler** (1-min ticker): midnight daily challenge push · every-minute streak-at-risk check · every-5-min challenge expiry · Saturday 00:00 weekly reset (end of Friday).
 **Flutter**: `notification_service.dart` — FCM permission request, token registration, foreground banners, payload stream for deep-link routing (`/daily`, `/friends`).
 
 ---
@@ -686,7 +688,7 @@ All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout
 - Redis Sorted Set `leaderboard:global:weekly` — score added at end of **multiplayer and Daily Challenge games only** (not solo).
 - `GET /leaderboard?type=friends` fetches friend IDs, retrieves scores via `ZSCORE` from the same set.
 
-**Weekly reset (Sunday 00:00 UTC):**
+**Weekly reset (Saturday 00:00 Iran time = end of Friday, the Iranian week):**
 1. Query top 3 → insert `weekly_leaderboard_rewards` (idempotent)
 2. Award coins: 1st →500, 2nd →300, 3rd →100
 3. Send push notifications to rewarded users

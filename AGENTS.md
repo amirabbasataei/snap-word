@@ -108,7 +108,7 @@ Never hardcode magic numbers. Read from:
 
 - Phone number + 4-digit OTP only (`POST /auth/send-otp`, `POST /auth/verify-otp`); email/password was removed. First verify = signup.
 - Screens: `z_login_screen.dart` (`/login`), `z_otp_verify_screen.dart` (`/login/otp`). Dev bypass OTP: `1111` (no Kavenegar account yet).
-- Referral codes: optional code at signup (+100 coins) or `POST /referral/redeem` once post-login (+50). Shared `ReferralBottomSheet`. Own code: `GET /referral/me`, shared from ZProfile `_InviteCard` via `ShareService.shareInvite`. Inviter gets +50 coins per invite as a claimable `inbox_rewards` message; streak/weekly/daily-login prizes use the same inbox (`GET /inbox`, `POST /inbox/:id/claim`; ZHome bell badge → `/inbox`). New accounts get a +50 welcome bonus.
+- Referral codes: optional code at signup (+100 coins) or `POST /referral/redeem` once post-login (+50). Shared `ReferralBottomSheet`. Own code: `GET /referral/me`, shared from ZProfile `_InviteCard` via `ShareService.shareInvite`. Inviter gets +50 coins per invite as a claimable `inbox_rewards` message; streak/weekly/daily-login prizes use the same inbox (`GET /inbox`, `POST /inbox/:id/claim`; ZHome bell badge → `/inbox`). New accounts get a +50 welcome bonus. Daily Challenge: `GET /daily/leaderboard`, prizes (+10 finishers, +100/60/30 top 3) paid at Iran midnight. Server days/scheduler run on Iran time (UTC+3:30); weekly reset is Saturday 00:00 Iran time.
 
 ## Power-up limits (multiplayer)
 

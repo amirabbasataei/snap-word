@@ -33,6 +33,38 @@ class DailyAttempt {
       );
 }
 
+class DailyBoardEntry {
+  final int rank;
+  final String userId;
+  final String username;
+  final int score;
+  final int chainLength;
+
+  const DailyBoardEntry({
+    required this.rank,
+    required this.userId,
+    required this.username,
+    required this.score,
+    required this.chainLength,
+  });
+
+  factory DailyBoardEntry.fromJson(Map<String, dynamic> json) => DailyBoardEntry(
+        rank: json['rank'] as int? ?? 0,
+        userId: json['user_id'] as String? ?? '',
+        username: json['username'] as String? ?? '',
+        score: json['score'] as int? ?? 0,
+        chainLength: json['chain_length'] as int? ?? 0,
+      );
+}
+
+class DailyBoard {
+  final int dayNumber;
+  final List<DailyBoardEntry> entries;
+  final int? myRank;
+
+  const DailyBoard({required this.dayNumber, required this.entries, this.myRank});
+}
+
 class DailyChallenge {
   final String challengeDate;
   final int dayNumber;
@@ -93,6 +125,26 @@ class DailyRepository {
         code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
         message: e.response?.data?['error']?['message'] as String? ??
             'Failed to load daily challenge',
+      );
+    }
+  }
+
+  Future<DailyBoard> getLeaderboard() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.dailyLeaderboard);
+      final data = response.data['data'] as Map<String, dynamic>;
+      return DailyBoard(
+        dayNumber: data['day_number'] as int? ?? 0,
+        entries: (data['entries'] as List<dynamic>)
+            .map((e) => DailyBoardEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        myRank: data['my_rank'] as int?,
+      );
+    } on DioException catch (e) {
+      throw DailyException(
+        code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
+        message: e.response?.data?['error']?['message'] as String? ??
+            'Failed to load daily leaderboard',
       );
     }
   }

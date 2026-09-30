@@ -10,6 +10,7 @@ import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/utils/iran_time.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/coin_pill.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
@@ -124,9 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool get _isAuthenticated => getIt<AuthCubit>().state is AuthAuthenticated;
 
   int get _hoursUntilNextDaily {
-    final now = DateTime.now().toUtc();
-    final nextMidnight = DateTime.utc(now.year, now.month, now.day + 1);
-    return nextMidnight.difference(now).inHours;
+    return untilIranMidnight().inHours;
   }
 
   void _startSolo(BuildContext context) {

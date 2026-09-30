@@ -31,7 +31,7 @@ func NewStreakService(
 // date is the UTC time the game ended — used instead of time.Now() so that
 // offline games synced later are counted against the correct calendar day.
 func (s *StreakService) RecordGamePlayed(ctx context.Context, userID string, date time.Time) error {
-	today := truncateToDate(date.UTC())
+	today := config.IranDate(date)
 
 	stats, err := s.statsRepo.GetStats(ctx, userID)
 	if err != nil && !errors.Is(err, repository.ErrStatsNotFound) {
@@ -82,7 +82,7 @@ func (s *StreakService) awardMilestone(ctx context.Context, userID string, strea
 	if !hit {
 		return
 	}
-	ref := fmt.Sprintf("%d:%s", streak, time.Now().UTC().Format("2006-01-02"))
+	ref := fmt.Sprintf("%d:%s", streak, config.IranDate(time.Now()).Format("2006-01-02"))
 	created, err := s.userRepo.CreateInboxReward(ctx, userID, repository.RewardStreak, ref, strconv.Itoa(streak), coins)
 	if err != nil {
 		slog.Error("streak milestone: CreateInboxReward failed", "userID", userID, "streak", streak, "error", err)

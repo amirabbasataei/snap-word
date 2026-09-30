@@ -285,7 +285,7 @@ type InboxView struct {
 // ListInbox returns the caller's prize messages. Today's daily-login bonus is
 // created lazily here (idempotent per UTC day), so it needs no scheduler.
 func (s *AuthService) ListInbox(ctx context.Context, userID string) (*InboxView, error) {
-	today := time.Now().UTC().Format("2006-01-02")
+	today := config.IranDate(time.Now()).Format("2006-01-02")
 	if _, err := s.userRepo.CreateInboxReward(ctx, userID, repository.RewardDailyLogin, today, "", config.CoinDailyLogin); err != nil {
 		return nil, fmt.Errorf("ListInbox daily login: %w", err)
 	}

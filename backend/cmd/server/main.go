@@ -93,7 +93,7 @@ func main() {
 	dailyRepo := repository.NewDailyRepository(db)
 	friendSvc := service.NewFriendService(friendRepo, userRepo, notifSvc)
 	challengeSvc := service.NewChallengeService(challengeRepo, friendRepo, userRepo, hub, notifSvc)
-	dailySvc, err := service.NewDailyService(dailyRepo, statsRepo, userRepo, cfg)
+	dailySvc, err := service.NewDailyService(dailyRepo, statsRepo, userRepo, notifSvc, cfg)
 	if err != nil {
 		slog.Error("daily service init failed", "error", err)
 		os.Exit(1)
@@ -163,6 +163,7 @@ func main() {
 	// Daily challenge
 	protected.GET("/daily", dailyHandler.GetDaily)
 	protected.POST("/daily/retry", dailyHandler.Retry)
+	protected.GET("/daily/leaderboard", dailyHandler.GetLeaderboard)
 
 	// Push notification token management
 	protected.POST("/notifications/token", notificationHandler.RegisterToken)

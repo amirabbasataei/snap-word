@@ -9,7 +9,7 @@ class InboxException implements Exception {
 /// A "your friend joined with your code" message with a claimable bonus.
 class InboxItem {
   final String id;
-  final String kind; // referral_reward | streak | weekly_rank | daily_login
+  final String kind; // referral_reward | streak | weekly_rank | daily_login | daily_rank | daily_done
   final String detail; // friend's username / streak days / rank
   final int coins;
   final bool claimed;

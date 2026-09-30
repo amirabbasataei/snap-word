@@ -8,6 +8,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/repository"
 	"wordchain/backend/internal/service"
 )
@@ -52,24 +53,24 @@ func (s *Scheduler) Start(ctx context.Context) {
 			slog.Info("scheduler: stopped")
 			return
 		case t := <-ticker.C:
-			s.tick(ctx, t.UTC())
+			s.tick(ctx, t.In(config.IranLocation))
 		}
 	}
 }
 
 func (s *Scheduler) tick(ctx context.Context, now time.Time) {
-	// Weekly reset: Sunday 00:00 UTC
-	if now.Weekday() == time.Sunday && now.Hour() == 0 && now.Minute() == 0 {
-		weekStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-		s.leaderboardSvc.RunWeeklyReset(ctx, weekStart)
+	// All schedules run on Iran time (UTC+3:30; `now` is already in it).
+	// Weekly reset: Saturday 00:00, i.e. the end of Friday — the Iranian week.
+	if now.Weekday() == time.Saturday && now.Hour() == 0 && now.Minute() == 0 {
+		s.leaderboardSvc.RunWeeklyReset(ctx, config.IranDate(now))
 	}
 
-	// Daily challenge reminder: midnight UTC every day
+	// Daily challenge reminder: Iran midnight every day
 	if now.Hour() == 0 && now.Minute() == 0 {
 		s.sendDailyChallengeReminder(ctx, now)
 	}
 
-	// Streak at-risk notification: 20:00 UTC daily (with per-user deduplication)
+	// Streak at-risk notification: 20:00 Iran time daily (with per-user deduplication)
 	if now.Hour() == 20 && now.Minute() == 0 {
 		s.checkStreakAtRisk(ctx, now)
 	}
@@ -85,11 +86,32 @@ func (s *Scheduler) tick(ctx context.Context, now time.Time) {
 	// of time means it's already there when the midnight reminder above fires.
 	if now.Minute()%5 == 0 {
 		s.ensureDailyChallenges(ctx, now)
+		s.payoutYesterday(ctx, now)
+	}
+}
+
+// payoutYesterday pays the Daily Challenge prizes for the day that just ended
+// at Iran midnight. Checked every 5 minutes (not only at 00:00) so it is
+// self-healing after downtime; a Redis flag set only on full success stops
+// the rescans, and the inbox rows are idempotent regardless.
+func (s *Scheduler) payoutYesterday(ctx context.Context, now time.Time) {
+	yesterday := config.IranDate(now).AddDate(0, 0, -1)
+	key := "payout:daily:" + yesterday.Format("2006-01-02")
+
+	if n, err := s.rdb.Exists(ctx, key).Result(); err != nil || n > 0 {
+		return
+	}
+	if err := s.dailySvc.RunDailyPayout(ctx, yesterday); err != nil {
+		slog.Error("scheduler: daily payout failed", "error", err)
+		return
+	}
+	if err := s.rdb.Set(ctx, key, 1, 72*time.Hour).Err(); err != nil {
+		slog.Warn("scheduler: daily payout flag failed", "error", err)
 	}
 }
 
 func (s *Scheduler) ensureDailyChallenges(ctx context.Context, now time.Time) {
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	today := config.IranDate(now)
 	tomorrow := today.AddDate(0, 0, 1)
 
 	if err := s.dailySvc.EnsureChallenge(ctx, today); err != nil {
@@ -128,7 +150,7 @@ func (s *Scheduler) sendDailyChallengeReminder(ctx context.Context, now time.Tim
 // checkStreakAtRisk sends a streak-at-risk push to each eligible user.
 // Redis key notif:streak_risk:{userID}:{date} (TTL 24h) prevents duplicate sends per user per day.
 func (s *Scheduler) checkStreakAtRisk(ctx context.Context, now time.Time) {
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	today := config.IranDate(now)
 	dateStr := today.Format("2006-01-02")
 
 	userIDs, err := s.statsRepo.GetUsersWithStreakAtRisk(ctx, today)

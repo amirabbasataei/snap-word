@@ -148,6 +148,10 @@ const (
 	CoinWeeklyRank3      = 100
 	CoinReferralSignup   = 100 // new user, valid referral code supplied at signup
 	CoinReferralRedeem   = 50  // existing user, one-time post-login referral redemption
+	CoinDailyComplete    = 10  // finishing the day's Daily Challenge
+	CoinDailyRank1       = 100 // Daily Challenge top 3 of the day (paid at Iran midnight)
+	CoinDailyRank2       = 60
+	CoinDailyRank3       = 30
 	CoinWelcome          = 50  // flat bonus for every new account, credited at signup
 	CoinReferralInviter  = 50  // referrer, per invited user; claimed from the inbox
 

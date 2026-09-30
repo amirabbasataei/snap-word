@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/repository"
 )
 
@@ -92,8 +93,7 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 	attemptNumber := 0
 	var challengeDate time.Time
 	if in.Mode == "daily" {
-		d := in.StartedAt.UTC()
-		challengeDate = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
+		challengeDate = config.IranDate(in.StartedAt)
 		attemptNumber, err = s.dailyAttemptNumber(ctx, userID, challengeDate)
 		if err != nil {
 			return nil, false, fmt.Errorf("CreateSoloGame daily: %w", err)
