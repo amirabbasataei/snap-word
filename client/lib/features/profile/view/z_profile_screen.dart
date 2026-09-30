@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -112,7 +113,8 @@ class _LoadedView extends StatelessWidget {
       PurchaseStatus.cancelled => 'خرید لغو شد.',
       PurchaseStatus.failed => result.error ?? 'خرید ناموفق بود.',
     };
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ZToast.show(context, msg,
+        kind: result.status == PurchaseStatus.success ? ZToastKind.success : ZToastKind.error);
   }
 
   void _showBuyCoinsSheet(BuildContext context) {
@@ -342,9 +344,7 @@ class _InviteCardState extends State<_InviteCard> {
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: code));
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('کد دعوت کپی شد')),
-                );
+                ZToast.show(context, 'کد دعوت کپی شد', kind: ZToastKind.success);
               },
               child: Container(
                 height: 52,

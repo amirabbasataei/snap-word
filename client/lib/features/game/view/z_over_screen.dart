@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -63,8 +64,7 @@ class _ZOverScreenState extends State<ZOverScreen> {
       final spent = monetization.spendCoins(GameConstants.continueCostCoins);
       if (!spent) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('سکه کافی نداری.')));
+          ZToast.show(context, 'سکه کافی نداری.', kind: ZToastKind.error);
         }
         return;
       }

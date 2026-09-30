@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -90,9 +91,7 @@ class _GameView extends StatelessWidget {
         if (coins != null) getIt<AuthCubit>().setCoins(coins);
         final notice = state.powerupNotice;
         if (notice != null) {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(content: Text(notice, textDirection: TextDirection.rtl)));
+          ZToast.show(context, notice);
         }
       },
       child: _buildGame(context),

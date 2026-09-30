@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -101,9 +102,7 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
       return;
     }
     if (result.isNewUser && widget.args.referralCode != null && result.referralWarning == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('۱۰۰ سکهٔ خوش‌آمد گرفتی!')),
-      );
+      ZToast.show(context, '۱۰۰ سکهٔ خوش‌آمد گرفتی!', kind: ZToastKind.success);
     }
     context.go(widget.args.returnPath ?? '/home');
   }

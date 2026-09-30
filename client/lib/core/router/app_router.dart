@@ -18,12 +18,20 @@ import 'package:wordchain/features/leaderboard/view/z_board_screen.dart';
 import 'package:wordchain/features/lobby/view/lobby_screen.dart';
 import 'package:wordchain/features/profile/view/z_profile_screen.dart';
 
-/// Notifies GoRouter whenever AuthCubit emits a new state.
+/// Notifies GoRouter when the auth *kind* changes (the only thing the redirect
+/// reads). Refreshing on every emit (e.g. a coin-balance update) would rebuild
+/// the current route and drop its `extra` (GameRouteArgs → null cast crash).
 class _AuthStateNotifier extends ChangeNotifier {
   StreamSubscription<AuthState>? _sub;
 
   _AuthStateNotifier(AuthCubit cubit) {
-    _sub = cubit.stream.listen((_) => notifyListeners());
+    var wasAuthenticated = cubit.state is AuthAuthenticated;
+    _sub = cubit.stream.listen((s) {
+      final isAuthenticated = s is AuthAuthenticated;
+      if (isAuthenticated == wasAuthenticated) return;
+      wasAuthenticated = isAuthenticated;
+      notifyListeners();
+    });
   }
 
   @override

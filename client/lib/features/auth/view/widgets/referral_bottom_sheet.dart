@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
@@ -62,9 +63,7 @@ class _ReferralBottomSheetState extends State<ReferralBottomSheet> {
       final awarded = await getIt<AuthCubit>().redeemReferral(code);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$awarded سکه به حسابت اضافه شد!')),
-      );
+      ZToast.show(context, '$awarded سکه به حسابت اضافه شد!', kind: ZToastKind.success);
     } on AuthException catch (e) {
       setState(() {
         _submitting = false;

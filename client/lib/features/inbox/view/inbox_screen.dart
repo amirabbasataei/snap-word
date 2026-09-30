@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -125,18 +126,17 @@ class _RewardTileState extends State<_RewardTile> {
 
   Future<void> _claim() async {
     setState(() => _claiming = true);
-    final messenger = ScaffoldMessenger.of(context);
+    final overlay = Overlay.of(context, rootOverlay: true);
     try {
       final coins = await getIt<InboxCubit>().claim(widget.item.id);
-      messenger.showSnackBar(
-        SnackBar(content: Text('${toPersianDigits(coins)} سکه به حسابت اضافه شد!')),
-      );
+      ZToast.showOn(overlay, '${toPersianDigits(coins)} سکه به حسابت اضافه شد!',
+          kind: ZToastKind.success);
     } on InboxException catch (e) {
       // Already claimed elsewhere → resync the list instead of showing an error.
       if (e.code == 'reward_not_found') {
         await getIt<InboxCubit>().refresh();
       } else {
-        messenger.showSnackBar(const SnackBar(content: Text('مشکلی پیش آمد، دوباره تلاش کن')));
+        ZToast.showOn(overlay, 'مشکلی پیش آمد، دوباره تلاش کن', kind: ZToastKind.error);
       }
     }
     if (mounted) setState(() => _claiming = false);

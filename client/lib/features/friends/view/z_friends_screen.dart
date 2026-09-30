@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -128,14 +129,10 @@ class _FriendsViewState extends State<_FriendsView> {
           );
         }
         if (state is FriendActionSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: z.teal),
-          );
+          ZToast.show(context, state.message, kind: ZToastKind.success);
         }
         if (state is FriendsLoaded && state.actionError != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.actionError!), backgroundColor: z.coral),
-          );
+          ZToast.show(context, state.actionError!, kind: ZToastKind.error);
         }
       },
       child: Scaffold(

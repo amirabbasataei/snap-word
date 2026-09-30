@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -97,9 +98,8 @@ class _LobbyViewState extends State<_LobbyView> {
       final mode = _mode;
       final challengeId = await repo.sendChallenge(friend.userId, mode);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('دعوت‌نامه برای ${friend.username} ارسال شد')),
-        );
+        ZToast.show(context, 'دعوت‌نامه برای ${friend.username} ارسال شد',
+            kind: ZToastKind.success);
       }
       if (challengeId == null) return;
       // Wait for the friend to accept, then join the same room.
@@ -119,17 +119,13 @@ class _LobbyViewState extends State<_LobbyView> {
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ارسال دعوت‌نامه ناموفق بود')),
-        );
+        ZToast.show(context, 'ارسال دعوت‌نامه ناموفق بود', kind: ZToastKind.error);
       }
     }
   }
 
   void _showComingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('این قابلیت به‌زودی اضافه می‌شود')),
-    );
+    ZToast.show(context, 'این قابلیت به‌زودی اضافه می‌شود');
   }
 
   String get _myUsername {
