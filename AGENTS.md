@@ -108,7 +108,7 @@ Never hardcode magic numbers. Read from:
 
 - Phone number + 4-digit OTP only (`POST /auth/send-otp`, `POST /auth/verify-otp`); email/password was removed. First verify = signup.
 - Screens: `z_login_screen.dart` (`/login`), `z_otp_verify_screen.dart` (`/login/otp`). Dev bypass OTP: `1111` (no Kavenegar account yet).
-- Referral codes: optional code at signup (+100 coins) or `POST /referral/redeem` once post-login (+50). Shared `ReferralBottomSheet`.
+- Referral codes: optional code at signup (+100 coins) or `POST /referral/redeem` once post-login (+50). Shared `ReferralBottomSheet`. Own code: `GET /referral/me`, shared from ZProfile `_InviteCard` via `ShareService.shareInvite`.
 
 ## Power-up limits (multiplayer)
 

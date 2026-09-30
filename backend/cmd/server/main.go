@@ -135,6 +135,7 @@ func main() {
 	// Protected routes
 	protected := api.Group("/", middleware.RequireAuth(authSvc))
 	protected.POST("/referral/redeem", authHandler.RedeemReferral)
+	protected.GET("/referral/me", authHandler.GetMyReferral)
 	protected.POST("/game/solo", gameHandler.CreateSolo)
 	protected.GET("/game/:id", gameHandler.GetGame)
 	protected.GET("/profile/stats", gameHandler.GetStats)

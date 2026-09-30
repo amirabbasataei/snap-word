@@ -439,7 +439,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Auth:** `POST /auth/send-otp` · `POST /auth/verify-otp` · `POST /auth/refresh`
 
-**Referral:** `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
+**Referral:** `GET /referral/me` (own code, for sharing) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
 
 **Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `GET /powerup/inventory` · `POST /powerup/use`
 
@@ -550,6 +550,8 @@ Every user gets a unique 6-char alphanumeric `referral_code` (charset excludes a
 2. **Post-login** — `POST /referral/redeem` (protected), for an existing account that hasn't linked a referrer yet. One-time only (`referred_by IS NULL` check, atomic) — `409 referral_already_used` on a second attempt. Awards **+50 coins**.
 
 Self-referral (code equals the caller's own) is rejected (`400 self_referral`) — structurally impossible at signup since the new code doesn't exist yet, checked explicitly for the post-login path.
+
+**Sharing your own code:** ZProfile's `_InviteCard` loads it via `GET /referral/me` and shares a short Persian invite text + code through `ShareService.shareInvite` (system share sheet → social apps/SMS).
 
 **No referrer-side reward exists** — `referred_by` is recorded only. Open product question, not decided.
 

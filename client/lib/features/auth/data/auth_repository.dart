@@ -128,6 +128,17 @@ class AuthRepository {
     }
   }
 
+  /// The caller's own referral code, for sharing with friends.
+  Future<String> fetchMyReferralCode() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.referralMe);
+      final data = response.data['data'] as Map<String, dynamic>;
+      return data['referral_code'] as String? ?? '';
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   Future<void> refreshToken() async {
     final token = _prefs.getString('jwt_refresh_token');
     if (token == null) {

@@ -74,6 +74,8 @@ class AuthCubit extends Cubit<AuthState> {
     return result;
   }
 
+  Future<String> fetchMyReferralCode() => _repo.fetchMyReferralCode();
+
   /// Entry point (b): post-login, one-time referral redemption. Throws on
   /// failure (self-referral, not found, or already used).
   Future<int> redeemReferral(String code) async {

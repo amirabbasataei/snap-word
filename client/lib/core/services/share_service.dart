@@ -29,4 +29,13 @@ Play at wordchain.app''';
 بازی کن: wordchain.app''';
     await Share.share(text);
   }
+
+  /// Invite text for social apps and SMS. The code is what the friend enters
+  /// at signup (100 coins) or in Profile → Settings (50 coins).
+  Future<void> shareInvite({required String code}) async {
+    final text = '''بیا با هم زنجیر کلمه بازی کنیم! 🔗
+موقع ثبت‌نام این کد دعوت رو وارد کن و سکهٔ هدیه بگیر: $code
+دانلود و بازی: wordchain.app''';
+    await Share.share(text);
+  }
 }

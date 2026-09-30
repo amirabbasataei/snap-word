@@ -137,6 +137,25 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	}})
 }
 
+type myReferralResponse struct {
+	ReferralCode string `json:"referral_code"`
+}
+
+// GetMyReferral handles GET /api/v1/referral/me (protected): the caller's own
+// code, for sharing with friends.
+func (h *AuthHandler) GetMyReferral(c *gin.Context) {
+	userID := c.GetString(middleware.ContextKeyUserID)
+
+	code, err := h.authSvc.GetReferralCode(c.Request.Context(), userID)
+	if err != nil {
+		slog.Error("GetMyReferral failed", "userID", userID, "error", err)
+		respondError(c, http.StatusInternalServerError, "internal_error", "failed to load referral code")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": myReferralResponse{ReferralCode: code}})
+}
+
 // RedeemReferral handles POST /api/v1/referral/redeem (protected). This is
 // entry point (b): an already-authenticated user submitting a referral code
 // after the fact, one-time only.

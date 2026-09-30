@@ -8,6 +8,7 @@ abstract final class ApiEndpoints {
 
   // Referral
   static const String referralRedeem = '$_base/referral/redeem';
+  static const String referralMe = '$_base/referral/me';
 
   // Game
   static const String soloGame = '$_base/game/solo';

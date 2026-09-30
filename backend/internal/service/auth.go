@@ -227,6 +227,15 @@ func (s *AuthService) completeSignupWithRetry(ctx context.Context, userID, refer
 	return "", "", fmt.Errorf("completeSignupWithRetry: exhausted %d attempts", maxAttempts)
 }
 
+// GetReferralCode returns the caller's own shareable referral code.
+func (s *AuthService) GetReferralCode(ctx context.Context, userID string) (string, error) {
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("GetReferralCode: %w", err)
+	}
+	return user.ReferralCode, nil
+}
+
 // RedeemReferral is the post-login, one-time entry point: an existing user
 // submits a code after the fact. Rejects self-referral and re-use.
 func (s *AuthService) RedeemReferral(ctx context.Context, userID, referralCode string) (coinsAwarded int, err error) {

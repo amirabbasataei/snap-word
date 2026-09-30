@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
+import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
@@ -221,6 +223,11 @@ class _LoadedView extends StatelessWidget {
           const SizedBox(height: ZSpacing.xl),
         ],
 
+        if (!state.isGuest) ...[
+          const _InviteCard(),
+          const SizedBox(height: ZSpacing.xl),
+        ],
+
         _SectionLabel('تنظیمات'),
         const SizedBox(height: ZSpacing.sm),
         SolidCard(
@@ -266,6 +273,102 @@ class _LoadedView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Invite friends — shows the caller's own referral code and shares it (with a
+// short text) through the system share sheet: social apps, SMS, etc.
+// ---------------------------------------------------------------------------
+
+class _InviteCard extends StatefulWidget {
+  const _InviteCard();
+
+  @override
+  State<_InviteCard> createState() => _InviteCardState();
+}
+
+class _InviteCardState extends State<_InviteCard> {
+  String? _code;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _failed = false);
+    try {
+      final code = await getIt<AuthCubit>().fetchMyReferralCode();
+      if (!mounted) return;
+      setState(() {
+        _code = code.isEmpty ? null : code;
+        _failed = code.isEmpty;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    final code = _code;
+    return SolidCard(
+      padding: const EdgeInsets.all(ZSpacing.lg),
+      radius: ZRadius.cardMax,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('دعوت از دوستان', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+          const SizedBox(height: 4),
+          Text(
+            'دوستت با کد تو ثبت‌نام کند و ۱۰۰ سکه بگیرد',
+            style: ZTypography.metaLabel.copyWith(color: z.ink60),
+          ),
+          const SizedBox(height: ZSpacing.md),
+          if (_failed)
+            NeutralButton(label: 'تلاش دوباره', onPressed: _load)
+          else if (code == null)
+            SizedBox(
+              height: 52,
+              child: Center(child: CircularProgressIndicator(color: z.indigo, strokeWidth: 2)),
+            )
+          else ...[
+            GestureDetector(
+              onTap: () async {
+                await Clipboard.setData(ClipboardData(text: code));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('کد دعوت کپی شد')),
+                );
+              },
+              child: Container(
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: z.wash,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  code,
+                  textDirection: TextDirection.ltr,
+                  style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 20, letterSpacing: 4),
+                ),
+              ),
+            ),
+            const SizedBox(height: ZSpacing.md),
+            AccentButton(
+              label: 'ارسال دعوت',
+              accent: ZAccentColor.amber,
+              onPressed: () => getIt<ShareService>().shareInvite(code: code),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
