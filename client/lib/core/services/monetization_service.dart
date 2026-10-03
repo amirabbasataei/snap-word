@@ -1,12 +1,6 @@
 abstract class MonetizationService {
   int get coinBalance;
 
-  /// Returns true if the user watched the full ad.
-  Future<bool> showRewardedAd();
-
-  /// Shows an interstitial ad between sessions (no-op in mock).
-  Future<void> showInterstitialAd();
-
   Future<List<Product>> getProducts();
   Future<PurchaseResult> purchase(String productId);
 
@@ -43,7 +37,7 @@ class PurchaseResult {
   const PurchaseResult({required this.status, this.error});
 }
 
-/// Mock implementation — swap for AdMob + RevenueCat in production.
+/// Mock implementation — swap for a real IAP provider in production. Ads live in `AdService`.
 class MockMonetizationService implements MonetizationService {
   int _coins;
 
@@ -51,19 +45,6 @@ class MockMonetizationService implements MonetizationService {
 
   @override
   int get coinBalance => _coins;
-
-  @override
-  Future<bool> showRewardedAd() async {
-    // Always succeeds in mock; real implementation shows an AdMob rewarded ad.
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
-  }
-
-  @override
-  Future<void> showInterstitialAd() async {
-    // No-op in mock; real implementation shows an AdMob interstitial.
-    await Future.delayed(const Duration(milliseconds: 200));
-  }
 
   @override
   Future<List<Product>> getProducts() async {

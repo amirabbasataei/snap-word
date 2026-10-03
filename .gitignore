@@ -39,3 +39,4 @@ client/*.iml
 *.swo
 .DS_Store
 Thumbs.db
+client/tapsell.json

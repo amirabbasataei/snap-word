@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/game_repository.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
@@ -52,6 +56,7 @@ class _InboxScreenState extends State<InboxScreen> {
                 ],
               ),
             ),
+            const _FreeCoinsCard(),
             Expanded(
               child: BlocBuilder<InboxCubit, InboxState>(
                 bloc: getIt<InboxCubit>(),
@@ -76,6 +81,73 @@ class _InboxScreenState extends State<InboxScreen> {
                   );
                 },
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opt-in "watch an ad, get coins" row; authenticated players only because the
+/// coins are credited server-side.
+class _FreeCoinsCard extends StatefulWidget {
+  const _FreeCoinsCard();
+
+  @override
+  State<_FreeCoinsCard> createState() => _FreeCoinsCardState();
+}
+
+class _FreeCoinsCardState extends State<_FreeCoinsCard> {
+  bool _busy = false;
+
+  Future<void> _watch() async {
+    setState(() => _busy = true);
+    final overlay = Overlay.of(context, rootOverlay: true);
+    try {
+      final watched = await getIt<AdService>().showRewardedAd();
+      if (!watched) {
+        ZToast.showOn(overlay, 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن',
+            kind: ZToastKind.error);
+        return;
+      }
+      final coins = await getIt<GameRepository>().claimRewardedAd();
+      await getIt<AuthCubit>().setCoins(coins);
+      ZToast.showOn(
+          overlay, '${toPersianDigits(GameConstants.rewardedAdCoins)} سکه به حسابت اضافه شد!',
+          kind: ZToastKind.success);
+    } catch (_) {
+      ZToast.showOn(overlay, 'اتصال برقرار نشد؛ دوباره تلاش کن', kind: ZToastKind.error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ads = getIt<AdService>();
+    if (!ads.rewardedEnabled || getIt<AuthCubit>().isGuest) return const SizedBox.shrink();
+    final z = context.z;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        ZSpacing.screenGutter, 0, ZSpacing.screenGutter, ZSpacing.md,
+      ),
+      child: SolidCard(
+        padding: const EdgeInsets.all(ZSpacing.lg),
+        radius: ZRadius.cardMax,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('سکهٔ رایگان', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+            const SizedBox(height: ZSpacing.xs),
+            Text(
+              'با دیدن یک تبلیغ کوتاه ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
+              style: ZTypography.body.copyWith(color: z.ink60),
+            ),
+            const SizedBox(height: ZSpacing.md),
+            AccentButton(
+              label: _busy ? 'کمی صبر کن…' : 'دیدن تبلیغ',
+              onPressed: _busy ? null : _watch,
             ),
           ],
         ),

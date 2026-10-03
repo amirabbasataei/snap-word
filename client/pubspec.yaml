@@ -40,7 +40,8 @@ dependencies:
   shamsi_date: ^1.1.1
 
   # Ads
-  tapsell_plus: ^2.3.2
+  tapsell_mediation: ^1.4.0-alpha03
+  tapsell_mediation_legacy: ^1.4.0-alpha03
 
 dev_dependencies:
   flutter_test:

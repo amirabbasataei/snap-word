@@ -8,7 +8,7 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/dashed_tile.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/services/monetization_service.dart';
+import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
@@ -394,9 +394,14 @@ class _NeedCoinsSheetState extends State<_NeedCoinsSheet> {
       _error = null;
     });
     try {
-      final watched = await getIt<MonetizationService>().showRewardedAd();
+      final watched = await getIt<AdService>().showRewardedAd();
       if (!watched) {
-        if (mounted) setState(() => _busy = false);
+        if (mounted) {
+          setState(() {
+            _busy = false;
+            _error = 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن';
+          });
+        }
         return;
       }
       final coins = await getIt<GameRepository>().claimRewardedAd();

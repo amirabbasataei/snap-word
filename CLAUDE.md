@@ -728,13 +728,14 @@ go test ./internal/...              # all tests
 docker-compose up                   # app + postgres:16 + redis:7
 
 # Flutter (run from client/)
-flutter run
+flutter run --dart-define-from-file=tapsell.json   # ad zone ids; see note below
 dart run build_runner build         # regenerate Drift .g.dart files (gitignored)
 flutter analyze
 flutter test
 ```
 
 - Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`).
+- **Ads (Tapsell Mediation, Android only):** the app key is a manifest placeholder in `client/android/app/build.gradle.kts`; the zone id is compile-time `--dart-define`s read in `core/services/ad_service.dart` (`AdZones`). Copy `client/tapsell.example.json` to `client/tapsell.json` (gitignored), fill in the rewarded zone id, and pass `--dart-define-from-file=tapsell.json` to `flutter run`/`build`. An empty id silently disables ads. Policy: only player-initiated rewarded ads — no interstitials and no banners (the Tapsell banner is a native overlay that leaked across screens and covered `ZBottomNav`; removed).
 - `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
 
 ---

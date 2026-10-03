@@ -29,6 +29,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        defaultConfig {
+            addManifestPlaceholders(
+                mapOf("TapsellMediationAppKey" to "mfhmdqriqiegbngfoadealqktsqnsbrgastsbgghalftsqihbqsakbqgdjpnarnecchtpr")
+            )
+        }
     }
 
     buildTypes {

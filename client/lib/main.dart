@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/router/app_router.dart';
+import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
@@ -21,6 +22,8 @@ Future<void> main() async {
 
   // Wire DI
   await configureDependencies(dictionaryService);
+
+  await getIt<AdService>().init();
 
   // Resolve auth state (AuthGuest or AuthAuthenticated) before building the
   // router so redirect never sees AuthInitial/AuthLoading on first evaluation.

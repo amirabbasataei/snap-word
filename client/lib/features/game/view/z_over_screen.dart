@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
@@ -50,16 +51,19 @@ class _ZOverScreenState extends State<ZOverScreen> {
     }
   }
 
-  void _navigateHome(BuildContext context) async {
-    await getIt<MonetizationService>().showInterstitialAd();
-    if (context.mounted) context.go('/home');
+  void _navigateHome(BuildContext context) {
+    context.go('/home');
   }
 
   void _handleContinue(BuildContext context, String method) async {
     final monetization = getIt<MonetizationService>();
     if (method == 'ad') {
-      final watched = await monetization.showRewardedAd();
-      if (!watched || !context.mounted) return;
+      final watched = await getIt<AdService>().showRewardedAd();
+      if (!context.mounted) return;
+      if (!watched) {
+        ZToast.show(context, 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن.', kind: ZToastKind.error);
+        return;
+      }
     } else if (method == 'coins') {
       final spent = monetization.spendCoins(GameConstants.continueCostCoins);
       if (!spent) {
