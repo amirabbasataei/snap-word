@@ -12,7 +12,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 - Words must be valid (dictionary-checked), no repetition allowed
 - Two orthogonal axes:
   - **Opponent**: Solo (vs self), AI (Easy/Medium/Hard), or 1v1 Real-time multiplayer
-  - **Match variant**: Classic or Time Attack for all opponents; Daily Challenge is **solo-only**
+  - **Match variant**: Classic only (Time Attack was removed); Daily Challenge is **solo-only**
 - In multiplayer, both players contribute to a **single shared chain**, alternating turns
 
 ---
@@ -189,7 +189,6 @@ Do not invent layouts — if a screen is covered by a design file, follow it. If
 | Variant | Opponent options | Turn timer | End condition |
 |---|---|---|---|
 | **Classic** | Solo, AI, 1v1 Multiplayer | 15s per turn | First invalid/timeout move loses; one continue per player allowed |
-| **Time Attack** | Solo, AI, 1v1 Multiplayer | 8s per turn | Total match time hits 90s; highest score wins |
 | **Daily Challenge** | **Solo only** | 15s per turn | Out of lives (see Lives below) or after 20 words; score posted to daily leaderboard |
 
 **Daily Challenge never appears in the multiplayer lobby.**
@@ -198,14 +197,13 @@ Defaults above are tunable in `internal/config/config.go` and via `GameConstants
 
 ### Lives (Phase 17, Flutter-only)
 - **Solo Classic and Daily Challenge** give the player `GameConstants.soloLives` (**2**) lives. A mistake (invalid word or timeout) with lives remaining costs a life and the match continues; the match ends when lives reach 0. So "first invalid move loses" above applies to these modes only once lives are exhausted.
-- **Not applied** to vs-AI, Time Attack, or 1v1 multiplayer. Multiplayer is server-authoritative and the Go WS protocol has no lives concept — the canvas's «۲ جان» chip is intentionally omitted from ZVersus until the backend supports it.
+- **Not applied** to vs-AI or 1v1 multiplayer. Multiplayer is server-authoritative and the Go WS protocol has no lives concept — the canvas's «۲ جان» chip is intentionally omitted from ZVersus until the backend supports it.
 - Daily's `dailyMaxWords` (20) cap is unchanged.
 
 ### Multiplayer shared chain
 In any multiplayer match (vs AI or 1v1), **both players contribute to a single shared word chain**:
 - Players alternate turns on the same chain.
 - The first player to submit an invalid word, let the timer expire, or concede loses — unless they invoke a continue (Classic only).
-- In Time Attack, players alternate until the 90-second match timer expires; highest cumulative score wins.
 
 ### Continue Rules (Classic mode only — solo and multiplayer)
 1. On a loss event: player may **Watch a rewarded ad** (free) or **Spend 25 coins** (instant).
@@ -253,7 +251,7 @@ CREATE TABLE users (
 
 CREATE TABLE matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mode VARCHAR(20) NOT NULL,        -- classic, time_attack, daily
+    mode VARCHAR(20) NOT NULL,        -- classic, daily
     status VARCHAR(20) NOT NULL,      -- pending, active, finished, abandoned
     winner_id UUID REFERENCES users(id),
     game_state JSONB,
@@ -355,7 +353,7 @@ All tables live in a single Drift database (`AppDatabase`) at `core/database/app
 class LocalMatches extends Table {
   IntColumn     get id           => integer().autoIncrement()();
   TextColumn    get remoteId     => text().nullable()();         // null until synced
-  TextColumn    get mode         => text()();                    // classic | time_attack
+  TextColumn    get mode         => text()();                    // classic
   TextColumn    get opponentType => text()();                    // solo | ai_easy | ai_medium | ai_hard
   TextColumn    get status       => text()();                    // active | finished | abandoned
   IntColumn     get score        => integer().withDefault(const Constant(0))();
@@ -644,7 +642,7 @@ Milestones repeat: next cycle is 60, 90, etc.
 - Friends tab on Leaderboard shows friends ranked by the same Redis sorted set.
 
 ### Friend challenges
-- From a friend's profile → Challenge → choose Classic or Time Attack.
+- From a friend's profile → Challenge → confirm the Classic challenge.
 - Record created with `expires_at = NOW() + 24h`. On accept: private match room (bypasses matchmaking queue). On decline/expiry: challenger notified. `ExpireOldChallenges` runs every 5 minutes.
 
 ### Daily Challenge share card
@@ -754,7 +752,6 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. **Each i
 - ZLobby's room-code `_InviteRow` — snackbar stub (no join-by-code backend).
 
 **Known bugs / gaps (pre-existing, flagged not fixed):**
-- Time Attack ends on the player's first mistake instead of running the full 90s (`GameBloc`).
 - ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).
 - ZHome's notification bell opens the inbox (`/inbox`), which only carries referral-reward messages so far.
 - Kavenegar SMS delivery unverified end-to-end (no account yet; dev bypass OTP `1111`).

@@ -129,7 +129,7 @@ func (s *MatchmakingService) Cancel(ctx context.Context, userID, mode string) er
 func (s *MatchmakingService) runBackground() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
-	modes := []string{"classic", "time_attack"}
+	modes := []string{"classic"}
 	for range ticker.C {
 		for _, mode := range modes {
 			s.processQueue(mode)

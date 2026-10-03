@@ -5,7 +5,7 @@ sealed class GameEvent extends Equatable {
 }
 
 class GameStarted extends GameEvent {
-  final String mode; // classic | time_attack | daily
+  final String mode; // classic | daily
   final String opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
   final int? resumeMatchId; // null = new game (solo/AI only)
   final String? roomId; // multiplayer WS room ID

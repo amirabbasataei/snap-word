@@ -32,7 +32,7 @@ func NewWSHandler(hub *ws.Hub, authSvc *service.AuthService) *WSHandler {
 //
 // Query parameters:
 //   - token  (required) — JWT access token (WS cannot carry Authorization headers)
-//   - mode   (optional) — "classic" (default) or "time_attack"; used only when the
+//   - mode   (optional) — "classic" (default, the only mode); used only when the
 //     room does not already exist
 func (h *WSHandler) ServeWS(c *gin.Context) {
 	roomID := c.Param("roomID")
@@ -51,8 +51,8 @@ func (h *WSHandler) ServeWS(c *gin.Context) {
 	}
 
 	mode := c.DefaultQuery("mode", "classic")
-	if mode != "classic" && mode != "time_attack" {
-		respondError(c, http.StatusBadRequest, "invalid_mode", "mode must be classic or time_attack")
+	if mode != "classic" {
+		respondError(c, http.StatusBadRequest, "invalid_mode", "mode must be classic")
 		return
 	}
 

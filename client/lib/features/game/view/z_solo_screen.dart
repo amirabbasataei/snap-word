@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
@@ -10,15 +9,13 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
-import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 
 const _accentCycle = [ZAccent.indigo, ZAccent.teal, ZAccent.amber, ZAccent.coral];
 
 /// ZSolo — the true solo (no opponent) active-game screen: vertical spine
 /// chain renderer, stat strip (chain length / personal record / lives),
-/// and the low-key "زمان‌دار" mode toggle (this screen's own addition —
-/// not in the canvas; see REDESIGN_PLAN.md entry-flow note).
+
 class ZSoloActiveScreen extends StatefulWidget {
   final GameActive state;
 
@@ -46,60 +43,6 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
     }
   }
 
-  void _switchMode(BuildContext context, String targetMode) {
-    final args = GameRouteArgs(mode: targetMode, opponentType: 'solo');
-    if (widget.state.wordChain.isEmpty) {
-      context.pushReplacement('/game', extra: args);
-      return;
-    }
-
-    final z = context.z;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: z.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadius.cardMax)),
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                targetMode == 'time_attack' ? 'شروع دوباره در حالت زمان‌دار؟' : 'شروع دوباره در حالت کلاسیک؟',
-                style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 17),
-              ),
-              const SizedBox(height: ZSpacing.sm),
-              Text('پیشرفت این بازی از دست می‌رود.',
-                  style: ZTypography.body.copyWith(color: z.ink60)),
-              const SizedBox(height: ZSpacing.xl),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('انصراف'),
-                    ),
-                  ),
-                  const SizedBox(width: ZSpacing.md),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.pop(dialogContext);
-                        context.pushReplacement('/game', extra: args);
-                      },
-                      child: const Text('شروع دوباره'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final z = context.z;
@@ -113,7 +56,6 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
             _Header(
               state: state,
               recordChainLength: _recordChainLength,
-              onSwitchMode: (mode) => _switchMode(context, mode),
             ),
             Expanded(child: _ChainList(state: state)),
             _Footer(state: state, recordChainLength: _recordChainLength),
@@ -127,19 +69,16 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
 class _Header extends StatelessWidget {
   final GameActive state;
   final int recordChainLength;
-  final void Function(String targetMode) onSwitchMode;
 
   const _Header({
     required this.state,
     required this.recordChainLength,
-    required this.onSwitchMode,
   });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     final isDaily = state.mode == 'daily';
-    final isTimeAttack = state.mode == 'time_attack';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -171,32 +110,10 @@ class _Header extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       )
                     else
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              isTimeAttack ? 'زمان‌دار · ۸ ثانیه هر نوبت' : 'بی‌وقفه · بدون حریف',
-                              style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: ZSpacing.sm),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => onSwitchMode(isTimeAttack ? 'classic' : 'time_attack'),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: ZSpacing.sm),
-                              child: Text(
-                                isTimeAttack ? '🎯 حالت کلاسیک' : '⏱ حالت زمان‌دار',
-                                style: ZTypography.metaLabel.copyWith(
-                                  color: z.indigo,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'بی‌وقفه · بدون حریف',
+                        style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
+                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
@@ -232,20 +149,13 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               Expanded(
-                child: isTimeAttack
-                    ? _StatTile(
-                        value: toPersianDigits(state.matchTimeRemaining ?? 0),
-                        label: 'زمان کل',
-                      )
-                    : _LivesTile(livesRemaining: state.livesRemaining, maxLives: GameConstants.soloLives),
+                child: _LivesTile(livesRemaining: state.livesRemaining, maxLives: GameConstants.soloLives),
               ),
             ],
           ),
           ZTimerRow(
             secondsRemaining: state.turnTimeRemaining,
-            totalSeconds: isTimeAttack
-                ? GameConstants.timeAttackTurnTimerSec
-                : GameConstants.classicTurnTimerSec,
+            totalSeconds: GameConstants.classicTurnTimerSec,
           ),
         ],
       ),

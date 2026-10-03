@@ -16,19 +16,6 @@ import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 import 'package:wordchain/features/lobby/cubit/lobby_cubit.dart';
-import 'package:wordchain/features/profile/data/profile_repository.dart';
-
-// Turn-length options shown in ZLobby's picker (REDESIGN_PLAN.md §1
-// decision 2: "build exactly as designed, no placeholder gating" — the
-// picker is fully interactive local UI, but `POST /match/queue` has no
-// field for a custom per-turn duration (CLAUDE.md's turn timers are fixed
-// per variant: 15s classic / 8s time attack), so the selection is cosmetic
-// and does not change the actual match. Flagged, not silently wired.
-const _turnLengthOptions = [10, 15, 20];
-
-// Wager options (REDESIGN_PLAN.md §1 decision 2, same treatment as above —
-// there is no wager/coin-stake system in the coin economy or backend).
-const _wagerOptions = ['بدون شرط', '۲۰ سکه', '۱۰۰ سکه'];
 
 class LobbyScreen extends StatelessWidget {
   const LobbyScreen({super.key});
@@ -54,33 +41,14 @@ class _LobbyView extends StatefulWidget {
 }
 
 class _LobbyViewState extends State<_LobbyView> {
-  // Real, functional axis — controls the actual /match/queue call. Not part
-  // of the canvas (which drops the classic/time-attack choice entirely in
-  // favor of the decorative turn-length picker below); kept so multiplayer
-  // Time Attack stays reachable rather than silently regressed, the same
-  // class of bug flagged and fixed for VS-AI earlier this stage.
-  String _mode = 'classic';
+  static const _mode = 'classic';
 
-  int _turnLength = 15;
-  String _wager = _wagerOptions[0];
-
-  int _coins = 0;
   List<FriendModel> _friends = const [];
 
   @override
   void initState() {
     super.initState();
-    _fetchCoins();
     _fetchFriends();
-  }
-
-  Future<void> _fetchCoins() async {
-    try {
-      final stats = await getIt<ProfileRepository>().fetchStats();
-      if (mounted) setState(() => _coins = stats.coins);
-    } catch (_) {
-      // Best-effort — lobby still renders without a live coin count.
-    }
   }
 
   Future<void> _fetchFriends() async {
@@ -149,7 +117,7 @@ class _LobbyViewState extends State<_LobbyView> {
           body: SafeArea(
             child: Column(
               children: [
-                _TopBar(coins: _coins),
+                const _TopBar(),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(
@@ -169,12 +137,6 @@ class _LobbyViewState extends State<_LobbyView> {
                               onRetry: () => context.read<LobbyCubit>().startSearch(_mode),
                             ),
                           _ => _IdleBlock(
-                              mode: _mode,
-                              onModeChanged: (m) => setState(() => _mode = m),
-                              turnLength: _turnLength,
-                              onTurnLengthChanged: (t) => setState(() => _turnLength = t),
-                              wager: _wager,
-                              onWagerChanged: (w) => setState(() => _wager = w),
                               onFindMatch: () => context.read<LobbyCubit>().startSearch(_mode),
                             ),
                         },
@@ -219,9 +181,7 @@ class _LobbyViewState extends State<_LobbyView> {
 // ---------------------------------------------------------------------------
 
 class _TopBar extends StatelessWidget {
-  final int coins;
-
-  const _TopBar({required this.coins});
+  const _TopBar();
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +195,11 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: ZSpacing.md),
           Text('رویارویی آنلاین', style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 19)),
           const Spacer(),
-          CoinPill(amount: coins),
+          // AuthCubit holds the live balance; fetchStats() never returns coins.
+          BlocBuilder<AuthCubit, AuthState>(
+            bloc: getIt<AuthCubit>(),
+            builder: (context, auth) => CoinPill(amount: auth is AuthAuthenticated ? auth.coins : 0),
+          ),
         ],
       ),
     );
@@ -403,23 +367,9 @@ class _SearchDotsState extends State<_SearchDots> with SingleTickerProviderState
 // ---------------------------------------------------------------------------
 
 class _IdleBlock extends StatelessWidget {
-  final String mode;
-  final void Function(String) onModeChanged;
-  final int turnLength;
-  final void Function(int) onTurnLengthChanged;
-  final String wager;
-  final void Function(String) onWagerChanged;
   final VoidCallback onFindMatch;
 
-  const _IdleBlock({
-    required this.mode,
-    required this.onModeChanged,
-    required this.turnLength,
-    required this.onTurnLengthChanged,
-    required this.wager,
-    required this.onWagerChanged,
-    required this.onFindMatch,
-  });
+  const _IdleBlock({required this.onFindMatch});
 
   @override
   Widget build(BuildContext context) {
@@ -434,63 +384,6 @@ class _IdleBlock extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('نوع بازی', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
-          const SizedBox(height: ZSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: _Chip(
-                  label: 'کلاسیک',
-                  selected: mode == 'classic',
-                  onTap: () => onModeChanged('classic'),
-                ),
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              Expanded(
-                child: _Chip(
-                  label: 'زمان‌دار',
-                  selected: mode == 'time_attack',
-                  onTap: () => onModeChanged('time_attack'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.lg),
-          Text('مدت هر نوبت', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
-          const SizedBox(height: ZSpacing.sm),
-          Row(
-            children: [
-              for (final t in _turnLengthOptions) ...[
-                if (t != _turnLengthOptions.first) const SizedBox(width: ZSpacing.sm),
-                Expanded(
-                  child: _Chip(
-                    label: '${toPersianDigits(t)} ثانیه',
-                    selected: turnLength == t,
-                    onTap: () => onTurnLengthChanged(t),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: ZSpacing.lg),
-          Text('شرط بازی', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
-          const SizedBox(height: ZSpacing.sm),
-          Row(
-            children: [
-              for (final w in _wagerOptions) ...[
-                if (w != _wagerOptions.first) const SizedBox(width: ZSpacing.sm),
-                Expanded(
-                  child: _Chip(
-                    label: w,
-                    selected: wager == w,
-                    accent: ZAccentColor.amber,
-                    onTap: () => onWagerChanged(w),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: ZSpacing.xl),
           AccentButton(
             label: 'پیدا کردن حریف',
             accent: ZAccentColor.coral,
@@ -503,53 +396,6 @@ class _IdleBlock extends StatelessWidget {
             style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final ZAccentColor accent;
-
-  const _Chip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.accent = ZAccentColor.indigo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final (bg, fg) = switch (accent) {
-      ZAccentColor.indigo => (z.ink, z.paper),
-      ZAccentColor.amber => (z.amber, z.onAmber),
-      ZAccentColor.teal => (z.teal, z.onTeal),
-      ZAccentColor.coral => (z.coral, z.onCoral),
-      ZAccentColor.ink => (z.ink, z.paper),
-    };
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? bg : z.paper,
-          borderRadius: BorderRadius.circular(ZRadius.tileMin + 2),
-          border: selected ? null : Border.all(color: z.line),
-        ),
-        child: Text(
-          label,
-          style: ZTypography.metaLabel.copyWith(
-            color: selected ? fg : z.ink60,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-            fontSize: 13,
-          ),
-        ),
       ),
     );
   }

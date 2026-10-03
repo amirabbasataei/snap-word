@@ -193,9 +193,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             aiDifficulties['easy']!;
       }
 
-      _timeLimitSec = mode == 'time_attack'
-          ? GameConstants.timeAttackTurnTimerSec
-          : GameConstants.classicTurnTimerSec;
+      _timeLimitSec = GameConstants.classicTurnTimerSec;
       _turnStartTime = DateTime.now();
 
       final difficultyLabel =
@@ -214,10 +212,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           score: score,
           streak: 0,
           turnTimeRemaining: _timeLimitSec,
-          matchTimeRemaining:
-              mode == 'time_attack'
-                  ? GameConstants.timeAttackMatchDurationSec
-                  : null,
           nextStartLetter:
               wordChain.isNotEmpty
                   ? wordChain.last[wordChain.last.length - 1]
@@ -714,25 +708,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     final vsAI = _isVsAI(active);
     final newTurnTime = active.turnTimeRemaining - 1;
-    final newMatchTime = active.matchTimeRemaining != null
-        ? active.matchTimeRemaining! - 1
-        : null;
-
-    if (newMatchTime != null && newMatchTime <= 0) {
-      _stopTurnTimer();
-      await _finalizeGame(
-        emit: emit,
-        localMatchId: active.localMatchId,
-        mode: active.mode,
-        reason: 'time_limit',
-        score: active.score,
-        wordChain: active.wordChain,
-        canContinue: false,
-        opponentScore: active.opponentScore,
-      );
-      return;
-    }
-
     if (newTurnTime <= 0) {
       _stopTurnTimer();
       if (vsAI && !active.isMyTurn) {
@@ -769,10 +744,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
 
-    emit(active.copyWith(
-      turnTimeRemaining: newTurnTime,
-      matchTimeRemaining: newMatchTime,
-    ));
+    emit(active.copyWith(turnTimeRemaining: newTurnTime));
   }
 
   // ---------------------------------------------------------------------------
@@ -819,9 +791,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
 
-    _timeLimitSec = over.mode == 'time_attack'
-        ? GameConstants.timeAttackTurnTimerSec
-        : GameConstants.classicTurnTimerSec;
+    _timeLimitSec = GameConstants.classicTurnTimerSec;
     _turnStartTime = DateTime.now();
 
     final opponentType = over.opponentType ?? 'solo';
@@ -846,7 +816,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         score: over.score,
         streak: 0,
         turnTimeRemaining: _timeLimitSec,
-        matchTimeRemaining: null,
         nextStartLetter:
             chain.isNotEmpty ? chain.last[chain.last.length - 1] : null,
         guestHintUsesLeft:
@@ -1027,9 +996,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final mode = gameState['mode'] as String? ?? 'classic';
     final currentPlayer = gameState['current_turn'] as String? ?? '';
 
-    _timeLimitSec = mode == 'time_attack'
-        ? GameConstants.timeAttackTurnTimerSec
-        : GameConstants.classicTurnTimerSec;
+    _timeLimitSec = GameConstants.classicTurnTimerSec;
 
     final opponentId = players
         .cast<String>()
@@ -1045,10 +1012,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         score: 0,
         streak: 0,
         turnTimeRemaining: _timeLimitSec,
-        matchTimeRemaining:
-            mode == 'time_attack'
-                ? GameConstants.timeAttackMatchDurationSec
-                : null,
         guestHintUsesLeft: 999,
         continueUsed: false,
         powerupCounts: _powerupCounts,

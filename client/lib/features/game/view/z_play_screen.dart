@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -9,7 +8,6 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
-import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 
 const _accentCycle = [ZAccent.indigo, ZAccent.teal, ZAccent.amber, ZAccent.coral];
@@ -24,10 +22,7 @@ const _difficultyTiers = {'ai_easy': 1, 'ai_medium': 2, 'ai_hard': 3};
 
 /// ZPlay — vs-AI active-game screen: chat-bubble chain renderer (opponent
 /// on the "start" side, you inverted on the "end" side), no lives (design
-/// only shows lives for true solo — see REDESIGN_PLAN.md §1). Carries the
-/// same inline زمان‌دار/کلاسیک mode-switch toggle as ZSolo (see
-/// REDESIGN_PLAN.md's VS-AI entry-flow note) so Time Attack vs AI stays
-/// reachable without a pre-game picker sheet.
+/// only shows lives for true solo — see REDESIGN_PLAN.md §1).
 class ZPlayActiveScreen extends StatefulWidget {
   final GameActive state;
 
@@ -38,60 +33,6 @@ class ZPlayActiveScreen extends StatefulWidget {
 }
 
 class _ZPlayActiveScreenState extends State<ZPlayActiveScreen> {
-  void _switchMode(BuildContext context, String targetMode) {
-    final args = GameRouteArgs(mode: targetMode, opponentType: widget.state.opponentType);
-    if (widget.state.wordChain.isEmpty) {
-      context.pushReplacement('/game', extra: args);
-      return;
-    }
-
-    final z = context.z;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: z.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadius.cardMax)),
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                targetMode == 'time_attack' ? 'شروع دوباره در حالت زمان‌دار؟' : 'شروع دوباره در حالت کلاسیک؟',
-                style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 17),
-              ),
-              const SizedBox(height: ZSpacing.sm),
-              Text('پیشرفت این بازی از دست می‌رود.',
-                  style: ZTypography.body.copyWith(color: z.ink60)),
-              const SizedBox(height: ZSpacing.xl),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('انصراف'),
-                    ),
-                  ),
-                  const SizedBox(width: ZSpacing.md),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.pop(dialogContext);
-                        context.pushReplacement('/game', extra: args);
-                      },
-                      child: const Text('شروع دوباره'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final z = context.z;
@@ -102,7 +43,7 @@ class _ZPlayActiveScreenState extends State<ZPlayActiveScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _Header(state: state, onSwitchMode: (mode) => _switchMode(context, mode)),
+            _Header(state: state),
             Expanded(child: _BubbleChain(state: state)),
             _Footer(state: state),
           ],
@@ -114,16 +55,14 @@ class _ZPlayActiveScreenState extends State<ZPlayActiveScreen> {
 
 class _Header extends StatelessWidget {
   final GameActive state;
-  final void Function(String targetMode) onSwitchMode;
 
-  const _Header({required this.state, required this.onSwitchMode});
+  const _Header({required this.state});
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     final difficulty = _difficultyLabels[state.opponentType] ?? '';
     final tier = _difficultyTiers[state.opponentType] ?? 1;
-    final isTimeAttack = state.mode == 'time_attack';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -146,32 +85,10 @@ class _Header extends StatelessWidget {
                     Text('حریف هوشمند · $difficulty',
                         style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            'سطح ${toPersianDigits(tier)} از ۳ · ${state.isMyTurn ? 'نوبت تو' : 'نوبت حریف'}',
-                            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: ZSpacing.sm),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => onSwitchMode(isTimeAttack ? 'classic' : 'time_attack'),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: ZSpacing.sm),
-                            child: Text(
-                              isTimeAttack ? '🎯 حالت کلاسیک' : '⏱ حالت زمان‌دار',
-                              style: ZTypography.metaLabel.copyWith(
-                                color: z.indigo,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'سطح ${toPersianDigits(tier)} از ۳ · ${state.isMyTurn ? 'نوبت تو' : 'نوبت حریف'}',
+                      style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -190,9 +107,7 @@ class _Header extends StatelessWidget {
           ),
           ZTimerRow(
             secondsRemaining: state.turnTimeRemaining,
-            totalSeconds: state.mode == 'time_attack'
-                ? GameConstants.timeAttackTurnTimerSec
-                : GameConstants.classicTurnTimerSec,
+            totalSeconds: GameConstants.classicTurnTimerSec,
           ),
         ],
       ),

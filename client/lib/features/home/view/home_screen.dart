@@ -809,7 +809,7 @@ class _ResumeCard extends StatelessWidget {
                 children: [
                   Text('ادامهٔ بازی', style: ZTypography.cardTitle.copyWith(color: z.ink)),
                   Text(
-                    '${match.mode == 'time_attack' ? 'زمان‌دار' : 'کلاسیک'} · ${match.opponentType == 'solo' ? 'تک‌نفره' : 'حریف هوشمند'}',
+                    'کلاسیک · ${match.opponentType == 'solo' ? 'تک‌نفره' : 'حریف هوشمند'}',
                     style: ZTypography.body.copyWith(color: z.ink60, fontSize: 11.5),
                   ),
                 ],

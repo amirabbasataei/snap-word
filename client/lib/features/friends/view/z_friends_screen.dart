@@ -494,7 +494,7 @@ class _PendingChallengeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final modeName = challenge.mode == 'classic' ? 'کلاسیک' : 'زمان‌دار';
+    final modeName = 'کلاسیک';
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
       decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),

@@ -18,7 +18,7 @@ import 'package:wordchain/features/game/view/z_solo_screen.dart';
 import 'package:wordchain/features/game/view/z_versus_screen.dart';
 
 class GameRouteArgs {
-  final String mode; // classic | time_attack | daily
+  final String mode; // classic | daily
   final String opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
   final int? resumeMatchId;
   final String? roomId; // multiplayer WS room

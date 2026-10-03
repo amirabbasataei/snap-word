@@ -30,7 +30,6 @@ class GameActive extends GameState {
   final int score;
   final int streak;
   final int turnTimeRemaining;
-  final int? matchTimeRemaining; // time_attack only
   final String? nextStartLetter;
   final String? hintWord;
   final int guestHintUsesLeft;
@@ -75,7 +74,6 @@ class GameActive extends GameState {
     required this.score,
     required this.streak,
     required this.turnTimeRemaining,
-    this.matchTimeRemaining,
     this.nextStartLetter,
     this.hintWord,
     required this.guestHintUsesLeft,
@@ -106,7 +104,6 @@ class GameActive extends GameState {
     int? score,
     int? streak,
     int? turnTimeRemaining,
-    Object? matchTimeRemaining = _sentinel,
     Object? nextStartLetter = _sentinel,
     Object? hintWord = _sentinel,
     int? guestHintUsesLeft,
@@ -134,9 +131,6 @@ class GameActive extends GameState {
       score: score ?? this.score,
       streak: streak ?? this.streak,
       turnTimeRemaining: turnTimeRemaining ?? this.turnTimeRemaining,
-      matchTimeRemaining: matchTimeRemaining == _sentinel
-          ? this.matchTimeRemaining
-          : matchTimeRemaining as int?,
       nextStartLetter: nextStartLetter == _sentinel
           ? this.nextStartLetter
           : nextStartLetter as String?,
@@ -182,7 +176,6 @@ class GameActive extends GameState {
     score,
     streak,
     turnTimeRemaining,
-    matchTimeRemaining,
     nextStartLetter,
     hintWord,
     guestHintUsesLeft,
@@ -208,7 +201,7 @@ class GameActive extends GameState {
 class GameOver extends GameState {
   final int localMatchId;
   final String mode;
-  final String reason; // invalid_word | timeout | time_limit | ended_by_user | game_over | opponent_disconnected
+  final String reason; // invalid_word | timeout | ended_by_user | game_over | opponent_disconnected
   final String? rejectedWord;
   final String? rejectionReason; // not_in_dictionary | wrong_letter | already_used | too_short
   final int score;

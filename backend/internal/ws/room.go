@@ -139,7 +139,6 @@ type Room struct {
 
 	// stale-timer guards: incremented to invalidate sleeping goroutines
 	turnSeq     int
-	matchSeq    int
 	continueSeq int
 
 	// cancel func for the periodic timer-update goroutine
@@ -531,16 +530,6 @@ func (r *Room) startGame() {
 		},
 	}))
 
-	// Time Attack: start the 90-second match timer.
-	if r.mode == "time_attack" {
-		r.matchSeq++
-		seq := r.matchSeq
-		go func() {
-			time.Sleep(time.Duration(config.TimeAttackMatchSec) * time.Second)
-			r.handleMatchTimeout(seq)
-		}()
-	}
-
 	r.startTurn()
 }
 
@@ -589,28 +578,6 @@ func (r *Room) triggerTurnTimeout(seq int, playerID string) {
 	}
 	r.cancelTimerUpdates()
 	r.handleLoss(playerID, "timeout")
-}
-
-func (r *Room) handleMatchTimeout(seq int) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.matchSeq != seq || r.state != stateActive {
-		return
-	}
-	r.turnSeq++
-	r.cancelTimerUpdates()
-
-	winner := ""
-	if len(r.playerOrder) == 2 {
-		p0, p1 := r.playerOrder[0], r.playerOrder[1]
-		if r.scores[p0] > r.scores[p1] {
-			winner = p0
-		} else if r.scores[p1] > r.scores[p0] {
-			winner = p1
-		}
-	}
-	r.resolveGame(winner)
 }
 
 func (r *Room) handleLoss(playerID, reason string) {
@@ -689,7 +656,6 @@ func (r *Room) resolveGame(winnerID string) {
 
 	// Invalidate all pending timer goroutines.
 	r.turnSeq++
-	r.matchSeq++
 	r.continueSeq++
 	r.cancelTimerUpdates()
 
@@ -823,9 +789,6 @@ func (r *Room) opponentOf(playerID string) string {
 }
 
 func (r *Room) turnTimerSec() float64 {
-	if r.mode == "time_attack" {
-		return float64(config.TurnTimerTimeAttackSec)
-	}
 	return float64(config.TurnTimerClassicSec)
 }
 

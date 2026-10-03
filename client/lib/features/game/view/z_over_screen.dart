@@ -193,8 +193,6 @@ class _Hero extends StatelessWidget {
         };
       case 'ended_by_user':
         return 'با میل خودت بازی رو تموم کردی.';
-      case 'time_limit':
-        return 'زمان کل بازی تموم شد.';
       case 'opponent_disconnected':
         return 'حریف از بازی خارج شد.';
       default:

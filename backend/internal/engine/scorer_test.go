@@ -46,7 +46,7 @@ func TestCalculateScore(t *testing.T) {
 			want: 30,
 		},
 		{
-			name: "time attack variant (8s limit)",
+			name: "short turn limit (8s)",
 			// base=30, speed=(8-3)*2=10 → 40
 			word: "سیب", responseTimeSec: 3, streak: 0, timeLimitSec: 8,
 			want: 40,

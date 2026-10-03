@@ -45,7 +45,7 @@ func NewChallengeService(
 
 // CreateChallenge validates that the two users are friends, then creates a pending challenge.
 func (s *ChallengeService) CreateChallenge(ctx context.Context, challengerID, challengedID, mode string) (*repository.FriendChallenge, error) {
-	if mode != "classic" && mode != "time_attack" {
+	if mode != "classic" {
 		return nil, fmt.Errorf("invalid mode: %s", mode)
 	}
 
@@ -65,14 +65,9 @@ func (s *ChallengeService) CreateChallenge(ctx context.Context, challengerID, ch
 		challengerName = challenger.Username
 	}
 
-	modeName := "Classic"
-	if mode == "time_attack" {
-		modeName = "Time Attack"
-	}
-
 	if err := s.notifSvc.SendToUser(ctx, challengedID,
 		"Friend challenge received",
-		fmt.Sprintf("%s challenged you to a %s match!", challengerName, modeName),
+		fmt.Sprintf("%s challenged you to a Classic match!", challengerName),
 	); err != nil {
 		slog.Warn("CreateChallenge: notification failed", "challengedID", challengedID, "error", err)
 	}

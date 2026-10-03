@@ -93,7 +93,7 @@ Never hardcode magic numbers. Read from:
 
 ## Game rule changes (Phase 17)
 
-- **Lives**: 2 lives (`GameConstants.soloLives`) for **solo Classic and Daily only**. Not vs-AI, Time Attack, or multiplayer (server-authoritative; no lives in the WS protocol).
+- **Lives**: 2 lives (`GameConstants.soloLives`) for **solo Classic and Daily only**. Not vs-AI or multiplayer (server-authoritative; no lives in the WS protocol).
 - **Long-word bonus**: ≥7 letters doubles the turn score — Flutter scorer only; Go scorer unchanged.
 - **No tutorial**: removed by product decision. Don't rebuild it.
 - Wager/turn-length picker, best-of-5 rounds, levels/badges, typing indicator are **UI placeholders with no backend** — never fake them client-side.

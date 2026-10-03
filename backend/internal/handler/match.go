@@ -38,8 +38,8 @@ func (h *MatchHandler) JoinQueue(c *gin.Context) {
 		respondError(c, http.StatusBadRequest, "invalid_body", err.Error())
 		return
 	}
-	if req.Mode != "classic" && req.Mode != "time_attack" {
-		respondError(c, http.StatusBadRequest, "invalid_mode", "mode must be classic or time_attack")
+	if req.Mode != "classic" {
+		respondError(c, http.StatusBadRequest, "invalid_mode", "mode must be classic")
 		return
 	}
 	if req.Difficulty == "" {

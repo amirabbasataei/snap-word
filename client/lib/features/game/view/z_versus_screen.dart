@@ -155,9 +155,7 @@ class _TurnBanner extends StatelessWidget {
     final z = context.z;
     final accent = isMyTurn ? z.teal : z.coral;
     final tint = isMyTurn ? z.tintTeal : z.tintCoral;
-    final totalSeconds = state.mode == 'time_attack'
-        ? GameConstants.timeAttackTurnTimerSec
-        : GameConstants.classicTurnTimerSec;
+    const totalSeconds = GameConstants.classicTurnTimerSec;
     final fraction =
         totalSeconds <= 0 ? 0.0 : (state.turnTimeRemaining / totalSeconds).clamp(0.0, 1.0);
 

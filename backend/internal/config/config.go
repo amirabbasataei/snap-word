@@ -116,8 +116,6 @@ var AIDifficulties = map[string]AIDifficulty{
 // Change values here; never scatter magic numbers elsewhere.
 const (
 	TurnTimerClassicSec    = 15  // seconds per turn in Classic mode
-	TurnTimerTimeAttackSec = 8   // seconds per turn in Time Attack
-	TimeAttackMatchSec     = 90  // total Time Attack match duration
 	MinWordLength          = 3   // minimum accepted word length
 	ContinueWindowSec      = 15  // seconds the losing player has to decide on a continue
 	MaxDailyWords          = 20  // word limit for Daily Challenge
