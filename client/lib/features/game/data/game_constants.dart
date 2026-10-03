@@ -1,4 +1,8 @@
 abstract final class GameConstants {
+  // Mirrors config.EntryFeeCoins on the backend: each human in a 1v1 match pays
+  // this to start, and the winner takes the whole pot (2 × fee). Free vs AI.
+  static const int entryFeeCoins = 20;
+  static const int entryFeePot = entryFeeCoins * 2;
   static const int classicTurnTimerSec = 15;
   static const int continueWindowSec = 15;
   static const int reconnectGraceSec = 30; // server holds the room this long

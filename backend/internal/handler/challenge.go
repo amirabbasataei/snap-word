@@ -61,6 +61,8 @@ func (h *ChallengeHandler) Create(c *gin.Context) {
 		switch {
 		case errors.Is(err, service.ErrNotFriends):
 			respondError(c, http.StatusForbidden, "not_friends", "you must be friends to challenge this player")
+		case errors.Is(err, service.ErrInsufficientCoins):
+			respondError(c, http.StatusPaymentRequired, "insufficient_coins", "not enough coins for the entry fee")
 		default:
 			slog.Error("CreateChallenge failed", "challengerID", challengerID, "error", err)
 			respondError(c, http.StatusInternalServerError, "internal_error", "failed to create challenge")
@@ -95,6 +97,10 @@ func (h *ChallengeHandler) Respond(c *gin.Context) {
 			respondError(c, http.StatusForbidden, "not_challenged", "you are not the challenged player")
 		case errors.Is(err, service.ErrChallengeExpired):
 			respondError(c, http.StatusConflict, "challenge_expired", "challenge is no longer pending")
+		case errors.Is(err, service.ErrInsufficientCoins):
+			respondError(c, http.StatusPaymentRequired, "insufficient_coins", "not enough coins for the entry fee")
+		case errors.Is(err, service.ErrChallengerCannotAfford):
+			respondError(c, http.StatusConflict, "challenger_cannot_afford", "the challenger can no longer afford the entry fee")
 		default:
 			slog.Error("RespondToChallenge failed", "challengeID", challengeID, "error", err)
 			respondError(c, http.StatusInternalServerError, "internal_error", "failed to respond to challenge")

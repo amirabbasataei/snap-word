@@ -50,6 +50,9 @@ type outMsg struct {
 	By          string          `json:"by,omitempty"`
 	Winner      string          `json:"winner,omitempty"`
 	Scores      map[string]int  `json:"scores,omitempty"`
+	// Entry fee settlement on game_over: Payout is credited to Winner (or
+	// refunded to each player when there is no winner).
+	Payout int `json:"payout,omitempty"`
 	State       *gameStartState `json:"state,omitempty"`
 	Hint        string          `json:"hint,omitempty"`
 	// Payment receipt, sent only to the player who used the power-up.
@@ -65,6 +68,8 @@ type gameStartState struct {
 	Chain       []string       `json:"chain"`
 	Scores      map[string]int `json:"scores"`
 	NextLetter  string         `json:"next_letter,omitempty"`
+	// EntryFee is the coins already deducted from each player (0 vs AI).
+	EntryFee int `json:"entry_fee,omitempty"`
 }
 
 // PowerupDeductor deducts one power-up use from a player's inventory.
@@ -92,6 +97,13 @@ type LeaderboardUpdater interface {
 	AddScore(ctx context.Context, userID string, score int) error
 }
 
+// CoinLedger moves coins for match entry fees. Implemented by
+// repository.UserRepository; SpendCoins returns repository.ErrInsufficientCoins.
+type CoinLedger interface {
+	SpendCoins(ctx context.Context, userID string, amount int) error
+	AwardCoins(ctx context.Context, userID string, amount int) error
+}
+
 // RoomDeps holds the external dependencies a room needs for DB interactions.
 // All fields may be nil in tests that exercise in-memory logic only.
 type RoomDeps struct {
@@ -99,6 +111,7 @@ type RoomDeps struct {
 	PowerupSvc     PowerupDeductor
 	StreakSvc      StreakRecorder
 	LeaderboardSvc LeaderboardUpdater
+	Coins          CoinLedger // nil disables entry fees (tests)
 }
 
 // Room manages a single multiplayer game session.
@@ -133,6 +146,9 @@ type Room struct {
 	powerupUsedInMatch map[string]map[string]bool // userID → type → used this match
 	shieldActive       map[string]bool
 	freezePending      string // userID whose next turn gets +5 s
+
+	// entry fee: charged to both humans when the game starts, settled once
+	feeCharged bool
 
 	// continue state
 	pendingLossPlayer string
@@ -221,7 +237,22 @@ func (r *Room) leave(client *Client) {
 	delete(r.clients, client.userID)
 	slog.Info("ws: player disconnected", "room", r.id, "userID", client.userID)
 
-	if r.state == stateFinished || r.state == stateWaiting {
+	if r.state == stateFinished {
+		return
+	}
+	if r.state == stateWaiting {
+		// Game not started: free the seat so a later joiner isn't paired with
+		// (and charged alongside) an absent player.
+		for i, pid := range r.playerOrder {
+			if pid == client.userID {
+				r.playerOrder = append(r.playerOrder[:i], r.playerOrder[i+1:]...)
+				break
+			}
+		}
+		delete(r.scores, client.userID)
+		delete(r.streaks, client.userID)
+		delete(r.continueUsed, client.userID)
+		delete(r.powerupUsedInMatch, client.userID)
 		return
 	}
 
@@ -491,8 +522,108 @@ func (r *Room) processContinue(client *Client, method string) {
 
 // ---- game lifecycle ----
 
+// hasEntryFee reports whether this match charges an entry fee: two humans and
+// a configured ledger. Matches against the AI fallback are free.
+func (r *Room) hasEntryFee() bool {
+	if r.deps.Coins == nil || config.EntryFeeCoins <= 0 {
+		return false
+	}
+	for _, pid := range r.playerOrder {
+		if pid == config.SystemAIUserID {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Room) feePaid() int {
+	if r.feeCharged {
+		return config.EntryFeeCoins
+	}
+	return 0
+}
+
+// chargeEntryFees deducts the fee from both players. If either can no longer
+// afford it the other is refunded, the room is closed and false is returned.
+// Must be called with r.mu held.
+func (r *Room) chargeEntryFees() bool {
+	if !r.hasEntryFee() {
+		return true
+	}
+	ctx := context.Background()
+	var charged []string
+	for _, pid := range r.playerOrder {
+		if err := r.deps.Coins.SpendCoins(ctx, pid, config.EntryFeeCoins); err != nil {
+			if !errors.Is(err, repository.ErrInsufficientCoins) {
+				slog.Error("ws: entry fee charge failed", "room", r.id, "player", pid, "error", err)
+			}
+			for _, done := range charged {
+				if rerr := r.deps.Coins.AwardCoins(ctx, done, config.EntryFeeCoins); rerr != nil {
+					slog.Error("ws: entry fee refund failed", "room", r.id, "player", done, "error", rerr)
+				}
+			}
+			r.state = stateFinished
+			r.broadcast(mustMarshal(outMsg{Type: "match_cancelled", Reason: "insufficient_coins", PlayerID: pid}))
+			r.closeAfterDrain()
+			return false
+		}
+		charged = append(charged, pid)
+	}
+	r.feeCharged = true
+	return true
+}
+
+// settleEntryFees pays the pot to the winner, or refunds both on a draw, and
+// returns the amount involved per recipient (0 when no fee was charged).
+// Must be called with r.mu held, once.
+func (r *Room) settleEntryFees(winnerID string) int {
+	if !r.feeCharged {
+		return 0
+	}
+	r.feeCharged = false
+	ctx := context.Background()
+	award := func(pid string, amount int) {
+		if err := r.deps.Coins.AwardCoins(ctx, pid, amount); err != nil {
+			slog.Error("ws: entry fee payout failed", "room", r.id, "player", pid, "amount", amount, "error", err)
+		}
+	}
+	if winnerID == "" {
+		for _, pid := range r.playerOrder {
+			award(pid, config.EntryFeeCoins)
+		}
+		return config.EntryFeeCoins
+	}
+	payout := config.EntryFeeCoins * len(r.playerOrder)
+	award(winnerID, payout)
+	return payout
+}
+
+// closeAfterDrain closes client connections shortly after the last message
+// and removes the room. Must be called with r.mu held.
+func (r *Room) closeAfterDrain() {
+	snapshot := make(map[string]*Client, len(r.clients))
+	for k, v := range r.clients {
+		snapshot[k] = v
+	}
+	go func() {
+		time.Sleep(2 * time.Second)
+		for _, c := range snapshot {
+			if c != nil {
+				func() {
+					defer func() { recover() }() //nolint:errcheck
+					close(c.send)
+				}()
+			}
+		}
+		r.hub.RemoveRoom(r.id)
+	}()
+}
+
 func (r *Room) startGame() {
 	// Must be called with r.mu held.
+	if !r.chargeEntryFees() {
+		return
+	}
 	r.state = stateActive
 	r.currentTurn = 0
 
@@ -527,6 +658,7 @@ func (r *Room) startGame() {
 			CurrentTurn: r.playerOrder[0],
 			Chain:       []string{},
 			Scores:      scoresCopy,
+			EntryFee:    r.feePaid(),
 		},
 	}))
 
@@ -666,33 +798,19 @@ func (r *Room) resolveGame(winnerID string) {
 	chain := make([]string, len(r.chain))
 	copy(chain, r.chain)
 
+	payout := r.settleEntryFees(winnerID)
+
 	r.broadcast(mustMarshal(outMsg{
 		Type:   "game_over",
 		Winner: winnerID,
 		Scores: scores,
+		Payout: payout,
 	}))
-
-	// Snapshot connected clients before releasing the lock via defer.
-	snapshot := make(map[string]*Client, len(r.clients))
-	for k, v := range r.clients {
-		snapshot[k] = v
-	}
 
 	go r.finalizeToDB(winnerID, chain, scores)
 
 	// Give the game_over message time to drain, then close connections.
-	go func() {
-		time.Sleep(2 * time.Second)
-		for _, c := range snapshot {
-			if c != nil {
-				func() {
-					defer func() { recover() }() //nolint:errcheck
-					close(c.send)
-				}()
-			}
-		}
-		r.hub.RemoveRoom(r.id)
-	}()
+	r.closeAfterDrain()
 }
 
 func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]int) {

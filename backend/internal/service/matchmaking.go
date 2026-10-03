@@ -12,6 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"wordchain/backend/internal/config"
+	"wordchain/backend/internal/repository"
 	"wordchain/backend/internal/ws"
 )
 
@@ -37,18 +38,20 @@ type matchWaiter struct {
 // A background goroutine polls every 500 ms, pairs players, and falls back to
 // an AI opponent after AIFallbackWaitSec seconds.
 type MatchmakingService struct {
-	rdb *redis.Client
-	hub *ws.Hub
+	rdb      *redis.Client
+	hub      *ws.Hub
+	userRepo *repository.UserRepository
 
 	mu      sync.Mutex
 	waiters map[string]*matchWaiter // userID → in-flight Join waiter
 }
 
-func NewMatchmakingService(rdb *redis.Client, hub *ws.Hub) *MatchmakingService {
+func NewMatchmakingService(rdb *redis.Client, hub *ws.Hub, userRepo *repository.UserRepository) *MatchmakingService {
 	s := &MatchmakingService{
-		rdb:     rdb,
-		hub:     hub,
-		waiters: make(map[string]*matchWaiter),
+		rdb:      rdb,
+		hub:      hub,
+		userRepo: userRepo,
+		waiters:  make(map[string]*matchWaiter),
 	}
 	go s.runBackground()
 	return s
@@ -58,6 +61,10 @@ func NewMatchmakingService(rdb *redis.Client, hub *ws.Hub) *MatchmakingService {
 // On success it returns the roomID to connect to via WebSocket and whether
 // the opponent is an AI.
 func (s *MatchmakingService) Join(ctx context.Context, userID, mode, difficulty string) (string, bool, error) {
+	if err := ensureCanAffordEntry(ctx, s.userRepo, userID); err != nil {
+		return "", false, err
+	}
+
 	w := &matchWaiter{
 		ch:   make(chan matchResult, 1),
 		done: make(chan struct{}),

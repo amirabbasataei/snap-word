@@ -116,6 +116,7 @@ var AIDifficulties = map[string]AIDifficulty{
 // Change values here; never scatter magic numbers elsewhere.
 const (
 	TurnTimerClassicSec    = 15  // seconds per turn in Classic mode
+	EntryFeeCoins          = 20  // coins each human player pays to start a 1v1 match; the winner takes the 2× pot
 	MinWordLength          = 3   // minimum accepted word length
 	ContinueWindowSec      = 15  // seconds the losing player has to decide on a continue
 	MaxDailyWords          = 20  // word limit for Daily Challenge

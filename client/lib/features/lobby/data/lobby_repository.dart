@@ -23,6 +23,7 @@ class MatchQueueResult {
 const _errorCodeMessages = {
   'no_match': 'حریفی پیدا نشد. دوباره تلاش کن.',
   'invalid_mode': 'نوع بازی نامعتبر است',
+  'insufficient_coins': 'برای ورودی بازی سکهٔ کافی نداری.',
 };
 
 class LobbyRepository {

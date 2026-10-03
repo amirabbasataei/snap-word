@@ -298,6 +298,18 @@ class _ScoreCard extends StatelessWidget {
                   value: toPersianDigits(state.opponentScore),
                   valueColor: z.coral,
                 ),
+              if (state.entryFee > 0)
+                _StatLine(
+                  label: 'سکه',
+                  value: state.coinsNet == 0
+                      ? 'بدون تغییر'
+                      : '${state.coinsNet > 0 ? '+' : '−'}${toPersianDigits(state.coinsNet.abs())}',
+                  valueColor: state.coinsNet > 0
+                      ? z.teal
+                      : state.coinsNet < 0
+                          ? z.coral
+                          : null,
+                ),
               if (showRecord)
                 _StatLine(
                   label: 'رکورد تو',

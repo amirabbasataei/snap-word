@@ -49,6 +49,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   // server so rebuilt GameActive states (game start / continue) carry it.
   Map<String, int> _powerupCounts = const {};
 
+  // Reports entry-fee charges / payouts so the app-wide coin balance follows.
+  final void Function(int delta)? _onCoinsChanged;
+  int _entryFee = 0;
+
   GameBloc({
     required GameRepository gameRepository,
     required DictionaryService dictionaryService,
@@ -56,7 +60,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     required SyncService syncService,
     required SharedPreferences prefs,
     required WebSocketService wsService,
-  })  : _gameRepository = gameRepository,
+    void Function(int delta)? onCoinsChanged,
+  })  : _onCoinsChanged = onCoinsChanged,
+        _gameRepository = gameRepository,
         _dictionaryService = dictionaryService,
         _statsDao = statsDao,
         _syncService = syncService,
@@ -911,6 +917,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         _handleWsContinueDecision(event.data, emit);
       case 'game_over':
         _handleWsGameOver(event.data, emit);
+      case 'match_cancelled':
+        _handleWsMatchCancelled(event.data, emit);
       case 'opponent_disconnected':
         _handleWsOpponentDisconnected(emit);
       case 'powerup_used':
@@ -994,6 +1002,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     // ZVersusActiveScreen already falls back to a generic "حریف" label.
     final players = (gameState['players'] as List<dynamic>?) ?? [];
     final mode = gameState['mode'] as String? ?? 'classic';
+    _entryFee = gameState['entry_fee'] as int? ?? 0;
+    if (_entryFee > 0) _onCoinsChanged?.call(-_entryFee);
     final currentPlayer = gameState['current_turn'] as String? ?? '';
 
     _timeLimitSec = GameConstants.classicTurnTimerSec;
@@ -1195,6 +1205,15 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     _stopContinueTimer();
     _stopOpponentContinueTimer();
 
+    // The server credits the pot to the winner, or refunds both on a draw.
+    final payout = data['payout'] as int? ?? 0;
+    final iWon = winner != null && winner.isNotEmpty && winner == _myPlayerId;
+    final refunded = winner == null || winner.isEmpty;
+    final credited = (iWon || refunded) ? payout : 0;
+    final entryFee = _entryFee;
+    _entryFee = 0;
+    if (credited > 0) _onCoinsChanged?.call(credited);
+
     emit(GameOver(
       localMatchId: -1,
       mode: active?.mode ?? prevOver?.mode ?? 'classic',
@@ -1208,7 +1227,19 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       winnerId: winner,
       iWon: winner != null && winner == _myPlayerId,
       opponentScore: opponentScore,
+      entryFee: entryFee,
+      coinsNet: entryFee > 0 ? credited - entryFee : 0,
     ));
+  }
+
+  void _handleWsMatchCancelled(
+    Map<String, dynamic> data,
+    Emitter<GameState> emit,
+  ) {
+    final broke = (data['player_id'] as String? ?? '') == _myPlayerId;
+    emit(GameError(broke
+        ? 'سکهٔ کافی برای ورودی بازی نداری.'
+        : 'حریف سکهٔ کافی برای ورودی بازی نداشت. سکه‌ای از تو کم نشد.'));
   }
 
   void _handleWsOpponentDisconnected(Emitter<GameState> emit) {

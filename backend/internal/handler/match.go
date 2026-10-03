@@ -53,6 +53,8 @@ func (h *MatchHandler) JoinQueue(c *gin.Context) {
 	roomID, isAI, err := h.svc.Join(c.Request.Context(), userID, req.Mode, req.Difficulty)
 	if err != nil {
 		switch {
+		case errors.Is(err, service.ErrInsufficientCoins):
+			respondError(c, http.StatusPaymentRequired, "insufficient_coins", "not enough coins for the entry fee")
 		case errors.Is(err, context.Canceled), err.Error() == "cancelled":
 			c.JSON(http.StatusNoContent, nil)
 		default:

@@ -15,6 +15,7 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/lobby/cubit/lobby_cubit.dart';
 
 class LobbyScreen extends StatelessWidget {
@@ -85,15 +86,14 @@ class _LobbyViewState extends State<_LobbyView> {
           ),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        ZToast.show(context, 'ارسال دعوت‌نامه ناموفق بود', kind: ZToastKind.error);
+        final broke = e is FriendsException && e.code == 'insufficient_coins';
+        ZToast.show(
+            context, broke ? 'برای ورودی بازی سکهٔ کافی نداری.' : 'ارسال دعوت‌نامه ناموفق بود',
+            kind: ZToastKind.error);
       }
     }
-  }
-
-  void _showComingSoon() {
-    ZToast.show(context, 'این قابلیت به‌زودی اضافه می‌شود');
   }
 
   String get _myUsername {
@@ -142,11 +142,8 @@ class _LobbyViewState extends State<_LobbyView> {
                         },
                         if (state is! LobbySearching) ...[
                           const SizedBox(height: ZSpacing.lg),
-                          _InviteRow(onTap: _showComingSoon),
-                          if (_friends.isNotEmpty) ...[
-                            const SizedBox(height: ZSpacing.lg),
+                          if (_friends.isNotEmpty)
                             _FriendsCard(friends: _friends, onChallenge: _challengeFriend),
-                          ],
                         ],
                       ],
                     ),
@@ -384,6 +381,8 @@ class _IdleBlock extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const _EntryFeeRow(),
+          const SizedBox(height: ZSpacing.lg),
           AccentButton(
             label: 'پیدا کردن حریف',
             accent: ZAccentColor.coral,
@@ -391,7 +390,7 @@ class _IdleBlock extends StatelessWidget {
           ),
           const SizedBox(height: ZSpacing.sm),
           Text(
-            'با یک بازیکن آنلاین جفت می‌شوی؛ اگر حریفی پیدا نشود، پس از ۳۰ ثانیه با هوش مصنوعی بازی می‌کنی.',
+            'با یک بازیکن آنلاین جفت می‌شوی؛ اگر حریفی پیدا نشود، پس از ۳۰ ثانیه با هوش مصنوعی بازی می‌کنی و ورودی نمی‌دهی.',
             textAlign: TextAlign.center,
             style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11),
           ),
@@ -460,16 +459,12 @@ class _ErrorBlock extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Invite by room code — REDESIGN_PLAN.md §1 decision 6 (referral/invite
-// codes): rendered as designed, wired to a placeholder — no such join-by-
-// code system exists in the backend yet (real friend challenges use
-// sendChallenge below instead).
+// Entry fee — fixed stake for human-vs-human matches (config.EntryFeeCoins on
+// the backend); the winner takes the whole pot.
 // ---------------------------------------------------------------------------
 
-class _InviteRow extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _InviteRow({required this.onTap});
+class _EntryFeeRow extends StatelessWidget {
+  const _EntryFeeRow();
 
   @override
   Widget build(BuildContext context) {
@@ -477,38 +472,23 @@ class _InviteRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: ZSpacing.md),
       decoration: BoxDecoration(
-        color: z.surface,
-        border: Border.all(color: z.line, width: 1.5, style: BorderStyle.solid),
-        borderRadius: BorderRadius.circular(ZRadius.cardMin),
+        color: z.amber.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(ZRadius.tileMin + 2),
       ),
       child: Row(
         children: [
-          Row(
-            children: [
-              LetterTile(letter: 'ز', size: 30, accent: ZAccent.indigo, radius: 8),
-              const SizedBox(width: 4),
-              LetterTile(letter: 'ن', size: 30, accent: ZAccent.teal, radius: 8),
-            ],
-          ),
-          const SizedBox(width: ZSpacing.md),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('بازی با دوست', style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5)),
-                Text('با کد اتاق دعوت کن', style: ZTypography.metaLabel.copyWith(color: z.ink60, fontSize: 11.5)),
-              ],
-            ),
+            child: Text('ورودی بازی',
+                style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700)),
           ),
-          GestureDetector(
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(color: z.tintIndigo, borderRadius: BorderRadius.circular(999)),
-              child: Text('دعوت',
-                  style: ZTypography.metaLabel.copyWith(color: z.indigo, fontWeight: FontWeight.w800, fontSize: 12.5)),
-            ),
-          ),
+          Text('${toPersianDigits(GameConstants.entryFeeCoins)} سکه',
+              style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5)),
+          const SizedBox(width: ZSpacing.md),
+          Text('جایزهٔ برنده',
+              style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700)),
+          const SizedBox(width: ZSpacing.sm),
+          Text('${toPersianDigits(GameConstants.entryFeePot)} سکه',
+              style: ZTypography.cardTitle.copyWith(color: z.teal, fontSize: 13.5)),
         ],
       ),
     );
@@ -519,8 +499,7 @@ class _InviteRow extends StatelessWidget {
 // Friends — real data (FriendsRepository.fetchFriends), substituting the
 // canvas's fabricated per-opponent win/loss "recent opponents" list (no
 // match-history-vs-a-friend endpoint exists) with each friend's real weekly
-// score, and wiring "دعوت" to the real POST /challenges call instead of a
-// fake room-code join.
+// score, and wiring "دعوت" to the real POST /challenges call.
 // ---------------------------------------------------------------------------
 
 class _FriendsCard extends StatelessWidget {

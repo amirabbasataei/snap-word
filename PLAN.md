@@ -178,7 +178,7 @@ At the start of each session: read **both** files, then implement the requested 
 **Status: [x] Complete**
 
 **Scope:**
-- `internal/service/matchmaking.go` — Redis List queue per mode (`queue:classic`, `queue:time_attack`); background goroutine polls every 500ms; pairs two players → creates room → notifies via WS; falls back to AI opponent after 30s wait
+- `internal/service/matchmaking.go` — Redis List queue (`queue:classic`; Time Attack removed 2026-10-03); background goroutine polls every 500ms; pairs two players → creates room → notifies via WS; falls back to AI opponent after 30s wait
 - `POST /api/v1/match/queue`, `DELETE /api/v1/match/queue`
 - `internal/service/ai.go` — AI difficulty struct (see CLAUDE.md AI Opponent section):
   ```
@@ -246,7 +246,7 @@ At the start of each session: read **both** files, then implement the requested 
 **Scope:**
 - `features/lobby/data/lobby_repository.dart` — `joinQueue`, `cancelQueue`
 - `features/lobby/cubit/lobby_cubit.dart` — states: `LobbyIdle`, `LobbySearching`, `LobbyMatchFound`, `LobbyError`
-- `features/lobby/view/lobby_screen.dart` — mode selector (**Classic** and **Time Attack only** — Daily Challenge does not appear here), difficulty selector for AI, Find Match button, searching animation, cancel button
+- `features/lobby/view/lobby_screen.dart` — Classic is the only mode (no selector; Daily Challenge does not appear here), entry-fee info row, Find Match button, searching animation, cancel button, friends list with real challenge invites
 - On `LobbyMatchFound`, navigate to `/game/:id`
 - Multiplayer additions to `game_screen.dart`:
   - Shared chain display: words labeled by player
@@ -272,7 +272,7 @@ At the start of each session: read **both** files, then implement the requested 
 - `features/friends/data/friends_repository.dart` — all Friend and Friend Challenge API calls
 - `features/friends/cubit/friends_cubit.dart`
 - `features/friends/view/friends_screen.dart` — friend list, pending requests banner, username search, per-friend profile with Challenge button
-- `features/friends/view/friend_challenge_sheet.dart` — mode selector (Classic / Time Attack), send challenge button
+- `features/friends/view/friend_challenge_sheet.dart` — Classic challenge confirmation, send challenge button
 - `features/profile/cubit/profile_cubit.dart` — authenticated: fetch stats/coins/powerups from backend, update local cache; guest: read from `StatsDao`, show "Register to back up" banner
 - `features/profile/view/profile_screen.dart` — stats, coin balance, powerup inventory (authenticated); guest banner; Help button (replays tutorial — removed in Phase 17)
 - Handle notification deep links: friend request/challenge notification → `/friends`
@@ -355,19 +355,19 @@ Full plan, token values, spec-conflict decisions, and per-stage notes live in **
 | 7 — Tests | Create goldens (none exist yet — `client/test` has no golden files) for the chain renderers, light+dark goldens for `core/widgets/`, lint against `Color(0x…)` in `features/` | [ ] Partial — shared-widget goldens, token-coverage test, ZOver widget tests done; chain-renderer goldens + other Z-screen widget tests remaining |
 
 **Adopted / decided mechanic changes (see REDESIGN_PLAN.md §1 and stage notes for rationale):**
-- **Lives** — `GameConstants.soloLives = 2` for **solo Classic and Daily** only. Not applied to vs-AI, Time Attack, or multiplayer (server-authoritative; Go WS protocol has no lives concept — «۲ جان» omitted from ZVersus rather than faked).
+- **Lives** — `GameConstants.soloLives = 2` for **solo Classic and Daily** only. Not applied to vs-AI or multiplayer (server-authoritative; Go WS protocol has no lives concept — «۲ جان» omitted from ZVersus rather than faked).
 - **Long-word bonus** — ≥7 letters doubles the turn score, **Flutter scorer only** (`GameBloc._calculateScore`). Go scorer unchanged; follow-up.
-- **Wager + turn-length picker** (ZLobby) — interactive UI, **not wired** to `POST /match/queue` (no backend support). A classic/زمان‌دار toggle was added so multiplayer Time Attack stays reachable.
+- **Wager + turn-length picker** (ZLobby) — **removed 2026-10-03.** Time Attack was removed from the whole app (Classic only, fixed 15s turn) and the wager became a real fixed **entry fee** (20 coins per human player, winner takes the 40-coin pot, free vs AI) — see REDESIGN_PLAN.md "Post-Stage-7 changes". A room-code invite was built and then removed the same day.
 - **Best-of-5 rounds** (ZVersus) — fixed constant (`GameConstants.multiplayerRoundsTotal = 5`), rendered as a static «دست ۱ از ۵» placeholder; round tracking is follow-up backend work.
 - **Levels & badges** (ZProfile) — rendered as designed, wired to placeholders; schema + backend is follow-up.
-- **Referral codes** — **fully implemented**: migration `003_phone_auth_referral`, signup-time code on `POST /auth/verify-otp` (+100 coins) and `POST /referral/redeem` post-login (+50, one-time), shared `ReferralBottomSheet` client widget. ZLobby's room-code `_InviteRow` is a separate, still-stubbed feature.
+- **Referral codes** — **fully implemented**: migration `003_phone_auth_referral`, signup-time code on `POST /auth/verify-otp` (+100 coins) and `POST /referral/redeem` post-login (+50, one-time), shared `ReferralBottomSheet` client widget. ZLobby's room-code invite row was removed (2026-10-03).
 - **Typing indicator** (ZVersus) — not built (needs a new WS event).
 - **Real-data-only** — canvas stats with no API field (player counts, percentiles, fake opponent records) replaced with real fields or dropped.
 - Drift fixes to match spec: ZOver continue price = `GameConstants.continueCostCoins` (25, not 50); Daily turn timer = 15s (not 10s).
 
 **Out-of-scope fixes made during Phase 17** (bugs in "Complete" phases, user-approved): Persian-rejecting `^[a-z]+$` word regex in `GameBloc` (→ `DictionaryService.hasValidChars()`); `StatsDao.recordGameResult` never updating `bestMatchStreak`; five multiplayer contract bugs that made 1v1 non-functional (queue long-poll timeout, match-found signal, WS route behind header auth, `game_start` parsing, byte-vs-rune next letter); AI opponent's non-UUID id (→ `SystemAIUserID`, migration `004_ai_system_user`); daily challenge auto-generation scheduler job; `fa.txt` cleanup (162,626 → 17,414 words).
 
-**Done when:** All screens render pixel-close to the design in both light and dark mode and are verified on-device, no screen file references a hardcoded color, existing golden tests are re-baselined, and placeholder features (wager, rounds, multiplayer lives, levels/badges, typing indicator) have tracked backend follow-up tickets.
+**Done when:** All screens render pixel-close to the design in both light and dark mode and are verified on-device, no screen file references a hardcoded color, existing golden tests are re-baselined, and placeholder features (rounds, multiplayer lives, levels/badges, typing indicator) have tracked backend follow-up tickets.
 
 ---
 
@@ -377,7 +377,7 @@ Full plan, token values, spec-conflict decisions, and per-stage notes live in **
 > Planned 2026-09-28. Pre-existing bugs found during Phase 17 plus the cheapest placeholder features. Product decisions below were made by Claude on the user's instruction ("make the best decision yourself") — revise here if the product owner disagrees.
 
 **Scope:**
-- **Time Attack fix** — solo/vs-AI Time Attack currently ends on the first mistake. A mistake/timeout in `time_attack` resets the streak, awards 0 for the turn, and restarts the turn timer; the match ends only when `matchTimeRemaining` hits 0. Bloc tests for both paths.
+- ~~**Time Attack fix**~~ — moot: Time Attack was removed from the app entirely on 2026-10-03.
 - **FCM permission** — `NotificationService.requestPermission()` has no call site. Call it once after the first completed game **or** first successful login (whichever comes first), persisting `notif_permission_asked` in `shared_preferences`; register the token on grant.
 - **Long-word bonus in Go** — `engine.CalculateScore` doubles the turn score for words ≥ `config.LongWordBonusMinLength` (7), matching Flutter's `GameConstants`. Unit tests.
 - **Typing indicator** — new WS events: client → `{ "type": "typing" }` (sent at most once per 2s while the input is non-empty and it's my turn); server → `{ "type": "opponent_typing" }` relayed to the other player only, dropped if not the sender's turn. ZVersus turn banner shows «[نام] دارد می‌نویسد…» for 3s after the last event.
@@ -387,7 +387,7 @@ Full plan, token values, spec-conflict decisions, and per-stage notes live in **
 
 > Already done ahead of this phase (2026-09-28): stale WS/engine test fixtures rewritten in Persian; rarity bonus removed with the English frequency list; Go scorer and multiplayer AI made rune-based; Persian AI trap letters.
 
-**Done when:** all Go + Flutter tests green; Time Attack runs the full 90s on-device; the permission prompt appears once; ZBoard shows 4 tabs with real data.
+**Done when:** all Go + Flutter tests green; the permission prompt appears once; ZBoard shows 4 tabs with real data.
 
 ---
 
@@ -400,7 +400,6 @@ Full plan, token values, spec-conflict decisions, and per-stage notes live in **
 - **Lives**: each player has `config.MultiplayerLives = 2` per round. An invalid word or timeout costs a life and **passes the turn to the opponent** (same required letter — the chain is unchanged). Losing the last life is a round loss.
 - **Shield** is consumed before a life. **Continue** is offered only when the last life is lost (once per player per match, as today) and restores 1 life.
 - **Rounds**: best of `config.MultiplayerRoundsTotal = 5` — first to 3 round wins takes the match. Each round starts a fresh chain and resets lives; the round loser starts the next round. Round scores accumulate; the match winner is decided by round wins, not score.
-- Time Attack matches keep today's rules (single 90s round, highest score wins, no lives).
 
 **Scope:**
 - `internal/ws/room.go` — per-player lives, round state (`round`, `roundWins`), round transition.
@@ -422,16 +421,11 @@ Full plan, token values, spec-conflict decisions, and per-stage notes live in **
 
 **Badges** — *Decision:* start with 12 server-defined badges (first win, 10/100 wins, streak 3/7/30 days, 7+-letter word, 20-word chain, perfect Daily (20 words), 5 friends, first referral redeemed, level 10). Table `player_badges(user_id, badge_id, earned_at)`; evaluated at game end and on the relevant events; `GET /profile/badges`. ZProfile `_BadgesCard` shows «N از ۱۲». Push notification on earn.
 
-**Wager + turn length** — *Decision:*
-- Turn length 10/15/20s applies to **Classic only** (Time Attack stays 8s). Wager options 0 / 20 / 100 coins (config).
-- `POST /match/queue` gains `turn_sec` and `wager`; queues are keyed by `(mode, turn_sec, wager)`.
-- Coins are held (deducted) atomically at queue join; refunded on cancel or timeout. Winner receives both stakes; on abandonment the remaining player wins.
-- Wagered queues **never fall back to AI** — after the 30s wait they return `404 no_opponent` and refund. Unwagered queues keep the AI fallback.
-- Add the wager rows to the CLAUDE.md coin economy table.
+**Wager + turn length** — **Superseded 2026-10-03.** Time Attack is gone, the turn is fixed at 15s, and the wager was implemented as a fixed 20-coin **entry fee** (winner takes the pot; AI-fallback matches free; both players' balances pre-checked at queue join and charged at match start). No `turn_sec`/`wager` queue fields and no per-option queues were needed. Remaining here: add the entry-fee rows to the coin-economy table (done in CLAUDE.md) and verify balances on-device for win, loss, draw, cancel and disconnect.
 
-**Join by code** — `POST /rooms` returns a 6-char code (same charset as referral codes, stored in Redis, 10-min TTL); `POST /rooms/join {code}` pairs the two players into a private room (same path as friend challenges). ZLobby `_InviteRow` wired.
+**Join by code** — **Dropped 2026-10-03** (built, then removed by product decision). Friend challenges remain the way to play a friend.
 
-**Done when:** levels/badges/wager/room codes work end-to-end with real data; coin balances are correct after every wager path (win, loss, cancel, timeout, disconnect).
+**Done when:** levels/badges work end-to-end with real data; entry-fee coin balances verified on-device after every path (win, loss, draw, cancel, disconnect).
 
 ---
 

@@ -16,6 +16,9 @@ var (
 	ErrChallengeNotFound = errors.New("challenge not found")
 	ErrChallengeExpired  = errors.New("challenge has expired")
 	ErrNotChallenged     = errors.New("you are not the challenged player")
+
+	// ErrChallengerCannotAfford: the challenger spent their coins after sending the challenge.
+	ErrChallengerCannotAfford = errors.New("challenger cannot afford the entry fee")
 )
 
 // ChallengeService manages friend challenge creation and responses.
@@ -52,6 +55,9 @@ func (s *ChallengeService) CreateChallenge(ctx context.Context, challengerID, ch
 	friendship, err := s.friendRepo.GetFriendship(ctx, challengerID, challengedID)
 	if err != nil || friendship.Status != "accepted" {
 		return nil, ErrNotFriends
+	}
+	if err := ensureCanAffordEntry(ctx, s.userRepo, challengerID); err != nil {
+		return nil, err
 	}
 
 	ch, err := s.challengeRepo.CreateChallenge(ctx, challengerID, challengedID, mode)
@@ -117,7 +123,15 @@ func (s *ChallengeService) RespondToChallenge(ctx context.Context, challengeID, 
 		return "", nil
 	}
 
-	// Accept: create a private room and record the room ID.
+	// Accept: both players must be able to pay the entry fee.
+	if err := ensureCanAffordEntry(ctx, s.userRepo, responderID); err != nil {
+		return "", err
+	}
+	if err := ensureCanAffordEntry(ctx, s.userRepo, ch.ChallengerID); err != nil {
+		return "", ErrChallengerCannotAfford
+	}
+
+	// Create a private room and record the room ID.
 	roomID = newChallengeRoomID()
 	s.hub.GetOrCreateRoom(roomID, ch.Mode)
 

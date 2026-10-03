@@ -580,6 +580,8 @@ Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `re
 
 **Earn:** Win match +30 · Daily login +10 · Watch rewarded ad +20 · Match streak ≥5 +15 · Daily streak 3d +30 · 7d +100 · 30d +500 · Weekly leaderboard 1st +500 · 2nd +300 · 3rd +100 · Referral signup bonus (new user, valid code supplied at signup) +100 · Referral redeem (existing user, one-time post-login) +50 · Welcome bonus +50 (every new account) · Referral inviter reward +50 per invited user. Streak, weekly-rank, daily-login, daily-challenge and inviter prizes are claimed from the inbox
 
+**Entry fee (1v1 human matches only):** each player pays `config.EntryFeeCoins` (20, mirrored as `GameConstants.entryFeeCoins`) when the second player joins; the winner takes the whole pot (2 × fee), a draw refunds both, matches vs the AI fallback are free. Charged/settled server-side in `ws.Room` (`chargeEntryFees` / `settleEntryFees`); `game_start.state.entry_fee` and `game_over.payout` tell the client; `match_cancelled` (`insufficient_coins`) aborts a match where someone can no longer pay. Queue join and challenge create/accept pre-check the balance (`402 insufficient_coins`).
+
 **Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
 No energy systems, no artificial wait timers, no interstitial ads during an active game.
@@ -743,13 +745,11 @@ flutter test
 Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. **Each item is scheduled in PLAN.md Phases 18–21** (with the product decisions made for it).
 
 **Phase 17 placeholders (canvas UI rendered, no backend yet — never fake client-side):**
-- **Wager + turn-length picker** (ZLobby) — interactive but not sent to `POST /match/queue`; needs a wager field, coin hold/refund/payout, and a coin-economy entry.
 - **Best-of-5 rounds** (ZVersus) — static «دست ۱ از ۵» (`GameConstants.multiplayerRoundsTotal`); needs new WS round events + server round state + match-level winner rule.
 - **Multiplayer lives** — not built (see Lives).
 - **Levels & badges** (ZProfile) — placeholders; no schema fields.
 - **Typing indicator** (ZVersus) — not built; needs a new WS event.
 - **Long-word bonus in Go scorer** — Flutter-only today.
-- ZLobby's room-code `_InviteRow` — snackbar stub (no join-by-code backend).
 
 **Known bugs / gaps (pre-existing, flagged not fixed):**
 - ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).

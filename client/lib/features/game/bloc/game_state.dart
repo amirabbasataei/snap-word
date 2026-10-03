@@ -216,6 +216,10 @@ class GameOver extends GameState {
   final bool? iWon;
   final int opponentScore;
   final String? opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
+  // 1v1 entry fee paid for this match (0 vs AI / solo) and the net coin change
+  // after the payout (+fee for the winner, -fee for the loser, 0 on a draw).
+  final int entryFee;
+  final int coinsNet;
 
   const GameOver({
     required this.localMatchId,
@@ -233,6 +237,8 @@ class GameOver extends GameState {
     this.iWon,
     this.opponentScore = 0,
     this.opponentType,
+    this.entryFee = 0,
+    this.coinsNet = 0,
   });
 
   GameOver copyWith({
@@ -255,6 +261,8 @@ class GameOver extends GameState {
       iWon: iWon,
       opponentScore: opponentScore,
       opponentType: opponentType,
+      entryFee: entryFee,
+      coinsNet: coinsNet,
     );
   }
 
@@ -277,6 +285,8 @@ class GameOver extends GameState {
         iWon,
         opponentScore,
         opponentType,
+        entryFee,
+        coinsNet,
       ];
 }
 

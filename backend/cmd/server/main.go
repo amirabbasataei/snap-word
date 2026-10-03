@@ -85,9 +85,10 @@ func main() {
 		PowerupSvc:     powerupDeductor{powerupSvc},
 		StreakSvc:      streakSvc,
 		LeaderboardSvc: leaderboardSvc,
+		Coins:          userRepo,
 	})
 
-	matchSvc := service.NewMatchmakingService(rdb, hub)
+	matchSvc := service.NewMatchmakingService(rdb, hub, userRepo)
 
 	challengeRepo := repository.NewChallengeRepository(db)
 	dailyRepo := repository.NewDailyRepository(db)

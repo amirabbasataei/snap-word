@@ -59,6 +59,7 @@ class GameScreen extends StatelessWidget {
         syncService: getIt(),
         prefs: getIt(),
         wsService: getIt(),
+        onCoinsChanged: (delta) => getIt<AuthCubit>().creditCoins(delta),
       )..add(GameStarted(
           mode: args.mode,
           opponentType: args.opponentType,
