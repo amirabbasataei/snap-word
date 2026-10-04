@@ -368,37 +368,11 @@ class _PedestalCell extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (isFirst) ...[
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Transform.rotate(
-                angle: -0.1,
-                child: LetterTile(
-                  letter: toPersianDigits(entry.rank),
-                  size: 22,
-                  height: 26,
-                  accent: accent,
-                  radius: 7,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Transform.rotate(
-                angle: 0.1,
-                child: LetterTile(
-                  letter: initial,
-                  size: 22,
-                  height: 26,
-                  accent: accent,
-                  radius: 7,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-        ],
+        Text(
+          isFirst ? '🏆' : (entry.rank == 2 ? '🥈' : '🥉'),
+          style: TextStyle(fontSize: isFirst ? 26 : 22, height: 1.0),
+        ),
+        const SizedBox(height: 8),
         LetterTile(letter: initial, size: avatarSize, accent: accent, radius: isFirst ? 16 : 14),
         const SizedBox(height: 8),
         Container(
