@@ -579,6 +579,7 @@ class _ZWordInputState extends State<ZWordInput> {
         Expanded(
           child: Container(
             height: 52,
+            alignment: AlignmentDirectional.centerStart,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: z.paper,

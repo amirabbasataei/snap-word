@@ -121,6 +121,7 @@ class _EditUsernameSheetState extends State<EditUsernameSheet> {
                 const SizedBox(height: ZSpacing.xl),
                 Container(
                   height: 52,
+                  alignment: AlignmentDirectional.centerStart,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
                     color: z.paper,

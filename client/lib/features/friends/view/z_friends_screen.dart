@@ -211,39 +211,13 @@ class _LoadedBodyState extends State<_LoadedBody> {
   void _onSearchChanged() => setState(() {});
 
   void _showAddFriendDialog(BuildContext context) {
-    final z = context.z;
-    final controller = TextEditingController();
-    showDialog<void>(
+    final cubit = context.read<FriendsCubit>();
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: z.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadius.cardMax)),
-        title: Text('افزودن دوست', style: ZTypography.cardTitle.copyWith(color: z.ink)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: ZTypography.body.copyWith(color: z.ink),
-          decoration: InputDecoration(
-            hintText: 'نام کاربری را وارد کن',
-            hintStyle: ZTypography.body.copyWith(color: z.ink40),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('انصراف', style: TextStyle(color: z.ink60)),
-          ),
-          TextButton(
-            onPressed: () {
-              final username = controller.text.trim();
-              if (username.isNotEmpty) {
-                Navigator.pop(ctx);
-                context.read<FriendsCubit>().sendFriendRequest(username);
-              }
-            },
-            child: Text('ارسال درخواست', style: TextStyle(color: z.indigo, fontWeight: FontWeight.w800)),
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AddFriendSheet(
+        onSubmit: cubit.sendFriendRequest,
       ),
     );
   }
@@ -674,6 +648,94 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: ZSpacing.lg),
             NeutralButton(label: 'تلاش دوباره', onPressed: onRetry),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet for sending a friend request by exact username.
+class _AddFriendSheet extends StatefulWidget {
+  final void Function(String username) onSubmit;
+  const _AddFriendSheet({required this.onSubmit});
+
+  @override
+  State<_AddFriendSheet> createState() => _AddFriendSheetState();
+}
+
+class _AddFriendSheetState extends State<_AddFriendSheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final username = _controller.text.trim();
+    if (username.isEmpty) return;
+    Navigator.of(context).pop();
+    widget.onSubmit(username);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: z.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMax)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              ZSpacing.xxl,
+              ZSpacing.xl,
+              ZSpacing.xxl,
+              ZSpacing.xxl,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('افزودن دوست', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+                const SizedBox(height: 4),
+                Text(
+                  'نام کاربری دقیق دوستت را وارد کن',
+                  style: ZTypography.body.copyWith(color: z.ink60),
+                ),
+                const SizedBox(height: ZSpacing.xl),
+                Container(
+                  height: 52,
+                  alignment: AlignmentDirectional.centerStart,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: z.paper,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: z.line),
+                  ),
+                  child: TextField(
+                    controller: _controller,
+                    autofocus: true,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _submit(),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                      hintText: 'نام کاربری',
+                      hintStyle: ZTypography.body.copyWith(color: z.ink40),
+                    ),
+                    style: ZTypography.cardTitle.copyWith(color: z.ink),
+                  ),
+                ),
+                const SizedBox(height: ZSpacing.xl),
+                AccentButton(label: 'ارسال درخواست', onPressed: _submit),
+              ],
+            ),
+          ),
         ),
       ),
     );

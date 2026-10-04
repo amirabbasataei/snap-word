@@ -102,7 +102,10 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
                   fontSize: 21,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1,
+                  height: 1.0,
+                  leadingDistribution: TextLeadingDistribution.even,
                 ),
+                textAlignVertical: TextAlignVertical.center,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   isDense: true,
