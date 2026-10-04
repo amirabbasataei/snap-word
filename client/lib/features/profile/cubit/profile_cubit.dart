@@ -21,16 +21,22 @@ class ProfileCubit extends Cubit<ProfileState> {
         _powerupCacheDao = powerupCacheDao,
         super(const ProfileInitial());
 
-  Future<void> load() async {
-    emit(const ProfileLoading());
+  bool _hasLoaded = false;
+
+  /// [silent] reloads in the background: no spinner, and a failure keeps
+  /// whatever is already on screen.
+  Future<void> load({bool silent = false}) async {
+    final quiet = silent && _hasLoaded;
+    if (!quiet) emit(const ProfileLoading());
     try {
       if (isGuest) {
         await _loadGuest();
       } else {
         await _loadAuthenticated();
       }
+      _hasLoaded = true;
     } catch (e) {
-      emit(ProfileError(e.toString()));
+      if (!quiet) emit(ProfileError(e.toString()));
     }
   }
 

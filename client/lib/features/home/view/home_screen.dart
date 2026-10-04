@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -41,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _weeklyRank;
 
   StreamSubscription<AuthState>? _authSub;
+  StreamSubscription<int>? _tabSub;
 
   @override
   void initState() {
@@ -56,11 +58,15 @@ class _HomeScreenState extends State<HomeScreen> {
     // `StatefulWidget` with local fetch state, so it listens to the stream
     // directly instead).
     _authSub = getIt<AuthCubit>().stream.listen((_) => _loadData());
+    _tabSub = getIt<TabRefreshBus>().stream.listen((i) {
+      if (i == MainTab.home) _loadData();
+    });
   }
 
   @override
   void dispose() {
     _authSub?.cancel();
+    _tabSub?.cancel();
     super.dispose();
   }
 

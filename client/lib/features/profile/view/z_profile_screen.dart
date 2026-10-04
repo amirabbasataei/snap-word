@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
@@ -52,7 +53,11 @@ class ZProfileScreen extends StatelessWidget {
             powerupCacheDao: getIt(),
             isGuest: isGuest,
           )..load(),
-          child: const _ProfileView(),
+          child: TabRefreshListener(
+            index: MainTab.profile,
+            onRefresh: (ctx) => ctx.read<ProfileCubit>().load(silent: true),
+            child: const _ProfileView(),
+          ),
         );
       },
     );

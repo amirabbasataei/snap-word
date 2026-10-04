@@ -11,8 +11,13 @@ class FriendsCubit extends Cubit<FriendsState> {
       : _repo = repository,
         super(const FriendsInitial());
 
-  Future<void> load() async {
-    emit(const FriendsLoading());
+  bool _hasLoaded = false;
+
+  /// [silent] reloads in the background: no spinner, and a failure keeps
+  /// whatever is already on screen.
+  Future<void> load({bool silent = false}) async {
+    final quiet = silent && _hasLoaded;
+    if (!quiet) emit(const FriendsLoading());
     try {
       final results = await Future.wait([
         _repo.fetchFriends(),
@@ -43,10 +48,11 @@ class FriendsCubit extends Cubit<FriendsState> {
         pendingRequests: requests,
         pendingChallenges: challenges,
       ));
+      _hasLoaded = true;
     } on FriendsException catch (e) {
-      emit(FriendsError(e.message));
+      if (!quiet) emit(FriendsError(e.message));
     } catch (_) {
-      emit(const FriendsError('Failed to load friends'));
+      if (!quiet) emit(const FriendsError('Failed to load friends'));
     }
   }
 

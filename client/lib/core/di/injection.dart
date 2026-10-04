@@ -15,6 +15,7 @@ import 'package:wordchain/features/auth/data/auth_repository.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/rewards/cubit/rewards_cubit.dart';
 import 'package:wordchain/features/rewards/data/rewards_repository.dart';
@@ -128,6 +129,8 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   getIt.registerLazySingleton<RewardsCubit>(
     () => RewardsCubit(repo: getIt<RewardsRepository>(), auth: getIt<AuthCubit>()),
   );
+
+  getIt.registerLazySingleton<TabRefreshBus>(TabRefreshBus.new);
 
   // Messages (friend requests + challenges)
   getIt.registerLazySingleton<MessagesCubit>(

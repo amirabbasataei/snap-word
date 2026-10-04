@@ -153,6 +153,7 @@ Do not invent layouts — if a screen is covered by a design file, follow it. If
 - Each feature only has what it needs: `cubit/` or `bloc/`, `data/`, `view/`.
 - Use `get_it` for all DI. Never use `Provider` or `InheritedWidget` for DI.
 - Use `go_router` for all navigation. Never call `Navigator.push` directly.
+- The four main tabs are kept alive by the shell, so each reloads when its bottom-nav tab is tapped (including a re-tap): `ZBottomNav` taps publish on `TabRefreshBus` (`core/utils/tab_refresh.dart`); tabs subscribe via `TabRefreshListener` / directly (Home) and reload silently (`load(silent: true)` — no spinner, failures keep the current data). New tab screens should do the same.
 - Use a single `dio` instance registered in `get_it`, with an auth interceptor.
 - WebSocket logic lives in `core/services/websocket_service.dart` only.
 - Dictionary validation is **hybrid**: Flutter `DictionaryService` (HashSet) for solo/AI — instant, offline, no server call. Go `map[string]struct{}` for multiplayer — server is the authority.

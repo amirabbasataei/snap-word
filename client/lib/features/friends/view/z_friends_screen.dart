@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
@@ -49,7 +50,11 @@ class ZFriendsScreen extends StatelessWidget {
         return BlocProvider(
           key: ValueKey('friends-${authState.userId}'),
           create: (_) => FriendsCubit(repository: getIt<FriendsRepository>())..load(),
-          child: const _FriendsView(),
+          child: TabRefreshListener(
+            index: MainTab.friends,
+            onRefresh: (ctx) => ctx.read<FriendsCubit>().load(silent: true),
+            child: const _FriendsView(),
+          ),
         );
       },
     );
@@ -115,7 +120,7 @@ class _FriendsViewState extends State<_FriendsView> {
   void initState() {
     super.initState();
     _messagesSub = getIt<MessagesCubit>().friendsChanged.listen((_) {
-      if (mounted) context.read<FriendsCubit>().load();
+      if (mounted) context.read<FriendsCubit>().load(silent: true);
     });
   }
 

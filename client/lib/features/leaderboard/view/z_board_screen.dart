@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -53,7 +54,11 @@ class ZBoardScreen extends StatelessWidget {
             repository: getIt<LeaderboardRepository>(),
             currentUserId: authState.userId,
           )..load(),
-          child: _BoardView(username: authState.username),
+          child: TabRefreshListener(
+            index: MainTab.board,
+            onRefresh: (ctx) => ctx.read<LeaderboardCubit>().load(silent: true),
+            child: _BoardView(username: authState.username),
+          ),
         );
       },
     );

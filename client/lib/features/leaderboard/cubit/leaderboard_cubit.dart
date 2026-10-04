@@ -14,8 +14,13 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
   })  : _repo = repository,
         super(const LeaderboardInitial());
 
-  Future<void> load() async {
-    emit(const LeaderboardLoading());
+  bool _hasLoaded = false;
+
+  /// [silent] reloads in the background: no spinner, and a failure keeps
+  /// whatever is already on screen.
+  Future<void> load({bool silent = false}) async {
+    final quiet = silent && _hasLoaded;
+    if (!quiet) emit(const LeaderboardLoading());
     try {
       final results = await Future.wait([
         _repo.fetchGlobal(),
@@ -26,10 +31,11 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
         friends: results[1],
         currentUserId: currentUserId,
       ));
+      _hasLoaded = true;
     } on LeaderboardException catch (e) {
-      emit(LeaderboardError(e.message));
+      if (!quiet) emit(LeaderboardError(e.message));
     } catch (_) {
-      emit(const LeaderboardError('Failed to load leaderboard'));
+      if (!quiet) emit(const LeaderboardError('Failed to load leaderboard'));
     }
   }
 
