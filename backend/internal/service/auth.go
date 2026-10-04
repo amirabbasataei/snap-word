@@ -28,7 +28,11 @@ var (
 	ErrOTPMaxAttempts   = errors.New("too_many_attempts")
 	ErrSelfReferral     = errors.New("self_referral")
 	ErrReferralNotFound = errors.New("referral_not_found")
+	ErrInvalidUsername  = errors.New("invalid_username")
+	ErrUsernameTaken    = errors.New("username_taken")
 )
+
+var usernameRe = regexp.MustCompile(`^[\p{L}\p{N}_]{3,20}$`)
 
 var phoneRe = regexp.MustCompile(`^09\d{9}$`)
 
@@ -339,6 +343,23 @@ func (s *AuthService) RefreshToken(ctx context.Context, rawToken string) (*Token
 	}
 
 	return s.generateTokenPair(user.ID, user.Username)
+}
+
+// UpdateUsername validates and applies a new username, returning the stored
+// value. Existing access tokens keep the old name in their claims until the
+// next refresh; nothing authoritative reads it from there.
+func (s *AuthService) UpdateUsername(ctx context.Context, userID, username string) (string, error) {
+	username = strings.TrimSpace(username)
+	if !usernameRe.MatchString(username) {
+		return "", ErrInvalidUsername
+	}
+	if err := s.userRepo.UpdateUsername(ctx, userID, username); err != nil {
+		if errors.Is(err, repository.ErrUsernameExists) {
+			return "", ErrUsernameTaken
+		}
+		return "", fmt.Errorf("update username: %w", err)
+	}
+	return username, nil
 }
 
 func (s *AuthService) generateTokenPair(userID, username string) (*TokenPair, error) {

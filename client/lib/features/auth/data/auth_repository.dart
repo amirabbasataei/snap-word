@@ -128,6 +128,22 @@ class AuthRepository {
     }
   }
 
+  /// Renames the account. Throws AuthException with code `invalid_username`
+  /// or `username_taken` on rejection.
+  Future<String> updateUsername(String username) async {
+    try {
+      final response = await _dio.patch(
+        ApiEndpoints.profileUsername,
+        data: {'username': username},
+      );
+      final saved = response.data['data']['username'] as String;
+      await _prefs.setString('username', saved);
+      return saved;
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   Future<void> setCoins(int coins) => _prefs.setInt('coins', coins);
 
   Future<void> creditCoins(int amount) => _prefs.setInt('coins', storedCoins + amount);

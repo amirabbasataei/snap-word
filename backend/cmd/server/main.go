@@ -143,6 +143,7 @@ func main() {
 	protected.POST("/game/solo", gameHandler.CreateSolo)
 	protected.GET("/game/:id", gameHandler.GetGame)
 	protected.GET("/profile/stats", gameHandler.GetStats)
+	protected.PATCH("/profile/username", authHandler.UpdateUsername)
 	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
 	protected.POST("/powerup/use", powerupHandler.Use)
 	protected.POST("/rewarded-ad/claim", monetizationHandler.RewardedAd)

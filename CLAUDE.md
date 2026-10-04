@@ -436,7 +436,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Referral:** `GET /referral/me` (own code, for sharing) · `GET /rewards` · `POST /rewards/:id/claim` (claimable prizes) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
 
-**Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `GET /powerup/inventory` · `POST /powerup/use`
+**Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `PATCH /profile/username` (3–20 letters/digits/`_`; `400 invalid_username`, `409 username_taken`) · `GET /powerup/inventory` · `POST /powerup/use`
 
 **Matchmaking:** `POST /match/queue` · `DELETE /match/queue`
 
@@ -545,6 +545,8 @@ Every user gets a unique 6-char alphanumeric `referral_code` (charset excludes a
 2. **Post-login** — `POST /referral/redeem` (protected), for an existing account that hasn't linked a referrer yet. One-time only (`referred_by IS NULL` check, atomic) — `409 referral_already_used` on a second attempt. Awards **+50 coins**.
 
 Self-referral (code equals the caller's own) is rejected (`400 self_referral`) — structurally impossible at signup since the new code doesn't exist yet, checked explicitly for the post-login path.
+
+**Renaming:** ZProfile's pencil icon (signed-in only) opens `EditUsernameSheet` (`features/auth/view/widgets/edit_username_sheet.dart`) → `PATCH /profile/username` (`AuthService.UpdateUsername`). The JWT keeps the old username in its claims until refresh; nothing authoritative reads it.
 
 **Sharing your own code:** ZProfile's `_InviteCard` loads it via `GET /referral/me` and shares a short Persian invite text + code through `ShareService.shareInvite` (system share sheet → social apps/SMS).
 
@@ -757,6 +759,8 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 ---
 
 ## ⚠️ Important Notes for Claude Code
+
+- **After any backend change, rebuild and restart the backend** (it runs in Docker: `cd backend && docker compose up -d --build app`) and **always update CLAUDE.md** (and keep AGENTS.md consistent).
 
 - **Read REDESIGN_PLAN.md too while Phase 17 is in progress.** Record each stage's outcome, decisions, and flagged issues there.
 - **Verify on-device.** Phase 17 found multiple bugs that only a live run exposed (Stage 4 multiplayer was non-functional end-to-end despite passing analysis). Don't mark a stage complete from `flutter analyze`/tests alone.

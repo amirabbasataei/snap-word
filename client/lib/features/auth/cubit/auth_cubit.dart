@@ -92,6 +92,12 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> updateUsername(String username) async {
+    final saved = await _repo.updateUsername(username);
+    final current = state;
+    if (current is AuthAuthenticated) emit(current.copyWith(username: saved));
+  }
+
   Future<String> fetchMyReferralCode() => _repo.fetchMyReferralCode();
 
   /// Entry point (b): post-login, one-time referral redemption. Throws on

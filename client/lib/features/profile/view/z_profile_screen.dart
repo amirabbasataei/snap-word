@@ -18,6 +18,7 @@ import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/tint_chip.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
+import 'package:wordchain/features/auth/view/widgets/edit_username_sheet.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
 import 'package:wordchain/features/profile/cubit/profile_cubit.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
@@ -133,7 +134,6 @@ class _LoadedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final username = _username(context);
     final stats = state.stats;
 
     return ListView(
@@ -144,7 +144,11 @@ class _LoadedView extends StatelessWidget {
         ZSpacing.xl,
       ),
       children: [
-        _ProfileHeader(username: username, isGuest: state.isGuest),
+        BlocBuilder<AuthCubit, AuthState>(
+          bloc: getIt<AuthCubit>(),
+          builder: (context, _) =>
+              _ProfileHeader(username: _username(context), isGuest: state.isGuest),
+        ),
         const SizedBox(height: ZSpacing.xl),
 
         if (!state.isGuest) ...[
@@ -435,11 +439,24 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                username,
-                style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 19),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      username,
+                      style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 19),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (!isGuest)
+                    IconButton(
+                      tooltip: 'ویرایش نام کاربری',
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.edit_outlined, size: 18, color: z.ink40),
+                      onPressed: () => EditUsernameSheet.show(context),
+                    ),
+                ],
               ),
               const SizedBox(height: 5),
               if (isGuest)

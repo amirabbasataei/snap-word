@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
@@ -21,6 +23,11 @@ class MessagesState {
 class MessagesCubit extends Cubit<MessagesState> {
   final FriendsRepository _repo;
   final AuthCubit _auth;
+  final _friendsChanged = StreamController<void>.broadcast();
+
+  /// Fires after a response here changes friends data, so the (kept-alive)
+  /// Friends tab can reload instead of showing stale rows.
+  Stream<void> get friendsChanged => _friendsChanged.stream;
 
   MessagesCubit({required FriendsRepository repo, required AuthCubit auth})
     : _repo = repo,
@@ -67,6 +74,7 @@ class MessagesCubit extends Cubit<MessagesState> {
 
   Future<void> respondToRequest(String requesterId, bool accept) async {
     await _repo.respondToRequest(requesterId, accept);
+    _friendsChanged.add(null);
     emit(
       MessagesState(
         requests: [
@@ -81,6 +89,7 @@ class MessagesCubit extends Cubit<MessagesState> {
   /// Returns the room id when an accepted challenge opens a match.
   Future<String?> respondToChallenge(String id, bool accept) async {
     final roomId = await _repo.respondToChallenge(id, accept);
+    _friendsChanged.add(null);
     emit(
       MessagesState(
         requests: state.requests,
@@ -91,5 +100,11 @@ class MessagesCubit extends Cubit<MessagesState> {
       ),
     );
     return accept ? roomId : null;
+  }
+
+  @override
+  Future<void> close() {
+    _friendsChanged.close();
+    return super.close();
   }
 }

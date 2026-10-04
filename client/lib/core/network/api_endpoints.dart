@@ -18,6 +18,7 @@ abstract final class ApiEndpoints {
   static const String soloGame = '$_base/game/solo';
   static String game(String id) => '$_base/game/$id';
   static const String profileStats = '$_base/profile/stats';
+  static const String profileUsername = '$_base/profile/username';
   static const String powerupInventory = '$_base/powerup/inventory';
   static const String powerupUse = '$_base/powerup/use';
   static const String rewardedAdClaim = '$_base/rewarded-ad/claim';

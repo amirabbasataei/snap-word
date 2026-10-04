@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -107,9 +109,19 @@ class _FriendsView extends StatefulWidget {
 
 class _FriendsViewState extends State<_FriendsView> {
   final _searchController = TextEditingController();
+  StreamSubscription<void>? _messagesSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _messagesSub = getIt<MessagesCubit>().friendsChanged.listen((_) {
+      if (mounted) context.read<FriendsCubit>().load();
+    });
+  }
 
   @override
   void dispose() {
+    _messagesSub?.cancel();
     _searchController.dispose();
     super.dispose();
   }

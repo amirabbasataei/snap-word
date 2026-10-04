@@ -200,6 +200,19 @@ func (r *UserRepository) CompleteSignup(ctx context.Context, userID, username, r
 	return nil
 }
 
+// UpdateUsername sets a new username, returning ErrUsernameExists when taken.
+func (r *UserRepository) UpdateUsername(ctx context.Context, userID, username string) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE users SET username = $1 WHERE id = $2`, username, userID)
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return ErrUsernameExists
+		}
+		return fmt.Errorf("UpdateUsername: %w", err)
+	}
+	return nil
+}
+
 // MarkVerified clears a pending OTP for a returning (already-signed-up) user.
 func (r *UserRepository) MarkVerified(ctx context.Context, userID string) error {
 	const q = `UPDATE users SET otp_code = NULL, otp_expires_at = NULL WHERE id = $1`

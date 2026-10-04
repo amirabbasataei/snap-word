@@ -178,6 +178,28 @@ func (h *AuthHandler) RedeemReferral(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": redeemReferralResponse{CoinsAwarded: coins}})
 }
 
+type updateUsernameRequest struct {
+	Username string `json:"username" binding:"required"`
+}
+
+// UpdateUsername handles PATCH /api/v1/profile/username (protected).
+func (h *AuthHandler) UpdateUsername(c *gin.Context) {
+	userID := c.GetString(middleware.ContextKeyUserID)
+
+	var req updateUsernameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "validation_error", err.Error())
+		return
+	}
+
+	username, err := h.authSvc.UpdateUsername(c.Request.Context(), userID, req.Username)
+	if err != nil {
+		respondAuthError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"username": username}})
+}
+
 type rewardItemResponse struct {
 	ID        string    `json:"id"`
 	Kind      string    `json:"kind"`
@@ -240,6 +262,10 @@ func respondAuthError(c *gin.Context, err error) {
 		respondError(c, http.StatusBadRequest, "code_expired", "this code has expired, request a new one")
 	case errors.Is(err, service.ErrOTPMaxAttempts):
 		respondError(c, http.StatusTooManyRequests, "too_many_attempts", "too many incorrect attempts, request a new code")
+	case errors.Is(err, service.ErrInvalidUsername):
+		respondError(c, http.StatusBadRequest, "invalid_username", "username must be 3-20 letters, digits or underscores")
+	case errors.Is(err, service.ErrUsernameTaken):
+		respondError(c, http.StatusConflict, "username_taken", "this username is already taken")
 	case errors.Is(err, service.ErrSelfReferral):
 		respondError(c, http.StatusBadRequest, "self_referral", "you cannot use your own referral code")
 	case errors.Is(err, service.ErrReferralNotFound):
