@@ -23,6 +23,7 @@ func NewLeaderboardHandler(svc *service.LeaderboardService) *LeaderboardHandler 
 // Get handles GET /api/v1/leaderboard?type=global&limit=100
 //
 //	and      GET /api/v1/leaderboard?type=friends&limit=100
+//	and      GET /api/v1/leaderboard?type=alltime&limit=100
 func (h *LeaderboardHandler) Get(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
 	lbType := c.DefaultQuery("type", "global")
@@ -36,6 +37,8 @@ func (h *LeaderboardHandler) Get(c *gin.Context) {
 	switch lbType {
 	case "friends":
 		entries, err = h.svc.GetFriendsLeaderboard(c.Request.Context(), userID, limit)
+	case "alltime":
+		entries, err = h.svc.GetAllTimeTop(c.Request.Context(), limit)
 	default:
 		entries, err = h.svc.GetTopN(c.Request.Context(), limit)
 	}
@@ -45,7 +48,15 @@ func (h *LeaderboardHandler) Get(c *gin.Context) {
 		return
 	}
 
-	rank, score, err := h.svc.GetPlayerRank(c.Request.Context(), userID)
+	var (
+		rank  int64
+		score float64
+	)
+	if lbType == "alltime" {
+		rank, score, err = h.svc.GetAllTimeRank(c.Request.Context(), userID)
+	} else {
+		rank, score, err = h.svc.GetPlayerRank(c.Request.Context(), userID)
+	}
 	if err != nil {
 		slog.Warn("leaderboard: GetPlayerRank failed", "userID", userID, "error", err)
 	}

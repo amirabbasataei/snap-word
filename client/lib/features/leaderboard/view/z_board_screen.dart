@@ -15,17 +15,13 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 
-/// ZBoard — the weekly + friends leaderboard.
+/// ZBoard — weekly, all-time and friends leaderboards.
 ///
-/// Canvas shows 4 tabs (این هفته / امروز / همیشه / دوستان). The backend only
-/// ever maintains one leaderboard construct — a single Redis sorted set that
-/// resets every Saturday 00:00 Iran time (end of Friday) (`leaderboard:global:weekly`) — so "امروز"
-/// (today) and "همیشه" (all-time) have no real data source anywhere. Per the
-/// project's no-fake-mechanics policy (same one applied to ZLobby's wager
-/// picker and ZVersus's best-of-5 placeholder), those two tabs are dropped
-/// rather than backed by fabricated numbers; only "این هفته" (weekly/global)
-/// and "دوستان" (friends) ship, both wired to the real
-/// `GET /leaderboard?type=global|friends` endpoint.
+/// Canvas shows 4 tabs (این هفته / امروز / همیشه / دوستان). "امروز" (today) has
+/// no real data source, so per the no-fake-mechanics policy it is dropped.
+/// "این هفته", "همیشه" and "دوستان" ship, wired to
+/// `GET /leaderboard?type=global|alltime|friends`. All-time ranks lifetime
+/// `player_stats.total_score` (counted from migration 008 onward).
 class ZBoardScreen extends StatelessWidget {
   const ZBoardScreen({super.key});
 
@@ -119,7 +115,7 @@ class _BoardView extends StatefulWidget {
 }
 
 class _BoardViewState extends State<_BoardView> {
-  int _tab = 0; // 0 = این هفته (global weekly), 1 = دوستان (friends)
+  int _tab = 0; // 0 = این هفته (global weekly), 1 = همیشه (all-time), 2 = دوستان (friends)
 
   @override
   Widget build(BuildContext context) {
@@ -159,9 +155,17 @@ class _BoardViewState extends State<_BoardView> {
                       const SizedBox(width: ZSpacing.sm),
                       Expanded(
                         child: _TabPill(
-                          label: 'دوستان',
+                          label: 'همیشه',
                           selected: _tab == 1,
                           onTap: () => setState(() => _tab = 1),
+                        ),
+                      ),
+                      const SizedBox(width: ZSpacing.sm),
+                      Expanded(
+                        child: _TabPill(
+                          label: 'دوستان',
+                          selected: _tab == 2,
+                          onTap: () => setState(() => _tab = 2),
                         ),
                       ),
                     ],
@@ -182,11 +186,15 @@ class _BoardViewState extends State<_BoardView> {
                     );
                   }
                   if (state is LeaderboardLoaded) {
-                    final result = _tab == 0 ? state.global : state.friends;
+                    final result = switch (_tab) {
+                      0 => state.global,
+                      1 => state.allTime,
+                      _ => state.friends,
+                    };
                     return _LeaderboardBody(
                       result: result,
                       username: widget.username,
-                      isFriendsTab: _tab == 1,
+                      tab: _tab,
                     );
                   }
                   return const SizedBox.shrink();
@@ -236,12 +244,12 @@ class _TabPill extends StatelessWidget {
 class _LeaderboardBody extends StatelessWidget {
   final LeaderboardResult result;
   final String username;
-  final bool isFriendsTab;
+  final int tab;
 
   const _LeaderboardBody({
     required this.result,
     required this.username,
-    required this.isFriendsTab,
+    required this.tab,
   });
 
   @override
@@ -254,9 +262,11 @@ class _LeaderboardBody extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(ZSpacing.xxl),
           child: Text(
-            isFriendsTab
-                ? 'دوستی نداری یا هنوز کسی این هفته امتیاز نگرفته'
-                : 'هنوز کسی این هفته امتیاز نگرفته — اولین نفر باش!',
+            switch (tab) {
+              2 => 'دوستی نداری یا هنوز کسی این هفته امتیاز نگرفته',
+              1 => 'هنوز کسی امتیازی نگرفته — اولین نفر باش!',
+              _ => 'هنوز کسی این هفته امتیاز نگرفته — اولین نفر باش!',
+            },
             style: ZTypography.body.copyWith(color: z.ink60),
             textAlign: TextAlign.center,
           ),

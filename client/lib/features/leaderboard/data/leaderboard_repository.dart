@@ -49,6 +49,8 @@ class LeaderboardRepository {
 
   Future<LeaderboardResult> fetchFriends() => _fetch('friends');
 
+  Future<LeaderboardResult> fetchAllTime() => _fetch('alltime');
+
   Future<LeaderboardResult> _fetch(String type) async {
     try {
       final response = await _dio.get(

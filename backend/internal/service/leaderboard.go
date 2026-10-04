@@ -49,13 +49,38 @@ func NewLeaderboardService(
 	}
 }
 
-// AddScore increments a player's score in the weekly sorted set.
-// Call only for multiplayer and Daily Challenge games — not solo.
+// AddScore increments a player's score in the weekly sorted set and their
+// lifetime total (all-time board). Call only for games that should rank — not solo.
 func (s *LeaderboardService) AddScore(ctx context.Context, userID string, score int) error {
 	if err := s.rdb.ZIncrBy(ctx, weeklyLeaderboardKey, float64(score), userID).Err(); err != nil {
 		return fmt.Errorf("leaderboard.AddScore: %w", err)
 	}
+	if err := s.lbRepo.AddTotalScore(ctx, userID, score); err != nil {
+		return fmt.Errorf("leaderboard.AddScore total: %w", err)
+	}
 	return nil
+}
+
+// GetAllTimeTop returns the top n players by lifetime score.
+func (s *LeaderboardService) GetAllTimeTop(ctx context.Context, n int) ([]LeaderboardEntry, error) {
+	rows, err := s.lbRepo.GetAllTimeTop(ctx, n, config.SystemAIUserID)
+	if err != nil {
+		return nil, fmt.Errorf("leaderboard.GetAllTimeTop: %w", err)
+	}
+	entries := make([]LeaderboardEntry, len(rows))
+	for i, r := range rows {
+		entries[i] = LeaderboardEntry{Rank: i + 1, UserID: r.UserID, Username: r.Username, Score: float64(r.Score)}
+	}
+	return entries, nil
+}
+
+// GetAllTimeRank returns the player's rank and lifetime score (0, 0 if none).
+func (s *LeaderboardService) GetAllTimeRank(ctx context.Context, userID string) (int64, float64, error) {
+	rank, score, err := s.lbRepo.GetAllTimeRank(ctx, userID, config.SystemAIUserID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("leaderboard.GetAllTimeRank: %w", err)
+	}
+	return rank, float64(score), nil
 }
 
 // GetTopN returns the top n players by weekly score, with usernames resolved from DB.

@@ -24,11 +24,13 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     try {
       final results = await Future.wait([
         _repo.fetchGlobal(),
+        _repo.fetchAllTime(),
         _repo.fetchFriends(),
       ]);
       emit(LeaderboardLoaded(
         global: results[0],
-        friends: results[1],
+        allTime: results[1],
+        friends: results[2],
         currentUserId: currentUserId,
       ));
       _hasLoaded = true;

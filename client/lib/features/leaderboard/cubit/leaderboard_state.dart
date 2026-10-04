@@ -17,17 +17,19 @@ class LeaderboardLoading extends LeaderboardState {
 
 class LeaderboardLoaded extends LeaderboardState {
   final LeaderboardResult global;
+  final LeaderboardResult allTime;
   final LeaderboardResult friends;
   final String currentUserId;
 
   const LeaderboardLoaded({
     required this.global,
+    required this.allTime,
     required this.friends,
     required this.currentUserId,
   });
 
   @override
-  List<Object?> get props => [global, friends, currentUserId];
+  List<Object?> get props => [global, allTime, friends, currentUserId];
 }
 
 class LeaderboardError extends LeaderboardState {

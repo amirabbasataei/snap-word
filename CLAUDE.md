@@ -441,7 +441,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Matchmaking:** `POST /match/queue` · `DELETE /match/queue`
 
-**Leaderboard:** `GET /leaderboard?type=global&limit=100` · `GET /leaderboard?type=friends&limit=100`
+**Leaderboard:** `GET /leaderboard?type=global&limit=100` · `GET /leaderboard?type=alltime&limit=100` · `GET /leaderboard?type=friends&limit=100`
 
 **Daily Challenge:** `GET /daily` · `GET /daily/leaderboard` · `POST /daily/retry`
 
@@ -690,6 +690,7 @@ All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout
 ## 🏆 Leaderboard & Weekly Reset
 
 - Redis Sorted Set `leaderboard:global:weekly` — score added at end of **multiplayer and Daily Challenge games only** (not solo).
+- **All-time board («همیشه»):** `GET /leaderboard?type=alltime` ranks `player_stats.total_score` (lifetime, never reset; DB-backed, AI user excluded). `LeaderboardService.AddScore` increments it together with the weekly Redis score, so it counts exactly the games the weekly board counts (currently multiplayer only — Daily Challenge scores are not added to either). Counts only from migration 008 onward; no backfill.
 - `GET /leaderboard?type=friends` fetches friend IDs, retrieves scores via `ZSCORE` from the same set.
 
 **Weekly reset (Saturday 00:00 Iran time = end of Friday, the Iranian week):**
@@ -735,7 +736,7 @@ flutter analyze
 flutter test
 ```
 
-- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`).
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board).
 - **Ads (Tapsell Mediation, Android only):** the app key is a manifest placeholder in `client/android/app/build.gradle.kts`; the zone id is compile-time `--dart-define`s read in `core/services/ad_service.dart` (`AdZones`). Copy `client/tapsell.example.json` to `client/tapsell.json` (gitignored), fill in the rewarded zone id, and pass `--dart-define-from-file=tapsell.json` to `flutter run`/`build`. An empty id silently disables ads. Policy: only player-initiated rewarded ads — no interstitials and no banners (the Tapsell banner is a native overlay that leaked across screens and covered `ZBottomNav`; removed).
 - `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
 
