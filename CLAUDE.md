@@ -736,7 +736,7 @@ flutter analyze
 flutter test
 ```
 
-- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board).
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels).
 - **Ads (Tapsell Mediation, Android only):** the app key is a manifest placeholder in `client/android/app/build.gradle.kts`; the zone id is compile-time `--dart-define`s read in `core/services/ad_service.dart` (`AdZones`). Copy `client/tapsell.example.json` to `client/tapsell.json` (gitignored), fill in the rewarded zone id, and pass `--dart-define-from-file=tapsell.json` to `flutter run`/`build`. An empty id silently disables ads. Policy: only player-initiated rewarded ads — no interstitials and no banners (the Tapsell banner is a native overlay that leaked across screens and covered `ZBottomNav`; removed).
 - `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
 
@@ -749,7 +749,8 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 **Phase 17 placeholders (canvas UI rendered, no backend yet — never fake client-side):**
 - **Best-of-5 rounds** (ZVersus) — static «دست ۱ از ۵» (`GameConstants.multiplayerRoundsTotal`); needs new WS round events + server round state + match-level winner rule.
 - **Multiplayer lives** — not built (see Lives).
-- **Levels & badges** (ZProfile) — placeholders; no schema fields.
+- **Badges** (ZProfile) — not built; the card is commented out, no schema fields.
+- **Levels** (ZProfile) — implemented: `player_stats.xp` is credited with each game's score at game end (`GameService.AddXP`: solo/AI/daily via `CreateSoloGame`, multiplayer via `ws.Room` `XPSvc`). Curve in `config.XPForLevel`/`LevelFromXP` (step to level L+1 = 1000×L); `GET /profile/stats` returns `xp`, `level`, `xp_in_level`, `xp_for_next`. Level titles live in `GameConstants.levelTitles`. Counts from migration 009 onward (no backfill); guests have no level.
 - **Typing indicator** (ZVersus) — not built; needs a new WS event.
 - **Long-word bonus in Go scorer** — Flutter-only today.
 

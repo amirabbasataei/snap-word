@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/middleware"
 	"wordchain/backend/internal/repository"
 	"wordchain/backend/internal/service"
@@ -57,6 +58,10 @@ type statsResponse struct {
 	DailyStreak        int        `json:"daily_streak"`
 	LongestDailyStreak int        `json:"longest_daily_streak"`
 	LastPlayedDate     *time.Time `json:"last_played_date,omitempty"`
+	XP                 int64      `json:"xp"`
+	Level              int        `json:"level"`
+	XPInLevel          int64      `json:"xp_in_level"` // progress within the current level
+	XPForNextLevel     int64      `json:"xp_for_next"` // size of the current level's step
 }
 
 // CreateSolo handles POST /api/v1/game/solo.
@@ -158,7 +163,13 @@ func toMatchResponse(m *repository.Match, players []*repository.MatchPlayer) mat
 }
 
 func toStatsResponse(s *repository.PlayerStats) statsResponse {
+	level := config.LevelFromXP(s.XP)
+	floor := config.XPForLevel(level)
 	return statsResponse{
+		XP:                 s.XP,
+		Level:              level,
+		XPInLevel:          s.XP - floor,
+		XPForNextLevel:     config.XPForLevel(level+1) - floor,
 		TotalMatches:       s.TotalMatches,
 		Wins:               s.Wins,
 		LongestWord:        s.LongestWord,

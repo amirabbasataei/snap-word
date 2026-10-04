@@ -15,6 +15,9 @@ class ProfileStats {
   final int longestDailyStreak;
   final String? longestWord;
   final int coins;
+  final int level;
+  final int xpInLevel;
+  final int xpForNext;
 
   const ProfileStats({
     required this.totalMatches,
@@ -25,6 +28,9 @@ class ProfileStats {
     required this.longestDailyStreak,
     this.longestWord,
     required this.coins,
+    this.level = 1,
+    this.xpInLevel = 0,
+    this.xpForNext = 1000,
   });
 
   factory ProfileStats.fromJson(Map<String, dynamic> json) => ProfileStats(
@@ -36,6 +42,9 @@ class ProfileStats {
         longestDailyStreak: json['longest_daily_streak'] as int? ?? 0,
         longestWord: json['longest_word'] as String?,
         coins: json['coins'] as int? ?? 0,
+        level: json['level'] as int? ?? 1,
+        xpInLevel: json['xp_in_level'] as int? ?? 0,
+        xpForNext: json['xp_for_next'] as int? ?? 1000,
       );
 
   ProfileStats copyWith({int? coins}) => ProfileStats(
@@ -47,6 +56,9 @@ class ProfileStats {
         longestDailyStreak: longestDailyStreak,
         longestWord: longestWord,
         coins: coins ?? this.coins,
+        level: level,
+        xpInLevel: xpInLevel,
+        xpForNext: xpForNext,
       );
 }
 

@@ -179,3 +179,25 @@ func PowerupPrice(powerupType string) (int, bool) {
 	}
 	return 0, false
 }
+
+// XP / level curve. Reaching level L costs LevelXPStep * L * (L-1) / 2 total XP,
+// i.e. the step from level L to L+1 is LevelXPStep * L (level 2 at 1000 XP,
+// level 3 at 3000, level 4 at 6000, ...). A game's XP is its score.
+const LevelXPStep = 1000
+
+// XPForLevel returns the cumulative XP needed to reach the given level (1-based).
+func XPForLevel(level int) int64 {
+	if level <= 1 {
+		return 0
+	}
+	return int64(LevelXPStep) * int64(level) * int64(level-1) / 2
+}
+
+// LevelFromXP returns the level (>=1) for a lifetime XP total.
+func LevelFromXP(xp int64) int {
+	level := 1
+	for XPForLevel(level+1) <= xp {
+		level++
+	}
+	return level
+}

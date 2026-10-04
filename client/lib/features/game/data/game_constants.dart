@@ -41,6 +41,18 @@ abstract final class GameConstants {
   // so ZVersus always displays round 1 of this constant.
   static const int multiplayerRoundsTotal = 5;
 
+  /// Level titles by minimum level (levels themselves come from the server).
+  static const List<(int, String)> levelTitles = [
+    (1, 'تازه‌کار'),
+    (5, 'واژه‌جو'),
+    (10, 'واژه‌باز'),
+    (20, 'واژه‌ساز'),
+    (35, 'استاد واژه'),
+  ];
+
+  static String levelTitle(int level) =>
+      levelTitles.lastWhere((t) => level >= t.$1, orElse: () => levelTitles.first).$2;
+
   // Daily Challenge prizes, paid as claimable rewards at Iran midnight. Mirror
   // config.CoinDailyRank1..3 / CoinDailyComplete on the backend.
   static const List<int> dailyRankPrizes = [100, 60, 30];

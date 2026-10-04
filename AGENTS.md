@@ -96,7 +96,7 @@ Never hardcode magic numbers. Read from:
 - **Lives**: 2 lives (`GameConstants.soloLives`) for **solo Classic and Daily only**. Not vs-AI or multiplayer (server-authoritative; no lives in the WS protocol).
 - **Long-word bonus**: ≥7 letters doubles the turn score — Flutter scorer only; Go scorer unchanged.
 - **No tutorial**: removed by product decision. Don't rebuild it.
-- Wager/turn-length picker, best-of-5 rounds, levels/badges, typing indicator are **UI placeholders with no backend** — never fake them client-side.
+- Wager/turn-length picker, best-of-5 rounds, badges, typing indicator are **UI placeholders with no backend** — never fake them client-side. Levels are real: server `player_stats.xp` (migration 009), returned by `GET /profile/stats` as `level`/`xp_in_level`/`xp_for_next`.
 
 ## Guest mode
 

@@ -129,6 +129,10 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 		slog.Error("CreateSoloGame: stats update failed", "userID", userID, "error", err)
 	}
 
+	if err := s.AddXP(ctx, userID, in.Score); err != nil {
+		slog.Error("CreateSoloGame: AddXP failed", "userID", userID, "error", err)
+	}
+
 	if s.streakSvc != nil {
 		if err := s.streakSvc.RecordGamePlayed(ctx, userID, in.EndedAt); err != nil {
 			slog.Error("CreateSoloGame: RecordGamePlayed failed", "userID", userID, "error", err)
@@ -136,6 +140,17 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 	}
 
 	return m, false, nil
+}
+
+// AddXP credits a finished game's score as XP. Non-positive amounts are ignored.
+func (s *GameService) AddXP(ctx context.Context, userID string, xp int) error {
+	if xp <= 0 {
+		return nil
+	}
+	if err := s.statsRepo.AddXP(ctx, userID, xp); err != nil {
+		return fmt.Errorf("AddXP: %w", err)
+	}
+	return nil
 }
 
 // GetGameState returns the match and its players. Returns ErrMatchForbidden if userID is not a player.

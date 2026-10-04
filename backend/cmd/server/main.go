@@ -85,6 +85,7 @@ func main() {
 		PowerupSvc:     powerupDeductor{powerupSvc},
 		StreakSvc:      streakSvc,
 		LeaderboardSvc: leaderboardSvc,
+		XPSvc:          gameSvc,
 		Coins:          userRepo,
 	})
 

@@ -18,6 +18,7 @@ type PlayerStats struct {
 	BestMatchStreak    int
 	DailyStreak        int
 	LongestDailyStreak int
+	XP                 int64
 	LastPlayedDate     *time.Time
 	UpdatedAt          time.Time
 }
@@ -33,7 +34,7 @@ func NewStatsRepository(db *sql.DB) *StatsRepository {
 func (r *StatsRepository) GetStats(ctx context.Context, userID string) (*PlayerStats, error) {
 	const q = `
 		SELECT user_id, total_matches, wins, longest_word, best_match_streak,
-		       daily_streak, longest_daily_streak, last_played_date, updated_at
+		       daily_streak, longest_daily_streak, last_played_date, updated_at, xp
 		FROM player_stats WHERE user_id = $1`
 
 	s := &PlayerStats{}
@@ -43,7 +44,7 @@ func (r *StatsRepository) GetStats(ctx context.Context, userID string) (*PlayerS
 	err := r.db.QueryRowContext(ctx, q, userID).Scan(
 		&s.UserID, &s.TotalMatches, &s.Wins, &longestWord,
 		&s.BestMatchStreak, &s.DailyStreak, &s.LongestDailyStreak,
-		&lastPlayedDate, &s.UpdatedAt,
+		&lastPlayedDate, &s.UpdatedAt, &s.XP,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrStatsNotFound
@@ -159,6 +160,21 @@ func (r *StatsRepository) IncrementMatchStats(ctx context.Context, userID, longe
 	_, err := r.db.ExecContext(ctx, q, userID, longestWord)
 	if err != nil {
 		return fmt.Errorf("IncrementMatchStats: %w", err)
+	}
+	return nil
+}
+
+// AddXP atomically adds xp to the player's lifetime total, creating the row if needed.
+func (r *StatsRepository) AddXP(ctx context.Context, userID string, xp int) error {
+	const q = `
+		INSERT INTO player_stats (user_id, xp, updated_at)
+		VALUES ($1, $2, now())
+		ON CONFLICT (user_id) DO UPDATE SET
+		    xp         = player_stats.xp + EXCLUDED.xp,
+		    updated_at = now()`
+
+	if _, err := r.db.ExecContext(ctx, q, userID, xp); err != nil {
+		return fmt.Errorf("AddXP: %w", err)
 	}
 	return nil
 }

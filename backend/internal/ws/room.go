@@ -91,6 +91,12 @@ type StreakRecorder interface {
 	RecordGamePlayed(ctx context.Context, userID string, date time.Time) error
 }
 
+// XPRecorder credits a finished game's score as profile XP.
+// Implemented by service.GameService.
+type XPRecorder interface {
+	AddXP(ctx context.Context, userID string, xp int) error
+}
+
 // LeaderboardUpdater adds a player's score to the weekly leaderboard.
 // Used only for multiplayer games; solo scores are excluded.
 type LeaderboardUpdater interface {
@@ -111,6 +117,7 @@ type RoomDeps struct {
 	PowerupSvc     PowerupDeductor
 	StreakSvc      StreakRecorder
 	LeaderboardSvc LeaderboardUpdater
+	XPSvc          XPRecorder
 	Coins          CoinLedger // nil disables entry fees (tests)
 }
 
@@ -850,6 +857,11 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 		if r.deps.StreakSvc != nil {
 			if err := r.deps.StreakSvc.RecordGamePlayed(ctx, playerID, now); err != nil {
 				slog.Error("ws: RecordGamePlayed failed", "room", r.id, "player", playerID, "error", err)
+			}
+		}
+		if r.deps.XPSvc != nil {
+			if err := r.deps.XPSvc.AddXP(ctx, playerID, score); err != nil {
+				slog.Error("ws: AddXP failed", "room", r.id, "player", playerID, "error", err)
 			}
 		}
 		if r.deps.LeaderboardSvc != nil {

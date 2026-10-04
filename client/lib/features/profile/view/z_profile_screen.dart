@@ -21,6 +21,7 @@ import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/view/widgets/edit_username_sheet.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/profile/cubit/profile_cubit.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
 
@@ -47,12 +48,13 @@ class ZProfileScreen extends StatelessWidget {
         final identity = authState is AuthAuthenticated ? authState.userId : 'guest';
         return BlocProvider(
           key: ValueKey('profile-$identity'),
-          create: (_) => ProfileCubit(
-            repository: getIt<ProfileRepository>(),
-            statsDao: getIt(),
-            powerupCacheDao: getIt(),
-            isGuest: isGuest,
-          )..load(),
+          create:
+              (_) => ProfileCubit(
+                repository: getIt<ProfileRepository>(),
+                statsDao: getIt(),
+                powerupCacheDao: getIt(),
+                isGuest: isGuest,
+              )..load(),
           child: TabRefreshListener(
             index: MainTab.profile,
             onRefresh: (ctx) => ctx.read<ProfileCubit>().load(silent: true),
@@ -79,10 +81,7 @@ class _ProfileView extends StatelessWidget {
               return Center(child: CircularProgressIndicator(color: z.indigo));
             }
             if (state is ProfileError) {
-              return _ErrorView(
-                message: state.message,
-                onRetry: () => context.read<ProfileCubit>().load(),
-              );
+              return _ErrorView(message: state.message, onRetry: () => context.read<ProfileCubit>().load());
             }
             if (state is ProfileLoaded) {
               return _LoadedView(state: state);
@@ -119,8 +118,7 @@ class _LoadedView extends StatelessWidget {
       PurchaseStatus.cancelled => 'خرید لغو شد.',
       PurchaseStatus.failed => result.error ?? 'خرید ناموفق بود.',
     };
-    ZToast.show(context, msg,
-        kind: result.status == PurchaseStatus.success ? ZToastKind.success : ZToastKind.error);
+    ZToast.show(context, msg, kind: result.status == PurchaseStatus.success ? ZToastKind.success : ZToastKind.error);
   }
 
   void _showBuyCoinsSheet(BuildContext context) {
@@ -128,12 +126,8 @@ class _LoadedView extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: z.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMax)),
-      ),
-      builder: (_) => _BuyCoinsSheet(
-        onPurchase: (productId) => _purchaseProduct(context, productId),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMax))),
+      builder: (_) => _BuyCoinsSheet(onPurchase: (productId) => _purchaseProduct(context, productId)),
     );
   }
 
@@ -142,40 +136,21 @@ class _LoadedView extends StatelessWidget {
     final stats = state.stats;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-        ZSpacing.screenGutter,
-        ZSpacing.xl,
-      ),
+      padding: const EdgeInsets.fromLTRB(ZSpacing.screenGutter, ZSpacing.lg, ZSpacing.screenGutter, ZSpacing.xl),
       children: [
         BlocBuilder<AuthCubit, AuthState>(
           bloc: getIt<AuthCubit>(),
-          builder: (context, _) =>
-              _ProfileHeader(username: _username(context), isGuest: state.isGuest),
+          builder: (context, _) => _ProfileHeader(username: _username(context), isGuest: state.isGuest, level: stats.level),
         ),
         const SizedBox(height: ZSpacing.xl),
 
-        if (!state.isGuest) ...[
-          const _LevelCard(),
-          const SizedBox(height: ZSpacing.md),
-        ],
+        if (!state.isGuest) ...[_LevelCard(stats: stats), const SizedBox(height: ZSpacing.md)],
 
         Row(
           children: [
-            Expanded(
-              child: _StatCard(
-                value: toPersianDigits(stats.totalMatches),
-                label: 'بازی‌شده',
-              ),
-            ),
+            Expanded(child: _StatCard(value: toPersianDigits(stats.totalMatches), label: 'بازی‌شده')),
             const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: _StatCard(
-                value: toPersianDigits(stats.bestMatchStreak),
-                label: 'بلندترین زنجیر',
-              ),
-            ),
+            Expanded(child: _StatCard(value: toPersianDigits(stats.bestMatchStreak), label: 'بلندترین زنجیر')),
           ],
         ),
         const SizedBox(height: ZSpacing.md),
@@ -184,27 +159,22 @@ class _LoadedView extends StatelessWidget {
             Expanded(
               child: _StatCard(
                 value: stats.longestWord?.toUpperCase() ?? '—',
-                label: stats.longestWord != null
-                    ? 'کلمهٔ بلند (${toPersianDigits(stats.longestWord!.length)})'
-                    : 'کلمهٔ بلند',
+                label:
+                    stats.longestWord != null
+                        ? 'کلمهٔ بلند (${toPersianDigits(stats.longestWord!.length)})'
+                        : 'کلمهٔ بلند',
                 fontSize: 18,
               ),
             ),
             const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: _StatCard(
-                value: toPersianDigits(stats.dailyStreak),
-                label: 'روز پیاپی',
-              ),
-            ),
+            Expanded(child: _StatCard(value: toPersianDigits(stats.dailyStreak), label: 'روز پیاپی')),
           ],
         ),
 
-        if (!state.isGuest) ...[
-          const SizedBox(height: ZSpacing.md),
-          const _BadgesCard(),
-        ],
-
+        // if (!state.isGuest) ...[
+        //   const SizedBox(height: ZSpacing.md),
+        //   const _BadgesCard(),
+        // ],
         const SizedBox(height: ZSpacing.xl),
 
         if (state.isGuest) ...[
@@ -234,10 +204,7 @@ class _LoadedView extends StatelessWidget {
           const SizedBox(height: ZSpacing.xl),
         ],
 
-        if (!state.isGuest) ...[
-          const _InviteCard(),
-          const SizedBox(height: ZSpacing.xl),
-        ],
+        if (!state.isGuest) ...[const _InviteCard(), const SizedBox(height: ZSpacing.xl)],
 
         _SectionLabel('تنظیمات'),
         const SizedBox(height: ZSpacing.sm),
@@ -248,24 +215,24 @@ class _LoadedView extends StatelessWidget {
             children: [
               const _NightModeRow(),
               if (!state.isGuest) ...[
-                const _CosmeticToggleRow(
-                  title: 'صدا و لرزش',
-                  icon: Icons.volume_up_outlined,
-                  valueLabel: 'روشن',
-                  showTopBorder: true,
-                ),
-                const _CosmeticToggleRow(
-                  title: 'یادآور چالش روزانه',
-                  icon: Icons.notifications_none_rounded,
-                  valueLabel: '۲۱:۰۰',
-                  showTopBorder: true,
-                ),
-                _SettingsRow(
-                  title: 'حذف تبلیغات',
-                  subtitle: 'خرید یک‌بار · ۲.۹۹ دلار',
-                  showTopBorder: true,
-                  onTap: () => _purchaseProduct(context, 'remove_ads'),
-                ),
+                // const _CosmeticToggleRow(
+                //   title: 'صدا و لرزش',
+                //   icon: Icons.volume_up_outlined,
+                //   valueLabel: 'روشن',
+                //   showTopBorder: true,
+                // ),
+                // const _CosmeticToggleRow(
+                //   title: 'یادآور چالش روزانه',
+                //   icon: Icons.notifications_none_rounded,
+                //   valueLabel: '۲۱:۰۰',
+                //   showTopBorder: true,
+                // ),
+                // _SettingsRow(
+                //   title: 'حذف تبلیغات',
+                //   subtitle: 'خرید یک‌بار · ۲.۹۹ دلار',
+                //   showTopBorder: true,
+                //   onTap: () => _purchaseProduct(context, 'remove_ads'),
+                // ),
                 _SettingsRow(
                   title: 'کد دعوت داری؟',
                   subtitle: 'یک‌بار وارد کن، ۵۰ سکه بگیر',
@@ -336,18 +303,12 @@ class _InviteCardState extends State<_InviteCard> {
         children: [
           Text('دعوت از دوستان', style: ZTypography.cardTitle.copyWith(color: z.ink)),
           const SizedBox(height: 4),
-          Text(
-            'دوستت ۱۰۰ سکه می‌گیرد و تو هم ۵۰ سکه!',
-            style: ZTypography.metaLabel.copyWith(color: z.ink60),
-          ),
+          Text('دوستت ۱۰۰ سکه می‌گیرد و تو هم ۵۰ سکه!', style: ZTypography.metaLabel.copyWith(color: z.ink60)),
           const SizedBox(height: ZSpacing.md),
           if (_failed)
             NeutralButton(label: 'تلاش دوباره', onPressed: _load)
           else if (code == null)
-            SizedBox(
-              height: 52,
-              child: Center(child: CircularProgressIndicator(color: z.indigo, strokeWidth: 2)),
-            )
+            SizedBox(height: 52, child: Center(child: CircularProgressIndicator(color: z.indigo, strokeWidth: 2)))
           else ...[
             GestureDetector(
               onTap: () async {
@@ -358,10 +319,7 @@ class _InviteCardState extends State<_InviteCard> {
               child: Container(
                 height: 52,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: z.wash,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                decoration: BoxDecoration(color: z.wash, borderRadius: BorderRadius.circular(14)),
                 child: Text(
                   code,
                   textDirection: TextDirection.ltr,
@@ -410,12 +368,7 @@ class _LiveCoinRow extends StatelessWidget {
       bloc: getIt<AuthCubit>(),
       builder: (context, authState) {
         final coins = authState is AuthAuthenticated ? authState.coins : 0;
-        return Row(
-          children: [
-            CoinPill(amount: coins),
-            const Spacer(),
-          ],
-        );
+        return Row(children: [CoinPill(amount: coins), const Spacer()]);
       },
     );
   }
@@ -428,8 +381,9 @@ class _LiveCoinRow extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   final String username;
   final bool isGuest;
+  final int level;
 
-  const _ProfileHeader({required this.username, required this.isGuest});
+  const _ProfileHeader({required this.username, required this.isGuest, required this.level});
 
   @override
   Widget build(BuildContext context) {
@@ -465,16 +419,12 @@ class _ProfileHeader extends StatelessWidget {
               ),
               const SizedBox(height: 5),
               if (isGuest)
-                Text(
-                  'در حال بازی به‌صورت مهمان',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
-                )
+                Text('در حال بازی به‌صورت مهمان', style: ZTypography.metaLabel.copyWith(color: z.ink40))
               else
-                // Level is a placeholder (REDESIGN_PLAN §1 decision 5): no
-                // level/XP field exists anywhere in player_stats. Starts
-                // truthfully at level 1 rather than copying the canvas's
-                // arbitrary "سطح ۱۲" mock content.
-                const TintChip(label: 'سطح ۱ · تازه‌کار', tint: ZTint.indigo),
+                TintChip(
+                  label: 'سطح ${toPersianDigits(level)} · ${GameConstants.levelTitle(level)}',
+                  tint: ZTint.indigo,
+                ),
             ],
           ),
         ),
@@ -484,11 +434,13 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Level / XP card — placeholder (no backend field), flagged.
+// Level / XP card — server-driven (player_stats.xp, curve in config.go).
 // ---------------------------------------------------------------------------
 
 class _LevelCard extends StatelessWidget {
-  const _LevelCard();
+  final ProfileStats stats;
+
+  const _LevelCard({required this.stats});
 
   @override
   Widget build(BuildContext context) {
@@ -501,12 +453,9 @@ class _LevelCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('تا سطح ۲', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+              Text('تا سطح ${toPersianDigits(stats.level + 1)}', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
               const Spacer(),
-              Text(
-                '۰ / ۱٬۰۰۰',
-                style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700),
-              ),
+              Text('${formatPersianNumber(stats.xpInLevel)} / ${formatPersianNumber(stats.xpForNext)}', style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 9),
@@ -516,7 +465,10 @@ class _LevelCard extends StatelessWidget {
               height: 10,
               color: z.wash,
               alignment: AlignmentDirectional.centerStart,
-              child: const SizedBox.shrink(),
+              child: FractionallySizedBox(
+                widthFactor: stats.xpForNext <= 0 ? 0 : (stats.xpInLevel / stats.xpForNext).clamp(0.0, 1.0),
+                child: Container(color: z.indigo),
+              ),
             ),
           ),
         ],
@@ -529,47 +481,47 @@ class _LevelCard extends StatelessWidget {
 // Badges card — placeholder (no backend field), flagged.
 // ---------------------------------------------------------------------------
 
-class _BadgesCard extends StatelessWidget {
-  const _BadgesCard();
+// class _BadgesCard extends StatelessWidget {
+//   const _BadgesCard();
 
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SolidCard(
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.lg),
-      radius: ZRadius.cardMax,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('نشان‌ها', style: ZTypography.cardTitle.copyWith(color: z.ink)),
-              const Spacer(),
-              Text('۰ از ۴', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.md),
-          SizedBox(
-            height: 48,
-            child: ZDashedContainer(
-              color: z.line,
-              radius: 12,
-              padding: EdgeInsets.zero,
-              child: SizedBox.expand(
-                child: Center(
-                  child: Text(
-                    'هنوز نشانی باز نکرده‌ای',
-                    style: ZTypography.metaLabel.copyWith(color: z.ink40, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     final z = context.z;
+//     return SolidCard(
+//       padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.lg),
+//       radius: ZRadius.cardMax,
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           Row(
+//             children: [
+//               Text('نشان‌ها', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+//               const Spacer(),
+//               Text('۰ از ۴', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+//             ],
+//           ),
+//           const SizedBox(height: ZSpacing.md),
+//           SizedBox(
+//             height: 48,
+//             child: ZDashedContainer(
+//               color: z.line,
+//               radius: 12,
+//               padding: EdgeInsets.zero,
+//               child: SizedBox.expand(
+//                 child: Center(
+//                   child: Text(
+//                     'هنوز نشانی باز نکرده‌ای',
+//                     style: ZTypography.metaLabel.copyWith(color: z.ink40, fontWeight: FontWeight.w700),
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 // ---------------------------------------------------------------------------
 // Stat card
@@ -696,21 +648,14 @@ class _SettingsShell extends StatelessWidget {
 
   // Material icons stand in for the canvas's bespoke square glyphs, same as
   // ZBottomNav (no glyph assets exist).
-  const _SettingsShell({
-    required this.title,
-    required this.icon,
-    required this.showTopBorder,
-    required this.trailing,
-  });
+  const _SettingsShell({required this.title, required this.icon, required this.showTopBorder, required this.trailing});
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-      ),
+      decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),
       child: Row(
         children: [
           Container(
@@ -721,9 +666,7 @@ class _SettingsShell extends StatelessWidget {
             child: Icon(icon, size: 17, color: z.ink60),
           ),
           const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Text(title, style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink)),
-          ),
+          Expanded(child: Text(title, style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink))),
           trailing,
         ],
       ),
@@ -753,9 +696,7 @@ class _SettingsRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-        ),
+        decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),
         child: Row(
           children: [
             Expanded(
@@ -764,10 +705,7 @@ class _SettingsRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: ZTypography.cardTitle.copyWith(
-                      fontSize: 14,
-                      color: isDestructive ? z.coral : z.ink,
-                    ),
+                    style: ZTypography.cardTitle.copyWith(fontSize: 14, color: isDestructive ? z.coral : z.ink),
                   ),
                   if (subtitle.isNotEmpty) ...[
                     const SizedBox(height: 2),
@@ -796,10 +734,7 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    return Text(
-      text,
-      style: ZTypography.metaLabel.copyWith(color: z.ink40, letterSpacing: 0.4),
-    );
+    return Text(text, style: ZTypography.metaLabel.copyWith(color: z.ink40, letterSpacing: 0.4));
   }
 }
 
@@ -823,12 +758,7 @@ class _BuyCoinsSheet extends StatelessWidget {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter,
-          ZSpacing.xl,
-          ZSpacing.screenGutter,
-          ZSpacing.xl,
-        ),
+        padding: const EdgeInsets.fromLTRB(ZSpacing.screenGutter, ZSpacing.xl, ZSpacing.screenGutter, ZSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -847,20 +777,18 @@ class _BuyCoinsSheet extends StatelessWidget {
                   child: Container(
                     height: 52,
                     padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-                    decoration: BoxDecoration(
-                      color: z.wash,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    decoration: BoxDecoration(color: z.wash, borderRadius: BorderRadius.circular(14)),
                     child: Row(
                       children: [
-                        Container(width: 20, height: 20, decoration: BoxDecoration(color: z.amber, shape: BoxShape.circle)),
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(color: z.amber, shape: BoxShape.circle),
+                        ),
                         const SizedBox(width: ZSpacing.md),
                         Text(title, style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 15)),
                         const Spacer(),
-                        Text(
-                          price,
-                          style: ZTypography.cardTitle.copyWith(color: z.amberDeep, fontSize: 15),
-                        ),
+                        Text(price, style: ZTypography.cardTitle.copyWith(color: z.amberDeep, fontSize: 15)),
                       ],
                     ),
                   ),
