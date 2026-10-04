@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/widgets/z_icon.dart';
 
 class _ZBottomNavItem {
-  final IconData icon;
-  final IconData activeIcon;
+  final String icon;
   final String label;
 
   const _ZBottomNavItem({
     required this.icon,
-    required this.activeIcon,
     required this.label,
   });
 }
@@ -18,32 +17,27 @@ class _ZBottomNavItem {
 /// Custom bottom nav bar — square glyph tiles + Persian labels — replacing
 /// the Material `BottomNavigationBar`. See REDESIGN_PLAN.md §2.2.
 ///
-/// The design canvas draws bespoke square glyphs per tab; those assets
-/// aren't available to this port, so Material icons stand in on the same
-/// tile/accent treatment until real glyphs are supplied.
+/// Glyphs are Lucide SVGs (`assets/icons/`); the active tab is marked by
+/// the indigo tile + colour, as Lucide has no filled variants.
 class ZBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
   static const _items = [
     _ZBottomNavItem(
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home_rounded,
+      icon: 'house',
       label: 'خانه',
     ),
     _ZBottomNavItem(
-      icon: Icons.emoji_events_outlined,
-      activeIcon: Icons.emoji_events_rounded,
+      icon: 'trophy',
       label: 'جدول',
     ),
     _ZBottomNavItem(
-      icon: Icons.people_outline,
-      activeIcon: Icons.people_rounded,
+      icon: 'users',
       label: 'دوستان',
     ),
     _ZBottomNavItem(
-      icon: Icons.person_outline,
-      activeIcon: Icons.person_rounded,
+      icon: 'user',
       label: 'من',
     ),
   ];
@@ -112,8 +106,8 @@ class _NavButton extends StatelessWidget {
                         borderRadius: BorderRadius.circular(ZRadius.tileMin),
                       )
                     : null,
-                child: Icon(
-                  selected ? item.activeIcon : item.icon,
+                child: ZIcon(
+                  item.icon,
                   size: 22,
                   color: selected ? z.indigo : z.ink40,
                 ),

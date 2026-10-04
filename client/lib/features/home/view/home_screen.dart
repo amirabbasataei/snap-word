@@ -17,6 +17,7 @@ import 'package:wordchain/core/widgets/coin_pill.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/tint_chip.dart';
+import 'package:wordchain/core/widgets/z_icon.dart';
 import 'package:wordchain/core/widgets/streak_strip.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
@@ -294,14 +295,14 @@ class _TopBar extends StatelessWidget {
         const Spacer(),
         // Settings (incl. the حالت شب switch) live in ZProfile.
         _IconSquare(
-          icon: Icons.settings_outlined,
+          icon: 'settings',
           onTap: () => context.go('/profile'),
         ),
         const SizedBox(width: ZSpacing.sm),
         BlocBuilder<MessagesCubit, MessagesState>(
           bloc: getIt<MessagesCubit>(),
           builder: (context, messages) => _IconSquare(
-            icon: Icons.mail_outline_rounded,
+            icon: 'mail',
             badgeCount: messages.count,
             onTap: () => context.push(
               getIt<AuthCubit>().state is AuthAuthenticated ? '/messages' : '/login?return=/messages',
@@ -312,7 +313,7 @@ class _TopBar extends StatelessWidget {
         BlocBuilder<RewardsCubit, RewardsState>(
           bloc: getIt<RewardsCubit>(),
           builder: (context, rewards) => _IconSquare(
-            icon: Icons.card_giftcard_rounded,
+            icon: 'gift',
             badgeCount: rewards.unclaimedCount,
             onTap: () => context.push(
               getIt<AuthCubit>().state is AuthAuthenticated ? '/rewards' : '/login?return=/rewards',
@@ -325,7 +326,7 @@ class _TopBar extends StatelessWidget {
 }
 
 class _IconSquare extends StatelessWidget {
-  final IconData icon;
+  final String icon;
   final VoidCallback? onTap;
   final int badgeCount;
 
@@ -348,7 +349,7 @@ class _IconSquare extends StatelessWidget {
               border: Border.all(color: z.line),
               borderRadius: BorderRadius.circular(ZRadius.tileMax),
             ),
-            child: Icon(icon, size: 18, color: badgeCount > 0 ? z.ink : z.ink40),
+            child: ZIcon(icon, size: 18, color: badgeCount > 0 ? z.ink : z.ink40),
           ),
           if (badgeCount > 0)
             PositionedDirectional(
@@ -548,7 +549,7 @@ class _ModeGrid extends StatelessWidget {
             children: [
               Expanded(
                 child: _ModeCard(
-                  label: '۱',
+                  icon: 'target',
                   accent: ZAccent.teal,
                   title: 'تک‌نفره',
                   subtitle: 'بی‌وقفه تا آخرین کلمه',
@@ -558,7 +559,7 @@ class _ModeGrid extends StatelessWidget {
               const SizedBox(width: ZSpacing.md),
               Expanded(
                 child: _ModeCard(
-                  label: 'ه',
+                  icon: 'bot',
                   accent: ZAccent.amber,
                   title: 'حریف هوشمند',
                   subtitle: 'سه سطح؛ آخری بی‌رحم است',
@@ -644,14 +645,14 @@ class _DailyHero extends StatelessWidget {
 }
 
 class _ModeCard extends StatelessWidget {
-  final String label;
+  final String icon;
   final ZAccent accent;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
   const _ModeCard({
-    required this.label,
+    required this.icon,
     required this.accent,
     required this.title,
     required this.subtitle,
@@ -669,7 +670,7 @@ class _ModeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            LetterTile(letter: label, accent: accent, size: ZTileSize.prompt),
+            LetterTile(icon: icon, accent: accent, size: ZTileSize.prompt),
             const SizedBox(height: ZSpacing.md),
             Text(title, style: ZTypography.cardTitle.copyWith(color: z.ink)),
             Text(
@@ -698,7 +699,7 @@ class _OnlineCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: ZSpacing.lg),
         child: Row(
           children: [
-            const LetterTile(letter: '۲', accent: ZAccent.coral, size: ZTileSize.prompt),
+            const LetterTile(icon: 'swords', accent: ZAccent.coral, size: ZTileSize.prompt),
             const SizedBox(width: ZSpacing.md),
             Expanded(
               child: Column(

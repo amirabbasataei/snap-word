@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/widgets/z_icon.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
@@ -273,41 +274,13 @@ class ZPowerupBar extends StatelessWidget {
     final z = context.z;
     switch (type) {
       case 'hint':
-        return const ZHintIcon();
+        return ZIcon('lightbulb', size: 22, color: z.indigo);
       case 'freeze':
-        return Transform.rotate(
-          angle: 0.785398,
-          child: Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(
-              color: z.teal,
-              borderRadius: BorderRadius.circular(5),
-            ),
-          ),
-        );
+        return ZIcon('snowflake', size: 22, color: z.teal);
       case 'extra_time':
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: z.amber, width: 4),
-          ),
-          child: const SizedBox(width: 22, height: 22),
-        );
+        return ZIcon('timer-reset', size: 22, color: z.amber);
       default:
-        return Container(
-          width: 19,
-          height: 22,
-          decoration: BoxDecoration(
-            color: z.coral,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(4),
-              topRight: Radius.circular(4),
-              bottomLeft: Radius.circular(10),
-              bottomRight: Radius.circular(10),
-            ),
-          ),
-        );
+        return ZIcon('shield', size: 22, color: z.coral);
     }
   }
 

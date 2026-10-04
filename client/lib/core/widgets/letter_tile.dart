@@ -3,6 +3,7 @@ import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/widgets/z_icon.dart';
 
 /// One of the four co-equal accents the design rotates through for tiles,
 /// or [neutral] for a history/inactive tile on `surface`.
@@ -31,9 +32,13 @@ class LetterTile extends StatelessWidget {
   /// specifies an exact value.
   final double? fontSize;
 
+  /// Name of an `assets/icons/` SVG shown instead of [letter].
+  final String? icon;
+
   const LetterTile({
     super.key,
-    required this.letter,
+    this.letter = '',
+    this.icon,
     this.size = ZTileSize.inline,
     this.accent = ZAccent.indigo,
     this.rotation = 0,
@@ -61,13 +66,15 @@ class LetterTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(effectiveRadius),
         boxShadow: ZElevation.solidEdge(deep, depth: ZElevation.tileDepth),
       ),
-      child: Text(
-        letter,
-        style: ZTypography.chainWordActive.copyWith(
-          color: onColor,
-          fontSize: fontSize ?? size * 0.55,
-        ),
-      ),
+      child: icon != null
+          ? ZIcon(icon!, size: size * 0.5, color: onColor)
+          : Text(
+              letter,
+              style: ZTypography.chainWordActive.copyWith(
+                color: onColor,
+                fontSize: fontSize ?? size * 0.55,
+              ),
+            ),
     );
 
     if (rotation != 0) {
