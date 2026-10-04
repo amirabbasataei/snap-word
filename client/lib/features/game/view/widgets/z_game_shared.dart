@@ -38,7 +38,7 @@ class ZBackButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(11),
           border: Border.all(color: z.line),
         ),
-        child: Icon(Icons.arrow_forward, size: 16, color: z.ink60),
+        child: Icon(Icons.arrow_back, size: 16, color: z.ink60),
       ),
     );
   }

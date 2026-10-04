@@ -48,7 +48,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 children: [
                   IconButton(
                     onPressed: () => context.pop(),
-                    icon: Icon(Icons.arrow_forward_rounded, color: z.ink),
+                    icon: Icon(Icons.arrow_back_rounded, color: z.ink),
                   ),
                   const SizedBox(width: ZSpacing.sm),
                   Text(
