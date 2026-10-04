@@ -68,7 +68,9 @@ class PendingChallenge {
       PendingChallenge(
         id: json['id'] as String,
         challengerId: json['challenger_id'] as String,
-        challengerUsername: challengerUsername ?? json['challenger_id'] as String,
+        challengerUsername: challengerUsername ??
+            json['challenger_username'] as String? ??
+            json['challenger_id'] as String,
         mode: json['mode'] as String,
         expiresAt: DateTime.parse(json['expires_at'] as String),
       );

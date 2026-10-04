@@ -20,6 +20,9 @@ type FriendChallenge struct {
 	Status       string
 	CreatedAt    time.Time
 	ExpiresAt    time.Time
+
+	// Only populated by GetPendingChallenges.
+	ChallengerUsername string
 }
 
 // ChallengeRepository handles friend challenge DB operations.
@@ -75,10 +78,12 @@ func (r *ChallengeRepository) RespondToChallenge(ctx context.Context, challengeI
 // GetPendingChallenges returns non-expired pending challenges where userID is the challenged player.
 func (r *ChallengeRepository) GetPendingChallenges(ctx context.Context, userID string) ([]*FriendChallenge, error) {
 	const q = `
-		SELECT id, challenger_id, challenged_id, mode, match_id, room_id, status, created_at, expires_at
-		FROM friend_challenges
-		WHERE challenged_id = $1 AND status = 'pending' AND expires_at > now()
-		ORDER BY created_at DESC`
+		SELECT c.id, c.challenger_id, c.challenged_id, c.mode, c.match_id, c.room_id, c.status,
+		       c.created_at, c.expires_at, COALESCE(u.username, '')
+		FROM friend_challenges c
+		JOIN users u ON u.id = c.challenger_id
+		WHERE c.challenged_id = $1 AND c.status = 'pending' AND c.expires_at > now()
+		ORDER BY c.created_at DESC`
 
 	rows, err := r.db.QueryContext(ctx, q, userID)
 	if err != nil {
@@ -88,8 +93,9 @@ func (r *ChallengeRepository) GetPendingChallenges(ctx context.Context, userID s
 
 	var challenges []*FriendChallenge
 	for rows.Next() {
-		ch, err := r.scanRows(rows)
-		if err != nil {
+		ch := &FriendChallenge{}
+		if err := rows.Scan(&ch.ID, &ch.ChallengerID, &ch.ChallengedID, &ch.Mode, &ch.MatchID, &ch.RoomID,
+			&ch.Status, &ch.CreatedAt, &ch.ExpiresAt, &ch.ChallengerUsername); err != nil {
 			return nil, fmt.Errorf("GetPendingChallenges scan: %w", err)
 		}
 		challenges = append(challenges, ch)

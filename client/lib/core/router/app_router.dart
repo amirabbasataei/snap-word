@@ -11,7 +11,8 @@ import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
 import 'package:wordchain/features/daily/view/daily_screen.dart';
 import 'package:wordchain/features/daily/view/daily_board_screen.dart';
 import 'package:wordchain/features/friends/view/z_friends_screen.dart';
-import 'package:wordchain/features/inbox/view/inbox_screen.dart';
+import 'package:wordchain/features/messages/view/messages_screen.dart';
+import 'package:wordchain/features/rewards/view/rewards_screen.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/home/view/home_screen.dart';
 import 'package:wordchain/features/leaderboard/view/z_board_screen.dart';
@@ -103,8 +104,12 @@ GoRouter buildAppRouter() {
         builder: (context, state) => const DailyBoardScreen(),
       ),
       GoRoute(
-        path: '/inbox',
-        builder: (context, state) => const InboxScreen(),
+        path: '/messages',
+        builder: (context, state) => const MessagesScreen(),
+      ),
+      GoRoute(
+        path: '/rewards',
+        builder: (context, state) => const RewardsScreen(),
       ),
       GoRoute(
         path: '/login',

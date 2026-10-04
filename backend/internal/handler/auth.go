@@ -178,7 +178,7 @@ func (h *AuthHandler) RedeemReferral(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": redeemReferralResponse{CoinsAwarded: coins}})
 }
 
-type inboxItemResponse struct {
+type rewardItemResponse struct {
 	ID        string    `json:"id"`
 	Kind      string    `json:"kind"`
 	Detail    string    `json:"detail"`
@@ -187,23 +187,23 @@ type inboxItemResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// GetInbox handles GET /api/v1/inbox (protected): claimable prize messages.
-func (h *AuthHandler) GetInbox(c *gin.Context) {
+// GetRewards handles GET /api/v1/rewards (protected): claimable prizes.
+func (h *AuthHandler) GetRewards(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
 
-	view, err := h.authSvc.ListInbox(c.Request.Context(), userID)
+	view, err := h.authSvc.ListRewards(c.Request.Context(), userID)
 	if err != nil {
 		respondAuthError(c, err)
 		return
 	}
 
-	resp := make([]inboxItemResponse, 0, len(view.Items))
+	resp := make([]rewardItemResponse, 0, len(view.Items))
 	unclaimed := 0
 	for _, it := range view.Items {
 		if !it.Claimed {
 			unclaimed++
 		}
-		resp = append(resp, inboxItemResponse{
+		resp = append(resp, rewardItemResponse{
 			ID: it.ID, Kind: it.Kind, Detail: it.Detail,
 			Coins: it.Coins, Claimed: it.Claimed, CreatedAt: it.CreatedAt,
 		})
@@ -211,11 +211,11 @@ func (h *AuthHandler) GetInbox(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"items": resp, "unclaimed_count": unclaimed, "coins": view.Coins}})
 }
 
-// ClaimInboxReward handles POST /api/v1/inbox/:id/claim (protected).
-func (h *AuthHandler) ClaimInboxReward(c *gin.Context) {
+// ClaimReward handles POST /api/v1/rewards/:id/claim (protected).
+func (h *AuthHandler) ClaimReward(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
 
-	coins, err := h.authSvc.ClaimInboxReward(c.Request.Context(), userID, c.Param("id"))
+	coins, err := h.authSvc.ClaimReward(c.Request.Context(), userID, c.Param("id"))
 	if err != nil {
 		respondAuthError(c, err)
 		return

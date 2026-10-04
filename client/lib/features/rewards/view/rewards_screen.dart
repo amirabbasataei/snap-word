@@ -13,23 +13,22 @@ import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
-import 'package:wordchain/features/inbox/cubit/inbox_cubit.dart';
-import 'package:wordchain/features/inbox/data/inbox_repository.dart';
+import 'package:wordchain/features/rewards/cubit/rewards_cubit.dart';
+import 'package:wordchain/features/rewards/data/rewards_repository.dart';
 
-/// Messages screen behind the home bell. Today it only carries referral
-/// rewards: "your friend joined with your code — claim N coins".
-class InboxScreen extends StatefulWidget {
-  const InboxScreen({super.key});
+/// Claimable prizes (referral, streak, rank, daily) behind the home gift icon.
+class RewardsScreen extends StatefulWidget {
+  const RewardsScreen({super.key});
 
   @override
-  State<InboxScreen> createState() => _InboxScreenState();
+  State<RewardsScreen> createState() => _RewardsScreenState();
 }
 
-class _InboxScreenState extends State<InboxScreen> {
+class _RewardsScreenState extends State<RewardsScreen> {
   @override
   void initState() {
     super.initState();
-    getIt<InboxCubit>().refresh();
+    getIt<RewardsCubit>().refresh();
   }
 
   @override
@@ -52,21 +51,21 @@ class _InboxScreenState extends State<InboxScreen> {
                     icon: Icon(Icons.arrow_forward_rounded, color: z.ink),
                   ),
                   const SizedBox(width: ZSpacing.sm),
-                  Text('پیام‌ها', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+                  Text('هدیه‌ها', style: ZTypography.screenTitle.copyWith(color: z.ink)),
                 ],
               ),
             ),
             const _FreeCoinsCard(),
             Expanded(
-              child: BlocBuilder<InboxCubit, InboxState>(
-                bloc: getIt<InboxCubit>(),
+              child: BlocBuilder<RewardsCubit, RewardsState>(
+                bloc: getIt<RewardsCubit>(),
                 builder: (context, state) {
                   if (state.items.isEmpty) {
                     return Center(
                       child: state.loading
                           ? CircularProgressIndicator(color: z.indigo)
                           : Text(
-                              'پیامی نداری',
+                              'هدیه‌ای نداری',
                               style: ZTypography.body.copyWith(color: z.ink40),
                             ),
                     );
@@ -156,7 +155,7 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
   }
 }
 
-(String, String) _messageFor(InboxItem item) {
+(String, String) _messageFor(RewardItem item) {
   final coins = toPersianDigits(item.coins);
   switch (item.kind) {
     case 'streak':
@@ -185,7 +184,7 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
 }
 
 class _RewardTile extends StatefulWidget {
-  final InboxItem item;
+  final RewardItem item;
 
   const _RewardTile({required this.item});
 
@@ -200,13 +199,13 @@ class _RewardTileState extends State<_RewardTile> {
     setState(() => _claiming = true);
     final overlay = Overlay.of(context, rootOverlay: true);
     try {
-      final coins = await getIt<InboxCubit>().claim(widget.item.id);
+      final coins = await getIt<RewardsCubit>().claim(widget.item.id);
       ZToast.showOn(overlay, '${toPersianDigits(coins)} سکه به حسابت اضافه شد!',
           kind: ZToastKind.success);
-    } on InboxException catch (e) {
+    } on RewardsException catch (e) {
       // Already claimed elsewhere → resync the list instead of showing an error.
       if (e.code == 'reward_not_found') {
-        await getIt<InboxCubit>().refresh();
+        await getIt<RewardsCubit>().refresh();
       } else {
         ZToast.showOn(overlay, 'مشکلی پیش آمد، دوباره تلاش کن', kind: ZToastKind.error);
       }

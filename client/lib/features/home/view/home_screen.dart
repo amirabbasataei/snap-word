@@ -20,7 +20,8 @@ import 'package:wordchain/core/widgets/streak_strip.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
-import 'package:wordchain/features/inbox/cubit/inbox_cubit.dart';
+import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
+import 'package:wordchain/features/rewards/cubit/rewards_cubit.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -76,7 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_isAuthenticated) {
       _updateCoinsFromAuth();
-      getIt<InboxCubit>().refresh();
+      getIt<RewardsCubit>().refresh();
+      getIt<MessagesCubit>().refresh();
       _fetchDailyChallenge();
       _fetchWeeklyRank();
     } else if (mounted) {
@@ -85,7 +87,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _daily = null;
         _weeklyRank = null;
       });
-      getIt<InboxCubit>().refresh(); // clears it for guests
+      getIt<RewardsCubit>().refresh(); // clears it for guests
+      getIt<MessagesCubit>().refresh();
     }
   }
 
@@ -269,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Top bar — coin pill + two icon buttons
+// Top bar — coin pill + settings, messages and rewards icons
 // ---------------------------------------------------------------------------
 
 class _TopBar extends StatelessWidget {
@@ -289,13 +292,24 @@ class _TopBar extends StatelessWidget {
           onTap: () => context.go('/profile'),
         ),
         const SizedBox(width: ZSpacing.sm),
-        BlocBuilder<InboxCubit, InboxState>(
-          bloc: getIt<InboxCubit>(),
-          builder: (context, inbox) => _IconSquare(
-            icon: Icons.notifications_none_rounded,
-            badgeCount: inbox.unclaimedCount,
+        BlocBuilder<MessagesCubit, MessagesState>(
+          bloc: getIt<MessagesCubit>(),
+          builder: (context, messages) => _IconSquare(
+            icon: Icons.mail_outline_rounded,
+            badgeCount: messages.count,
             onTap: () => context.push(
-              getIt<AuthCubit>().state is AuthAuthenticated ? '/inbox' : '/login?return=/inbox',
+              getIt<AuthCubit>().state is AuthAuthenticated ? '/messages' : '/login?return=/messages',
+            ),
+          ),
+        ),
+        const SizedBox(width: ZSpacing.sm),
+        BlocBuilder<RewardsCubit, RewardsState>(
+          bloc: getIt<RewardsCubit>(),
+          builder: (context, rewards) => _IconSquare(
+            icon: Icons.card_giftcard_rounded,
+            badgeCount: rewards.unclaimedCount,
+            onTap: () => context.push(
+              getIt<AuthCubit>().state is AuthAuthenticated ? '/rewards' : '/login?return=/rewards',
             ),
           ),
         ),

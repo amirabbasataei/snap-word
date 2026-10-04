@@ -320,13 +320,16 @@ func (r *UserRepository) CreateInboxReward(ctx context.Context, userID, kind, re
 	return n > 0, nil
 }
 
-// ListInboxRewards returns the user's inbox, newest first.
-func (r *UserRepository) ListInboxRewards(ctx context.Context, userID string) ([]*InboxReward, error) {
+// ListRewards returns the user's rewards, newest first: every unclaimed one,
+// plus claimed ones only if claimed at or after claimedSince.
+func (r *UserRepository) ListRewards(ctx context.Context, userID string, claimedSince time.Time) ([]*InboxReward, error) {
 	const q = `SELECT id, kind, detail, coins, claimed_at IS NOT NULL, created_at
-		FROM inbox_rewards WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100`
-	rows, err := r.db.QueryContext(ctx, q, userID)
+		FROM inbox_rewards
+		WHERE user_id = $1 AND (claimed_at IS NULL OR claimed_at >= $2)
+		ORDER BY created_at DESC LIMIT 100`
+	rows, err := r.db.QueryContext(ctx, q, userID, claimedSince)
 	if err != nil {
-		return nil, fmt.Errorf("ListInboxRewards: %w", err)
+		return nil, fmt.Errorf("ListRewards: %w", err)
 	}
 	defer rows.Close()
 
@@ -334,17 +337,17 @@ func (r *UserRepository) ListInboxRewards(ctx context.Context, userID string) ([
 	for rows.Next() {
 		var rw InboxReward
 		if err := rows.Scan(&rw.ID, &rw.Kind, &rw.Detail, &rw.Coins, &rw.Claimed, &rw.CreatedAt); err != nil {
-			return nil, fmt.Errorf("ListInboxRewards scan: %w", err)
+			return nil, fmt.Errorf("ListRewards scan: %w", err)
 		}
 		out = append(out, &rw)
 	}
 	return out, rows.Err()
 }
 
-// ClaimInboxReward atomically marks the reward claimed and credits the
+// ClaimReward atomically marks the reward claimed and credits the
 // coins. Returns the coins awarded, or ErrRewardNotFound if the reward does
 // not exist, belongs to someone else, or was already claimed.
-func (r *UserRepository) ClaimInboxReward(ctx context.Context, rewardID, userID string) (int, error) {
+func (r *UserRepository) ClaimReward(ctx context.Context, rewardID, userID string) (int, error) {
 	const q = `
 		WITH c AS (
 			UPDATE inbox_rewards SET claimed_at = now()
@@ -359,7 +362,7 @@ func (r *UserRepository) ClaimInboxReward(ctx context.Context, rewardID, userID 
 		return 0, ErrRewardNotFound
 	}
 	if err != nil {
-		return 0, fmt.Errorf("ClaimInboxReward: %w", err)
+		return 0, fmt.Errorf("ClaimReward: %w", err)
 	}
 	return coins, nil
 }

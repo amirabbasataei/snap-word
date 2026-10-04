@@ -161,6 +161,9 @@ const (
 	CoinShield    = 20 // not in the original spec's price list; priced between Extra Time and Freeze
 )
 
+// RewardClaimedRetention is how long a claimed reward stays listed on the rewards screen.
+const RewardClaimedRetention = 24 * time.Hour
+
 // PowerupPrice returns the coin cost of one use of a power-up when the player's
 // inventory is empty, and false for an unknown type.
 func PowerupPrice(powerupType string) (int, bool) {

@@ -83,7 +83,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  /// Adds server-credited coins (e.g. a claimed inbox reward) to the live balance.
+  /// Adds server-credited coins (e.g. a claimed reward) to the live balance.
   Future<void> creditCoins(int amount) async {
     await _repo.creditCoins(amount);
     final current = state;

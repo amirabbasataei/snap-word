@@ -282,27 +282,27 @@ type InboxView struct {
 	Coins int
 }
 
-// ListInbox returns the caller's prize messages. Today's daily-login bonus is
+// ListRewards returns the caller's prize messages. Today's daily-login bonus is
 // created lazily here (idempotent per UTC day), so it needs no scheduler.
-func (s *AuthService) ListInbox(ctx context.Context, userID string) (*InboxView, error) {
+func (s *AuthService) ListRewards(ctx context.Context, userID string) (*InboxView, error) {
 	today := config.IranDate(time.Now()).Format("2006-01-02")
 	if _, err := s.userRepo.CreateInboxReward(ctx, userID, repository.RewardDailyLogin, today, "", config.CoinDailyLogin); err != nil {
-		return nil, fmt.Errorf("ListInbox daily login: %w", err)
+		return nil, fmt.Errorf("ListRewards daily login: %w", err)
 	}
-	items, err := s.userRepo.ListInboxRewards(ctx, userID)
+	items, err := s.userRepo.ListRewards(ctx, userID, time.Now().Add(-config.RewardClaimedRetention))
 	if err != nil {
-		return nil, fmt.Errorf("ListInbox: %w", err)
+		return nil, fmt.Errorf("ListRewards: %w", err)
 	}
 	user, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("ListInbox user: %w", err)
+		return nil, fmt.Errorf("ListRewards user: %w", err)
 	}
 	return &InboxView{Items: items, Coins: user.Coins}, nil
 }
 
-// ClaimInboxReward credits an unclaimed prize to its owner.
-func (s *AuthService) ClaimInboxReward(ctx context.Context, userID, rewardID string) (int, error) {
-	return s.userRepo.ClaimInboxReward(ctx, rewardID, userID)
+// ClaimReward credits an unclaimed prize to its owner.
+func (s *AuthService) ClaimReward(ctx context.Context, userID, rewardID string) (int, error) {
+	return s.userRepo.ClaimReward(ctx, rewardID, userID)
 }
 
 // checkAndIncrSendRate enforces a per-phone daily send cap via Redis. It

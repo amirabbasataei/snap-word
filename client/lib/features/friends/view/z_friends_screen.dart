@@ -14,6 +14,7 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
 import 'package:wordchain/features/friends/cubit/friends_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
+import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/friends/view/friend_challenge_sheet.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 
@@ -130,6 +131,9 @@ class _FriendsViewState extends State<_FriendsView> {
         }
         if (state is FriendActionSuccess) {
           ZToast.show(context, state.message, kind: ZToastKind.success);
+        }
+        if (state is FriendsLoaded) {
+          getIt<MessagesCubit>().setPending(state.pendingRequests, state.pendingChallenges);
         }
         if (state is FriendsLoaded && state.actionError != null) {
           ZToast.show(context, state.actionError!, kind: ZToastKind.error);

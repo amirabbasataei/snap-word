@@ -1,7 +1,6 @@
 # CLAUDE.md — WordChain Project
 
-Read this file and **PLAN.md** at the start of every session.
-**Never skip a phase. Never implement ahead of the current phase.**
+Read this file at the start of every session (and **REDESIGN_PLAN.md** when touching UI).
 
 ---
 
@@ -19,7 +18,6 @@ A production-ready word-chain mobile game (Shiritori-style).
 
 ## 📊 Phase Status
 
-Keep this table in sync with the per-phase status lines in PLAN.md.
 
 | # | Phase | Status |
 |---|---|---|
@@ -71,7 +69,6 @@ Keep this table in sync with the per-phase status lines in PLAN.md.
 ```
 wordchain/
 ├── CLAUDE.md
-├── PLAN.md
 ├── .env.example
 ├── backend/
 │   ├── cmd/server/main.go
@@ -437,7 +434,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Auth:** `POST /auth/send-otp` · `POST /auth/verify-otp` · `POST /auth/refresh`
 
-**Referral:** `GET /referral/me` (own code, for sharing) · `GET /inbox` · `POST /inbox/:id/claim` (claimable prize messages) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
+**Referral:** `GET /referral/me` (own code, for sharing) · `GET /rewards` · `POST /rewards/:id/claim` (claimable prizes) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
 
 **Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `GET /powerup/inventory` · `POST /powerup/use`
 
@@ -557,11 +554,13 @@ Client: both entry points are served by one shared widget, `ReferralBottomSheet`
 
 ---
 
-## 📬 Prize Inbox
+## 🎁 Prize Rewards & Messages
 
 **Time zone:** all server day boundaries (Daily Challenge day, streak days, daily-login, prize payouts, scheduler) use Iran time, fixed UTC+3:30 (`config.IranLocation`/`config.IranDate`; no DST since 2022). Client countdowns use `core/utils/iran_time.dart`.
 
-Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `referral_reward` · `streak` · `weekly_rank` · `daily_login` · `daily_done` · `daily_rank`, unique per `(user_id, kind, ref)` so awards are idempotent). Coins are credited only by `POST /inbox/:id/claim` (atomic, once). The home bell (`features/inbox/`, route `/inbox`) shows a badge with the unclaimed count; `GET /inbox` also returns the live server coin balance, which the client uses to overwrite its stale local balance. Streak milestones, weekly top-3 rewards and referrals also send an FCM push (no-op while FCM is unconfigured). **Daily login +10** is created lazily on the first `GET /inbox` of each UTC day. **Daily Challenge prizes** (`DailyService.RunDailyPayout`, scheduler checks every 5 min for the day that just ended at Iran midnight, Redis flag `payout:daily:<date>`): every finisher gets +10 (`daily_done`), the top 3 an extra +100/+60/+30 (`daily_rank`, ties share a rank). Today's ranking is `GET /daily/leaderboard` (ZDailyAfter/Before «جدول امروز» → `/daily/board`). **Welcome bonus +50** (`config.CoinWelcome`) is credited directly at signup, on top of any referral bonus.
+Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `referral_reward` · `streak` · `weekly_rank` · `daily_login` · `daily_done` · `daily_rank`, unique per `(user_id, kind, ref)` so awards are idempotent). Coins are credited only by `POST /rewards/:id/claim` (atomic, once). The home gift icon (`features/rewards/`, route `/rewards`) shows a badge with the unclaimed count; claimed rewards disappear from the list `config.RewardClaimedRetention` (24h) after claiming; `GET /rewards` also returns the live server coin balance, which the client uses to overwrite its stale local balance. Streak milestones, weekly top-3 rewards and referrals also send an FCM push (no-op while FCM is unconfigured). **Daily login +10** is created lazily on the first `GET /rewards` of each UTC day. **Daily Challenge prizes** (`DailyService.RunDailyPayout`, scheduler checks every 5 min for the day that just ended at Iran midnight, Redis flag `payout:daily:<date>`): every finisher gets +10 (`daily_done`), the top 3 an extra +100/+60/+30 (`daily_rank`, ties share a rank). Today's ranking is `GET /daily/leaderboard` (ZDailyAfter/Before «جدول امروز» → `/daily/board`). **Welcome bonus +50** (`config.CoinWelcome`) is credited directly at signup, on top of any referral bonus.
+
+**Messages (inbox icon next to the gift, `features/messages/`, route `/messages`):** actionable invitations only — pending friend requests (`GET /friends/requests`) and friend challenges (`GET /challenges/pending`, now includes `challenger_username`), with accept/decline reusing the friends endpoints; accepting a challenge enters the room. The badge is the combined count. No new backend store; announcements would be a later addition.
 
 ---
 
@@ -706,15 +705,14 @@ Tests written **inside the phase that introduces the code**.
 
 **Flutter:** Widget tests for each screen's primary states. Bloc/Cubit tests via `bloc_test`. Golden tests for `WordChainList` and `TimerBar`. Mock `DictionaryService`, `WebSocketService`, `NotificationService` — do not load the real wordlist.
 
-**Integration:** See PLAN.md Phase 16 for full end-to-end smoke flows.
 
 ---
 
 ## 🔁 Session Workflow
 
-1. Read **CLAUDE.md** (specs, rules) and **PLAN.md** (phase scope)
+1. Read **CLAUDE.md** (specs, rules)
 2. State the phase: *"Implement Phase N — [title]"*
-3. Mark `[x] Complete` in both the CLAUDE.md status table and the PLAN.md per-phase status line
+3. Update the CLAUDE.md status table
 4. Commit before starting the next phase
 
 ---
@@ -742,7 +740,7 @@ flutter test
 
 ## 🚧 Open Issues & Follow-ups
 
-Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. **Each item is scheduled in PLAN.md Phases 18–21** (with the product decisions made for it).
+Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. 
 
 **Phase 17 placeholders (canvas UI rendered, no backend yet — never fake client-side):**
 - **Best-of-5 rounds** (ZVersus) — static «دست ۱ از ۵» (`GameConstants.multiplayerRoundsTotal`); needs new WS round events + server round state + match-level winner rule.
@@ -753,7 +751,6 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. **Each i
 
 **Known bugs / gaps (pre-existing, flagged not fixed):**
 - ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).
-- ZHome's notification bell opens the inbox (`/inbox`), which only carries referral-reward messages so far.
 - Kavenegar SMS delivery unverified end-to-end (no account yet; dev bypass OTP `1111`).
 - **FCM permission is never requested.** `NotificationService.requestPermission()` has no call site anywhere in `client/lib` (true even before the tutorial was removed — the spec'd "after tutorial" trigger was never wired), so push notifications won't be authorized on iOS/Android 13+. Needs a trigger point (e.g. after the first completed game or on first login).
 
@@ -765,7 +762,6 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. **Each i
 - **Verify on-device.** Phase 17 found multiple bugs that only a live run exposed (Stage 4 multiplayer was non-functional end-to-end despite passing analysis). Don't mark a stage complete from `flutter analyze`/tests alone.
 - **Never implement outside the current phase's scope.** Flag missing items from prior phases without silently fixing them.
 - **Always check previous phases' output** before writing code that depends on it (verify actual method signatures).
-- **Keep CLAUDE.md status table and PLAN.md per-phase status lines in sync.**
 - **Dictionary is dual:** `fa.txt` lives in both `backend/internal/engine/data/` and `client/assets/words/`. Keep them byte-identical.
 - **Persian text is multi-byte.** Never index or measure a Persian string by bytes in Go (`w[0]`, `w[len(w)-1]`, `len(w)`). Use `engine.LastLetter`/`firstLetter` and `utf8.RuneCountInString`. Four separate byte-vs-rune bugs have been fixed so far (WS next letter, scorer, AI word picker, longest word).
 - **Never require login to start a solo or vs-AI game.** Guest mode is first-class.

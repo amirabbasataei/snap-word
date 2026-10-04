@@ -14,7 +14,7 @@ import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 
 /// Today's Daily Challenge ranking (best score per player). Prizes are paid
-/// as inbox messages at Iran midnight: a completion prize for everyone plus
+/// as claimable rewards at Iran midnight: a completion prize for everyone plus
 /// a rank prize for the top 3.
 class DailyBoardScreen extends StatefulWidget {
   const DailyBoardScreen({super.key});

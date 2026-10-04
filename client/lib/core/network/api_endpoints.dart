@@ -10,9 +10,9 @@ abstract final class ApiEndpoints {
   static const String referralRedeem = '$_base/referral/redeem';
   static const String referralMe = '$_base/referral/me';
 
-  // Inbox (referral-reward messages)
-  static const String inbox = '$_base/inbox';
-  static String inboxClaim(String id) => '$_base/inbox/$id/claim';
+  // Rewards (claimable prizes)
+  static const String rewards = '$_base/rewards';
+  static String rewardClaim(String id) => '$_base/rewards/$id/claim';
 
   // Game
   static const String soloGame = '$_base/game/solo';

@@ -41,7 +41,7 @@ abstract final class GameConstants {
   // so ZVersus always displays round 1 of this constant.
   static const int multiplayerRoundsTotal = 5;
 
-  // Daily Challenge prizes, paid as inbox messages at Iran midnight. Mirror
+  // Daily Challenge prizes, paid as claimable rewards at Iran midnight. Mirror
   // config.CoinDailyRank1..3 / CoinDailyComplete on the backend.
   static const List<int> dailyRankPrizes = [100, 60, 30];
   static const int dailyCompletePrize = 10;

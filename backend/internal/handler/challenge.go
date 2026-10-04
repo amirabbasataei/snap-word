@@ -32,14 +32,15 @@ type respondChallengeBody struct {
 }
 
 type challengeResponse struct {
-	ID           string    `json:"id"`
-	ChallengerID string    `json:"challenger_id"`
-	ChallengedID string    `json:"challenged_id"`
-	Mode         string    `json:"mode"`
-	Status       string    `json:"status"`
-	RoomID       *string   `json:"room_id,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	ID                 string    `json:"id"`
+	ChallengerID       string    `json:"challenger_id"`
+	ChallengerUsername string    `json:"challenger_username,omitempty"`
+	ChallengedID       string    `json:"challenged_id"`
+	Mode               string    `json:"mode"`
+	Status             string    `json:"status"`
+	RoomID             *string   `json:"room_id,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	ExpiresAt          time.Time `json:"expires_at"`
 }
 
 // Create handles POST /api/v1/challenges.
@@ -153,13 +154,14 @@ func (h *ChallengeHandler) GetPending(c *gin.Context) {
 
 func toChallResp(ch *repository.FriendChallenge) challengeResponse {
 	return challengeResponse{
-		ID:           ch.ID,
-		ChallengerID: ch.ChallengerID,
-		ChallengedID: ch.ChallengedID,
-		Mode:         ch.Mode,
-		Status:       ch.Status,
-		RoomID:       ch.RoomID,
-		CreatedAt:    ch.CreatedAt,
-		ExpiresAt:    ch.ExpiresAt,
+		ID:                 ch.ID,
+		ChallengerID:       ch.ChallengerID,
+		ChallengerUsername: ch.ChallengerUsername,
+		ChallengedID:       ch.ChallengedID,
+		Mode:               ch.Mode,
+		Status:             ch.Status,
+		RoomID:             ch.RoomID,
+		CreatedAt:          ch.CreatedAt,
+		ExpiresAt:          ch.ExpiresAt,
 	}
 }
