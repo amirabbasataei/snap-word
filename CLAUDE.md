@@ -504,7 +504,7 @@ turn_score   = base_score + speed_bonus + streak_bonus
 
 **Core principle: never block a player from playing before they're hooked.**
 
-Screens: `ZLoginScreen` (`/login`, phone entry) and `ZOtpVerifyScreen` (`/login/otp`, 4-box OTP with custom keypad) in `features/auth/view/`. The old email/password `login_screen.dart`/`register_screen.dart` and `/register` route are gone. A dev/test bypass code `1111` exists while no Kavenegar account is purchased; real SMS delivery is still unverified end-to-end.
+Screens: `ZLoginScreen` (`/login`, phone entry) and `ZOtpVerifyScreen` (`/login/otp`, 4-box OTP driven by the phone's own number keyboard via a hidden TextField) in `features/auth/view/`. The old email/password `login_screen.dart`/`register_screen.dart` and `/register` route are gone. A dev/test bypass code `1111` exists while no Kavenegar account is purchased; real SMS delivery is still unverified end-to-end.
 
 Identity is phone number + OTP (Kavenegar SMS, with a voice-call fallback), not email/password — there is no username/email login. `POST /auth/send-otp` generates and delivers a 4-digit code (~2min expiry, ~42s resend cooldown, rate-limited); `POST /auth/verify-otp` checks it and issues a session. First-time verification of a phone number **is** signup — a username and referral code are auto-generated at that point (`AuthService.VerifyOTP`, `backend/internal/service/auth.go`). Guest local/offline data (below) is intentionally **not** tied to this schema and is not migrated into a phone account on signup — open item, not yet built.
 

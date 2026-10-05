@@ -631,6 +631,10 @@ class _ZWordInputState extends State<ZWordInput> {
               controller: _controller,
               focusNode: _focusNode,
               enabled: widget.enabled,
+              // Keyboard word suggestions would hand the player free answers.
+              autocorrect: false,
+              enableSuggestions: false,
+              enableIMEPersonalizedLearning: false,
               textAlign: TextAlign.start,
               cursorColor: z.coral,
               cursorWidth: 2,

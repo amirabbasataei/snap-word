@@ -1,5 +1,6 @@
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
@@ -11,7 +12,6 @@ import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/cubit/otp_flow_cubit.dart';
 import 'package:wordchain/features/auth/view/widgets/otp_box_row.dart';
-import 'package:wordchain/features/auth/view/widgets/otp_keypad.dart';
 import 'package:wordchain/features/auth/view/widgets/resend_countdown_pill.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 
@@ -60,17 +60,27 @@ class _ZOtpVerifyView extends StatefulWidget {
 }
 
 class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
-  String _code = '';
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
 
-  void _onDigit(String d) {
-    if (_code.length >= 4) return;
-    setState(() => _code += d);
-    if (_code.length == 4) _submit();
+  String get _code => _controller.text;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onChanged);
   }
 
-  void _onBackspace() {
-    if (_code.isEmpty) return;
-    setState(() => _code = _code.substring(0, _code.length - 1));
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    setState(() {});
+    if (_code.length == 4) _submit();
   }
 
   Future<void> _submit() async {
@@ -82,7 +92,7 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
     if (!mounted) return;
     if (result == null) {
       // Failed — clear so the user can retype; error text renders from state.
-      setState(() => _code = '');
+      _controller.clear();
       return;
     }
     if (result.isNewUser &&
@@ -196,7 +206,35 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                       ],
                     ),
                     const SizedBox(height: ZSpacing.xxl),
-                    OtpBoxRow(code: _code),
+                    // The boxes are display-only; a transparent TextField on top
+                    // drives them with the phone's own number keyboard.
+                    Stack(
+                      children: [
+                        OtpBoxRow(code: _code),
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0,
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              autofocus: true,
+                              enabled: !state.submitting,
+                              keyboardType: TextInputType.number,
+                              autofillHints: const [AutofillHints.oneTimeCode],
+                              enableSuggestions: false,
+                              autocorrect: false,
+                              showCursor: false,
+                              enableInteractiveSelection: false,
+                              inputFormatters: [_OtpDigitsFormatter()],
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                counterText: '',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     if (state.errorMessage != null) ...[
                       const SizedBox(height: ZSpacing.md),
                       Text(
@@ -264,30 +302,35 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                 ),
               ),
             ),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-              decoration: BoxDecoration(
-                color: z.surface,
-                border: Border(top: BorderSide(color: z.line)),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'کد پیامکی به‌صورت خودکار خوانده می‌شود',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.ink40,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  OtpKeypad(onDigit: _onDigit, onBackspace: _onBackspace),
-                ],
-              ),
-            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Keeps up to 4 digits, folding Persian/Arabic-Indic digits to ASCII.
+class _OtpDigitsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final buffer = StringBuffer();
+    for (final rune in newValue.text.runes) {
+      if (rune >= 0x30 && rune <= 0x39) {
+        buffer.writeCharCode(rune);
+      } else if (rune >= 0x6F0 && rune <= 0x6F9) {
+        buffer.writeCharCode(0x30 + (rune - 0x6F0));
+      } else if (rune >= 0x660 && rune <= 0x669) {
+        buffer.writeCharCode(0x30 + (rune - 0x660));
+      }
+    }
+    final digits = buffer.toString();
+    final text = digits.length > 4 ? digits.substring(0, 4) : digits;
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

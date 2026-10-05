@@ -7,8 +7,8 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 /// The 4 OTP digit boxes from ZOtp.dc.html. Explicitly LTR (matching the
 /// canvas's `direction:ltr` row) even though the page around it is RTL, so
 /// digits fill left-to-right in typing order. Driven entirely by [code]
-/// (0-4 ASCII digits) — no system TextField/keyboard, since input comes from
-/// the custom OtpKeypad below it, matching the canvas pixel-for-pixel.
+/// (0-4 ASCII digits) — display only; the screen overlays a transparent
+/// TextField that supplies the digits from the system keyboard.
 class OtpBoxRow extends StatelessWidget {
   final String code;
 
