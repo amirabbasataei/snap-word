@@ -46,8 +46,9 @@ class _ZOverScreenState extends State<ZOverScreen> {
   Future<void> _loadRecord() async {
     try {
       final stats = await getIt<StatsDao>().getStats();
-      if (mounted)
+      if (mounted) {
         setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
+      }
     } catch (_) {
       // Best-effort — near-miss/record lines just stay hidden.
     }

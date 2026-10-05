@@ -24,12 +24,15 @@ String extractPhoneDigits(String input) {
 
 String _groupAndPersianize(String digits) {
   final groups = <String>[];
-  if (digits.isNotEmpty)
+  if (digits.isNotEmpty) {
     groups.add(digits.substring(0, digits.length.clamp(0, 4)));
-  if (digits.length > 4)
+  }
+  if (digits.length > 4) {
     groups.add(digits.substring(4, digits.length.clamp(4, 7)));
-  if (digits.length > 7)
+  }
+  if (digits.length > 7) {
     groups.add(digits.substring(7, digits.length.clamp(7, 11)));
+  }
   return toPersianDigits(groups.join(' '));
 }
 

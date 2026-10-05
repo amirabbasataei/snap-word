@@ -148,8 +148,9 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
   @override
   Widget build(BuildContext context) {
     final ads = getIt<AdService>();
-    if (!ads.rewardedEnabled || getIt<AuthCubit>().isGuest)
+    if (!ads.rewardedEnabled || getIt<AuthCubit>().isGuest) {
       return const SizedBox.shrink();
+    }
     final z = context.z;
     return Padding(
       padding: const EdgeInsets.fromLTRB(

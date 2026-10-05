@@ -42,8 +42,9 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
   Future<void> _loadRecord() async {
     try {
       final stats = await getIt<StatsDao>().getStats();
-      if (mounted)
+      if (mounted) {
         setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
+      }
     } catch (_) {
       // Best-effort — stat strip just shows ۰ until this resolves.
     }

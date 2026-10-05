@@ -350,8 +350,9 @@ class ZPowerupBar extends StatelessWidget {
     final cantAfford = !isGuest && owned == 0 && coins < cost;
 
     var enabled = GameBloc.canUsePowerup(state, type);
-    if (isGuest && type == 'hint' && state.guestHintUsesLeft <= 0)
+    if (isGuest && type == 'hint' && state.guestHintUsesLeft <= 0) {
       enabled = false;
+    }
     // Multiplayer can't wait on an ad, so there an unaffordable tile is just off;
     // solo / vs-AI keep it tappable to offer the rewarded ad.
     if (cantAfford && state.isMultiplayer) enabled = false;

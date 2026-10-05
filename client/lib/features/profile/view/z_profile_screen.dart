@@ -14,7 +14,6 @@ import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/coin_pill.dart';
-import 'package:wordchain/core/widgets/dashed_tile.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/tint_chip.dart';
@@ -723,40 +722,6 @@ class _NightModeRow extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-/// صدا و لرزش / یادآور چالش روزانه — rendered per the canvas but with no
-/// backend or local persistence behind them (no sound/vibration setting and
-/// no notification-scheduling hook exist anywhere in the codebase). Same
-/// "build the real interactive UI, wire it to nothing real yet" treatment
-/// already applied to ZLobby's wager picker — flagged here and in the
-/// Stage 5 report rather than silently faking persistence.
-class _CosmeticToggleRow extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final String valueLabel;
-  final bool showTopBorder;
-
-  const _CosmeticToggleRow({
-    required this.title,
-    required this.icon,
-    required this.valueLabel,
-    required this.showTopBorder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return _SettingsShell(
-      title: title,
-      icon: icon,
-      showTopBorder: showTopBorder,
-      trailing: Text(
-        valueLabel,
-        style: ZTypography.metaLabel.copyWith(color: z.ink40),
-      ),
     );
   }
 }

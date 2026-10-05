@@ -368,10 +368,11 @@ class _BubbleChainState extends State<_BubbleChain> {
     for (var j = 0; j <= i; j++) {
       if (j < state.wordOwners.length &&
           state.wordOwners[j] == state.myPlayerId) {
-        if (j == i)
+        if (j == i) {
           return myMoveIndex < state.wordScores.length
               ? state.wordScores[myMoveIndex]
               : null;
+        }
         myMoveIndex++;
       }
     }

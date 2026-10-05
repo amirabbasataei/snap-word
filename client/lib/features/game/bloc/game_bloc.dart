@@ -541,8 +541,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     final cur = state;
-    if (cur is! GameActive)
+    if (cur is! GameActive) {
       return; // game ended while the request was in flight
+    }
 
     switch (type) {
       case 'hint':
