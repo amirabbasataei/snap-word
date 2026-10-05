@@ -250,7 +250,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   void _connectMultiplayerWs(String roomId) {
     final token = _prefs.getString('jwt_access_token') ?? '';
-    final wsHost = DioClient.baseUrl.replaceFirst('http://', 'ws://');
+    final wsHost = DioClient.baseUrl.replaceFirst('http', 'ws');
     final uri =
         token.isNotEmpty
             ? '$wsHost/api/v1/ws/game/$roomId?token=$token'
