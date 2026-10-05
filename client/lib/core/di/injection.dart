@@ -84,6 +84,7 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
     () => AuthCubit(
       authRepository: getIt<AuthRepository>(),
       syncService: getIt<SyncService>(),
+      notificationService: getIt<NotificationService>(),
     ),
   );
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
+import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
 
@@ -11,13 +12,16 @@ part 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository _repo;
   final SyncService _syncService;
+  final NotificationService? _notifications;
   final _log = Logger();
 
   AuthCubit({
     required AuthRepository authRepository,
     required SyncService syncService,
+    NotificationService? notificationService,
   }) : _repo = authRepository,
        _syncService = syncService,
+       _notifications = notificationService,
        super(const AuthInitial());
 
   bool get isGuest => state is! AuthAuthenticated;
@@ -136,6 +140,8 @@ class AuthCubit extends Cubit<AuthState> {
   void continueAsGuest() => emit(const AuthGuest());
 
   Future<void> logout() async {
+    // Must run while the access token is still valid.
+    await _notifications?.deregisterToken();
     await _repo.logout();
     emit(const AuthGuest());
   }

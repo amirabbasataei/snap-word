@@ -760,7 +760,7 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 **Known bugs / gaps (pre-existing, flagged not fixed):**
 - ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).
 - Kavenegar SMS delivery unverified end-to-end (no account yet; dev bypass OTP `1111`).
-- **FCM permission is never requested.** `NotificationService.requestPermission()` has no call site anywhere in `client/lib` (true even before the tutorial was removed — the spec'd "after tutorial" trigger was never wired), so push notifications won't be authorized on iOS/Android 13+. Needs a trigger point (e.g. after the first completed game or on first login).
+- **FCM setup (done client-side, Firebase project `zanjir-269aa`):** `main.dart` initialises Firebase with `DefaultFirebaseOptions`, and while a user is signed in requests notification permission and registers the token (`NotificationService.registerToken`, also on token refresh); `AuthCubit.logout` deregisters it first. Foreground pushes show as a SnackBar (`foregroundStream`). **Server delivery needs the service-account key:** download it from Firebase console → Project settings → Service accounts → Generate new private key and save it as `backend/secrets/fcm-service-account.json` (gitignored, mounted at `/secrets`), then `docker compose up -d --build app`. Until then sends are logged no-ops. Pushes carry no `data.route` yet, so tapping one just opens the app; iOS also needs `GoogleService-Info.plist` + APNs key (not done).
 
 ---
 

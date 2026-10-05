@@ -72,14 +72,19 @@ func (s *NotificationService) SendToUser(ctx context.Context, userID, title, bod
 	if err != nil {
 		return fmt.Errorf("SendToUser: %w", err)
 	}
-	var lastErr error
-	for _, token := range tokens {
-		if err := s.sendToToken(ctx, token, title, body); err != nil {
-			slog.Warn("notification: send failed", "userID", userID, "error", err)
-			lastErr = err
+	// Deliver in the background on a detached context: FCM latency must not
+	// block the caller's request, and a client disconnect must not cancel it.
+	bg := context.WithoutCancel(ctx)
+	go func() {
+		bg, cancel := context.WithTimeout(bg, 30*time.Second)
+		defer cancel()
+		for _, token := range tokens {
+			if err := s.sendToToken(bg, token, title, body); err != nil {
+				slog.Warn("notification: send failed", "userID", userID, "error", err)
+			}
 		}
-	}
-	return lastErr
+	}()
+	return nil
 }
 
 // SendToAll sends a notification to every registered device token.

@@ -46,8 +46,10 @@ services:
       ENV: ${ENV:-dev}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
-      FCM_SERVICE_ACCOUNT_JSON: ${FCM_SERVICE_ACCOUNT_JSON:-}
+      FCM_SERVICE_ACCOUNT_JSON: ${FCM_SERVICE_ACCOUNT_JSON:-/secrets/fcm-service-account.json}
       GAME_EPOCH_DATE: ${GAME_EPOCH_DATE:-2025-01-01}
+    volumes:
+      - ./secrets:/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy

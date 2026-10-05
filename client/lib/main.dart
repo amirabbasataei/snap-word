@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/firebase_options.dart';
 import 'package:wordchain/core/router/app_router.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/challenge_watcher.dart';
@@ -42,8 +45,27 @@ Future<void> main() async {
 
   // Firebase — graceful fail without google-services config
   try {
-    await Firebase.initializeApp();
-    await GetIt.instance<NotificationService>().init();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    final notifications = getIt<NotificationService>();
+    await notifications.init();
+    // Register this device for pushes whenever a user is signed in (covers
+    // app start, login and signup). Logout deregisters in AuthCubit.
+    final auth = getIt<AuthCubit>();
+    void registerIfSignedIn(AuthState state) {
+      if (state is AuthAuthenticated) {
+        unawaited(() async {
+          await notifications.requestPermission();
+          await notifications.registerToken();
+        }());
+      }
+    }
+
+    registerIfSignedIn(auth.state);
+    auth.stream.distinct((a, b) => a.runtimeType == b.runtimeType).listen(
+      registerIfSignedIn,
+    );
   } catch (e) {
     Logger().w('Firebase init skipped: $e');
   }
@@ -59,10 +81,27 @@ class WordChainApp extends StatefulWidget {
 }
 
 class _WordChainAppState extends State<WordChainApp> {
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
   @override
   void initState() {
     super.initState();
     // Listen to FCM notification payloads and deep-link into the app.
+    // FCM doesn't display pushes while the app is open — surface them in-app.
+    GetIt.instance<NotificationService>().foregroundStream.listen((message) {
+      final n = message.notification;
+      if (n == null) return;
+      _messengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text([
+              if (n.title != null) n.title!,
+              if (n.body != null) n.body!,
+            ].join('\n')),
+          ),
+        );
+    });
     GetIt.instance<NotificationService>().payloadStream.listen((route) {
       if (route != null && route.isNotEmpty) {
         GetIt.instance<GoRouter>().go(route);
@@ -80,6 +119,7 @@ class _WordChainAppState extends State<WordChainApp> {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeMode,
+          scaffoldMessengerKey: _messengerKey,
           routerConfig: getIt<GoRouter>(),
           debugShowCheckedModeBanner: false,
           // Persian is RTL; the widget tree itself is not yet audited for
