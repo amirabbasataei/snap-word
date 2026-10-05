@@ -448,7 +448,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Friends:** `POST /friends/request` · `GET /friends` · `GET /friends/requests` · `POST /friends/respond` · `DELETE /friends/:friendId`
 
-**Friend Challenges:** `POST /challenges` · `POST /challenges/:id/respond` · `GET /challenges/pending`
+**Friend Challenges:** `POST /challenges` · `POST /challenges/:id/respond` · `GET /challenges/pending` · `GET /challenges/joinable` (challenger's accepted challenges whose room still awaits them)
 
 **Push Notifications:** `POST /notifications/token` · `DELETE /notifications/token`
 
@@ -650,7 +650,7 @@ Milestones repeat: next cycle is 60, 90, etc.
 
 ### Friend challenges
 - From a friend's profile → Challenge → confirm the Classic challenge.
-- Record created with `expires_at = NOW() + 24h`. On accept: private match room (bypasses matchmaking queue). On decline/expiry: challenger notified. `ExpireOldChallenges` runs every 5 minutes. Accepting creates the private room immediately; any room still `waiting` for its second player after `config.RoomWaitTimeoutSec` (120s) is cancelled (`match_cancelled`, reason `opponent_unavailable`, no coins charged) and removed, so an offline/absent challenger never leaves the accepter waiting forever. The challenge stays valid for the full 24h regardless of the sender's presence.
+- Record created with `expires_at = NOW() + 24h`. On accept: private match room (bypasses matchmaking queue). On decline/expiry: challenger notified. `ExpireOldChallenges` runs every 5 minutes. Accepting creates the private room immediately; any room still `waiting` for its second player after `config.RoomWaitTimeoutSec` (120s) is cancelled (`match_cancelled`, reason `opponent_unavailable`, no coins charged) and removed, so an offline/absent challenger never leaves the accepter waiting forever. **Challenger side:** the app-wide `ChallengeWatcher` (`core/services/challenge_watcher.dart`, started in `main()`) polls `GET /challenges/joinable` every 2s while the app is foregrounded and signed in, and pushes `/game` into the room from any screen (skipped when already on `/game`). It replaced the per-screen pollers in `FriendsCubit`/`LobbyScreen`. Push-based delivery is still unwired. While a multiplayer room waits for the second player, `GameScreen` shows `_WaitingForOpponent` (opponent name from `GameRouteArgs.opponentName`, spinner, countdown from `GameConstants.roomWaitTimeoutSec`, cancel button); `/challenges/joinable` rows include `challenged_username`. The challenge stays valid for the full 24h regardless of the sender's presence.
 
 ### Daily Challenge share card
 ```

@@ -145,6 +145,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             mode: c.mode,
             opponentType: 'multiplayer',
             roomId: roomId,
+            opponentName: c.challengerUsername,
           ),
         );
       }

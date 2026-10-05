@@ -46,6 +46,7 @@ abstract final class ApiEndpoints {
   static String respondChallenge(String id) => '$_base/challenges/$id/respond';
   static String challenge(String id) => '$_base/challenges/$id';
   static const String challengesPending = '$_base/challenges/pending';
+  static const String challengesJoinable = '$_base/challenges/joinable';
 
   // Push notifications
   static const String notificationToken = '$_base/notifications/token';

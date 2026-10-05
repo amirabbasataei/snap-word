@@ -107,29 +107,27 @@ class FriendsCubit extends Cubit<FriendsState> {
   Future<void> respondToChallenge(
     String challengeId,
     bool accept,
-    String mode,
-  ) async {
+    String mode, {
+    String? opponentName,
+  }) async {
     try {
       final roomId = await _repo.respondToChallenge(challengeId, accept);
       if (accept && roomId != null) {
-        emit(ChallengAccepted(roomId: roomId, mode: mode));
+        emit(
+          ChallengAccepted(
+            roomId: roomId,
+            mode: mode,
+            opponentName: opponentName,
+          ),
+        );
+        // ChallengAccepted is a one-shot navigation signal; restore the list
+        // so the tab isn't blank when the player comes back (e.g. cancels).
+        await load(silent: true);
       } else {
         await load();
       }
     } on FriendsException catch (e) {
       _emitActionError(e);
-    }
-  }
-
-  // The challenger has no other channel for the room id (push isn't wired),
-  // so poll until the friend accepts, then enter the same room.
-  Future<void> _joinRoomOnAccept(String challengeId, String mode) async {
-    final roomId = await _repo.waitForChallengeRoom(
-      challengeId,
-      isCancelled: () => isClosed,
-    );
-    if (roomId != null && !isClosed) {
-      emit(ChallengAccepted(roomId: roomId, mode: mode));
     }
   }
 
@@ -144,11 +142,10 @@ class FriendsCubit extends Cubit<FriendsState> {
 
   Future<void> sendChallenge(String friendId, String mode) async {
     try {
-      final challengeId = await _repo.sendChallenge(friendId, mode);
+      await _repo.sendChallenge(friendId, mode);
       emit(const FriendActionSuccess(challengeSentMessage));
       // Reload to get fresh state
       await load();
-      if (challengeId != null) _joinRoomOnAccept(challengeId, mode);
     } on FriendsException catch (e) {
       _emitActionError(e);
     }

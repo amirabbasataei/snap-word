@@ -23,6 +23,8 @@ type FriendChallenge struct {
 
 	// Only populated by GetPendingChallenges.
 	ChallengerUsername string
+	// Only populated by GetAcceptedByChallenger.
+	ChallengedUsername string
 }
 
 // ChallengeRepository handles friend challenge DB operations.
@@ -97,6 +99,35 @@ func (r *ChallengeRepository) GetPendingChallenges(ctx context.Context, userID s
 		if err := rows.Scan(&ch.ID, &ch.ChallengerID, &ch.ChallengedID, &ch.Mode, &ch.MatchID, &ch.RoomID,
 			&ch.Status, &ch.CreatedAt, &ch.ExpiresAt, &ch.ChallengerUsername); err != nil {
 			return nil, fmt.Errorf("GetPendingChallenges scan: %w", err)
+		}
+		challenges = append(challenges, ch)
+	}
+	return challenges, rows.Err()
+}
+
+// GetAcceptedByChallenger returns accepted, unexpired challenges the user sent
+// that have a room id (the caller filters out rooms that are no longer waiting).
+func (r *ChallengeRepository) GetAcceptedByChallenger(ctx context.Context, userID string) ([]*FriendChallenge, error) {
+	const q = `
+		SELECT c.id, c.challenger_id, c.challenged_id, c.mode, c.match_id, c.room_id, c.status,
+		       c.created_at, c.expires_at, COALESCE(u.username, '')
+		FROM friend_challenges c
+		JOIN users u ON u.id = c.challenged_id
+		WHERE c.challenger_id = $1 AND c.status = 'accepted' AND c.room_id IS NOT NULL AND c.expires_at > now()
+		ORDER BY c.created_at DESC`
+
+	rows, err := r.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, fmt.Errorf("GetAcceptedByChallenger: %w", err)
+	}
+	defer rows.Close()
+
+	var challenges []*FriendChallenge
+	for rows.Next() {
+		ch := &FriendChallenge{}
+		if err := rows.Scan(&ch.ID, &ch.ChallengerID, &ch.ChallengedID, &ch.Mode, &ch.MatchID, &ch.RoomID,
+			&ch.Status, &ch.CreatedAt, &ch.ExpiresAt, &ch.ChallengedUsername); err != nil {
+			return nil, fmt.Errorf("GetAcceptedByChallenger scan: %w", err)
 		}
 		challenges = append(challenges, ch)
 	}

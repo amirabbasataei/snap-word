@@ -49,11 +49,16 @@ class FriendActionSuccess extends FriendsState {
 class ChallengAccepted extends FriendsState {
   final String roomId;
   final String mode;
+  final String? opponentName;
 
-  const ChallengAccepted({required this.roomId, required this.mode});
+  const ChallengAccepted({
+    required this.roomId,
+    required this.mode,
+    this.opponentName,
+  });
 
   @override
-  List<Object?> get props => [roomId, mode];
+  List<Object?> get props => [roomId, mode, opponentName];
 }
 
 /// A friends action was blocked by a coin shortfall (challenge entry fee).

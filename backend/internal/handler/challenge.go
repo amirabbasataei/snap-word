@@ -36,6 +36,7 @@ type challengeResponse struct {
 	ChallengerID       string    `json:"challenger_id"`
 	ChallengerUsername string    `json:"challenger_username,omitempty"`
 	ChallengedID       string    `json:"challenged_id"`
+	ChallengedUsername string    `json:"challenged_username,omitempty"`
 	Mode               string    `json:"mode"`
 	Status             string    `json:"status"`
 	RoomID             *string   `json:"room_id,omitempty"`
@@ -152,12 +153,32 @@ func (h *ChallengeHandler) GetPending(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
+// GetJoinable handles GET /api/v1/challenges/joinable — challenges the caller
+// sent that were accepted and whose room is waiting for the caller.
+func (h *ChallengeHandler) GetJoinable(c *gin.Context) {
+	userID := c.GetString(middleware.ContextKeyUserID)
+
+	challenges, err := h.svc.GetJoinableChallenges(c.Request.Context(), userID)
+	if err != nil {
+		slog.Error("GetJoinableChallenges failed", "userID", userID, "error", err)
+		respondError(c, http.StatusInternalServerError, "internal_error", "failed to fetch joinable challenges")
+		return
+	}
+
+	resp := make([]challengeResponse, 0, len(challenges))
+	for _, ch := range challenges {
+		resp = append(resp, toChallResp(ch))
+	}
+	c.JSON(http.StatusOK, gin.H{"data": resp})
+}
+
 func toChallResp(ch *repository.FriendChallenge) challengeResponse {
 	return challengeResponse{
 		ID:                 ch.ID,
 		ChallengerID:       ch.ChallengerID,
 		ChallengerUsername: ch.ChallengerUsername,
 		ChallengedID:       ch.ChallengedID,
+		ChallengedUsername: ch.ChallengedUsername,
 		Mode:               ch.Mode,
 		Status:             ch.Status,
 		RoomID:             ch.RoomID,

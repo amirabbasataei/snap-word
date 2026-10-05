@@ -41,6 +41,10 @@ abstract final class GameConstants {
   // so ZVersus always displays round 1 of this constant.
   static const int multiplayerRoundsTotal = 5;
 
+  /// How long a room waits for its second player before the server cancels it
+  /// (mirrors `config.RoomWaitTimeoutSec`).
+  static const int roomWaitTimeoutSec = 120;
+
   /// Level titles by minimum level (levels themselves come from the server).
   static const List<(int, String)> levelTitles = [
     (1, 'تازه‌کار'),

@@ -149,6 +149,23 @@ func (s *ChallengeService) RespondToChallenge(ctx context.Context, challengeID, 
 	return roomID, nil
 }
 
+// GetJoinableChallenges returns challenges the user sent that the friend has
+// accepted and whose private room is still waiting for the user to join.
+func (s *ChallengeService) GetJoinableChallenges(ctx context.Context, userID string) ([]*repository.FriendChallenge, error) {
+	accepted, err := s.challengeRepo.GetAcceptedByChallenger(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("GetJoinableChallenges: %w", err)
+	}
+	joinable := make([]*repository.FriendChallenge, 0, len(accepted))
+	for _, ch := range accepted {
+		room, ok := s.hub.GetRoom(*ch.RoomID)
+		if ok && room.AwaitingPlayer(userID) {
+			joinable = append(joinable, ch)
+		}
+	}
+	return joinable, nil
+}
+
 // GetChallenge returns a challenge to either of its two participants.
 func (s *ChallengeService) GetChallenge(ctx context.Context, challengeID, userID string) (*repository.FriendChallenge, error) {
 	ch, err := s.challengeRepo.GetChallenge(ctx, challengeID)

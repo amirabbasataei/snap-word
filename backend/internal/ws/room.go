@@ -209,6 +209,22 @@ func (r *Room) expireIfWaiting() {
 	r.closeAfterDrain()
 }
 
+// AwaitingPlayer reports whether the room is still waiting for userID to
+// join (game not started, room not cancelled, userID not yet seated).
+func (r *Room) AwaitingPlayer(userID string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.state != stateWaiting {
+		return false
+	}
+	for _, pid := range r.playerOrder {
+		if pid == userID {
+			return false
+		}
+	}
+	return true
+}
+
 // Join registers a client with the room. On the second player it starts the game.
 // Reconnecting players (already in playerOrder) receive the current game state.
 func (r *Room) Join(client *Client) error {

@@ -1,5 +1,7 @@
 import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +28,7 @@ class GameRouteArgs {
   final String? roomId; // multiplayer WS room
   final String? myPlayerId; // authenticated user's UUID
   final String? startLetter; // daily challenge: first required letter
+  final String? opponentName; // friend challenge: shown while waiting to join
 
   const GameRouteArgs({
     required this.mode,
@@ -34,6 +37,7 @@ class GameRouteArgs {
     this.roomId,
     this.myPlayerId,
     this.startLetter,
+    this.opponentName,
   });
 
   bool get isMultiplayer => roomId != null;
@@ -73,13 +77,15 @@ class GameScreen extends StatelessWidget {
               startLetter: args.startLetter,
             ),
           ),
-      child: const _GameView(),
+      child: _GameView(args: args),
     );
   }
 }
 
 class _GameView extends StatelessWidget {
-  const _GameView();
+  final GameRouteArgs args;
+
+  const _GameView({required this.args});
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +132,20 @@ class _GameView extends StatelessWidget {
       },
       builder: (context, state) {
         final z = context.z;
+
+        if (args.isMultiplayer &&
+            (state is GameLoading || state is GameInitial)) {
+          return _WaitingForOpponent(
+            opponentName: args.opponentName ?? 'حریف',
+            onCancel: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+          );
+        }
 
         if (state is GameLoading || state is GameInitial) {
           return Scaffold(
@@ -327,6 +347,95 @@ class _DisconnectedBanner extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown while a multiplayer room waits for its second player. The countdown
+/// mirrors the server's room-wait timeout, after which the match is cancelled.
+class _WaitingForOpponent extends StatefulWidget {
+  final String opponentName;
+  final VoidCallback onCancel;
+
+  const _WaitingForOpponent({
+    required this.opponentName,
+    required this.onCancel,
+  });
+
+  @override
+  State<_WaitingForOpponent> createState() => _WaitingForOpponentState();
+}
+
+class _WaitingForOpponentState extends State<_WaitingForOpponent> {
+  static const _total = GameConstants.roomWaitTimeoutSec;
+  late final Timer _timer;
+  int _remaining = _total;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_remaining > 0) setState(() => _remaining--);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  String get _clock {
+    final m = (_remaining ~/ 60).toString().padLeft(2, '0');
+    final s = (_remaining % 60).toString().padLeft(2, '0');
+    return toPersianDigits('$m:$s');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return Scaffold(
+      backgroundColor: z.paper,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(ZSpacing.xxl),
+          child: Column(
+            children: [
+              const Spacer(),
+              SizedBox(
+                width: 200,
+                height: 200,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CircularProgressIndicator(
+                      value: _remaining / _total,
+                      strokeWidth: 8,
+                      strokeCap: StrokeCap.round,
+                      color: z.indigo,
+                      backgroundColor: z.line,
+                    ),
+                    Center(
+                      child: Text(
+                        _clock,
+                        style: ZTypography.display.copyWith(color: z.indigo),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: ZSpacing.xxl),
+              Text(
+                'در انتظار ورود ${widget.opponentName} به بازی…',
+                textAlign: TextAlign.center,
+                style: ZTypography.cardTitle.copyWith(color: z.ink),
+              ),
+              const Spacer(),
+              NeutralButton(label: 'انصراف', onPressed: widget.onCancel),
+            ],
+          ),
         ),
       ),
     );

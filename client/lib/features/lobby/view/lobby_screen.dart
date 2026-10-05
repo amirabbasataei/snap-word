@@ -67,7 +67,7 @@ class _LobbyViewState extends State<_LobbyView> {
     try {
       final repo = getIt<FriendsRepository>();
       final mode = _mode;
-      final challengeId = await repo.sendChallenge(friend.userId, mode);
+      await repo.sendChallenge(friend.userId, mode);
       if (mounted) {
         ZToast.show(
           context,
@@ -75,22 +75,7 @@ class _LobbyViewState extends State<_LobbyView> {
           kind: ZToastKind.success,
         );
       }
-      if (challengeId == null) return;
-      // Wait for the friend to accept, then join the same room.
-      final roomId = await repo.waitForChallengeRoom(
-        challengeId,
-        isCancelled: () => !mounted,
-      );
-      if (roomId != null && mounted) {
-        context.push(
-          '/game',
-          extra: GameRouteArgs(
-            mode: mode,
-            opponentType: 'multiplayer',
-            roomId: roomId,
-          ),
-        );
-      }
+      // Joining the room on accept is handled app-wide by ChallengeWatcher.
     } catch (e) {
       if (mounted) {
         if (e is FriendsException && e.code == 'insufficient_coins') {

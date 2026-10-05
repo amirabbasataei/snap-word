@@ -7,11 +7,13 @@ import 'package:logger/logger.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/router/app_router.dart';
 import 'package:wordchain/core/services/ad_service.dart';
+import 'package:wordchain/core/services/challenge_watcher.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
+import 'package:wordchain/features/friends/data/friends_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,12 @@ Future<void> main() async {
 
   // Build router after DI + auth are fully ready
   getIt.registerSingleton<GoRouter>(buildAppRouter());
+
+  ChallengeWatcher(
+    repository: getIt<FriendsRepository>(),
+    auth: getIt<AuthCubit>(),
+    router: getIt<GoRouter>(),
+  ).start();
 
   // Firebase — graceful fail without google-services config
   try {
