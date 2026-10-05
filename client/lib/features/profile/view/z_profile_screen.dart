@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shamsi_date/shamsi_date.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
@@ -13,6 +14,8 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
+import 'package:wordchain/core/utils/premium_catalog.dart';
+import 'package:wordchain/core/widgets/avatar_tile.dart';
 import 'package:wordchain/core/widgets/coin_pill.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
@@ -132,6 +135,32 @@ class _LoadedView extends StatelessWidget {
     );
   }
 
+  void _showAvatarSheet(BuildContext context, PremiumPerks perks) {
+    final z = context.z;
+    final cubit = context.read<ProfileCubit>();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: z.surface,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(ZRadius.sheetMax),
+        ),
+      ),
+      builder:
+          (sheetContext) => _AvatarPickerSheet(
+            selected: perks.avatarId,
+            onPick: (id) async {
+              Navigator.of(sheetContext).pop();
+              final error = await cubit.setAvatar(id);
+              if (error != null && context.mounted) {
+                ZToast.show(context, error, kind: ZToastKind.error);
+              }
+            },
+          ),
+    );
+  }
+
   void _showBuyCoinsSheet(BuildContext context) {
     final z = context.z;
     showModalBottomSheet<void>(
@@ -168,6 +197,7 @@ class _LoadedView extends StatelessWidget {
                 username: _username(context),
                 isGuest: state.isGuest,
                 level: stats.level,
+                perks: state.perks,
               ),
         ),
         const SizedBox(height: ZSpacing.xl),
@@ -227,6 +257,8 @@ class _LoadedView extends StatelessWidget {
           _GuestBanner(onTap: () => context.push('/login?return=/profile')),
           const SizedBox(height: ZSpacing.xl),
         ] else ...[
+          _PremiumCard(perks: state.perks),
+          const SizedBox(height: ZSpacing.md),
           const _LiveCoinRow(),
           const SizedBox(height: ZSpacing.md),
           Row(
@@ -241,8 +273,11 @@ class _LoadedView extends StatelessWidget {
               const SizedBox(width: ZSpacing.md),
               Expanded(
                 child: NeutralButton(
-                  label: 'اشتراک ویژه',
-                  onPressed: () => _purchaseProduct(context, 'premium_monthly'),
+                  label: state.perks.isPremium ? 'تغییر آواتار' : 'اشتراک ویژه',
+                  onPressed:
+                      state.perks.isPremium
+                          ? () => _showAvatarSheet(context, state.perks)
+                          : () => _purchaseProduct(context, 'premium_monthly'),
                 ),
               ),
             ],
@@ -452,15 +487,124 @@ class _LiveCoinRow extends StatelessWidget {
 // Header
 // ---------------------------------------------------------------------------
 
+/// Premium status. Free: lists what the subscription unlocks. Premium: shows
+/// the active-until date. (Premium itself is granted server-side only.)
+class _PremiumCard extends StatelessWidget {
+  final PremiumPerks perks;
+
+  const _PremiumCard({required this.perks});
+
+  static const _benefits = [
+    'ارسال پیام‌های سریع حین بازی دو نفره',
+    'آواتارهای ویژه و نشان تاج کنار نام',
+    'بدون تبلیغ + ۲۰۰ سکه در هفته',
+  ];
+
+  String _untilLabel(DateTime until) {
+    final j = Jalali.fromDateTime(until.toLocal());
+    return '${toPersianDigits(j.day)} ${j.formatter.mN} ${toPersianDigits(j.year)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return SolidCard(
+      radius: ZRadius.cardMax,
+      padding: const EdgeInsets.all(ZSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded, color: z.amberDeep),
+              const SizedBox(width: ZSpacing.sm),
+              Text(
+                perks.isPremium ? 'اشتراک ویژه فعال است' : 'اشتراک ویژه',
+                style: ZTypography.cardTitle.copyWith(color: z.ink),
+              ),
+            ],
+          ),
+          const SizedBox(height: ZSpacing.sm),
+          if (perks.isPremium && perks.premiumUntil != null)
+            Text(
+              'تا ${_untilLabel(perks.premiumUntil!)}',
+              style: ZTypography.metaLabel.copyWith(color: z.ink40),
+            )
+          else if (!perks.isPremium)
+            for (final b in _benefits)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text(
+                  '• $b',
+                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvatarPickerSheet extends StatelessWidget {
+  final String? selected;
+  final ValueChanged<String> onPick;
+
+  const _AvatarPickerSheet({required this.selected, required this.onPick});
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(ZSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'انتخاب آواتار',
+              style: ZTypography.cardTitle.copyWith(color: z.ink),
+            ),
+            const SizedBox(height: ZSpacing.md),
+            Wrap(
+              spacing: ZSpacing.md,
+              runSpacing: ZSpacing.md,
+              children: [
+                for (final id in PremiumCatalog.avatars.keys)
+                  GestureDetector(
+                    onTap: () => onPick(id),
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: id == selected ? z.ink : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: AvatarTile(name: id, size: 56, avatarId: id),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfileHeader extends StatelessWidget {
   final String username;
   final bool isGuest;
   final int level;
+  final PremiumPerks perks;
 
   const _ProfileHeader({
     required this.username,
     required this.isGuest,
     required this.level,
+    required this.perks,
   });
 
   @override
@@ -471,13 +615,16 @@ class _ProfileHeader extends StatelessWidget {
 
     return Row(
       children: [
-        LetterTile(
-          letter: initial,
-          size: 64,
-          accent: ZAccent.teal,
-          radius: 20,
-          fontSize: 28,
-        ),
+        if (PremiumCatalog.avatarGlyph(perks.avatarId) != null)
+          AvatarTile(name: username, size: 64, avatarId: perks.avatarId)
+        else
+          LetterTile(
+            letter: initial,
+            size: 64,
+            accent: ZAccent.teal,
+            radius: 20,
+            fontSize: 28,
+          ),
         const SizedBox(width: ZSpacing.lg),
         Expanded(
           child: Column(
@@ -496,6 +643,14 @@ class _ProfileHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (perks.isPremium) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.workspace_premium_rounded,
+                      size: 20,
+                      color: z.amberDeep,
+                    ),
+                  ],
                   if (!isGuest)
                     IconButton(
                       tooltip: 'ویرایش نام کاربری',

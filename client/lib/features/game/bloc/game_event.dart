@@ -59,6 +59,17 @@ class PowerupRequested extends GameEvent {
   List<Object?> get props => [type];
 }
 
+/// Sends a preset taunt (premium perk, multiplayer only). The server checks the
+/// subscription and rate limits; the UI only gates the button for convenience.
+class TauntSent extends GameEvent {
+  final String tauntId;
+
+  const TauntSent(this.tauntId);
+
+  @override
+  List<Object?> get props => [tauntId];
+}
+
 /// Freezes the solo/vs-AI clocks (turn timer and the AI's pending move) while
 /// something modal, like a rewarded ad, is on screen. No-op in multiplayer.
 class GamePaused extends GameEvent {

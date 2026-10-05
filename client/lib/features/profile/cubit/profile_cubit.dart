@@ -100,6 +100,12 @@ class ProfileCubit extends Cubit<ProfileState> {
     // server-authoritative since those ARE written server-side.
     final merged = await _statsDao.getStats();
 
+    // Perks are cosmetic: a failed lookup must not break the profile screen.
+    PremiumPerks perks = PremiumPerks.none;
+    try {
+      perks = await _repo.fetchPerks();
+    } catch (_) {}
+
     emit(
       ProfileLoaded(
         stats: ProfileStats(
@@ -118,7 +124,21 @@ class ProfileCubit extends Cubit<ProfileState> {
         ),
         powerups: powerups,
         isGuest: false,
+        perks: perks,
       ),
     );
+  }
+
+  /// Saves the premium avatar. Returns a Persian error message, or null on success.
+  Future<String?> setAvatar(String avatarId) async {
+    final current = state;
+    if (current is! ProfileLoaded) return null;
+    try {
+      await _repo.setAvatar(avatarId);
+      emit(current.copyWith(perks: current.perks.withAvatar(avatarId)));
+      return null;
+    } on ProfileException catch (e) {
+      return e.message;
+    }
   }
 }

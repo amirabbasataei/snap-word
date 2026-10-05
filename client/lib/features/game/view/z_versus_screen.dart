@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/di/injection.dart';
@@ -6,6 +8,8 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
+import 'package:wordchain/core/utils/premium_catalog.dart';
+import 'package:wordchain/core/widgets/avatar_tile.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
@@ -45,7 +49,14 @@ class ZVersusActiveScreen extends StatelessWidget {
         child: Column(
           children: [
             _Header(state: state),
-            Expanded(child: _BubbleChain(state: state)),
+            Expanded(
+              child: Stack(
+                children: [
+                  _BubbleChain(state: state),
+                  _TauntBubble(state: state),
+                ],
+              ),
+            ),
             _Footer(state: state),
           ],
         ),
@@ -88,8 +99,11 @@ class _Header extends StatelessWidget {
           // stay leaveable — added for real functional reasons, not style,
           // matching ZPlay/ZSolo's back-button-opens-end-game-dialog pattern.
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [ZBackButton(onTap: () => zShowEndGameDialog(context))],
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _TauntButton(premium: state.myPremium),
+              ZBackButton(onTap: () => zShowEndGameDialog(context)),
+            ],
           ),
           const SizedBox(height: ZSpacing.sm),
           Row(
@@ -98,22 +112,17 @@ class _Header extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    LetterTile(
-                      letter: myName.isNotEmpty ? myName[0] : 'ت',
-                      size: 36,
+                    _PlayerTile(
+                      name: myName,
+                      fallbackLetter: 'ت',
                       accent: ZAccent.teal,
+                      avatarId: state.myAvatarId,
                     ),
                     const SizedBox(width: ZSpacing.sm),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'تو',
-                          style: ZTypography.cardTitle.copyWith(
-                            color: z.ink,
-                            fontSize: 13,
-                          ),
-                        ),
+                        _NameRow(label: 'تو', premium: state.myPremium),
                         Text(
                           toPersianDigits(state.score),
                           style: ZTypography.screenTitle.copyWith(
@@ -133,13 +142,9 @@ class _Header extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          opponentName,
-                          style: ZTypography.cardTitle.copyWith(
-                            color: z.ink,
-                            fontSize: 13,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        _NameRow(
+                          label: opponentName,
+                          premium: state.opponentPremium,
                         ),
                         Text(
                           toPersianDigits(state.opponentScore),
@@ -151,10 +156,11 @@ class _Header extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(width: ZSpacing.sm),
-                    LetterTile(
-                      letter: opponentName.isNotEmpty ? opponentName[0] : '؟',
-                      size: 36,
+                    _PlayerTile(
+                      name: opponentName,
+                      fallbackLetter: '؟',
                       accent: ZAccent.indigo,
+                      avatarId: state.opponentAvatarId,
                     ),
                   ],
                 ),
@@ -168,6 +174,223 @@ class _Header extends StatelessWidget {
             opponentName: opponentName,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Header avatar: a premium avatar when the player has one, else the initial.
+class _PlayerTile extends StatelessWidget {
+  final String name;
+  final String fallbackLetter;
+  final ZAccent accent;
+  final String? avatarId;
+
+  const _PlayerTile({
+    required this.name,
+    required this.fallbackLetter,
+    required this.accent,
+    required this.avatarId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (PremiumCatalog.avatarGlyph(avatarId) != null) {
+      return AvatarTile(name: name, size: 36, avatarId: avatarId);
+    }
+    return LetterTile(
+      letter: name.isNotEmpty ? name[0] : fallbackLetter,
+      size: 36,
+      accent: accent,
+    );
+  }
+}
+
+/// Player name with a small crown when they have a premium subscription.
+class _NameRow extends StatelessWidget {
+  final String label;
+  final bool premium;
+
+  const _NameRow({required this.label, required this.premium});
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (premium) ...[
+          Icon(Icons.workspace_premium_rounded, size: 14, color: z.amberDeep),
+          const SizedBox(width: 3),
+        ],
+        Flexible(
+          child: Text(
+            label,
+            style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Opens the taunt picker. Free players see it locked with the upsell inside.
+class _TauntButton extends StatelessWidget {
+  final bool premium;
+
+  const _TauntButton({required this.premium});
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return IconButton(
+      tooltip: 'پیام سریع',
+      visualDensity: VisualDensity.compact,
+      icon: Icon(
+        premium
+            ? Icons.chat_bubble_outline_rounded
+            : Icons.lock_outline_rounded,
+        size: 22,
+        color: premium ? z.ink : z.ink40,
+      ),
+      onPressed: () => _showTauntSheet(context, premium: premium),
+    );
+  }
+}
+
+void _showTauntSheet(BuildContext context, {required bool premium}) {
+  final z = context.z;
+  final bloc = context.read<GameBloc>();
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: z.surface,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(ZRadius.sheetMax),
+      ),
+    ),
+    builder:
+        (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(ZSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'پیام سریع',
+                  style: ZTypography.cardTitle.copyWith(color: z.ink),
+                ),
+                if (!premium) ...[
+                  const SizedBox(height: ZSpacing.xs),
+                  Text(
+                    'ارسال پیام فقط برای اشتراک ویژه فعال است؛ دریافت پیام‌ها برای همه رایگان است.',
+                    style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                  ),
+                ],
+                const SizedBox(height: ZSpacing.md),
+                Wrap(
+                  spacing: ZSpacing.sm,
+                  runSpacing: ZSpacing.sm,
+                  children: [
+                    for (final entry in PremiumCatalog.taunts.entries)
+                      ActionChip(
+                        label: Text(entry.value),
+                        onPressed:
+                            premium
+                                ? () {
+                                  bloc.add(TauntSent(entry.key));
+                                  Navigator.of(sheetContext).pop();
+                                }
+                                : null,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+  );
+}
+
+/// Transient bubble showing the latest taunt for a few seconds; mine on the
+/// end side (like my chain bubbles), the opponent's on the start side.
+class _TauntBubble extends StatefulWidget {
+  final GameActive state;
+
+  const _TauntBubble({required this.state});
+
+  @override
+  State<_TauntBubble> createState() => _TauntBubbleState();
+}
+
+class _TauntBubbleState extends State<_TauntBubble> {
+  static const _visibleFor = Duration(seconds: 3);
+  Timer? _hideTimer;
+  int _shownSeq = 0;
+  bool _visible = false;
+
+  @override
+  void didUpdateWidget(_TauntBubble old) {
+    super.didUpdateWidget(old);
+    final seq = widget.state.tauntSeq;
+    if (seq != old.state.tauntSeq && seq != _shownSeq) {
+      _shownSeq = seq;
+      _visible = true;
+      _hideTimer?.cancel();
+      _hideTimer = Timer(_visibleFor, () {
+        if (mounted) setState(() => _visible = false);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    final text = PremiumCatalog.tauntText(widget.state.tauntId ?? '');
+    final mine = widget.state.tauntFromMe;
+
+    return Positioned(
+      top: ZSpacing.sm,
+      left: ZSpacing.screenGutter,
+      right: ZSpacing.screenGutter,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _visible && text != null ? 1 : 0,
+          child: Align(
+            alignment:
+                mine
+                    ? AlignmentDirectional.centerEnd
+                    : AlignmentDirectional.centerStart,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: ZSpacing.md,
+                vertical: ZSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: mine ? z.tintTeal : z.tintIndigo,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: mine ? z.teal : z.indigo),
+              ),
+              child: Text(
+                text ?? '',
+                style: ZTypography.body.copyWith(
+                  color: z.ink,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13.5,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -114,9 +114,13 @@ Never hardcode magic numbers. Read from:
 
 Server enforces one-use-per-type-per-match. Server rejects second use regardless of client state.
 
+## Premium perks (Phase 22)
+
+Cosmetic/social only — never gameplay advantages. `users.premium_until` is set server-side only (SQL until Bazaar/Myket billing exists; the Flutter purchase is still a mock). Premium players send **preset** taunts in 1v1 (`send_taunt {taunt: id}` → server re-checks the subscription, whitelist `config.TauntIDs`, cooldown/per-match cap; broadcasts `taunt`, or answers `taunt_rejected` to the sender); everyone receives them. Premium avatars (`config.AvatarIDs`, `PATCH /profile/avatar`, `GET /profile/perks`) and a crown badge arrive via `game_start.state.avatars` / `.premium`. Persian text/glyphs live in `client/lib/core/utils/premium_catalog.dart`; a test enforces ID parity with `config.go`. Never accept free-text taunts.
+
 ## Migrations (backend)
 
-SQL files embedded via `io/fs` (`migrations/embed.go`). Auto-run at server startup. Numbered `NNN_name.up.sql` / `.down.sql`. Current: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral`, `004_ai_system_user` (the AI opponent is the fixed user `config.SystemAIUserID`, excluded from stats/leaderboard).
+SQL files embedded via `io/fs` (`migrations/embed.go`). Auto-run at server startup. Numbered `NNN_name.up.sql` / `.down.sql`. Current: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral`, `004_ai_system_user`, … `010_premium_perks` (the AI opponent is the fixed user `config.SystemAIUserID`, excluded from stats/leaderboard).
 
 ## Error handling
 

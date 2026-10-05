@@ -3,14 +3,22 @@ import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/utils/premium_catalog.dart';
 
 /// Rounded-square initial avatar (32–64px). The accent is derived from the
-/// name so the same person always gets the same tile colour.
+/// name so the same person always gets the same tile colour. A known premium
+/// [avatarId] swaps the initial for that avatar's glyph.
 class AvatarTile extends StatelessWidget {
   final String name;
   final double size;
+  final String? avatarId;
 
-  const AvatarTile({super.key, required this.name, this.size = 40});
+  const AvatarTile({
+    super.key,
+    required this.name,
+    this.size = 40,
+    this.avatarId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +30,13 @@ class AvatarTile extends StatelessWidget {
       (z.coral, z.onCoral, z.coralDeep),
     ];
     final trimmed = name.trim();
-    final index = trimmed.isEmpty ? 0 : trimmed.codeUnitAt(0) % accents.length;
+    final glyph = PremiumCatalog.avatarGlyph(avatarId);
+    final index =
+        glyph != null
+            ? PremiumCatalog.avatarIndex(avatarId!) % accents.length
+            : trimmed.isEmpty
+            ? 0
+            : trimmed.codeUnitAt(0) % accents.length;
     final (bg, onColor, deep) = accents[index];
     final initial =
         trimmed.isEmpty ? '؟' : trimmed.substring(0, 1).toUpperCase();
@@ -41,10 +55,10 @@ class AvatarTile extends StatelessWidget {
         boxShadow: ZElevation.solidEdge(deep, depth: ZElevation.tileDepth),
       ),
       child: Text(
-        initial,
+        glyph ?? initial,
         style: ZTypography.cardTitle.copyWith(
           color: onColor,
-          fontSize: size * 0.4,
+          fontSize: glyph != null ? size * 0.5 : size * 0.4,
         ),
       ),
     );

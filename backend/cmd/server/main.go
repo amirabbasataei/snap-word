@@ -79,6 +79,7 @@ func main() {
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc, repository.NewDailyRepository(db))
 	powerupSvc := service.NewPowerupService(powerupRepo, userRepo)
 	monetizationSvc := service.NewMonetizationService(userRepo)
+	perksSvc := service.NewPerksService(userRepo)
 
 	hub := ws.NewHub(ws.RoomDeps{
 		MatchRepo:      matchRepo,
@@ -87,6 +88,7 @@ func main() {
 		LeaderboardSvc: leaderboardSvc,
 		XPSvc:          gameSvc,
 		Coins:          userRepo,
+		Perks:          userRepo,
 	})
 
 	matchSvc := service.NewMatchmakingService(rdb, hub, userRepo)
@@ -105,6 +107,7 @@ func main() {
 	gameHandler := handler.NewGameHandler(gameSvc)
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 	monetizationHandler := handler.NewMonetizationHandler(monetizationSvc)
+	perksHandler := handler.NewPerksHandler(perksSvc)
 	matchHandler := handler.NewMatchHandler(matchSvc)
 	wsHandler := handler.NewWSHandler(hub, authSvc)
 	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
@@ -145,6 +148,8 @@ func main() {
 	protected.GET("/game/:id", gameHandler.GetGame)
 	protected.GET("/profile/stats", gameHandler.GetStats)
 	protected.PATCH("/profile/username", authHandler.UpdateUsername)
+	protected.GET("/profile/perks", perksHandler.Get)
+	protected.PATCH("/profile/avatar", perksHandler.SetAvatar)
 	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
 	protected.POST("/powerup/use", powerupHandler.Use)
 	protected.POST("/rewarded-ad/claim", monetizationHandler.RewardedAd)

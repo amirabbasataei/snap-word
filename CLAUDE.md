@@ -42,6 +42,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 | 19 | Multiplayer Lives & Best-of-5 Rounds | [ ] Not Started |
 | 20 | Progression & Lobby Economy | [ ] Not Started |
 | 21 | Production Readiness | [ ] Not Started |
+| 22 | Premium Perks (taunts, avatars, badge) | [ ] In Progress — backend + client code complete, backend verified live (WS + REST); client UI **not yet verified on-device**; real billing (Bazaar/Myket) not built |
 
 ---
 
@@ -438,7 +439,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Referral:** `GET /referral/me` (own code, for sharing) · `GET /rewards` · `POST /rewards/:id/claim` (claimable prizes) · `POST /referral/redeem` — post-login, one-time entry point (b); see § Referral Code System below.
 
-**Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `PATCH /profile/username` (3–20 letters/digits/`_`; `400 invalid_username`, `409 username_taken`) · `GET /powerup/inventory` · `POST /powerup/use`
+**Game:** `POST /game/solo` · `GET /game/:id` · `GET /profile/stats` · `PATCH /profile/username` (3–20 letters/digits/`_`; `400 invalid_username`, `409 username_taken`) · `GET /profile/perks` (`is_premium`, `premium_until`, `avatar_id`) · `PATCH /profile/avatar` (premium only; `403 premium_required`, `400 invalid_avatar`) · `GET /powerup/inventory` · `POST /powerup/use`
 
 **Matchmaking:** `POST /match/queue` · `DELETE /match/queue`
 
@@ -461,6 +462,7 @@ Client → Server:
   { "type": "submit_word",  "word": "apple" }
   { "type": "use_powerup",  "powerup": "freeze" }
   { "type": "continue",     "method": "ad" | "coins" }   ← must arrive within 15s of loss_event
+  { "type": "send_taunt",   "taunt": "hurry_up" }         ← premium only; ID from config.TauntIDs
   { "type": "ping" }
 
 Server → Client:
@@ -475,6 +477,8 @@ Server → Client:
   { "type": "powerup_used",         "powerup": "freeze", "by": "..." }
   { "type": "game_over",            "winner": "...", "scores": { ... } }
   { "type": "opponent_disconnected" }
+  { "type": "taunt",                "player_id": "...", "taunt": "hurry_up" }        ← sent to both players
+  { "type": "taunt_rejected",       "reason": "premium_required" | "rate_limited" }  ← sender only
   { "type": "pong" }
 ```
 
@@ -577,7 +581,7 @@ Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `re
 | Rewarded ads | Watch ad → earn 20 coins or use as a free continue |
 | Coin IAP bundles | $0.99 / $2.99 / $9.99 |
 | Remove Ads IAP | ~$2.99 one-time; keeps rewarded ads (player-initiated) |
-| Premium subscription | ~$3.99/mo; no ads + 200 coins/week |
+| Premium subscription | no ads + 200 coins/week + taunts + avatars + badge (see § Premium Perks). Price is **Rial-denominated** for the Iranian market, not USD: launch proposal ۹۹۰٬۰۰۰ Rials/month (۹۹٬۰۰۰ Toman; show Toman in the UI), 3 months ۲٬۴۹۰٬۰۰۰, yearly ۷٬۹۰۰٬۰۰۰, weekly ۲۹۰٬۰۰۰. Unvalidated — check the live exchange rate and A/B the monthly price |
 
 ### Coin economy
 
@@ -590,6 +594,18 @@ Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `re
 **Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
 No energy systems, no artificial wait timers, no interstitial ads during an active game.
+
+---
+
+## 👑 Premium Perks (Phase 22)
+
+Cosmetic/social only — **never gameplay advantages** (no free power-ups in multiplayer, no entry-fee discounts, no matchmaking edge).
+
+- **State:** `users.premium_until` (TIMESTAMPTZ, migration `010_premium_perks`) — premium ⇔ `premium_until > now()`. It is set **server-side only**; no client endpoint can grant it. **Real billing (Cafe Bazaar / Myket / gateway receipt verification) is not built**: until it is, grant premium by SQL (`UPDATE users SET premium_until = now() + interval '30 days' WHERE phone = '…'`). `MockMonetizationService.purchase('premium_monthly')` still just returns success without granting anything — misleading, flagged, not fixed.
+- **Taunts (1v1 multiplayer):** premium players *send* preset messages, everyone *receives* them (the free-user exposure is the upsell). Client sends `send_taunt {taunt: id}`; `Room.processTaunt` rejects unknown IDs silently, re-checks the subscription on every send (`PerkLookup.GetPerks`, DB lookup outside the room lock), and enforces `config.TauntCooldownSec` (5 s) + `config.TauntMaxPerMatch` (8) per player. Preset IDs only — **never free text**. Persian text lives in `core/utils/premium_catalog.dart`; `test/core/utils/premium_catalog_test.dart` fails if the Dart IDs drift from `config.TauntIDs`/`config.AvatarIDs`. UI: chat button in ZVersus' header (lock icon + upsell text for free players), bottom sheet of chips, transient bubble (`_TauntBubble`, 3 s) driven by `GameActive.tauntId/tauntFromMe/tauntSeq`.
+- **Avatars:** 16 IDs (`config.AvatarIDs`) rendered by `AvatarTile(avatarId:)` as a glyph on a token-coloured tile — placeholder art (emoji) so no image licensing is involved; swap for commissioned illustrations later without changing the IDs. Picker: ZProfile → «تغییر آواتار» (premium) → `PATCH /profile/avatar`. `GetPerks` returns `avatar_id` only while premium is active, so a lapsed subscription silently falls back to the initial. Shown in ZProfile and ZVersus only (via `game_start.state.avatars`); **not yet** in friends/leaderboard lists.
+- **Badge:** crown icon next to the name in ZProfile and ZVersus (`game_start.state.premium`).
+- **Not built:** the 200 coins/week grant, a subscription-expiry push, avatars/badge in friends & leaderboard, the Flutter purchase flow.
 
 ---
 
@@ -740,7 +756,7 @@ flutter test
 ```
 
 - **Production host (`root@185.110.191.158`, Ubuntu, 2 GB RAM, shares the box with the unrelated `hamketab` site):** backend lives in `/opt/wordchain` as its own compose project `wordchain` (own Postgres 16 + Redis 7, no host ports published; `.env` there holds the generated `DB_PASSWORD`/`JWT_SECRET`; `secrets/fcm-service-account.json` is mounted). The app binds `127.0.0.1:18080`; nginx (`/etc/nginx/conf.d/wordchain.conf`) exposes it publicly on **`http://185.110.191.158:8080`** (WebSocket upgrade enabled) — the port-80 hamketab config is untouched. No TLS/domain yet. Redeploy: `rsync -a --exclude /server --exclude /.env --exclude 'docker-compose*.yml' --exclude '*.md' backend/ root@185.110.191.158:/opt/wordchain/` then `ssh root@… 'cd /opt/wordchain && docker compose up -d --build app'`. **Client:** `DioClient.baseUrl` defaults to that URL (`--dart-define=API_BASE_URL=http://10.0.2.2:8080` for a local backend); Android main manifest allows cleartext + INTERNET until TLS exists. Prod compose file is server-only (differs from the dev `docker-compose.yml`).
-- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels).
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels), `010_premium_perks` (adds `users.premium_until` + `users.avatar_id`).
 - **Ads (Tapsell Mediation, Android only):** the app key is a manifest placeholder in `client/android/app/build.gradle.kts`; the zone id is compile-time `--dart-define`s read in `core/services/ad_service.dart` (`AdZones`). Copy `client/tapsell.example.json` to `client/tapsell.json` (gitignored), fill in the rewarded zone id, and pass `--dart-define-from-file=tapsell.json` to `flutter run`/`build`. An empty id silently disables ads. Policy: only player-initiated rewarded ads — no interstitials and no banners (the Tapsell banner is a native overlay that leaked across screens and covered `ZBottomNav`; removed).
 - `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
 
@@ -759,6 +775,8 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 - **Long-word bonus in Go scorer** — Flutter-only today.
 
 **Known bugs / gaps (pre-existing, flagged not fixed):**
+- `test/core/widgets/shared_widgets_golden_test.dart` (light + dark) fails on a clean checkout too (1.05% pixel diff) — verified with `AvatarTile` reverted to HEAD; unrelated to Phase 22.
+- On the iOS simulator the app showed a blank white screen after launch in the Phase 22 verification attempt (no `GoogleService-Info.plist`; cause not isolated — unverified whether it is Firebase or something else). Not investigated further.
 - ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).
 - Kavenegar SMS delivery unverified end-to-end (no account yet; dev bypass OTP `1111`).
 - **FCM setup (done client-side, Firebase project `zanjir-269aa`):** `main.dart` initialises Firebase with `DefaultFirebaseOptions` and, while a user is signed in, registers the token (`NotificationService.registerToken`, also on token refresh). The OS permission is **not** asked at launch: the first time a signed-in user taps the Friends tab, `maybeAskNotificationPermission` (`core/widgets/notification_permission_dialog.dart`) shows an explainer dialog once (flag in `shared_preferences`) and requests permission only if they accept; `AuthCubit.logout` deregisters it first. Foreground pushes show as a SnackBar (`foregroundStream`). **Server delivery needs the service-account key:** download it from Firebase console → Project settings → Service accounts → Generate new private key and save it as `backend/secrets/fcm-service-account.json` (gitignored, mounted at `/secrets`), then `docker compose up -d --build app`. Until then sends are logged no-ops. **Dev caveat:** in Iran the Docker container can't reach Google (only the host does, via Nekoray), so FCM sends time out from the container; fine from a foreign server. Pushes carry no `data.route` yet, so tapping one just opens the app; iOS also needs `GoogleService-Info.plist` + APNs key (not done).

@@ -11,6 +11,7 @@ import 'package:wordchain/core/services/ai_opponent.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
+import 'package:wordchain/core/utils/premium_catalog.dart';
 import 'package:wordchain/features/game/bloc/game_event.dart';
 import 'package:wordchain/features/game/bloc/game_state.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
@@ -74,6 +75,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<WordSubmitted>(_onWordSubmitted);
     on<HintRequested>((_, _) => add(const PowerupRequested('hint')));
     on<PowerupRequested>(_onPowerupRequested);
+    on<TauntSent>(_onTauntSent);
     on<GamePaused>(_onGamePaused);
     on<GameResumed>(_onGameResumed);
     on<GameEnded>(_onGameEnded);
@@ -468,6 +470,15 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   GameActive _withNotice(GameActive g, String notice) =>
       g.copyWith(powerupNotice: notice);
+
+  void _onTauntSent(TauntSent event, Emitter<GameState> emit) {
+    final active = state;
+    if (active is! GameActive || !_isMultiplayer) return;
+    if (!PremiumCatalog.taunts.containsKey(event.tauntId)) return;
+    // The server re-checks the subscription and answers with `taunt` (echoed
+    // to both players) or `taunt_rejected`.
+    _wsService.send({'type': 'send_taunt', 'taunt': event.tauntId});
+  }
 
   Future<void> _onPowerupRequested(
     PowerupRequested event,
@@ -939,6 +950,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         _handleWsPowerupUsed(event.data, emit);
       case 'powerup_rejected':
         _handleWsPowerupRejected(emit);
+      case 'taunt':
+        _handleWsTaunt(event.data, emit);
+      case 'taunt_rejected':
+        _handleWsTauntRejected(event.data, emit);
       default:
         break;
     }
@@ -997,6 +1012,36 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     );
   }
 
+  void _handleWsTaunt(Map<String, dynamic> data, Emitter<GameState> emit) {
+    final active = state;
+    if (active is! GameActive) return;
+    final id = data['taunt'] as String? ?? '';
+    if (!PremiumCatalog.taunts.containsKey(id)) return;
+    emit(
+      active.copyWith(
+        taunt: id,
+        tauntFromMe: (data['player_id'] as String? ?? '') == _myPlayerId,
+      ),
+    );
+  }
+
+  void _handleWsTauntRejected(
+    Map<String, dynamic> data,
+    Emitter<GameState> emit,
+  ) {
+    final active = state;
+    if (active is! GameActive) return;
+    final reason = data['reason'] as String? ?? '';
+    emit(
+      _withNotice(
+        active,
+        reason == 'rate_limited'
+            ? 'کمی صبر کن، پیام‌ها محدودند'
+            : errorMessageFor(reason),
+      ),
+    );
+  }
+
   void _handleWsPowerupRejected(Emitter<GameState> emit) {
     final active = state;
     if (active is! GameActive) return;
@@ -1026,6 +1071,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       (id) => id != _myPlayerId,
       orElse: () => '',
     );
+    final premiumIds =
+        ((gameState['premium'] as List<dynamic>?) ?? const []).cast<String>();
+    final avatars = (gameState['avatars'] as Map<String, dynamic>?) ?? const {};
 
     emit(
       GameActive(
@@ -1043,6 +1091,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         isMyTurn: currentPlayer == _myPlayerId || currentPlayer.isEmpty,
         myPlayerId: _myPlayerId,
         opponentId: opponentId.isEmpty ? null : opponentId,
+        myPremium: premiumIds.contains(_myPlayerId),
+        opponentPremium:
+            opponentId.isNotEmpty && premiumIds.contains(opponentId),
+        myAvatarId: avatars[_myPlayerId] as String?,
+        opponentAvatarId: avatars[opponentId] as String?,
       ),
     );
   }

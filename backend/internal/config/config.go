@@ -162,6 +162,35 @@ const (
 	CoinShield    = 20 // not in the original spec's price list; priced between Extra Time and Freeze
 )
 
+// Premium perks. Taunts are preset messages only (never free text): the client
+// sends an ID and the server broadcasts it. Keep TauntIDs/AvatarIDs in sync with
+// GameConstants.tauntIds / premiumAvatarIds in the Flutter client.
+const (
+	TauntCooldownSec = 5 // minimum gap between one player's taunts
+	TauntMaxPerMatch = 8 // taunts one player may send in a single match
+)
+
+// TauntIDs is the whitelist of sendable taunts (Persian text lives client-side).
+var TauntIDs = map[string]bool{
+	"what_happened": true,
+	"hurry_up":      true,
+	"your_turn":     true,
+	"thinking":      true,
+	"too_easy":      true,
+	"lucky":         true,
+	"nice_one":      true,
+	"good_game":     true,
+	"oops":          true,
+}
+
+// AvatarIDs is the premium avatar catalogue (glyph/colour art lives client-side).
+var AvatarIDs = map[string]bool{
+	"lion": true, "simorgh": true, "falcon": true, "fox": true,
+	"owl": true, "cat": true, "horse": true, "dragon": true,
+	"crown": true, "pen": true, "flame": true, "moon": true,
+	"star": true, "diamond": true, "bolt": true, "rose": true,
+}
+
 // RewardClaimedRetention is how long a claimed reward stays listed on the rewards screen.
 const RewardClaimedRetention = 24 * time.Hour
 

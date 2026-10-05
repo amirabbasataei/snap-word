@@ -17,6 +17,7 @@ var (
 	ErrReferralAlreadyUsed = errors.New("referral code already used")
 	ErrRewardNotFound      = errors.New("referral reward not found or already claimed")
 	ErrInsufficientCoins   = errors.New("insufficient_coins")
+	ErrNotPremium          = errors.New("premium_required")
 )
 
 // User represents a phone-authenticated account. Username and ReferralCode
@@ -378,4 +379,65 @@ func (r *UserRepository) ClaimReward(ctx context.Context, rewardID, userID strin
 		return 0, fmt.Errorf("ClaimReward: %w", err)
 	}
 	return coins, nil
+}
+
+// Perks is a user's premium state and chosen avatar. AvatarID is returned only
+// while premium is active, so a lapsed subscription silently drops the avatar.
+type Perks struct {
+	Premium  bool
+	AvatarID string
+}
+
+// GetPerks returns the perks for the given user IDs; users with none are
+// omitted from the result (callers treat a missing key as the zero Perks).
+func (r *UserRepository) GetPerks(ctx context.Context, userIDs []string) (map[string]Perks, error) {
+	result := make(map[string]Perks, len(userIDs))
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+	const q = `SELECT id, COALESCE(avatar_id, '') FROM users
+		WHERE id = ANY($1) AND premium_until IS NOT NULL AND premium_until > now()`
+	rows, err := r.db.QueryContext(ctx, q, pq.Array(userIDs))
+	if err != nil {
+		return nil, fmt.Errorf("GetPerks: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, avatar string
+		if err := rows.Scan(&id, &avatar); err != nil {
+			return nil, fmt.Errorf("GetPerks scan: %w", err)
+		}
+		result[id] = Perks{Premium: true, AvatarID: avatar}
+	}
+	return result, rows.Err()
+}
+
+// GetPremiumUntil returns when the user's premium ends (nil when never premium).
+func (r *UserRepository) GetPremiumUntil(ctx context.Context, userID string) (*time.Time, error) {
+	var until sql.NullTime
+	err := r.db.QueryRowContext(ctx, `SELECT premium_until FROM users WHERE id = $1`, userID).Scan(&until)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GetPremiumUntil: %w", err)
+	}
+	if !until.Valid {
+		return nil, nil
+	}
+	return &until.Time, nil
+}
+
+// SetAvatar stores the chosen avatar, but only for an active premium user.
+// It returns ErrNotPremium otherwise.
+func (r *UserRepository) SetAvatar(ctx context.Context, userID, avatarID string) error {
+	res, err := r.db.ExecContext(ctx, `UPDATE users SET avatar_id = $1
+		WHERE id = $2 AND premium_until IS NOT NULL AND premium_until > now()`, avatarID, userID)
+	if err != nil {
+		return fmt.Errorf("SetAvatar: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotPremium
+	}
+	return nil
 }

@@ -32,6 +32,7 @@ type inMsg struct {
 	Word    string `json:"word"`
 	Powerup string `json:"powerup"`
 	Method  string `json:"method"` // "ad" | "coins" for continue
+	Taunt   string `json:"taunt"`  // preset taunt ID for send_taunt
 }
 
 // outMsg is the JSON envelope for server→client messages.
@@ -58,6 +59,8 @@ type outMsg struct {
 	// Payment receipt, sent only to the player who used the power-up.
 	Coins     *int `json:"coins,omitempty"`
 	Remaining *int `json:"remaining,omitempty"`
+	// Preset taunt ID (taunt) — the text is rendered client-side.
+	Taunt string `json:"taunt,omitempty"`
 }
 
 type gameStartState struct {
@@ -70,6 +73,10 @@ type gameStartState struct {
 	NextLetter  string         `json:"next_letter,omitempty"`
 	// EntryFee is the coins already deducted from each player (0 vs AI).
 	EntryFee int `json:"entry_fee,omitempty"`
+	// Avatars maps userID → premium avatar ID for players who have one.
+	Avatars map[string]string `json:"avatars,omitempty"`
+	// Premium lists the players with an active subscription (badge + taunts).
+	Premium []string `json:"premium,omitempty"`
 }
 
 // PowerupDeductor deducts one power-up use from a player's inventory.
@@ -119,6 +126,13 @@ type RoomDeps struct {
 	LeaderboardSvc LeaderboardUpdater
 	XPSvc          XPRecorder
 	Coins          CoinLedger // nil disables entry fees (tests)
+	Perks          PerkLookup // nil disables premium perks (tests)
+}
+
+// PerkLookup resolves premium status and avatars. Implemented by
+// repository.UserRepository.
+type PerkLookup interface {
+	GetPerks(ctx context.Context, userIDs []string) (map[string]repository.Perks, error)
 }
 
 // Room manages a single multiplayer game session.
@@ -157,6 +171,10 @@ type Room struct {
 	// entry fee: charged to both humans when the game starts, settled once
 	feeCharged bool
 
+	// taunts: per-player send count and last-send time (premium perk)
+	tauntCount map[string]int
+	tauntLast  map[string]time.Time
+
 	// continue state
 	pendingLossPlayer string
 
@@ -188,6 +206,8 @@ func newRoom(id, mode string, hub *Hub, deps RoomDeps) *Room {
 		continueUsed:       make(map[string]bool),
 		powerupUsedInMatch: make(map[string]map[string]bool),
 		shieldActive:       make(map[string]bool),
+		tauntCount:         make(map[string]int),
+		tauntLast:          make(map[string]time.Time),
 		waitTimeout:        time.Duration(config.RoomWaitTimeoutSec) * time.Second,
 	}
 	r.waitTimer = time.AfterFunc(r.waitTimeout, r.expireIfWaiting)
@@ -339,6 +359,8 @@ func (r *Room) handleMessage(client *Client, raw []byte) {
 		r.processUsePowerup(client, msg.Powerup)
 	case "continue":
 		r.processContinue(client, msg.Method)
+	case "send_taunt":
+		r.processTaunt(client, msg.Taunt)
 	case "ping":
 		r.sendTo(client.userID, mustMarshal(outMsg{Type: "pong"}))
 	default:
@@ -531,6 +553,86 @@ func receiptRemaining(rc *PowerupReceipt) *int {
 	return &rc.Remaining
 }
 
+// processTaunt relays a preset taunt to the room. It is a premium perk: the
+// sender's subscription is checked server-side on every send, the ID must be in
+// config.TauntIDs, and sends are cooldown- and count-limited per player.
+func (r *Room) processTaunt(client *Client, taunt string) {
+	if !config.TauntIDs[taunt] {
+		slog.Warn("ws: unknown taunt", "taunt", taunt, "userID", client.userID)
+		return
+	}
+
+	// Look the subscription up before taking the room lock (DB round-trip).
+	premium := false
+	if r.deps.Perks != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		perks, err := r.deps.Perks.GetPerks(ctx, []string{client.userID})
+		cancel()
+		if err != nil {
+			slog.Error("ws: taunt perk lookup failed", "userID", client.userID, "error", err)
+			return
+		}
+		premium = perks[client.userID].Premium
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.state != stateActive && r.state != stateContinueWin {
+		return
+	}
+	reject := func(reason string) {
+		r.sendTo(client.userID, mustMarshal(outMsg{Type: "taunt_rejected", Reason: reason}))
+	}
+	if !premium {
+		reject("premium_required")
+		return
+	}
+	now := time.Now()
+	if last, ok := r.tauntLast[client.userID]; ok &&
+		now.Sub(last) < time.Duration(config.TauntCooldownSec)*time.Second {
+		reject("rate_limited")
+		return
+	}
+	if r.tauntCount[client.userID] >= config.TauntMaxPerMatch {
+		reject("rate_limited")
+		return
+	}
+	r.tauntLast[client.userID] = now
+	r.tauntCount[client.userID]++
+
+	r.broadcast(mustMarshal(outMsg{Type: "taunt", PlayerID: client.userID, Taunt: taunt}))
+}
+
+// perkState returns the premium player IDs and avatar map for game_start.
+// Must be called with r.mu held.
+func (r *Room) perkState() (premium []string, avatars map[string]string) {
+	if r.deps.Perks == nil {
+		return nil, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	perks, err := r.deps.Perks.GetPerks(ctx, r.playerOrder)
+	if err != nil {
+		slog.Error("ws: perk lookup failed", "room", r.id, "error", err)
+		return nil, nil
+	}
+	for _, pid := range r.playerOrder {
+		p, ok := perks[pid]
+		if !ok {
+			continue
+		}
+		premium = append(premium, pid)
+		if p.AvatarID != "" {
+			if avatars == nil {
+				avatars = make(map[string]string)
+			}
+			avatars[pid] = p.AvatarID
+		}
+	}
+	return premium, avatars
+}
+
 func (r *Room) processContinue(client *Client, method string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -695,6 +797,7 @@ func (r *Room) startGame() {
 		scoresCopy[k] = v
 	}
 
+	premium, avatars := r.perkState()
 	r.broadcast(mustMarshal(outMsg{
 		Type: "game_start",
 		State: &gameStartState{
@@ -705,6 +808,8 @@ func (r *Room) startGame() {
 			Chain:       []string{},
 			Scores:      scoresCopy,
 			EntryFee:    r.feePaid(),
+			Premium:     premium,
+			Avatars:     avatars,
 		},
 	}))
 
@@ -925,6 +1030,7 @@ func (r *Room) sendCurrentState(client *Client) {
 	if len(r.playerOrder) > r.currentTurn {
 		currentTurnID = r.playerOrder[r.currentTurn]
 	}
+	premium, avatars := r.perkState()
 	r.sendTo(client.userID, mustMarshal(outMsg{
 		Type: "game_start",
 		State: &gameStartState{
@@ -935,6 +1041,8 @@ func (r *Room) sendCurrentState(client *Client) {
 			Chain:       append([]string{}, r.chain...),
 			Scores:      scoresCopy,
 			NextLetter:  nextLetter,
+			Premium:     premium,
+			Avatars:     avatars,
 		},
 	}))
 }

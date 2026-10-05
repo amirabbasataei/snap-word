@@ -75,6 +75,37 @@ class PowerupItem {
   );
 }
 
+/// Premium subscription state + chosen avatar (`GET /profile/perks`).
+class PremiumPerks {
+  final bool isPremium;
+  final DateTime? premiumUntil;
+  final String? avatarId;
+
+  const PremiumPerks({
+    required this.isPremium,
+    this.premiumUntil,
+    this.avatarId,
+  });
+
+  static const none = PremiumPerks(isPremium: false);
+
+  factory PremiumPerks.fromJson(Map<String, dynamic> json) {
+    final avatar = json['avatar_id'] as String?;
+    final until = json['premium_until'] as String?;
+    return PremiumPerks(
+      isPremium: json['is_premium'] as bool? ?? false,
+      premiumUntil: until == null ? null : DateTime.tryParse(until),
+      avatarId: (avatar == null || avatar.isEmpty) ? null : avatar,
+    );
+  }
+
+  PremiumPerks withAvatar(String id) => PremiumPerks(
+    isPremium: isPremium,
+    premiumUntil: premiumUntil,
+    avatarId: id,
+  );
+}
+
 class ProfileRepository {
   final Dio _dio;
 
@@ -105,6 +136,30 @@ class ProfileRepository {
       throw ProfileException(
         apiErrorMessage(e, fallback: loadInventoryFailedMessage),
       );
+    }
+  }
+
+  Future<PremiumPerks> fetchPerks() async {
+    try {
+      final response = await _dio.get(ApiEndpoints.profilePerks);
+      return PremiumPerks.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      throw ProfileException(
+        apiErrorMessage(e, fallback: loadProfileFailedMessage),
+      );
+    }
+  }
+
+  Future<void> setAvatar(String avatarId) async {
+    try {
+      await _dio.patch(
+        ApiEndpoints.profileAvatar,
+        data: {'avatar_id': avatarId},
+      );
+    } on DioException catch (e) {
+      throw ProfileException(apiErrorMessage(e));
     }
   }
 }

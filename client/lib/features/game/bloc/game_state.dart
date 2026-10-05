@@ -65,6 +65,18 @@ class GameActive extends GameState {
   final int powerupNoticeSeq;
   final int? coinBalance;
 
+  // Premium perks (multiplayer): who has a subscription / avatar, as reported
+  // by the server in game_start. `tauntId` is the latest taunt shown in the
+  // match, `tauntFromMe` says whose it is, and `tauntSeq` bumps on every taunt
+  // so an identical one re-triggers the bubble.
+  final bool myPremium;
+  final bool opponentPremium;
+  final String? myAvatarId;
+  final String? opponentAvatarId;
+  final String? tauntId;
+  final bool tauntFromMe;
+  final int tauntSeq;
+
   const GameActive({
     required this.localMatchId,
     required this.mode,
@@ -95,6 +107,13 @@ class GameActive extends GameState {
     this.powerupNotice,
     this.powerupNoticeSeq = 0,
     this.coinBalance,
+    this.myPremium = false,
+    this.opponentPremium = false,
+    this.myAvatarId,
+    this.opponentAvatarId,
+    this.tauntId,
+    this.tauntFromMe = false,
+    this.tauntSeq = 0,
   });
 
   GameActive copyWith({
@@ -120,6 +139,8 @@ class GameActive extends GameState {
     bool? shieldActive,
     String? powerupNotice,
     int? coinBalance,
+    String? taunt,
+    bool? tauntFromMe,
   }) {
     return GameActive(
       localMatchId: localMatchId,
@@ -161,6 +182,13 @@ class GameActive extends GameState {
       powerupNoticeSeq:
           powerupNotice != null ? powerupNoticeSeq + 1 : powerupNoticeSeq,
       coinBalance: coinBalance ?? this.coinBalance,
+      myPremium: myPremium,
+      opponentPremium: opponentPremium,
+      myAvatarId: myAvatarId,
+      opponentAvatarId: opponentAvatarId,
+      tauntId: taunt ?? tauntId,
+      tauntFromMe: tauntFromMe ?? this.tauntFromMe,
+      tauntSeq: taunt != null ? tauntSeq + 1 : tauntSeq,
     );
   }
 
@@ -198,6 +226,11 @@ class GameActive extends GameState {
     shieldActive,
     powerupNoticeSeq,
     coinBalance,
+    myPremium,
+    opponentPremium,
+    myAvatarId,
+    opponentAvatarId,
+    tauntSeq,
   ];
 }
 
