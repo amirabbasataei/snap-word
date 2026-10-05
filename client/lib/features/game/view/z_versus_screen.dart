@@ -20,8 +20,7 @@ const _accentCycle = [
 ];
 
 /// ZVersus — true 1v1 multiplayer active-game screen: dual score header,
-/// round indicator (visual-only placeholder — no round-tracking WS/backend
-/// logic exists yet, see `GameConstants.multiplayerRoundsTotal`), a turn
+/// a turn
 /// banner with inline countdown, and the same chat-bubble shared chain as
 /// ZPlay. No lives chip: unlike solo/daily (client-authoritative) and per
 /// REDESIGN_PLAN.md §1 decision 1, multiplayer word validation is fully
@@ -126,24 +125,6 @@ class _Header extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              Column(
-                children: [
-                  Text(
-                    'دست ۱',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.ink40,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    'از ${toPersianDigits(GameConstants.multiplayerRoundsTotal)}',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.ink40,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                ],
               ),
               Expanded(
                 child: Row(

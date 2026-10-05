@@ -89,7 +89,7 @@ flutter test                                 # widget/bloc tests
 
 Never hardcode magic numbers. Read from:
 - Go: `internal/config/config.go` (`TurnTimerClassicSec`, `ContinueWindowSec`, etc.)
-- Flutter: `lib/features/game/data/game_constants.dart` (`GameConstants`, incl. `soloLives`, `longWordBonusMinLength`, `multiplayerRoundsTotal`)
+- Flutter: `lib/features/game/data/game_constants.dart` (`GameConstants`, incl. `soloLives`, `longWordBonusMinLength`)
 
 ## Game rule changes (Phase 17)
 

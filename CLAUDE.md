@@ -751,7 +751,7 @@ flutter test
 Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost. 
 
 **Phase 17 placeholders (canvas UI rendered, no backend yet — never fake client-side):**
-- **Best-of-5 rounds** (ZVersus) — static «دست ۱ از ۵» (`GameConstants.multiplayerRoundsTotal`); needs new WS round events + server round state + match-level winner rule.
+- **Best-of-5 rounds** (ZVersus) — the static «دست ۱ از ۵» indicator was removed (it was a placeholder with no backend); needs new WS round events + server round state + match-level winner rule before re-adding.
 - **Multiplayer lives** — not built (see Lives).
 - **Badges** (ZProfile) — not built; the card is commented out, no schema fields.
 - **Levels** (ZProfile) — implemented: `player_stats.xp` is credited with each game's score at game end (`GameService.AddXP`: solo/AI/daily via `CreateSoloGame`, multiplayer via `ws.Room` `XPSvc`). Curve in `config.XPForLevel`/`LevelFromXP` (step to level L+1 = 1000×L); `GET /profile/stats` returns `xp`, `level`, `xp_in_level`, `xp_for_next`. Level titles live in `GameConstants.levelTitles`. Counts from migration 009 onward (no backfill); guests have no level.
