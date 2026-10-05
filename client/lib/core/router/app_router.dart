@@ -19,6 +19,7 @@ import 'package:wordchain/features/home/view/home_screen.dart';
 import 'package:wordchain/features/leaderboard/view/z_board_screen.dart';
 import 'package:wordchain/features/lobby/view/lobby_screen.dart';
 import 'package:wordchain/features/profile/view/z_profile_screen.dart';
+import 'package:wordchain/features/splash/view/splash_screen.dart';
 
 /// Notifies GoRouter when the auth *kind* changes (the only thing the redirect
 /// reads). Refreshing on every emit (e.g. a coin-balance update) would rebuild
@@ -46,7 +47,7 @@ class _AuthStateNotifier extends ChangeNotifier {
 /// Called from main() after DI + AuthCubit.init() are complete.
 GoRouter buildAppRouter() {
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
     refreshListenable: _AuthStateNotifier(getIt<AuthCubit>()),
     redirect: (context, state) {
       final path = state.uri.toString();
@@ -63,6 +64,10 @@ GoRouter buildAppRouter() {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => _MainShell(shell: shell),
         branches: [
