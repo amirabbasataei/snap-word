@@ -1236,6 +1236,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     Map<String, dynamic> data,
     Emitter<GameState> emit,
   ) {
+    if (data['reason'] == 'opponent_unavailable') {
+      emit(const GameError('حریف وارد بازی نشد. سکه‌ای از تو کم نشد.'));
+      return;
+    }
     final broke = (data['player_id'] as String? ?? '') == _myPlayerId;
     emit(GameError(broke
         ? 'سکهٔ کافی برای ورودی بازی نداری.'

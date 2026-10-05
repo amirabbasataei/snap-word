@@ -647,7 +647,7 @@ Milestones repeat: next cycle is 60, 90, etc.
 
 ### Friend challenges
 - From a friend's profile → Challenge → confirm the Classic challenge.
-- Record created with `expires_at = NOW() + 24h`. On accept: private match room (bypasses matchmaking queue). On decline/expiry: challenger notified. `ExpireOldChallenges` runs every 5 minutes.
+- Record created with `expires_at = NOW() + 24h`. On accept: private match room (bypasses matchmaking queue). On decline/expiry: challenger notified. `ExpireOldChallenges` runs every 5 minutes. Accepting creates the private room immediately; any room still `waiting` for its second player after `config.RoomWaitTimeoutSec` (120s) is cancelled (`match_cancelled`, reason `opponent_unavailable`, no coins charged) and removed, so an offline/absent challenger never leaves the accepter waiting forever. The challenge stays valid for the full 24h regardless of the sender's presence.
 
 ### Daily Challenge share card
 ```

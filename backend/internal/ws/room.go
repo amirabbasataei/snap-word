@@ -37,24 +37,24 @@ type inMsg struct {
 // outMsg is the JSON envelope for server→client messages.
 // Fields are omitted when zero-valued except those that can legitimately be zero.
 type outMsg struct {
-	Type        string          `json:"type"`
-	Word        string          `json:"word,omitempty"`
-	Score       int             `json:"score,omitempty"`
-	NextLetter  string          `json:"next_letter,omitempty"`
-	PlayerID    string          `json:"player_id,omitempty"`
-	Reason      string          `json:"reason,omitempty"`
-	RemainingMs int64           `json:"remaining_ms,omitempty"`
-	DeadlineMs  int64           `json:"deadline_ms,omitempty"`
-	Decision    string          `json:"decision,omitempty"`
-	Powerup     string          `json:"powerup,omitempty"`
-	By          string          `json:"by,omitempty"`
-	Winner      string          `json:"winner,omitempty"`
-	Scores      map[string]int  `json:"scores,omitempty"`
+	Type        string         `json:"type"`
+	Word        string         `json:"word,omitempty"`
+	Score       int            `json:"score,omitempty"`
+	NextLetter  string         `json:"next_letter,omitempty"`
+	PlayerID    string         `json:"player_id,omitempty"`
+	Reason      string         `json:"reason,omitempty"`
+	RemainingMs int64          `json:"remaining_ms,omitempty"`
+	DeadlineMs  int64          `json:"deadline_ms,omitempty"`
+	Decision    string         `json:"decision,omitempty"`
+	Powerup     string         `json:"powerup,omitempty"`
+	By          string         `json:"by,omitempty"`
+	Winner      string         `json:"winner,omitempty"`
+	Scores      map[string]int `json:"scores,omitempty"`
 	// Entry fee settlement on game_over: Payout is credited to Winner (or
 	// refunded to each player when there is no winner).
-	Payout int `json:"payout,omitempty"`
-	State       *gameStartState `json:"state,omitempty"`
-	Hint        string          `json:"hint,omitempty"`
+	Payout int             `json:"payout,omitempty"`
+	State  *gameStartState `json:"state,omitempty"`
+	Hint   string          `json:"hint,omitempty"`
 	// Payment receipt, sent only to the player who used the power-up.
 	Coins     *int `json:"coins,omitempty"`
 	Remaining *int `json:"remaining,omitempty"`
@@ -145,7 +145,7 @@ type Room struct {
 	scores        map[string]int
 	streaks       map[string]int
 	continueUsed  map[string]bool
-	currentTurn   int       // index into playerOrder
+	currentTurn   int // index into playerOrder
 	turnStartTime time.Time
 	turnDeadline  time.Time
 
@@ -166,10 +166,14 @@ type Room struct {
 
 	// cancel func for the periodic timer-update goroutine
 	timerUpdateCancel context.CancelFunc
+
+	// fires if the room is still waiting for its second player after waitTimeout
+	waitTimer   *time.Timer
+	waitTimeout time.Duration
 }
 
 func newRoom(id, mode string, hub *Hub, deps RoomDeps) *Room {
-	return &Room{
+	r := &Room{
 		id:                 id,
 		mode:               mode,
 		hub:                hub,
@@ -184,7 +188,25 @@ func newRoom(id, mode string, hub *Hub, deps RoomDeps) *Room {
 		continueUsed:       make(map[string]bool),
 		powerupUsedInMatch: make(map[string]map[string]bool),
 		shieldActive:       make(map[string]bool),
+		waitTimeout:        time.Duration(config.RoomWaitTimeoutSec) * time.Second,
 	}
+	r.waitTimer = time.AfterFunc(r.waitTimeout, r.expireIfWaiting)
+	return r
+}
+
+// expireIfWaiting cancels a room whose game never started (e.g. a friend
+// challenge whose other player never connected) so nobody waits forever and
+// the room does not leak. No coins have been charged at this point.
+func (r *Room) expireIfWaiting() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.state != stateWaiting {
+		return
+	}
+	slog.Info("ws: waiting room expired", "room", r.id)
+	r.state = stateFinished
+	r.broadcast(mustMarshal(outMsg{Type: "match_cancelled", Reason: "opponent_unavailable"}))
+	r.closeAfterDrain()
 }
 
 // Join registers a client with the room. On the second player it starts the game.
@@ -628,6 +650,7 @@ func (r *Room) closeAfterDrain() {
 
 func (r *Room) startGame() {
 	// Must be called with r.mu held.
+	r.waitTimer.Stop()
 	if !r.chargeEntryFees() {
 		return
 	}

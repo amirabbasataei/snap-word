@@ -372,3 +372,18 @@ func TestRoomSecondContinueNotAllowed(t *testing.T) {
 		t.Error("expected game_over after second loss with no continue available")
 	}
 }
+
+func TestRoom_WaitingRoomExpires(t *testing.T) {
+	hub := NewHub(RoomDeps{})
+	room := hub.GetOrCreateRoom("wait-expire", "classic")
+	room.waitTimer.Reset(10 * time.Millisecond)
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, ok := hub.GetRoom("wait-expire"); !ok {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("waiting room was not removed after timeout")
+}

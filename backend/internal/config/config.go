@@ -115,17 +115,18 @@ var AIDifficulties = map[string]AIDifficulty{
 // Game tuning defaults — read from this package in handlers and services.
 // Change values here; never scatter magic numbers elsewhere.
 const (
-	TurnTimerClassicSec    = 15  // seconds per turn in Classic mode
-	EntryFeeCoins          = 20  // coins each human player pays to start a 1v1 match; the winner takes the 2× pot
-	MinWordLength          = 3   // minimum accepted word length
-	ContinueWindowSec      = 15  // seconds the losing player has to decide on a continue
-	MaxDailyWords          = 20  // word limit for Daily Challenge
-	ContinueCoins          = 25  // coins spent to continue (Classic)
-	DailyRetryCoins        = 25  // coins spent to retry Daily Challenge
-	HintSessionLimit       = 5   // free hint uses per guest session
-	AIFallbackWaitSec      = 30  // matchmaking waits this long before pairing with AI
-	OTPMaxAttempts         = 5   // failed verify-otp attempts allowed before lockout
-	OTPMaxSendsPerDay      = 10  // send-otp requests allowed per phone per rolling day
+	TurnTimerClassicSec = 15  // seconds per turn in Classic mode
+	EntryFeeCoins       = 20  // coins each human player pays to start a 1v1 match; the winner takes the 2× pot
+	RoomWaitTimeoutSec  = 120 // a room whose second player never joins is cancelled and removed after this long
+	MinWordLength       = 3   // minimum accepted word length
+	ContinueWindowSec   = 15  // seconds the losing player has to decide on a continue
+	MaxDailyWords       = 20  // word limit for Daily Challenge
+	ContinueCoins       = 25  // coins spent to continue (Classic)
+	DailyRetryCoins     = 25  // coins spent to retry Daily Challenge
+	HintSessionLimit    = 5   // free hint uses per guest session
+	AIFallbackWaitSec   = 30  // matchmaking waits this long before pairing with AI
+	OTPMaxAttempts      = 5   // failed verify-otp attempts allowed before lockout
+	OTPMaxSendsPerDay   = 10  // send-otp requests allowed per phone per rolling day
 
 	// SystemAIUserID is the fixed, well-known users.id row for the matchmaking
 	// AI-fallback opponent (backend/internal/service/matchmaking.go). A single
@@ -135,24 +136,24 @@ const (
 	SystemAIUserID = "00000000-0000-0000-0000-000000000001"
 
 	// Coin rewards
-	CoinWinMatch         = 30
-	CoinDailyLogin       = 10
-	CoinRewardedAd       = 20
-	CoinMatchStreak5     = 15
-	CoinDailyStreak3     = 30
-	CoinDailyStreak7     = 100
-	CoinDailyStreak30    = 500
-	CoinWeeklyRank1      = 500
-	CoinWeeklyRank2      = 300
-	CoinWeeklyRank3      = 100
-	CoinReferralSignup   = 100 // new user, valid referral code supplied at signup
-	CoinReferralRedeem   = 50  // existing user, one-time post-login referral redemption
-	CoinDailyComplete    = 10  // finishing the day's Daily Challenge
-	CoinDailyRank1       = 100 // Daily Challenge top 3 of the day (paid at Iran midnight)
-	CoinDailyRank2       = 60
-	CoinDailyRank3       = 30
-	CoinWelcome          = 50  // flat bonus for every new account, credited at signup
-	CoinReferralInviter  = 50  // referrer, per invited user; claimed from the inbox
+	CoinWinMatch        = 30
+	CoinDailyLogin      = 10
+	CoinRewardedAd      = 20
+	CoinMatchStreak5    = 15
+	CoinDailyStreak3    = 30
+	CoinDailyStreak7    = 100
+	CoinDailyStreak30   = 500
+	CoinWeeklyRank1     = 500
+	CoinWeeklyRank2     = 300
+	CoinWeeklyRank3     = 100
+	CoinReferralSignup  = 100 // new user, valid referral code supplied at signup
+	CoinReferralRedeem  = 50  // existing user, one-time post-login referral redemption
+	CoinDailyComplete   = 10  // finishing the day's Daily Challenge
+	CoinDailyRank1      = 100 // Daily Challenge top 3 of the day (paid at Iran midnight)
+	CoinDailyRank2      = 60
+	CoinDailyRank3      = 30
+	CoinWelcome         = 50 // flat bonus for every new account, credited at signup
+	CoinReferralInviter = 50 // referrer, per invited user; claimed from the inbox
 
 	// Power-up costs
 	CoinHint      = 10
