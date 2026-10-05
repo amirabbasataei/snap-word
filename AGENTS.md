@@ -122,6 +122,7 @@ SQL files embedded via `io/fs` (`migrations/embed.go`). Auto-run at server start
 
 - **Go**: `fmt.Errorf("...: %w", err)`. Sentinels in service layer (`ErrInvalidWord`, `ErrNotYourTurn`). Handlers map to HTTP via `respondError`.
 - **Flutter**: typed exceptions (`AuthException`, `NetworkException`, `ValidationException`). Cubits/Blocs catch and emit error states. Never let exceptions bubble to widgets.
+- **Flutter user-facing API text is Persian, centralised in `core/utils/error_messages.dart`** (`errorMessageFor(code)`, `apiErrorCode(e)`, success helpers). Never show the backend's English `message` or `e.toString()`. New backend `respondError` codes need a Persian entry (enforced by `test/core/utils/error_messages_test.dart`).
 
 ## UI (Phase 17 visual system)
 

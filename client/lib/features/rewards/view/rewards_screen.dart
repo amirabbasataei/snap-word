@@ -15,6 +15,7 @@ import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/rewards/cubit/rewards_cubit.dart';
 import 'package:wordchain/features/rewards/data/rewards_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 /// Claimable prizes (referral, streak, rank, daily) behind the home gift icon.
 class RewardsScreen extends StatefulWidget {
@@ -237,7 +238,7 @@ class _RewardTileState extends State<_RewardTile> {
       final coins = await getIt<RewardsCubit>().claim(widget.item.id);
       ZToast.showOn(
         overlay,
-        '${toPersianDigits(coins)} سکه به حسابت اضافه شد!',
+        coinsAwardedMessage(coins),
         kind: ZToastKind.success,
       );
     } on RewardsException catch (e) {
@@ -245,11 +246,7 @@ class _RewardTileState extends State<_RewardTile> {
       if (e.code == 'reward_not_found') {
         await getIt<RewardsCubit>().refresh();
       } else {
-        ZToast.showOn(
-          overlay,
-          'مشکلی پیش آمد، دوباره تلاش کن',
-          kind: ZToastKind.error,
-        );
+        ZToast.showOn(overlay, errorMessageFor(e.code), kind: ZToastKind.error);
       }
     }
     if (mounted) setState(() => _claiming = false);

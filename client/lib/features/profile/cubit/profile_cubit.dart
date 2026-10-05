@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 part 'profile_state.dart';
 
@@ -35,8 +36,10 @@ class ProfileCubit extends Cubit<ProfileState> {
         await _loadAuthenticated();
       }
       _hasLoaded = true;
-    } catch (e) {
-      if (!quiet) emit(ProfileError(e.toString()));
+    } on ProfileException catch (e) {
+      if (!quiet) emit(ProfileError(e.message));
+    } catch (_) {
+      if (!quiet) emit(const ProfileError(loadProfileFailedMessage));
     }
   }
 

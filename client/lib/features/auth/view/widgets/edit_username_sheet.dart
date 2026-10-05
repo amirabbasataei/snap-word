@@ -7,6 +7,7 @@ import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 /// Bottom sheet for changing the signed-in user's username.
 class EditUsernameSheet extends StatefulWidget {
@@ -54,7 +55,7 @@ class _EditUsernameSheetState extends State<EditUsernameSheet> {
       return;
     }
     if (!_validRe.hasMatch(name)) {
-      setState(() => _error = _mapError('invalid_username'));
+      setState(() => _error = errorMessageFor('invalid_username'));
       return;
     }
     setState(() {
@@ -65,28 +66,17 @@ class _EditUsernameSheetState extends State<EditUsernameSheet> {
       await getIt<AuthCubit>().updateUsername(name);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ZToast.show(context, 'نام کاربری تغییر کرد', kind: ZToastKind.success);
+      ZToast.show(context, usernameChangedMessage, kind: ZToastKind.success);
     } on AuthException catch (e) {
       setState(() {
         _submitting = false;
-        _error = _mapError(e.code);
+        _error = errorMessageFor(e.code);
       });
     } on NetworkException catch (_) {
       setState(() {
         _submitting = false;
-        _error = 'خطا در اتصال به اینترنت';
+        _error = networkErrorMessage;
       });
-    }
-  }
-
-  String _mapError(String code) {
-    switch (code) {
-      case 'invalid_username':
-        return 'نام کاربری باید ۳ تا ۲۰ حرف، عدد یا _ باشد';
-      case 'username_taken':
-        return 'این نام کاربری قبلاً گرفته شده';
-      default:
-        return 'مشکلی پیش آمد، دوباره تلاش کن';
     }
   }
 

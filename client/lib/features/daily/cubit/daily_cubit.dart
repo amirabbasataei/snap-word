@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 part 'daily_state.dart';
 
@@ -23,7 +24,7 @@ class DailyCubit extends Cubit<DailyState> {
     } on DailyException catch (e) {
       emit(DailyError(e.code, e.message));
     } catch (_) {
-      emit(const DailyError('unknown_error', 'Failed to load daily challenge'));
+      emit(const DailyError(unknownErrorCode, loadDailyFailedMessage));
     }
   }
 
@@ -43,7 +44,7 @@ class DailyCubit extends Cubit<DailyState> {
       }
       emit(DailyError(e.code, e.message));
     } catch (_) {
-      emit(const DailyError('unknown_error', 'Could not start retry'));
+      emit(const DailyError(unknownErrorCode, dailyRetryFailedMessage));
     }
   }
 }

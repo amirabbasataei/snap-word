@@ -13,6 +13,7 @@ import 'package:wordchain/features/auth/view/widgets/carrier_chip.dart';
 import 'package:wordchain/features/auth/view/widgets/phone_input_field.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
 import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 /// ZLogin — phone-entry screen (matches ZPhone.dc.html). Replaces the old
 /// email/password login_screen.dart entirely.
@@ -64,26 +65,13 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
     } on AuthException catch (e) {
       setState(() {
         _sending = false;
-        _error = _mapSendError(e.code);
+        _error = errorMessageFor(e.code);
       });
     } on NetworkException catch (_) {
       setState(() {
         _sending = false;
-        _error = 'خطا در اتصال به اینترنت';
+        _error = networkErrorMessage;
       });
-    }
-  }
-
-  String _mapSendError(String code) {
-    switch (code) {
-      case 'invalid_phone':
-        return 'شماره موبایل معتبر نیست';
-      case 'resend_cooldown':
-        return 'کمی صبر کن و دوباره تلاش کن';
-      case 'rate_limited':
-        return 'درخواست‌های زیادی برای این شماره ثبت شده؛ بعداً دوباره امتحان کن';
-      default:
-        return 'مشکلی پیش آمد، دوباره تلاش کن';
     }
   }
 

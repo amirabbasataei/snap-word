@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 class LobbyException implements Exception {
   final String message;
@@ -18,16 +19,6 @@ class MatchQueueResult {
 
   const MatchQueueResult({required this.roomId, required this.isAi});
 }
-
-// Machine-readable error codes from match.go, mapped to Persian — mirrors
-// the pattern already used for auth/OTP error codes (see _mapOtpError in
-// z_otp_verify_screen.dart) rather than surfacing the server's raw English
-// `message` field.
-const _errorCodeMessages = {
-  'no_match': 'حریفی پیدا نشد. دوباره تلاش کن.',
-  'invalid_mode': 'نوع بازی نامعتبر است',
-  'insufficient_coins': 'برای ورودی بازی سکهٔ کافی نداری.',
-};
 
 class LobbyRepository {
   final Dio _dio;
@@ -60,9 +51,9 @@ class LobbyRepository {
         isAi: data['is_ai'] as bool? ?? false,
       );
     } on DioException catch (e) {
-      final code = e.response?.data?['error']?['code'] as String?;
+      final code = apiErrorCode(e);
       throw LobbyException(
-        _errorCodeMessages[code] ?? 'پیوستن به صف ناموفق بود',
+        errorMessageFor(code, fallback: joinQueueFailedMessage),
         code: code,
       );
     }

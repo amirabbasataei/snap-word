@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 part 'leaderboard_state.dart';
 
@@ -39,7 +40,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     } on LeaderboardException catch (e) {
       if (!quiet) emit(LeaderboardError(e.message));
     } catch (_) {
-      if (!quiet) emit(const LeaderboardError('Failed to load leaderboard'));
+      if (!quiet) emit(const LeaderboardError(loadLeaderboardFailedMessage));
     }
   }
 

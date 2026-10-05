@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 class AuthException implements Exception {
   final String code;
@@ -166,9 +167,9 @@ class AuthRepository {
   Future<void> refreshToken() async {
     final token = _prefs.getString('jwt_refresh_token');
     if (token == null) {
-      throw const AuthException(
+      throw AuthException(
         code: 'no_refresh_token',
-        message: 'No refresh token available',
+        message: errorMessageFor('no_refresh_token'),
       );
     }
     try {
@@ -212,14 +213,9 @@ class AuthRepository {
         e.type == DioExceptionType.receiveTimeout ||
         e.type == DioExceptionType.sendTimeout ||
         e.type == DioExceptionType.connectionError) {
-      return const NetworkException(
-        'Connection error. Please check your internet connection.',
-      );
+      return const NetworkException(networkErrorMessage);
     }
-    final body = e.response?.data;
-    final code = body?['error']?['code'] as String? ?? 'unknown_error';
-    final message =
-        body?['error']?['message'] as String? ?? 'An error occurred.';
-    return AuthException(code: code, message: message);
+    final code = apiErrorCode(e);
+    return AuthException(code: code, message: errorMessageFor(code));
   }
 }

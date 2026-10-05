@@ -5,6 +5,7 @@ import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/features/lobby/cubit/lobby_state.dart';
 import 'package:wordchain/features/lobby/data/lobby_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 export 'lobby_state.dart';
 
@@ -60,7 +61,7 @@ class LobbyCubit extends Cubit<LobbyState> {
       emit(LobbyError(e.message, insufficientCoins: e.isInsufficientCoins));
     } catch (e) {
       _cancelTimers();
-      emit(const LobbyError('خطا در اتصال به اینترنت'));
+      emit(const LobbyError(networkErrorMessage));
     }
   }
 

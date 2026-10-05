@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 class ProfileException implements Exception {
   final String message;
@@ -87,8 +88,7 @@ class ProfileRepository {
       );
     } on DioException catch (e) {
       throw ProfileException(
-        e.response?.data?['error']?['message'] as String? ??
-            'Failed to load profile',
+        apiErrorMessage(e, fallback: loadProfileFailedMessage),
       );
     }
   }
@@ -103,8 +103,7 @@ class ProfileRepository {
           .toList();
     } on DioException catch (e) {
       throw ProfileException(
-        e.response?.data?['error']?['message'] as String? ??
-            'Failed to load inventory',
+        apiErrorMessage(e, fallback: loadInventoryFailedMessage),
       );
     }
   }

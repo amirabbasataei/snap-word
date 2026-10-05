@@ -15,6 +15,7 @@ import 'package:wordchain/features/game/bloc/game_event.dart';
 import 'package:wordchain/features/game/bloc/game_state.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 export 'game_event.dart';
 export 'game_state.dart';
@@ -177,7 +178,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       if (event.resumeMatchId != null) {
         final match = await _gameRepository.getMatchById(event.resumeMatchId!);
         if (match == null) {
-          emit(const GameError('Could not find match to resume.'));
+          emit(const GameError(resumeMatchNotFoundMessage));
           return;
         }
         localMatchId = match.id;
@@ -243,7 +244,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       _startTurnTimer();
     } catch (e) {
       _log.e('GameStarted failed', error: e);
-      emit(GameError(e.toString()));
+      emit(const GameError(gameStartFailedMessage));
     }
   }
 

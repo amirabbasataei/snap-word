@@ -13,6 +13,7 @@ import 'package:wordchain/features/auth/cubit/otp_flow_cubit.dart';
 import 'package:wordchain/features/auth/view/widgets/otp_box_row.dart';
 import 'package:wordchain/features/auth/view/widgets/otp_keypad.dart';
 import 'package:wordchain/features/auth/view/widgets/resend_countdown_pill.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 /// Route args for `/login/otp`, carried via GoRouterState.extra (not query
 /// params — a stashed referral code shouldn't round-trip through a URL).
@@ -28,27 +29,6 @@ class OtpVerifyArgs {
     this.referralCode,
     required this.initialCooldownSeconds,
   });
-}
-
-String _mapOtpError(String code) {
-  switch (code) {
-    case 'invalid_code':
-      return 'کد وارد شده اشتباه است';
-    case 'code_expired':
-      return 'این کد منقضی شده؛ یک کد جدید بگیر';
-    case 'too_many_attempts':
-      return 'تعداد تلاش‌هایت زیاد شد؛ یک کد جدید بگیر';
-    case 'otp_not_requested':
-      return 'برای این شماره کدی درخواست نشده';
-    case 'resend_cooldown':
-      return 'کمی صبر کن و دوباره تلاش کن';
-    case 'rate_limited':
-      return 'درخواست‌های زیادی برای این شماره ثبت شده؛ بعداً دوباره امتحان کن';
-    case 'network_error':
-      return 'مشکل در اتصال به اینترنت';
-    default:
-      return 'مشکلی پیش آمد، دوباره تلاش کن';
-  }
 }
 
 class ZOtpVerifyScreen extends StatelessWidget {
@@ -220,7 +200,7 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                     if (state.errorMessage != null) ...[
                       const SizedBox(height: ZSpacing.md),
                       Text(
-                        _mapOtpError(state.errorCode ?? ''),
+                        errorMessageFor(state.errorCode),
                         style: ZTypography.metaLabel.copyWith(color: z.coral),
                       ),
                     ],

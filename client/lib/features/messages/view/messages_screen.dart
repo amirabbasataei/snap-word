@@ -12,6 +12,7 @@ import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 /// Actionable invitations behind the home inbox icon: friend requests and
 /// friend challenges. Claimable coin prizes live on the rewards screen.
@@ -158,8 +159,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ZToast.showOn(
         overlay,
         e.code == 'challenger_cannot_afford'
-            ? 'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد'
-            : 'این چالش دیگر معتبر نیست',
+            ? errorMessageFor(e.code)
+            : errorMessageFor('challenge_expired'),
         kind: ZToastKind.error,
       );
     }

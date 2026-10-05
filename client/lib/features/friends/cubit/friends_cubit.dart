@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 part 'friends_state.dart';
 
@@ -55,7 +56,7 @@ class FriendsCubit extends Cubit<FriendsState> {
     } on FriendsException catch (e) {
       if (!quiet) emit(FriendsError(e.message));
     } catch (_) {
-      if (!quiet) emit(const FriendsError('Failed to load friends'));
+      if (!quiet) emit(const FriendsError(loadFriendsFailedMessage));
     }
   }
 
@@ -68,12 +69,7 @@ class FriendsCubit extends Cubit<FriendsState> {
       load(silent: true);
       return;
     }
-    final message = switch (e.code) {
-      'challenger_cannot_afford' =>
-        'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد.',
-      'challenge_expired' => 'این چالش دیگر معتبر نیست.',
-      _ => e.message,
-    };
+    final message = e.message;
     final current = state;
     if (current is FriendsLoaded) {
       emit(
@@ -92,7 +88,7 @@ class FriendsCubit extends Cubit<FriendsState> {
   Future<void> sendFriendRequest(String username) async {
     try {
       await _repo.sendFriendRequest(username);
-      emit(FriendActionSuccess('Friend request sent to $username'));
+      emit(FriendActionSuccess(friendRequestSentMessage(username)));
       await load();
     } on FriendsException catch (e) {
       _emitActionError(e);
@@ -149,7 +145,7 @@ class FriendsCubit extends Cubit<FriendsState> {
   Future<void> sendChallenge(String friendId, String mode) async {
     try {
       final challengeId = await _repo.sendChallenge(friendId, mode);
-      emit(const FriendActionSuccess('Challenge sent!'));
+      emit(const FriendActionSuccess(challengeSentMessage));
       // Reload to get fresh state
       await load();
       if (challengeId != null) _joinRoomOnAccept(challengeId, mode);

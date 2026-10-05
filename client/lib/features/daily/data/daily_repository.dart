@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 class DailyException implements Exception {
   final String code;
@@ -131,10 +132,8 @@ class DailyRepository {
       );
     } on DioException catch (e) {
       throw DailyException(
-        code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
-        message:
-            e.response?.data?['error']?['message'] as String? ??
-            'Failed to load daily challenge',
+        code: apiErrorCode(e),
+        message: apiErrorMessage(e, fallback: loadDailyFailedMessage),
       );
     }
   }
@@ -153,10 +152,8 @@ class DailyRepository {
       );
     } on DioException catch (e) {
       throw DailyException(
-        code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
-        message:
-            e.response?.data?['error']?['message'] as String? ??
-            'Failed to load daily leaderboard',
+        code: apiErrorCode(e),
+        message: apiErrorMessage(e, fallback: loadDailyBoardFailedMessage),
       );
     }
   }
@@ -166,10 +163,8 @@ class DailyRepository {
       await _dio.post(ApiEndpoints.dailyRetry);
     } on DioException catch (e) {
       throw DailyException(
-        code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
-        message:
-            e.response?.data?['error']?['message'] as String? ??
-            'Not enough coins or retry already used',
+        code: apiErrorCode(e),
+        message: apiErrorMessage(e, fallback: dailyRetryFailedMessage),
       );
     }
   }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 class FriendsException implements Exception {
   final String code;
@@ -221,11 +222,7 @@ class FriendsRepository {
   }
 
   FriendsException _mapError(DioException e) {
-    final code =
-        e.response?.data?['error']?['code'] as String? ?? 'unknown_error';
-    final message =
-        e.response?.data?['error']?['message'] as String? ??
-        'An error occurred.';
-    return FriendsException(code: code, message: message);
+    final code = apiErrorCode(e);
+    return FriendsException(code: code, message: errorMessageFor(code));
   }
 }

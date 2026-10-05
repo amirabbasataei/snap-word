@@ -7,6 +7,7 @@ import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 /// The "کد دعوت داری؟" referral entry point, shared by both places it can be
 /// triggered from:
@@ -65,32 +66,19 @@ class _ReferralBottomSheetState extends State<ReferralBottomSheet> {
       Navigator.of(context).pop();
       ZToast.show(
         context,
-        '$awarded سکه به حسابت اضافه شد!',
+        coinsAwardedMessage(awarded),
         kind: ZToastKind.success,
       );
     } on AuthException catch (e) {
       setState(() {
         _submitting = false;
-        _error = _mapError(e.code);
+        _error = errorMessageFor(e.code);
       });
     } on NetworkException catch (_) {
       setState(() {
         _submitting = false;
-        _error = 'خطا در اتصال به اینترنت';
+        _error = networkErrorMessage;
       });
-    }
-  }
-
-  String _mapError(String code) {
-    switch (code) {
-      case 'self_referral':
-        return 'نمی‌توانی از کد خودت استفاده کنی';
-      case 'referral_not_found':
-        return 'کد دعوت پیدا نشد';
-      case 'referral_already_used':
-        return 'قبلاً یک کد دعوت استفاده کرده‌ای';
-      default:
-        return 'مشکلی پیش آمد، دوباره تلاش کن';
     }
   }
 

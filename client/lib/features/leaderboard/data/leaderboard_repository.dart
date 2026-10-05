@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 class LeaderboardException implements Exception {
   final String message;
@@ -71,8 +72,7 @@ class LeaderboardRepository {
       );
     } on DioException catch (e) {
       throw LeaderboardException(
-        e.response?.data?['error']?['message'] as String? ??
-            'Failed to load leaderboard',
+        apiErrorMessage(e, fallback: loadLeaderboardFailedMessage),
       );
     }
   }

@@ -173,6 +173,7 @@ Do not invent layouts — if a screen is covered by a design file, follow it. If
 ### Error handling
 - **Go**: wrap errors with `fmt.Errorf("...: %w", err)`. Handlers translate errors to HTTP via a single `respondError` helper. Define sentinel errors in the service layer (e.g., `ErrInvalidWord`, `ErrNotYourTurn`); handlers map them to status codes.
 - **Flutter**: repositories throw typed exceptions (`AuthException`, `NetworkException`, `ValidationException`). Cubits/Blocs catch and emit error states. Never let an exception bubble into the widget tree.
+- **All user-facing API error/success text is Persian and lives in `core/utils/error_messages.dart`.** Never show the backend's English `message` or `e.toString()`: repositories build exceptions from `apiErrorCode(e)` + `errorMessageFor(code)`; cubits/screens show that message. Success toasts use the helpers there (`challengeSentMessage`, `coinsAwardedMessage`, …). Adding a backend `respondError` code requires a Persian entry — `test/core/utils/error_messages_test.dart` fails otherwise.
 
 ### Logging
 - **Go**: `slog` only. Structured fields, no `fmt.Println`. Log at boundaries (handler entry, repo errors, WS events). No PII or passwords in logs.
