@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -102,8 +103,13 @@ class _GameView extends StatelessWidget {
   Widget _buildGame(BuildContext context) {
     return BlocConsumer<GameBloc, GameState>(
       listenWhen: (prev, curr) =>
-          curr is GameOver && curr.isSaved && prev is GameOver && !prev.isSaved,
+          (curr is GameOver && curr.isSaved && prev is GameOver && !prev.isSaved) ||
+          (curr is GameError && curr.insufficientCoins),
       listener: (context, state) {
+        if (state is GameError) {
+          showInsufficientCoinsDialog(context);
+          return;
+        }
         // Daily challenge: auto-navigate to result screen once saved
         if (state is GameOver && state.mode == 'daily') {
           context.go('/daily');

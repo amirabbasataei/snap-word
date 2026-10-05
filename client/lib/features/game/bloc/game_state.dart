@@ -293,8 +293,11 @@ class GameOver extends GameState {
 class GameError extends GameState {
   final String message;
 
-  const GameError(this.message);
+  /// The match was cancelled because this player couldn't pay the entry fee.
+  final bool insufficientCoins;
+
+  const GameError(this.message, {this.insufficientCoins = false});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, insufficientCoins];
 }

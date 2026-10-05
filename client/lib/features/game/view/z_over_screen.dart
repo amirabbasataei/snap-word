@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -68,7 +69,7 @@ class _ZOverScreenState extends State<ZOverScreen> {
       final spent = monetization.spendCoins(GameConstants.continueCostCoins);
       if (!spent) {
         if (context.mounted) {
-          ZToast.show(context, 'سکه کافی نداری.', kind: ZToastKind.error);
+          showInsufficientCoinsDialog(context, cost: GameConstants.continueCostCoins);
         }
         return;
       }

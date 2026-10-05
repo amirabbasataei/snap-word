@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -145,6 +146,9 @@ class _FriendsViewState extends State<_FriendsView> {
               roomId: state.roomId,
             ),
           );
+        }
+        if (state is FriendsInsufficientCoins) {
+          showInsufficientCoinsDialog(context);
         }
         if (state is FriendActionSuccess) {
           ZToast.show(context, state.message, kind: ZToastKind.success);

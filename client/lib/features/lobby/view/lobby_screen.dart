@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -88,10 +89,11 @@ class _LobbyViewState extends State<_LobbyView> {
       }
     } catch (e) {
       if (mounted) {
-        final broke = e is FriendsException && e.code == 'insufficient_coins';
-        ZToast.show(
-            context, broke ? 'برای ورودی بازی سکهٔ کافی نداری.' : 'ارسال دعوت‌نامه ناموفق بود',
-            kind: ZToastKind.error);
+        if (e is FriendsException && e.code == 'insufficient_coins') {
+          showInsufficientCoinsDialog(context);
+        } else {
+          ZToast.show(context, 'ارسال دعوت‌نامه ناموفق بود', kind: ZToastKind.error);
+        }
       }
     }
   }
@@ -109,6 +111,10 @@ class _LobbyViewState extends State<_LobbyView> {
       listener: (context, state) {
         if (state is LobbyMatchFound) {
           _navigateToGame(context, state);
+        }
+        if (state is LobbyError && state.insufficientCoins) {
+          context.read<LobbyCubit>().reset();
+          showInsufficientCoinsDialog(context);
         }
       },
       builder: (context, state) {

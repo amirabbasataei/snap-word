@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
@@ -146,12 +147,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
           ),
         );
       }
-    } on FriendsException {
+    } on FriendsException catch (e) {
+      if (e.code == 'insufficient_coins') {
+        // The invite stays pending so it can be accepted once coins are earned.
+        if (mounted) await showInsufficientCoinsDialog(context);
+        return;
+      }
       // Expired or answered elsewhere → resync instead of a dead-end error.
       await getIt<MessagesCubit>().refresh();
       ZToast.showOn(
         overlay,
-        'این چالش دیگر معتبر نیست',
+        e.code == 'challenger_cannot_afford'
+            ? 'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد'
+            : 'این چالش دیگر معتبر نیست',
         kind: ZToastKind.error,
       );
     }

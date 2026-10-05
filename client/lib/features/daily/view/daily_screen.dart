@@ -13,6 +13,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/iran_time.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/streak_strip.dart';
 import 'package:wordchain/core/widgets/tint_chip.dart';
@@ -81,8 +82,11 @@ class _DailyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<DailyCubit, DailyState>(
-      listenWhen: (prev, curr) => curr is DailyRetryAvailable,
+      listenWhen: (prev, curr) => curr is DailyRetryAvailable || curr is DailyInsufficientCoins,
       listener: (context, state) {
+        if (state is DailyInsufficientCoins) {
+          showInsufficientCoinsDialog(context, cost: GameConstants.dailyRetryCostCoins);
+        }
         if (state is DailyRetryAvailable) {
           context.push(
             '/game',

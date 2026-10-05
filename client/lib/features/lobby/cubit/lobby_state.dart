@@ -39,8 +39,12 @@ class LobbyMatchFound extends LobbyState {
 class LobbyError extends LobbyState {
   final String message;
 
-  const LobbyError(this.message);
+  /// The player can't pay the entry fee — the screen shows the earn-coins
+  /// dialog instead of a retry block.
+  final bool insufficientCoins;
+
+  const LobbyError(this.message, {this.insufficientCoins = false});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, insufficientCoins];
 }

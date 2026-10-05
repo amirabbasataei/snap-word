@@ -35,6 +35,12 @@ class DailyAttempted extends DailyState {
   List<Object?> get props => [challenge];
 }
 
+/// [retry()] was blocked by a coin shortfall. Still renders as the result
+/// screen; the view listens for it to show the earn-coins dialog.
+class DailyInsufficientCoins extends DailyAttempted {
+  const DailyInsufficientCoins({required super.challenge});
+}
+
 /// [retry()] succeeded — retry slot purchased; screen navigates to game.
 class DailyRetryAvailable extends DailyState {
   final DailyChallenge challenge;

@@ -56,23 +56,40 @@ class FriendsCubit extends Cubit<FriendsState> {
     }
   }
 
+  /// Keeps the loaded list on screen and surfaces the failure as a toast; a
+  /// coin shortfall gets its own state so the screen can show the earn-coins
+  /// dialog instead.
+  void _emitActionError(FriendsException e) {
+    if (e.code == 'insufficient_coins') {
+      emit(const FriendsInsufficientCoins());
+      load(silent: true);
+      return;
+    }
+    final message = switch (e.code) {
+      'challenger_cannot_afford' => 'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد.',
+      'challenge_expired' => 'این چالش دیگر معتبر نیست.',
+      _ => e.message,
+    };
+    final current = state;
+    if (current is FriendsLoaded) {
+      emit(FriendsLoaded(
+        friends: current.friends,
+        pendingRequests: current.pendingRequests,
+        pendingChallenges: current.pendingChallenges,
+        actionError: message,
+      ));
+    } else {
+      emit(FriendsError(message));
+    }
+  }
+
   Future<void> sendFriendRequest(String username) async {
     try {
       await _repo.sendFriendRequest(username);
       emit(FriendActionSuccess('Friend request sent to $username'));
       await load();
     } on FriendsException catch (e) {
-      final current = state;
-      if (current is FriendsLoaded) {
-        emit(FriendsLoaded(
-          friends: current.friends,
-          pendingRequests: current.pendingRequests,
-          pendingChallenges: current.pendingChallenges,
-          actionError: e.message,
-        ));
-      } else {
-        emit(FriendsError(e.message));
-      }
+      _emitActionError(e);
     }
   }
 
@@ -98,7 +115,7 @@ class FriendsCubit extends Cubit<FriendsState> {
         await load();
       }
     } on FriendsException catch (e) {
-      emit(FriendsError(e.message));
+      _emitActionError(e);
     }
   }
 
@@ -131,17 +148,7 @@ class FriendsCubit extends Cubit<FriendsState> {
       await load();
       if (challengeId != null) _joinRoomOnAccept(challengeId, mode);
     } on FriendsException catch (e) {
-      final current = state;
-      if (current is FriendsLoaded) {
-        emit(FriendsLoaded(
-          friends: current.friends,
-          pendingRequests: current.pendingRequests,
-          pendingChallenges: current.pendingChallenges,
-          actionError: e.message,
-        ));
-      } else {
-        emit(FriendsError(e.message));
-      }
+      _emitActionError(e);
     }
   }
 }

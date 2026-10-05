@@ -3,7 +3,10 @@ import 'package:wordchain/core/network/api_endpoints.dart';
 
 class LobbyException implements Exception {
   final String message;
-  const LobbyException(this.message);
+  final String? code;
+  const LobbyException(this.message, {this.code});
+
+  bool get isInsufficientCoins => code == 'insufficient_coins';
 }
 
 // POST /match/queue's 200 payload — the server has already resolved the
@@ -52,7 +55,7 @@ class LobbyRepository {
       return MatchQueueResult(roomId: data['room_id'] as String, isAi: data['is_ai'] as bool? ?? false);
     } on DioException catch (e) {
       final code = e.response?.data?['error']?['code'] as String?;
-      throw LobbyException(_errorCodeMessages[code] ?? 'پیوستن به صف ناموفق بود');
+      throw LobbyException(_errorCodeMessages[code] ?? 'پیوستن به صف ناموفق بود', code: code);
     }
   }
 

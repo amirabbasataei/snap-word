@@ -584,6 +584,8 @@ Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `re
 
 **Entry fee (1v1 human matches only):** each player pays `config.EntryFeeCoins` (20, mirrored as `GameConstants.entryFeeCoins`) when the second player joins; the winner takes the whole pot (2 × fee), a draw refunds both, matches vs the AI fallback are free. Charged/settled server-side in `ws.Room` (`chargeEntryFees` / `settleEntryFees`); `game_start.state.entry_fee` and `game_over.payout` tell the client; `match_cancelled` (`insufficient_coins`) aborts a match where someone can no longer pay. Queue join and challenge create/accept pre-check the balance (`402 insufficient_coins`).
 
+**Coin shortfall UX:** every blocked-by-coins action (queue join, challenge send/accept, daily retry, solo continue-with-coins, multiplayer `match_cancelled`/`insufficient_coins`) opens the shared `showInsufficientCoinsDialog` (`core/widgets/insufficient_coins_dialog.dart`), which lists real ways to earn coins (rewarded ad, Daily Challenge, invites, daily/streak rewards, winning a pot) with links to those screens. Mid-game power-up shortfalls keep the pause-aware `_NeedCoinsSheet` instead (navigating away would abandon the match). New coin-gated actions should call the dialog rather than a toast.
+
 **Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
 
 No energy systems, no artificial wait timers, no interstitial ads during an active game.

@@ -52,6 +52,11 @@ class ChallengAccepted extends FriendsState {
   List<Object?> get props => [roomId, mode];
 }
 
+/// A friends action was blocked by a coin shortfall (challenge entry fee).
+class FriendsInsufficientCoins extends FriendsState {
+  const FriendsInsufficientCoins();
+}
+
 class FriendsError extends FriendsState {
   final String message;
 

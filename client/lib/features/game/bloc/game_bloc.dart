@@ -1241,9 +1241,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
     final broke = (data['player_id'] as String? ?? '') == _myPlayerId;
-    emit(GameError(broke
-        ? 'سکهٔ کافی برای ورودی بازی نداری.'
-        : 'حریف سکهٔ کافی برای ورودی بازی نداشت. سکه‌ای از تو کم نشد.'));
+    emit(GameError(
+      broke
+          ? 'سکهٔ کافی برای ورودی بازی نداری.'
+          : 'حریف سکهٔ کافی برای ورودی بازی نداشت. سکه‌ای از تو کم نشد.',
+      insufficientCoins: broke,
+    ));
   }
 
   void _handleWsOpponentDisconnected(Emitter<GameState> emit) {

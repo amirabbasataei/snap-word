@@ -35,6 +35,12 @@ class DailyCubit extends Cubit<DailyState> {
       await _repo.retryChallenge();
       emit(DailyRetryAvailable(challenge: challenge));
     } on DailyException catch (e) {
+      if (e.code == 'insufficient_coins') {
+        emit(DailyInsufficientCoins(challenge: challenge));
+        // Reset so a second tap re-emits (equal states are dropped).
+        emit(DailyAttempted(challenge: challenge));
+        return;
+      }
       emit(DailyError(e.code, e.message));
     } catch (_) {
       emit(const DailyError('unknown_error', 'Could not start retry'));

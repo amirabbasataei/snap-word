@@ -57,7 +57,7 @@ class LobbyCubit extends Cubit<LobbyState> {
       }
     } on LobbyException catch (e) {
       _cancelTimers();
-      emit(LobbyError(e.message));
+      emit(LobbyError(e.message, insufficientCoins: e.isInsufficientCoins));
     } catch (e) {
       _cancelTimers();
       emit(const LobbyError('خطا در اتصال به اینترنت'));
