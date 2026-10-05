@@ -41,6 +41,17 @@ class NotificationService {
     }
   }
 
+  Future<bool> isAuthorized() async {
+    try {
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
+      return settings.authorizationStatus == AuthorizationStatus.authorized;
+    } catch (e) {
+      _log.w('FCM getNotificationSettings failed: $e');
+      return false;
+    }
+  }
+
   Future<void> requestPermission() async {
     try {
       await FirebaseMessaging.instance.requestPermission(

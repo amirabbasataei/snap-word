@@ -51,21 +51,19 @@ Future<void> main() async {
     final notifications = getIt<NotificationService>();
     await notifications.init();
     // Register this device for pushes whenever a user is signed in (covers
-    // app start, login and signup). Logout deregisters in AuthCubit.
+    // app start, login and signup). Logout deregisters in AuthCubit. The OS
+    // permission itself is asked from the Friends tab, after an explanation.
     final auth = getIt<AuthCubit>();
     void registerIfSignedIn(AuthState state) {
       if (state is AuthAuthenticated) {
-        unawaited(() async {
-          await notifications.requestPermission();
-          await notifications.registerToken();
-        }());
+        unawaited(notifications.registerToken());
       }
     }
 
     registerIfSignedIn(auth.state);
-    auth.stream.distinct((a, b) => a.runtimeType == b.runtimeType).listen(
-      registerIfSignedIn,
-    );
+    auth.stream
+        .distinct((a, b) => a.runtimeType == b.runtimeType)
+        .listen(registerIfSignedIn);
   } catch (e) {
     Logger().w('Firebase init skipped: $e');
   }
@@ -95,10 +93,12 @@ class _WordChainAppState extends State<WordChainApp> {
         ?..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text([
-              if (n.title != null) n.title!,
-              if (n.body != null) n.body!,
-            ].join('\n')),
+            content: Text(
+              [
+                if (n.title != null) n.title!,
+                if (n.body != null) n.body!,
+              ].join('\n'),
+            ),
           ),
         );
     });

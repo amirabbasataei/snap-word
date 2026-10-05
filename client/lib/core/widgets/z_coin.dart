@@ -10,6 +10,10 @@ class ZCoin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset('assets/icons/coin_gold.svg', width: size, height: size);
+    return SvgPicture.asset(
+      'assets/icons/coin_gold.svg',
+      width: size,
+      height: size,
+    );
   }
 }
