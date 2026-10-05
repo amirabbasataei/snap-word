@@ -51,14 +51,15 @@ dev_dependencies:
   drift_dev: ^2.34.6
   build_runner: ^2.4.15
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/icon/icon.png
   remove_alpha_ios: true
-  adaptive_icon_background: assets/icon/adaptive_bg.png
-  adaptive_icon_foreground: assets/icon/adaptive_fg.png
+  adaptive_icon_background: "#230F4A"
+  adaptive_icon_foreground: assets/icon/icon.png
 
 flutter:
   uses-material-design: true
