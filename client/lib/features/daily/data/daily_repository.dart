@@ -23,14 +23,15 @@ class DailyAttempt {
   });
 
   factory DailyAttempt.fromJson(Map<String, dynamic> json) => DailyAttempt(
-        attemptNumber: json['attempt_number'] as int? ?? 1,
-        score: json['score'] as int? ?? 0,
-        chainLength: json['chain_length'] as int? ?? 0,
-        wordChain: (json['word_chain'] as List<dynamic>?)
-                ?.map((e) => e as String)
-                .toList() ??
-            [],
-      );
+    attemptNumber: json['attempt_number'] as int? ?? 1,
+    score: json['score'] as int? ?? 0,
+    chainLength: json['chain_length'] as int? ?? 0,
+    wordChain:
+        (json['word_chain'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList() ??
+        [],
+  );
 }
 
 class DailyBoardEntry {
@@ -48,7 +49,8 @@ class DailyBoardEntry {
     required this.chainLength,
   });
 
-  factory DailyBoardEntry.fromJson(Map<String, dynamic> json) => DailyBoardEntry(
+  factory DailyBoardEntry.fromJson(Map<String, dynamic> json) =>
+      DailyBoardEntry(
         rank: json['rank'] as int? ?? 0,
         userId: json['user_id'] as String? ?? '',
         username: json['username'] as String? ?? '',
@@ -62,7 +64,11 @@ class DailyBoard {
   final List<DailyBoardEntry> entries;
   final int? myRank;
 
-  const DailyBoard({required this.dayNumber, required this.entries, this.myRank});
+  const DailyBoard({
+    required this.dayNumber,
+    required this.entries,
+    this.myRank,
+  });
 }
 
 class DailyChallenge {
@@ -92,21 +98,24 @@ class DailyChallenge {
   bool get hasRetried => retryAttempt != null;
 
   factory DailyChallenge.fromJson(Map<String, dynamic> json) => DailyChallenge(
-        challengeDate: json['challenge_date'] as String? ?? '',
-        dayNumber: json['day_number'] as int? ?? 1,
-        startLetter: (json['start_letter'] as String? ?? 'a').toLowerCase(),
-        todaysBest: json['today_best'] as int? ?? 0,
-        yourBest: json['your_best'] as int? ?? 0,
-        dailyStreak: json['daily_streak'] as int? ?? 0,
-        attempt: json['attempt'] != null
+    challengeDate: json['challenge_date'] as String? ?? '',
+    dayNumber: json['day_number'] as int? ?? 1,
+    startLetter: (json['start_letter'] as String? ?? 'a').toLowerCase(),
+    todaysBest: json['today_best'] as int? ?? 0,
+    yourBest: json['your_best'] as int? ?? 0,
+    dailyStreak: json['daily_streak'] as int? ?? 0,
+    attempt:
+        json['attempt'] != null
             ? DailyAttempt.fromJson(json['attempt'] as Map<String, dynamic>)
             : null,
-        retryAttempt: json['retry_attempt'] != null
+    retryAttempt:
+        json['retry_attempt'] != null
             ? DailyAttempt.fromJson(
-                json['retry_attempt'] as Map<String, dynamic>)
+              json['retry_attempt'] as Map<String, dynamic>,
+            )
             : null,
-        rank: json['rank'] as int?,
-      );
+    rank: json['rank'] as int?,
+  );
 }
 
 class DailyRepository {
@@ -123,7 +132,8 @@ class DailyRepository {
     } on DioException catch (e) {
       throw DailyException(
         code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
-        message: e.response?.data?['error']?['message'] as String? ??
+        message:
+            e.response?.data?['error']?['message'] as String? ??
             'Failed to load daily challenge',
       );
     }
@@ -135,15 +145,17 @@ class DailyRepository {
       final data = response.data['data'] as Map<String, dynamic>;
       return DailyBoard(
         dayNumber: data['day_number'] as int? ?? 0,
-        entries: (data['entries'] as List<dynamic>)
-            .map((e) => DailyBoardEntry.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        entries:
+            (data['entries'] as List<dynamic>)
+                .map((e) => DailyBoardEntry.fromJson(e as Map<String, dynamic>))
+                .toList(),
         myRank: data['my_rank'] as int?,
       );
     } on DioException catch (e) {
       throw DailyException(
         code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
-        message: e.response?.data?['error']?['message'] as String? ??
+        message:
+            e.response?.data?['error']?['message'] as String? ??
             'Failed to load daily leaderboard',
       );
     }
@@ -155,7 +167,8 @@ class DailyRepository {
     } on DioException catch (e) {
       throw DailyException(
         code: e.response?.data?['error']?['code'] as String? ?? 'unknown_error',
-        message: e.response?.data?['error']?['message'] as String? ??
+        message:
+            e.response?.data?['error']?['message'] as String? ??
             'Not enough coins or retry already used',
       );
     }

@@ -60,9 +60,12 @@ class LeaderboardRepository {
       final data = response.data['data'] as Map<String, dynamic>;
       final list = (data['entries'] as List<dynamic>?) ?? [];
       return LeaderboardResult(
-        entries: list
-            .map((e) => LeaderboardEntry.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        entries:
+            list
+                .map(
+                  (e) => LeaderboardEntry.fromJson(e as Map<String, dynamic>),
+                )
+                .toList(),
         playerRank: (data['player_rank'] as num?)?.toInt() ?? 0,
         playerScore: (data['player_score'] as num?)?.toInt() ?? 0,
       );

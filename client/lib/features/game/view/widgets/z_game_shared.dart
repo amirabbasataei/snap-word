@@ -50,50 +50,56 @@ void zShowEndGameDialog(BuildContext context) {
   final z = context.z;
   showDialog<void>(
     context: context,
-    builder: (dialogContext) => Dialog(
-      backgroundColor: z.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(ZRadius.cardMax),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(ZSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('پایان بازی؟',
-                style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 17)),
-            const SizedBox(height: ZSpacing.sm),
-            Text(
-              'پیشرفت فعلی ذخیره می‌شود.',
-              style: ZTypography.body.copyWith(color: z.ink60),
-            ),
-            const SizedBox(height: ZSpacing.xl),
-            Row(
+    builder:
+        (dialogContext) => Dialog(
+          backgroundColor: z.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(ZRadius.cardMax),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(ZSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: NeutralButton(
-                    label: 'ادامه بازی',
-                    onPressed: () => Navigator.pop(dialogContext),
+                Text(
+                  'پایان بازی؟',
+                  style: ZTypography.screenTitle.copyWith(
+                    color: z.ink,
+                    fontSize: 17,
                   ),
                 ),
-                const SizedBox(width: ZSpacing.md),
-                Expanded(
-                  child: AccentButton(
-                    accent: ZAccentColor.coral,
-                    label: 'پایان بازی',
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      context.read<GameBloc>().add(const GameEnded());
-                    },
-                  ),
+                const SizedBox(height: ZSpacing.sm),
+                Text(
+                  'پیشرفت فعلی ذخیره می‌شود.',
+                  style: ZTypography.body.copyWith(color: z.ink60),
+                ),
+                const SizedBox(height: ZSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: NeutralButton(
+                        label: 'ادامه بازی',
+                        onPressed: () => Navigator.pop(dialogContext),
+                      ),
+                    ),
+                    const SizedBox(width: ZSpacing.md),
+                    Expanded(
+                      child: AccentButton(
+                        accent: ZAccentColor.coral,
+                        label: 'پایان بازی',
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          context.read<GameBloc>().add(const GameEnded());
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
-      ),
-    ),
   );
 }
 
@@ -112,7 +118,9 @@ class ZTimerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final fraction =
-        totalSeconds <= 0 ? 0.0 : (secondsRemaining / totalSeconds).clamp(0.0, 1.0);
+        totalSeconds <= 0
+            ? 0.0
+            : (secondsRemaining / totalSeconds).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.only(top: ZSpacing.md),
       child: Row(
@@ -121,7 +129,10 @@ class ZTimerRow extends StatelessWidget {
             width: 30,
             child: Text(
               toPersianDigits(secondsRemaining.toString().padLeft(2, '0')),
-              style: ZTypography.cardTitle.copyWith(color: z.coral, fontSize: 15),
+              style: ZTypography.cardTitle.copyWith(
+                color: z.coral,
+                fontSize: 15,
+              ),
             ),
           ),
           const SizedBox(width: ZSpacing.sm),
@@ -157,8 +168,18 @@ class ZHintIcon extends StatelessWidget {
       width: 24,
       height: 26,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: z.indigo, borderRadius: BorderRadius.circular(8)),
-      child: Text('؟', style: TextStyle(color: z.onIndigo, fontWeight: FontWeight.w900, fontSize: 14)),
+      decoration: BoxDecoration(
+        color: z.indigo,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '؟',
+        style: TextStyle(
+          color: z.onIndigo,
+          fontWeight: FontWeight.w900,
+          fontSize: 14,
+        ),
+      ),
     );
   }
 }
@@ -203,32 +224,45 @@ class ZPowerupTile extends StatelessWidget {
                     color: z.paper,
                     borderRadius: BorderRadius.circular(ZRadius.tileMax),
                     border: Border.all(color: z.line),
-                    boxShadow: enabled
-                        ? ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth)
-                        : null,
+                    boxShadow:
+                        enabled
+                            ? ZElevation.solidEdge(
+                              z.line,
+                              depth: ZElevation.cardDepth,
+                            )
+                            : null,
                   ),
-                  child: Opacity(opacity: enabled && !dimmed ? 1 : 0.4, child: icon),
+                  child: Opacity(
+                    opacity: enabled && !dimmed ? 1 : 0.4,
+                    child: icon,
+                  ),
                 ),
                 if (count > 0)
                   PositionedDirectional(
-                  top: -5,
-                  start: -3,
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: z.ink, borderRadius: BorderRadius.circular(999)),
-                    child: Text(
-                      toPersianDigits(count),
-                      style: TextStyle(
-                        color: z.paper,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 9.5,
-                        height: 1,
+                    top: -5,
+                    start: -3,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: z.ink,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        toPersianDigits(count),
+                        style: TextStyle(
+                          color: z.paper,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 9.5,
+                          height: 1,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -236,7 +270,10 @@ class ZPowerupTile extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: ZTypography.metaLabel.copyWith(color: z.ink60, fontSize: 10.5),
+            style: ZTypography.metaLabel.copyWith(
+              color: z.ink60,
+              fontSize: 10.5,
+            ),
           ),
           if (priceLabel != null)
             Text(
@@ -306,13 +343,15 @@ class ZPowerupBar extends StatelessWidget {
 
   Widget _tile(BuildContext context, String type, bool isGuest, int coins) {
     final cost = GameConstants.powerupCostCoins[type]!;
-    final owned = isGuest
-        ? (type == 'hint' ? state.guestHintUsesLeft : 0)
-        : (state.powerupCounts[type] ?? 0);
+    final owned =
+        isGuest
+            ? (type == 'hint' ? state.guestHintUsesLeft : 0)
+            : (state.powerupCounts[type] ?? 0);
     final cantAfford = !isGuest && owned == 0 && coins < cost;
 
     var enabled = GameBloc.canUsePowerup(state, type);
-    if (isGuest && type == 'hint' && state.guestHintUsesLeft <= 0) enabled = false;
+    if (isGuest && type == 'hint' && state.guestHintUsesLeft <= 0)
+      enabled = false;
     // Multiplayer can't wait on an ad, so there an unaffordable tile is just off;
     // solo / vs-AI keep it tappable to offer the rewarded ad.
     if (cantAfford && state.isMultiplayer) enabled = false;
@@ -323,7 +362,8 @@ class ZPowerupBar extends StatelessWidget {
       label: _labels[type]!,
       enabled: enabled,
       dimmed: cantAfford,
-      priceLabel: !isGuest && owned == 0 ? '${toPersianDigits(cost)} سکه' : null,
+      priceLabel:
+          !isGuest && owned == 0 ? '${toPersianDigits(cost)} سکه' : null,
       onTap: () {
         if (cantAfford) {
           _showNeedCoinsSheet(context, type, cost - coins);
@@ -334,13 +374,19 @@ class ZPowerupBar extends StatelessWidget {
     );
   }
 
-  Future<void> _showNeedCoinsSheet(BuildContext context, String type, int missing) async {
+  Future<void> _showNeedCoinsSheet(
+    BuildContext context,
+    String type,
+    int missing,
+  ) async {
     final bloc = context.read<GameBloc>();
     // The clocks stop while the sheet (and any ad) is up; solo/vs-AI only.
     bloc.add(const GamePaused());
     await showModalBottomSheet<void>(
       context: context,
-      builder: (_) => _NeedCoinsSheet(powerupLabel: _labels[type]!, missing: missing),
+      builder:
+          (_) =>
+              _NeedCoinsSheet(powerupLabel: _labels[type]!, missing: missing),
     );
     bloc.add(const GameResumed());
   }
@@ -404,7 +450,10 @@ class _NeedCoinsSheetState extends State<_NeedCoinsSheet> {
             children: [
               Text(
                 'سکهٔ کافی برای «${widget.powerupLabel}» نداری',
-                style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 17),
+                style: ZTypography.screenTitle.copyWith(
+                  color: z.ink,
+                  fontSize: 17,
+                ),
               ),
               const SizedBox(height: ZSpacing.sm),
               Text(
@@ -414,17 +463,24 @@ class _NeedCoinsSheetState extends State<_NeedCoinsSheet> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: ZSpacing.sm),
-                Text(_error!, style: ZTypography.metaLabel.copyWith(color: z.coral)),
+                Text(
+                  _error!,
+                  style: ZTypography.metaLabel.copyWith(color: z.coral),
+                ),
               ],
               const SizedBox(height: ZSpacing.xl),
               AccentButton(
-                label: _busy
-                    ? '…'
-                    : 'تماشای تبلیغ (+${toPersianDigits(GameConstants.rewardedAdCoins)} سکه)',
+                label:
+                    _busy
+                        ? '…'
+                        : 'تماشای تبلیغ (+${toPersianDigits(GameConstants.rewardedAdCoins)} سکه)',
                 onPressed: _busy ? null : _watchAd,
               ),
               const SizedBox(height: ZSpacing.sm),
-              NeutralButton(label: 'بستن', onPressed: () => Navigator.pop(context)),
+              NeutralButton(
+                label: 'بستن',
+                onPressed: () => Navigator.pop(context),
+              ),
             ],
           ),
         ),
@@ -439,7 +495,11 @@ class ZDashedTile extends StatelessWidget {
   final String letter;
   final double size;
 
-  const ZDashedTile({super.key, required this.letter, this.size = ZTileSize.prompt});
+  const ZDashedTile({
+    super.key,
+    required this.letter,
+    this.size = ZTileSize.prompt,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -452,7 +512,10 @@ class ZDashedTile extends StatelessWidget {
         child: Center(
           child: Text(
             letter,
-            style: ZTypography.chainWordActive.copyWith(color: z.ink40, fontSize: size * 0.5),
+            style: ZTypography.chainWordActive.copyWith(
+              color: z.ink40,
+              fontSize: size * 0.5,
+            ),
           ),
         ),
       ),
@@ -495,8 +558,9 @@ class _ZWordInputState extends State<ZWordInput> {
     super.didUpdateWidget(oldWidget);
     if (widget.hintWord != null && widget.hintWord != oldWidget.hintWord) {
       _controller.text = widget.hintWord!;
-      _controller.selection =
-          TextSelection.fromPosition(TextPosition(offset: _controller.text.length));
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
     }
   }
 
@@ -540,7 +604,10 @@ class _ZWordInputState extends State<ZWordInput> {
             const SizedBox(width: ZSpacing.sm),
             Text(
               '${widget.opponentLabel} در حال فکر کردن…',
-              style: ZTypography.body.copyWith(color: z.ink60, fontWeight: FontWeight.w600),
+              style: ZTypography.body.copyWith(
+                color: z.ink60,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -571,9 +638,10 @@ class _ZWordInputState extends State<ZWordInput> {
                 border: InputBorder.none,
                 filled: false,
                 isCollapsed: true,
-                hintText: widget.startLetter != null
-                    ? 'کلمه‌ای با «${widget.startLetter}»…'
-                    : 'اولین کلمه رو بنویس…',
+                hintText:
+                    widget.startLetter != null
+                        ? 'کلمه‌ای با «${widget.startLetter}»…'
+                        : 'اولین کلمه رو بنویس…',
                 hintStyle: ZTypography.body.copyWith(color: z.ink40),
               ),
               onSubmitted: (_) => _submit(),
@@ -590,9 +658,13 @@ class _ZWordInputState extends State<ZWordInput> {
             decoration: BoxDecoration(
               color: widget.enabled ? z.teal : z.wash,
               borderRadius: BorderRadius.circular(ZRadius.cardMin),
-              boxShadow: widget.enabled
-                  ? ZElevation.solidEdge(z.tealDeep, depth: ZElevation.buttonDepth)
-                  : null,
+              boxShadow:
+                  widget.enabled
+                      ? ZElevation.solidEdge(
+                        z.tealDeep,
+                        depth: ZElevation.buttonDepth,
+                      )
+                      : null,
             ),
             child: Text(
               'بفرست',

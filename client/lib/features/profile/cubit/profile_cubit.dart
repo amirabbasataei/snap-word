@@ -16,10 +16,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     required StatsDao statsDao,
     required PowerupCacheDao powerupCacheDao,
     required this.isGuest,
-  })  : _repo = repository,
-        _statsDao = statsDao,
-        _powerupCacheDao = powerupCacheDao,
-        super(const ProfileInitial());
+  }) : _repo = repository,
+       _statsDao = statsDao,
+       _powerupCacheDao = powerupCacheDao,
+       super(const ProfileInitial());
 
   bool _hasLoaded = false;
 
@@ -42,20 +42,22 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   Future<void> _loadGuest() async {
     final local = await _statsDao.getStats();
-    emit(ProfileLoaded(
-      stats: ProfileStats(
-        totalMatches: local?.totalMatches ?? 0,
-        wins: local?.wins ?? 0,
-        bestScore: local?.bestScore ?? 0,
-        bestMatchStreak: local?.bestMatchStreak ?? 0,
-        dailyStreak: local?.dailyStreak ?? 0,
-        longestDailyStreak: local?.longestDailyStreak ?? 0,
-        longestWord: local?.longestWord,
-        coins: 0,
+    emit(
+      ProfileLoaded(
+        stats: ProfileStats(
+          totalMatches: local?.totalMatches ?? 0,
+          wins: local?.wins ?? 0,
+          bestScore: local?.bestScore ?? 0,
+          bestMatchStreak: local?.bestMatchStreak ?? 0,
+          dailyStreak: local?.dailyStreak ?? 0,
+          longestDailyStreak: local?.longestDailyStreak ?? 0,
+          longestWord: local?.longestWord,
+          coins: 0,
+        ),
+        powerups: const [],
+        isGuest: true,
       ),
-      powerups: const [],
-      isGuest: true,
-    ));
+    );
   }
 
   Future<void> _loadAuthenticated() async {
@@ -68,21 +70,22 @@ class ProfileCubit extends Cubit<ProfileState> {
     final powerups = results[1] as List<PowerupItem>;
 
     // Update local cache with backend stats
-    await _statsDao.mergeWithRemote(RemoteStats(
-      totalMatches: remoteStats.totalMatches,
-      wins: remoteStats.wins,
-      bestScore: remoteStats.bestScore,
-      bestMatchStreak: remoteStats.bestMatchStreak,
-      dailyStreak: remoteStats.dailyStreak,
-      longestDailyStreak: remoteStats.longestDailyStreak,
-      longestWord: remoteStats.longestWord,
-    ));
+    await _statsDao.mergeWithRemote(
+      RemoteStats(
+        totalMatches: remoteStats.totalMatches,
+        wins: remoteStats.wins,
+        bestScore: remoteStats.bestScore,
+        bestMatchStreak: remoteStats.bestMatchStreak,
+        dailyStreak: remoteStats.dailyStreak,
+        longestDailyStreak: remoteStats.longestDailyStreak,
+        longestWord: remoteStats.longestWord,
+      ),
+    );
 
     // Update powerup cache
     await _powerupCacheDao.refreshFromRemote(
       powerups
-          .map((p) =>
-              RemotePowerup(powerupType: p.type, quantity: p.quantity))
+          .map((p) => RemotePowerup(powerupType: p.type, quantity: p.quantity))
           .toList(),
     );
 
@@ -94,22 +97,25 @@ class ProfileCubit extends Cubit<ProfileState> {
     // server-authoritative since those ARE written server-side.
     final merged = await _statsDao.getStats();
 
-    emit(ProfileLoaded(
-      stats: ProfileStats(
-        totalMatches: remoteStats.totalMatches,
-        wins: remoteStats.wins,
-        bestScore: merged?.bestScore ?? remoteStats.bestScore,
-        bestMatchStreak: merged?.bestMatchStreak ?? remoteStats.bestMatchStreak,
-        dailyStreak: remoteStats.dailyStreak,
-        longestDailyStreak: remoteStats.longestDailyStreak,
-        longestWord: remoteStats.longestWord,
-        coins: remoteStats.coins,
-        level: remoteStats.level,
-        xpInLevel: remoteStats.xpInLevel,
-        xpForNext: remoteStats.xpForNext,
+    emit(
+      ProfileLoaded(
+        stats: ProfileStats(
+          totalMatches: remoteStats.totalMatches,
+          wins: remoteStats.wins,
+          bestScore: merged?.bestScore ?? remoteStats.bestScore,
+          bestMatchStreak:
+              merged?.bestMatchStreak ?? remoteStats.bestMatchStreak,
+          dailyStreak: remoteStats.dailyStreak,
+          longestDailyStreak: remoteStats.longestDailyStreak,
+          longestWord: remoteStats.longestWord,
+          coins: remoteStats.coins,
+          level: remoteStats.level,
+          xpInLevel: remoteStats.xpInLevel,
+          xpForNext: remoteStats.xpForNext,
+        ),
+        powerups: powerups,
+        isGuest: false,
       ),
-      powerups: powerups,
-      isGuest: false,
-    ));
+    );
   }
 }

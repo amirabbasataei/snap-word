@@ -24,8 +24,12 @@ Play at wordchain.app''';
     await Share.share(text);
   }
 
-  Future<void> shareMatch({required int score, required int chainLength}) async {
-    final text = '''زنجیر رو پاره کردم! امتیاز: $score · طول زنجیر: $chainLength کلمه
+  Future<void> shareMatch({
+    required int score,
+    required int chainLength,
+  }) async {
+    final text =
+        '''زنجیر رو پاره کردم! امتیاز: $score · طول زنجیر: $chainLength کلمه
 بازی کن: wordchain.app''';
     await Share.share(text);
   }

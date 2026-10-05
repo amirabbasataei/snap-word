@@ -49,13 +49,22 @@ class LobbyRepository {
       final response = await _dio.post(
         ApiEndpoints.matchQueue,
         data: {'mode': mode},
-        options: Options(receiveTimeout: _joinQueueTimeout, sendTimeout: _joinQueueTimeout),
+        options: Options(
+          receiveTimeout: _joinQueueTimeout,
+          sendTimeout: _joinQueueTimeout,
+        ),
       );
       final data = response.data['data'] as Map<String, dynamic>;
-      return MatchQueueResult(roomId: data['room_id'] as String, isAi: data['is_ai'] as bool? ?? false);
+      return MatchQueueResult(
+        roomId: data['room_id'] as String,
+        isAi: data['is_ai'] as bool? ?? false,
+      );
     } on DioException catch (e) {
       final code = e.response?.data?['error']?['code'] as String?;
-      throw LobbyException(_errorCodeMessages[code] ?? 'پیوستن به صف ناموفق بود', code: code);
+      throw LobbyException(
+        _errorCodeMessages[code] ?? 'پیوستن به صف ناموفق بود',
+        code: code,
+      );
     }
   }
 

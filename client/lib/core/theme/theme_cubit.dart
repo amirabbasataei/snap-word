@@ -9,8 +9,7 @@ const _prefsKey = 'theme_mode';
 class ThemeCubit extends Cubit<ThemeMode> {
   final SharedPreferences _prefs;
 
-  ThemeCubit(this._prefs)
-      : super(_modeFromString(_prefs.getString(_prefsKey)));
+  ThemeCubit(this._prefs) : super(_modeFromString(_prefs.getString(_prefsKey)));
 
   static ThemeMode _modeFromString(String? value) {
     switch (value) {
@@ -25,11 +24,15 @@ class ThemeCubit extends Cubit<ThemeMode> {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     emit(mode);
-    await _prefs.setString(_prefsKey, mode == ThemeMode.light ? 'light' : 'dark');
+    await _prefs.setString(
+      _prefsKey,
+      mode == ThemeMode.light ? 'light' : 'dark',
+    );
   }
 
   /// Flips relative to what's actually on screen, so the first toggle from
   /// [ThemeMode.system] always does something visible.
   Future<void> toggle(Brightness current) => setThemeMode(
-      current == Brightness.dark ? ThemeMode.light : ThemeMode.dark);
+    current == Brightness.dark ? ThemeMode.light : ThemeMode.dark,
+  );
 }

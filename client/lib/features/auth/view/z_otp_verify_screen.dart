@@ -59,11 +59,12 @@ class ZOtpVerifyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => OtpFlowCubit(
-        authCubit: getIt<AuthCubit>(),
-        phone: args.phone,
-        initialCooldownSeconds: args.initialCooldownSeconds,
-      ),
+      create:
+          (_) => OtpFlowCubit(
+            authCubit: getIt<AuthCubit>(),
+            phone: args.phone,
+            initialCooldownSeconds: args.initialCooldownSeconds,
+          ),
       child: _ZOtpVerifyView(args: args),
     );
   }
@@ -94,14 +95,19 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
 
   Future<void> _submit() async {
     final cubit = context.read<OtpFlowCubit>();
-    final result = await cubit.submit(_code, referralCode: widget.args.referralCode);
+    final result = await cubit.submit(
+      _code,
+      referralCode: widget.args.referralCode,
+    );
     if (!mounted) return;
     if (result == null) {
       // Failed — clear so the user can retype; error text renders from state.
       setState(() => _code = '');
       return;
     }
-    if (result.isNewUser && widget.args.referralCode != null && result.referralWarning == null) {
+    if (result.isNewUser &&
+        widget.args.referralCode != null &&
+        result.referralWarning == null) {
       ZToast.show(context, '۱۰۰ سکهٔ خوش‌آمد گرفتی!', kind: ZToastKind.success);
     }
     context.go(widget.args.returnPath ?? '/home');
@@ -141,7 +147,10 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                     ),
                   ),
                   const SizedBox(width: ZSpacing.md),
-                  Text('تأیید شماره', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+                  Text(
+                    'تأیید شماره',
+                    style: ZTypography.cardTitle.copyWith(color: z.ink),
+                  ),
                 ],
               ),
             ),
@@ -158,18 +167,27 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                   children: [
                     Text(
                       'کد چهاررقمی را بزن',
-                      style: ZTypography.display.copyWith(fontSize: 24, color: z.ink),
+                      style: ZTypography.display.copyWith(
+                        fontSize: 24,
+                        color: z.ink,
+                      ),
                     ),
                     const SizedBox(height: 7),
                     Row(
                       children: [
                         Text(
                           'فرستاده شد به',
-                          style: ZTypography.body.copyWith(color: z.ink60, fontSize: 12.5),
+                          style: ZTypography.body.copyWith(
+                            color: z.ink60,
+                            fontSize: 12.5,
+                          ),
                         ),
                         const SizedBox(width: ZSpacing.sm),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: z.surface,
                             border: Border.all(color: z.line),
@@ -178,7 +196,10 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                           child: Text(
                             toPersianDigits(widget.args.phone),
                             textDirection: TextDirection.ltr,
-                            style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13),
+                            style: ZTypography.cardTitle.copyWith(
+                              color: z.ink,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                         const SizedBox(width: ZSpacing.sm),
@@ -208,17 +229,25 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                       secondsRemaining: state.cooldownSecondsRemaining,
                       sending: state.sendingResend,
                       onResend: () => context.read<OtpFlowCubit>().resend(),
-                      onVoiceCall: () => context.read<OtpFlowCubit>().resend(voice: true),
+                      onVoiceCall:
+                          () =>
+                              context.read<OtpFlowCubit>().resend(voice: true),
                     ),
                     const SizedBox(height: ZSpacing.xl),
                     AccentButton(
                       label: state.submitting ? '...' : 'تأیید و ورود',
                       accent: ZAccentColor.teal,
-                      onPressed: (_code.length == 4 && !state.submitting) ? _submit : null,
+                      onPressed:
+                          (_code.length == 4 && !state.submitting)
+                              ? _submit
+                              : null,
                     ),
                     const SizedBox(height: ZSpacing.lg),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: z.surface,
                         border: Border.all(color: z.line),
@@ -233,7 +262,9 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                               children: [
                                 Text(
                                   'تازه‌واردی؟',
-                                  style: ZTypography.cardTitle.copyWith(color: z.ink),
+                                  style: ZTypography.cardTitle.copyWith(
+                                    color: z.ink,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -264,7 +295,10 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                 children: [
                   Text(
                     'کد پیامکی به‌صورت خودکار خوانده می‌شود',
-                    style: ZTypography.metaLabel.copyWith(color: z.ink40, fontWeight: FontWeight.w600),
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.ink40,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   OtpKeypad(onDigit: _onDigit, onBackspace: _onBackspace),

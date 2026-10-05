@@ -24,15 +24,21 @@ String extractPhoneDigits(String input) {
 
 String _groupAndPersianize(String digits) {
   final groups = <String>[];
-  if (digits.isNotEmpty) groups.add(digits.substring(0, digits.length.clamp(0, 4)));
-  if (digits.length > 4) groups.add(digits.substring(4, digits.length.clamp(4, 7)));
-  if (digits.length > 7) groups.add(digits.substring(7, digits.length.clamp(7, 11)));
+  if (digits.isNotEmpty)
+    groups.add(digits.substring(0, digits.length.clamp(0, 4)));
+  if (digits.length > 4)
+    groups.add(digits.substring(4, digits.length.clamp(4, 7)));
+  if (digits.length > 7)
+    groups.add(digits.substring(7, digits.length.clamp(7, 11)));
   return toPersianDigits(groups.join(' '));
 }
 
 class _PhoneGroupingFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = extractPhoneDigits(newValue.text);
     final display = _groupAndPersianize(digits);
     return TextEditingValue(
@@ -111,12 +117,14 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
-                onChanged: (_) => widget.onDigitsChanged(extractPhoneDigits(_controller.text)),
+                onChanged:
+                    (_) => widget.onDigitsChanged(
+                      extractPhoneDigits(_controller.text),
+                    ),
               ),
             ),
           ),
-          if (_focused)
-            Container(width: 2, height: 24, color: z.coral),
+          if (_focused) Container(width: 2, height: 24, color: z.coral),
         ],
       ),
     );

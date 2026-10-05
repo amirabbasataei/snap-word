@@ -20,11 +20,11 @@ class SyncService {
     required MatchDao matchDao,
     required StatsDao statsDao,
     required PowerupCacheDao powerupCacheDao,
-  })  : _prefs = prefs,
-        _dio = dio,
-        _matchDao = matchDao,
-        _statsDao = statsDao,
-        _powerupCacheDao = powerupCacheDao;
+  }) : _prefs = prefs,
+       _dio = dio,
+       _matchDao = matchDao,
+       _statsDao = statsDao,
+       _powerupCacheDao = powerupCacheDao;
 
   bool get _isGuest => _prefs.getString('jwt_access_token') == null;
 
@@ -47,7 +47,8 @@ class SyncService {
             'mode': match.mode,
             'score': match.score,
             // Stored as a JSON string in Drift; the API expects an array.
-            'word_chain': (jsonDecode(match.wordChain) as List<dynamic>).cast<String>(),
+            'word_chain':
+                (jsonDecode(match.wordChain) as List<dynamic>).cast<String>(),
             'started_at': _toRfc3339(match.startedAt),
             'ended_at': _toRfc3339(match.endedAt!),
           },
@@ -63,7 +64,9 @@ class SyncService {
         } else if (status != null && status >= 400 && status < 500) {
           // The server rejected this row; retrying won't help, and aborting
           // here would block every later match behind it. Skip it.
-          _log.e('Match ${match.id} rejected by server ($status): ${e.response?.data}');
+          _log.e(
+            'Match ${match.id} rejected by server ($status): ${e.response?.data}',
+          );
         } else {
           _log.w('Match sync failed, will retry: $e');
           return; // abort remaining; retry on next trigger
@@ -87,9 +90,10 @@ class SyncService {
   Future<void> _refreshPowerupCache() async {
     try {
       final response = await _dio.get(ApiEndpoints.powerupInventory);
-      final list = (response.data['data']['items'] as List<dynamic>)
-          .map((e) => RemotePowerup.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final list =
+          (response.data['data']['items'] as List<dynamic>)
+              .map((e) => RemotePowerup.fromJson(e as Map<String, dynamic>))
+              .toList();
       await _powerupCacheDao.refreshFromRemote(list);
     } catch (e) {
       _log.w('Powerup cache refresh failed: $e');

@@ -29,8 +29,12 @@ class FriendsLoaded extends FriendsState {
   });
 
   @override
-  List<Object?> get props =>
-      [friends, pendingRequests, pendingChallenges, actionError];
+  List<Object?> get props => [
+    friends,
+    pendingRequests,
+    pendingChallenges,
+    actionError,
+  ];
 }
 
 class FriendActionSuccess extends FriendsState {

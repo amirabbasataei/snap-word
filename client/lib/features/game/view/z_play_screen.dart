@@ -10,7 +10,12 @@ import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 
-const _accentCycle = [ZAccent.indigo, ZAccent.teal, ZAccent.amber, ZAccent.coral];
+const _accentCycle = [
+  ZAccent.indigo,
+  ZAccent.teal,
+  ZAccent.amber,
+  ZAccent.coral,
+];
 
 const _difficultyLabels = {
   'ai_easy': 'آسان',
@@ -66,7 +71,11 @@ class _Header extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter, ZSpacing.md, ZSpacing.screenGutter, ZSpacing.lg),
+        ZSpacing.screenGutter,
+        ZSpacing.md,
+        ZSpacing.screenGutter,
+        ZSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: z.surface,
         border: Border(bottom: BorderSide(color: z.line)),
@@ -82,12 +91,20 @@ class _Header extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('حریف هوشمند · $difficulty',
-                        style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
+                    Text(
+                      'حریف هوشمند · $difficulty',
+                      style: ZTypography.cardTitle.copyWith(
+                        color: z.ink,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       'سطح ${toPersianDigits(tier)} از ۳ · ${state.isMyTurn ? 'نوبت تو' : 'نوبت حریف'}',
-                      style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
+                      style: ZTypography.metaLabel.copyWith(
+                        color: z.ink40,
+                        fontSize: 11.5,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -98,9 +115,19 @@ class _Header extends StatelessWidget {
                 children: [
                   Text(
                     toPersianDigits(state.score),
-                    style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 20, fontWeight: FontWeight.w900),
+                    style: ZTypography.cardTitle.copyWith(
+                      color: z.ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                  Text('امتیاز', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10.5)),
+                  Text(
+                    'امتیاز',
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.ink40,
+                      fontSize: 10.5,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -163,7 +190,11 @@ class _BubbleChainState extends State<_BubbleChain> {
     return ListView(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter, ZSpacing.lg, ZSpacing.screenGutter, 0),
+        ZSpacing.screenGutter,
+        ZSpacing.lg,
+        ZSpacing.screenGutter,
+        0,
+      ),
       children: [
         if (chain.isEmpty)
           Padding(
@@ -173,8 +204,13 @@ class _BubbleChainState extends State<_BubbleChain> {
                 Expanded(child: Divider(color: z.line)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: ZSpacing.sm),
-                  child: Text('شروع زنجیر',
-                      style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10.5)),
+                  child: Text(
+                    'شروع زنجیر',
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.ink40,
+                      fontSize: 10.5,
+                    ),
+                  ),
                 ),
                 Expanded(child: Divider(color: z.line)),
               ],
@@ -187,17 +223,25 @@ class _BubbleChainState extends State<_BubbleChain> {
             // GameBloc._onWordSubmitted) — it isn't parallel to wordChain
             // once the AI's interspersed words are counted, so a "mine"
             // bubble must look up its score by move count, not by i.
-            score: (i >= state.wordOwners.length || state.wordOwners[i] == 'player')
-                ? (myMoveIndex < state.wordScores.length ? state.wordScores[myMoveIndex++] : null)
-                : null,
-            isMine: i >= state.wordOwners.length || state.wordOwners[i] == 'player',
+            score:
+                (i >= state.wordOwners.length ||
+                        state.wordOwners[i] == 'player')
+                    ? (myMoveIndex < state.wordScores.length
+                        ? state.wordScores[myMoveIndex++]
+                        : null)
+                    : null,
+            isMine:
+                i >= state.wordOwners.length || state.wordOwners[i] == 'player',
             distanceFromEnd: chain.length - 1 - i,
             accent: _accentCycle[i % _accentCycle.length],
             opponentLabel: difficulty,
           ),
           const SizedBox(height: ZSpacing.sm),
         ],
-        _PlaceholderBubble(nextStartLetter: state.nextStartLetter, isMyTurn: state.isMyTurn),
+        _PlaceholderBubble(
+          nextStartLetter: state.nextStartLetter,
+          isMyTurn: state.isMyTurn,
+        ),
         const SizedBox(height: ZSpacing.lg),
       ],
     );
@@ -225,11 +269,19 @@ class _BubbleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final embossed = distanceFromEnd <= 1;
-    final rampIndex =
-        (_bubbleSizes.length - 1 - distanceFromEnd).clamp(0, _bubbleSizes.length - 1);
+    final rampIndex = (_bubbleSizes.length - 1 - distanceFromEnd).clamp(
+      0,
+      _bubbleSizes.length - 1,
+    );
     final tileSize = _bubbleSizes[rampIndex];
     final fontSize = _bubbleFonts[rampIndex];
-    final opacity = embossed ? 1.0 : _bubbleOpacity[distanceFromEnd.clamp(0, _bubbleOpacity.length - 1)];
+    final opacity =
+        embossed
+            ? 1.0
+            : _bubbleOpacity[distanceFromEnd.clamp(
+              0,
+              _bubbleOpacity.length - 1,
+            )];
 
     final tile = LetterTile(letter: word[0], size: tileSize, accent: accent);
     final wordText = Text(
@@ -242,44 +294,66 @@ class _BubbleRow extends StatelessWidget {
     );
 
     final bubble = Container(
-      padding: EdgeInsets.symmetric(horizontal: embossed ? 14 : 12, vertical: embossed ? 10 : 9),
+      padding: EdgeInsets.symmetric(
+        horizontal: embossed ? 14 : 12,
+        vertical: embossed ? 10 : 9,
+      ),
       decoration: BoxDecoration(
         color: isMine ? z.inkSurface : z.surface,
         borderRadius: BorderRadius.circular(embossed ? 18 : 16),
         border: isMine ? null : Border.all(color: z.line),
-        boxShadow: embossed
-            ? ZElevation.solidEdge(isMine ? z.inkSurfaceDeep : z.line, depth: ZElevation.cardDepth)
-            : null,
+        boxShadow:
+            embossed
+                ? ZElevation.solidEdge(
+                  isMine ? z.inkSurfaceDeep : z.line,
+                  depth: ZElevation.cardDepth,
+                )
+                : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: isMine
-            ? [
-                tile,
-                const SizedBox(width: ZSpacing.sm),
-                wordText,
-                if (embossed) ...[
+        children:
+            isMine
+                ? [
+                  tile,
                   const SizedBox(width: ZSpacing.sm),
+                  wordText,
+                  if (embossed) ...[
+                    const SizedBox(width: ZSpacing.sm),
+                    Text(
+                      score != null
+                          ? 'تو · ‎+${toPersianDigits(score!)}'
+                          : 'تو',
+                      style: ZTypography.metaLabel.copyWith(
+                        color: z.onInkSurfaceSoft,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ]
+                : [
                   Text(
-                    score != null ? 'تو · ‎+${toPersianDigits(score!)}' : 'تو',
-                    style: ZTypography.metaLabel.copyWith(color: z.onInkSurfaceSoft, fontSize: 11),
+                    opponentLabel,
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.ink40,
+                      fontSize: 10.5,
+                    ),
                   ),
+                  const SizedBox(width: ZSpacing.sm),
+                  wordText,
+                  const SizedBox(width: ZSpacing.sm),
+                  tile,
                 ],
-              ]
-            : [
-                Text(opponentLabel, style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10.5)),
-                const SizedBox(width: ZSpacing.sm),
-                wordText,
-                const SizedBox(width: ZSpacing.sm),
-                tile,
-              ],
       ),
     );
 
     return Opacity(
       opacity: opacity,
       child: Align(
-        alignment: isMine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+        alignment:
+            isMine
+                ? AlignmentDirectional.centerEnd
+                : AlignmentDirectional.centerStart,
         child: bubble,
       ),
     );
@@ -290,13 +364,19 @@ class _PlaceholderBubble extends StatelessWidget {
   final String? nextStartLetter;
   final bool isMyTurn;
 
-  const _PlaceholderBubble({required this.nextStartLetter, required this.isMyTurn});
+  const _PlaceholderBubble({
+    required this.nextStartLetter,
+    required this.isMyTurn,
+  });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     return Align(
-      alignment: isMyTurn ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+      alignment:
+          isMyTurn
+              ? AlignmentDirectional.centerEnd
+              : AlignmentDirectional.centerStart,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -306,7 +386,14 @@ class _PlaceholderBubble extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('کلمه‌ای با', style: ZTypography.body.copyWith(color: z.ink40, fontWeight: FontWeight.w700, fontSize: 13)),
+            Text(
+              'کلمه‌ای با',
+              style: ZTypography.body.copyWith(
+                color: z.ink40,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(width: ZSpacing.sm),
             ZDashedTile(letter: nextStartLetter ?? '؟', size: 34),
           ],
@@ -327,7 +414,11 @@ class _Footer extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter, ZSpacing.md, ZSpacing.screenGutter, ZSpacing.lg),
+        ZSpacing.screenGutter,
+        ZSpacing.md,
+        ZSpacing.screenGutter,
+        ZSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: z.surface,
         border: Border(top: BorderSide(color: z.line)),
@@ -345,7 +436,8 @@ class _Footer extends StatelessWidget {
             hintWord: state.hintWord,
             isOpponentThinking: !state.isMyTurn,
             opponentLabel: _difficultyLabels[state.opponentType] ?? 'حریف',
-            onSubmit: (word) => context.read<GameBloc>().add(WordSubmitted(word)),
+            onSubmit:
+                (word) => context.read<GameBloc>().add(WordSubmitted(word)),
           ),
         ],
       ),

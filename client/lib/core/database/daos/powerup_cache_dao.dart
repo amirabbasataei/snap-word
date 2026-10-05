@@ -7,9 +7,9 @@ class RemotePowerup {
   const RemotePowerup({required this.powerupType, required this.quantity});
 
   factory RemotePowerup.fromJson(Map<String, dynamic> json) => RemotePowerup(
-        powerupType: json['powerup_type'] as String,
-        quantity: json['quantity'] as int? ?? 0,
-      );
+    powerupType: json['powerup_type'] as String,
+    quantity: json['quantity'] as int? ?? 0,
+  );
 }
 
 @DriftAccessor(tables: [LocalPowerupCache])

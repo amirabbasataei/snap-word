@@ -42,7 +42,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                ZSpacing.screenGutter, ZSpacing.lg, ZSpacing.screenGutter, ZSpacing.md,
+                ZSpacing.screenGutter,
+                ZSpacing.lg,
+                ZSpacing.screenGutter,
+                ZSpacing.md,
               ),
               child: Row(
                 children: [
@@ -51,7 +54,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
                     icon: Icon(Icons.arrow_back_rounded, color: z.ink),
                   ),
                   const SizedBox(width: ZSpacing.sm),
-                  Text('هدیه‌ها', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+                  Text(
+                    'هدیه‌ها',
+                    style: ZTypography.screenTitle.copyWith(color: z.ink),
+                  ),
                 ],
               ),
             ),
@@ -62,20 +68,27 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 builder: (context, state) {
                   if (state.items.isEmpty) {
                     return Center(
-                      child: state.loading
-                          ? CircularProgressIndicator(color: z.indigo)
-                          : Text(
-                              'هدیه‌ای نداری',
-                              style: ZTypography.body.copyWith(color: z.ink40),
-                            ),
+                      child:
+                          state.loading
+                              ? CircularProgressIndicator(color: z.indigo)
+                              : Text(
+                                'هدیه‌ای نداری',
+                                style: ZTypography.body.copyWith(
+                                  color: z.ink40,
+                                ),
+                              ),
                     );
                   }
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(
-                      ZSpacing.screenGutter, 0, ZSpacing.screenGutter, ZSpacing.xl,
+                      ZSpacing.screenGutter,
+                      0,
+                      ZSpacing.screenGutter,
+                      ZSpacing.xl,
                     ),
                     itemCount: state.items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: ZSpacing.md),
+                    separatorBuilder:
+                        (_, _) => const SizedBox(height: ZSpacing.md),
                     itemBuilder: (_, i) => _RewardTile(item: state.items[i]),
                   );
                 },
@@ -106,17 +119,26 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
     try {
       final watched = await getIt<AdService>().showRewardedAd();
       if (!watched) {
-        ZToast.showOn(overlay, 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن',
-            kind: ZToastKind.error);
+        ZToast.showOn(
+          overlay,
+          'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن',
+          kind: ZToastKind.error,
+        );
         return;
       }
       final coins = await getIt<GameRepository>().claimRewardedAd();
       await getIt<AuthCubit>().setCoins(coins);
       ZToast.showOn(
-          overlay, '${toPersianDigits(GameConstants.rewardedAdCoins)} سکه به حسابت اضافه شد!',
-          kind: ZToastKind.success);
+        overlay,
+        '${toPersianDigits(GameConstants.rewardedAdCoins)} سکه به حسابت اضافه شد!',
+        kind: ZToastKind.success,
+      );
     } catch (_) {
-      ZToast.showOn(overlay, 'اتصال برقرار نشد؛ دوباره تلاش کن', kind: ZToastKind.error);
+      ZToast.showOn(
+        overlay,
+        'اتصال برقرار نشد؛ دوباره تلاش کن',
+        kind: ZToastKind.error,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -125,11 +147,15 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
   @override
   Widget build(BuildContext context) {
     final ads = getIt<AdService>();
-    if (!ads.rewardedEnabled || getIt<AuthCubit>().isGuest) return const SizedBox.shrink();
+    if (!ads.rewardedEnabled || getIt<AuthCubit>().isGuest)
+      return const SizedBox.shrink();
     final z = context.z;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter, 0, ZSpacing.screenGutter, ZSpacing.md,
+        ZSpacing.screenGutter,
+        0,
+        ZSpacing.screenGutter,
+        ZSpacing.md,
       ),
       child: SolidCard(
         padding: const EdgeInsets.all(ZSpacing.lg),
@@ -137,7 +163,10 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('سکهٔ رایگان', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+            Text(
+              'سکهٔ رایگان',
+              style: ZTypography.cardTitle.copyWith(color: z.ink),
+            ),
             const SizedBox(height: ZSpacing.xs),
             Text(
               'با دیدن یک تبلیغ کوتاه ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
@@ -174,12 +203,18 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
         'در چالش دیروز رتبهٔ ${toPersianDigits(item.detail)} شدی! $coins سکه هدیه بگیر.',
       );
     case 'daily_done':
-      return ('پاداش چالش روزانه', 'برای شرکت در چالش دیروز $coins سکه هدیه بگیر.');
+      return (
+        'پاداش چالش روزانه',
+        'برای شرکت در چالش دیروز $coins سکه هدیه بگیر.',
+      );
     case 'daily_login':
       return ('پاداش ورود روزانه', 'برای سر زدن امروز $coins سکه هدیه بگیر.');
     default:
       final name = item.detail.isEmpty ? 'دوستت' : item.detail;
-      return ('هدیهٔ دعوت', '$name با کد دعوت تو وارد بازی شد. $coins سکه هدیه بگیر!');
+      return (
+        'هدیهٔ دعوت',
+        '$name با کد دعوت تو وارد بازی شد. $coins سکه هدیه بگیر!',
+      );
   }
 }
 
@@ -200,14 +235,21 @@ class _RewardTileState extends State<_RewardTile> {
     final overlay = Overlay.of(context, rootOverlay: true);
     try {
       final coins = await getIt<RewardsCubit>().claim(widget.item.id);
-      ZToast.showOn(overlay, '${toPersianDigits(coins)} سکه به حسابت اضافه شد!',
-          kind: ZToastKind.success);
+      ZToast.showOn(
+        overlay,
+        '${toPersianDigits(coins)} سکه به حسابت اضافه شد!',
+        kind: ZToastKind.success,
+      );
     } on RewardsException catch (e) {
       // Already claimed elsewhere → resync the list instead of showing an error.
       if (e.code == 'reward_not_found') {
         await getIt<RewardsCubit>().refresh();
       } else {
-        ZToast.showOn(overlay, 'مشکلی پیش آمد، دوباره تلاش کن', kind: ZToastKind.error);
+        ZToast.showOn(
+          overlay,
+          'مشکلی پیش آمد، دوباره تلاش کن',
+          kind: ZToastKind.error,
+        );
       }
     }
     if (mounted) setState(() => _claiming = false);
@@ -226,19 +268,24 @@ class _RewardTileState extends State<_RewardTile> {
         children: [
           Text(
             title,
-            style: ZTypography.cardTitle.copyWith(color: item.claimed ? z.ink40 : z.ink),
+            style: ZTypography.cardTitle.copyWith(
+              color: item.claimed ? z.ink40 : z.ink,
+            ),
           ),
           const SizedBox(height: 4),
-          Text(
-            body,
-            style: ZTypography.body.copyWith(color: z.ink60),
-          ),
+          Text(body, style: ZTypography.body.copyWith(color: z.ink60)),
           const SizedBox(height: ZSpacing.md),
           if (item.claimed)
-            Text('دریافت شد ✓', style: ZTypography.metaLabel.copyWith(color: z.teal))
+            Text(
+              'دریافت شد ✓',
+              style: ZTypography.metaLabel.copyWith(color: z.teal),
+            )
           else
             AccentButton(
-              label: _claiming ? '...' : 'دریافت ${toPersianDigits(item.coins)} سکه',
+              label:
+                  _claiming
+                      ? '...'
+                      : 'دریافت ${toPersianDigits(item.coins)} سکه',
               accent: ZAccentColor.amber,
               onPressed: _claiming ? null : _claim,
             ),

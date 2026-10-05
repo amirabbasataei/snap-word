@@ -11,7 +11,12 @@ import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 
-const _accentCycle = [ZAccent.indigo, ZAccent.teal, ZAccent.amber, ZAccent.coral];
+const _accentCycle = [
+  ZAccent.indigo,
+  ZAccent.teal,
+  ZAccent.amber,
+  ZAccent.coral,
+];
 
 /// ZSolo — the true solo (no opponent) active-game screen: vertical spine
 /// chain renderer, stat strip (chain length / personal record / lives),
@@ -37,7 +42,8 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
   Future<void> _loadRecord() async {
     try {
       final stats = await getIt<StatsDao>().getStats();
-      if (mounted) setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
+      if (mounted)
+        setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
     } catch (_) {
       // Best-effort — stat strip just shows ۰ until this resolves.
     }
@@ -53,10 +59,7 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _Header(
-              state: state,
-              recordChainLength: _recordChainLength,
-            ),
+            _Header(state: state, recordChainLength: _recordChainLength),
             Expanded(child: _ChainList(state: state)),
             _Footer(state: state, recordChainLength: _recordChainLength),
           ],
@@ -70,10 +73,7 @@ class _Header extends StatelessWidget {
   final GameActive state;
   final int recordChainLength;
 
-  const _Header({
-    required this.state,
-    required this.recordChainLength,
-  });
+  const _Header({required this.state, required this.recordChainLength});
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +82,11 @@ class _Header extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter, ZSpacing.md, ZSpacing.screenGutter, ZSpacing.lg),
+        ZSpacing.screenGutter,
+        ZSpacing.md,
+        ZSpacing.screenGutter,
+        ZSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: z.surface,
         border: Border(bottom: BorderSide(color: z.line)),
@@ -98,21 +102,32 @@ class _Header extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(isDaily ? 'چالش روزانه' : 'تک‌نفره',
-                        style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
+                    Text(
+                      isDaily ? 'چالش روزانه' : 'تک‌نفره',
+                      style: ZTypography.cardTitle.copyWith(
+                        color: z.ink,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     // Daily is a fixed, once-a-day variant — no mode toggle
                     // (switching would silently abandon the tracked attempt).
                     if (isDaily)
                       Text(
                         'روزی یک بار · حداکثر ${toPersianDigits(GameConstants.dailyMaxWords)} کلمه',
-                        style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
+                        style: ZTypography.metaLabel.copyWith(
+                          color: z.ink40,
+                          fontSize: 11.5,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       )
                     else
                       Text(
                         'بی‌وقفه · بدون حریف',
-                        style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5),
+                        style: ZTypography.metaLabel.copyWith(
+                          color: z.ink40,
+                          fontSize: 11.5,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                   ],
@@ -123,9 +138,19 @@ class _Header extends StatelessWidget {
                 children: [
                   Text(
                     toPersianDigits(state.score),
-                    style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 22, fontWeight: FontWeight.w900),
+                    style: ZTypography.cardTitle.copyWith(
+                      color: z.ink,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                  Text('امتیاز', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10.5)),
+                  Text(
+                    'امتیاز',
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.ink40,
+                      fontSize: 10.5,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -149,7 +174,10 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               Expanded(
-                child: _LivesTile(livesRemaining: state.livesRemaining, maxLives: GameConstants.soloLives),
+                child: _LivesTile(
+                  livesRemaining: state.livesRemaining,
+                  maxLives: GameConstants.soloLives,
+                ),
               ),
             ],
           ),
@@ -168,11 +196,7 @@ class _StatTile extends StatelessWidget {
   final String label;
   final Color? valueColor;
 
-  const _StatTile({
-    required this.value,
-    required this.label,
-    this.valueColor,
-  });
+  const _StatTile({required this.value, required this.label, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -189,9 +213,16 @@ class _StatTile extends StatelessWidget {
         children: [
           Text(
             value,
-            style: ZTypography.cardTitle.copyWith(color: valueColor ?? z.ink, fontSize: 15, fontWeight: FontWeight.w900),
+            style: ZTypography.cardTitle.copyWith(
+              color: valueColor ?? z.ink,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          Text(label, style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10)),
+          Text(
+            label,
+            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10),
+          ),
         ],
       ),
     );
@@ -224,7 +255,9 @@ class _LivesTile extends StatelessWidget {
                 Container(
                   width: 9,
                   height: 12,
-                  margin: EdgeInsetsDirectional.only(end: i == maxLives - 1 ? 0 : 3),
+                  margin: EdgeInsetsDirectional.only(
+                    end: i == maxLives - 1 ? 0 : 3,
+                  ),
                   decoration: BoxDecoration(
                     color: i < livesRemaining ? z.coral : z.wash,
                     borderRadius: BorderRadius.circular(3),
@@ -234,8 +267,10 @@ class _LivesTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 3),
-          Text('${toPersianDigits(livesRemaining)} جان',
-              style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10)),
+          Text(
+            '${toPersianDigits(livesRemaining)} جان',
+            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10),
+          ),
         ],
       ),
     );
@@ -291,7 +326,11 @@ class _ChainListState extends State<_ChainList> {
     return ListView(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter, ZSpacing.lg, ZSpacing.screenGutter, 0),
+        ZSpacing.screenGutter,
+        ZSpacing.lg,
+        ZSpacing.screenGutter,
+        0,
+      ),
       children: [
         for (var i = 0; i < chain.length; i++) ...[
           _ChainRow(
@@ -320,7 +359,12 @@ class _ChainGap extends StatelessWidget {
       height: 13,
       child: Row(
         children: [
-          SizedBox(width: 32, child: Center(child: Container(width: 2, height: 13, color: z.line))),
+          SizedBox(
+            width: 32,
+            child: Center(
+              child: Container(width: 2, height: 13, color: z.line),
+            ),
+          ),
         ],
       ),
     );
@@ -350,7 +394,12 @@ class _ChainRow extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: ZSpacing.md),
         child: Row(
           children: [
-            SizedBox(width: 32, child: Center(child: LetterTile(letter: word[0], size: 32, accent: accent))),
+            SizedBox(
+              width: 32,
+              child: Center(
+                child: LetterTile(letter: word[0], size: 32, accent: accent),
+              ),
+            ),
             const SizedBox(width: ZSpacing.md),
             Expanded(
               child: Row(
@@ -358,18 +407,30 @@ class _ChainRow extends StatelessWidget {
                   Flexible(
                     child: Text(
                       word,
-                      style: ZTypography.chainWordActive.copyWith(color: z.ink, fontSize: 24),
+                      style: ZTypography.chainWordActive.copyWith(
+                        color: z.ink,
+                        fontSize: 24,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: ZSpacing.sm),
                   if (score != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                      decoration: BoxDecoration(color: z.tintTeal, borderRadius: BorderRadius.circular(ZRadius.chip)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: z.tintTeal,
+                        borderRadius: BorderRadius.circular(ZRadius.chip),
+                      ),
                       child: Text(
                         '‎+${toPersianDigits(score!)} · تازه',
-                        style: ZTypography.metaLabel.copyWith(color: z.teal, fontWeight: FontWeight.w700),
+                        style: ZTypography.metaLabel.copyWith(
+                          color: z.teal,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                 ],
@@ -380,7 +441,10 @@ class _ChainRow extends StatelessWidget {
       );
     }
 
-    final rampIndex = (_rampSizes.length - 1 - distanceFromEnd).clamp(0, _rampSizes.length - 1);
+    final rampIndex = (_rampSizes.length - 1 - distanceFromEnd).clamp(
+      0,
+      _rampSizes.length - 1,
+    );
     final size = _rampSizes[rampIndex];
     final fontSize = _rampFonts[rampIndex];
     final opacity = _rampOpacity[rampIndex];
@@ -391,7 +455,12 @@ class _ChainRow extends StatelessWidget {
         opacity: opacity,
         child: Row(
           children: [
-            SizedBox(width: 32, child: Center(child: LetterTile(letter: word[0], size: size, accent: accent))),
+            SizedBox(
+              width: 32,
+              child: Center(
+                child: LetterTile(letter: word[0], size: size, accent: accent),
+              ),
+            ),
             const SizedBox(width: ZSpacing.md),
             Expanded(
               child: Row(
@@ -399,7 +468,10 @@ class _ChainRow extends StatelessWidget {
                   Flexible(
                     child: Text(
                       word,
-                      style: ZTypography.chainWordHistory.copyWith(color: z.ink, fontSize: fontSize),
+                      style: ZTypography.chainWordHistory.copyWith(
+                        color: z.ink,
+                        fontSize: fontSize,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -407,7 +479,10 @@ class _ChainRow extends StatelessWidget {
                   if (score != null)
                     Text(
                       '${toPersianDigits(index + 1)} · ‎+${toPersianDigits(score!)}',
-                      style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10.5),
+                      style: ZTypography.metaLabel.copyWith(
+                        color: z.ink40,
+                        fontSize: 10.5,
+                      ),
                     ),
                 ],
               ),
@@ -438,8 +513,14 @@ class _NextWordRow extends StatelessWidget {
         const SizedBox(width: ZSpacing.md),
         Expanded(
           child: Text(
-            nextStartLetter != null ? 'حالا کلمه‌ای با «$nextStartLetter»' : 'اولین کلمه رو بنویس',
-            style: ZTypography.body.copyWith(color: z.ink40, fontWeight: FontWeight.w700, fontSize: 13),
+            nextStartLetter != null
+                ? 'حالا کلمه‌ای با «$nextStartLetter»'
+                : 'اولین کلمه رو بنویس',
+            style: ZTypography.body.copyWith(
+              color: z.ink40,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
           ),
         ),
       ],
@@ -459,7 +540,11 @@ class _Footer extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter, ZSpacing.md, ZSpacing.screenGutter, ZSpacing.lg),
+        ZSpacing.screenGutter,
+        ZSpacing.md,
+        ZSpacing.screenGutter,
+        ZSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: z.surface,
         border: Border(top: BorderSide(color: z.line)),
@@ -471,11 +556,17 @@ class _Footer extends StatelessWidget {
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: ZSpacing.sm),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: z.tintCoral, borderRadius: BorderRadius.circular(ZRadius.tileMax)),
+              decoration: BoxDecoration(
+                color: z.tintCoral,
+                borderRadius: BorderRadius.circular(ZRadius.tileMax),
+              ),
               child: Text(
                 'کلمهٔ اشتباه — یک جان از دست دادی!',
                 textAlign: TextAlign.center,
-                style: ZTypography.metaLabel.copyWith(color: z.coral, fontWeight: FontWeight.w700),
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.coral,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -488,7 +579,8 @@ class _Footer extends StatelessWidget {
             startLetter: state.nextStartLetter,
             enabled: state.isMyTurn,
             hintWord: state.hintWord,
-            onSubmit: (word) => context.read<GameBloc>().add(WordSubmitted(word)),
+            onSubmit:
+                (word) => context.read<GameBloc>().add(WordSubmitted(word)),
           ),
         ],
       ),

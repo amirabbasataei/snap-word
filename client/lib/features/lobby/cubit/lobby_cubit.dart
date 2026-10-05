@@ -20,10 +20,10 @@ class LobbyCubit extends Cubit<LobbyState> {
     required LobbyRepository repo,
     required SyncService syncService,
     required NotificationService notificationService,
-  })  : _repo = repo,
-        _syncService = syncService,
-        _notificationService = notificationService,
-        super(const LobbyIdle());
+  }) : _repo = repo,
+       _syncService = syncService,
+       _notificationService = notificationService,
+       super(const LobbyIdle());
 
   @override
   Future<void> close() {

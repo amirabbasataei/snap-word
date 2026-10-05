@@ -1,3 +1,4 @@
+import 'package:wordchain/core/widgets/z_coin.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,7 +46,8 @@ class ZProfileScreen extends StatelessWidget {
       bloc: getIt<AuthCubit>(),
       builder: (context, authState) {
         final isGuest = authState is! AuthAuthenticated;
-        final identity = authState is AuthAuthenticated ? authState.userId : 'guest';
+        final identity =
+            authState is AuthAuthenticated ? authState.userId : 'guest';
         return BlocProvider(
           key: ValueKey('profile-$identity'),
           create:
@@ -81,7 +83,10 @@ class _ProfileView extends StatelessWidget {
               return Center(child: CircularProgressIndicator(color: z.indigo));
             }
             if (state is ProfileError) {
-              return _ErrorView(message: state.message, onRetry: () => context.read<ProfileCubit>().load());
+              return _ErrorView(
+                message: state.message,
+                onRetry: () => context.read<ProfileCubit>().load(),
+              );
             }
             if (state is ProfileLoaded) {
               return _LoadedView(state: state);
@@ -118,7 +123,14 @@ class _LoadedView extends StatelessWidget {
       PurchaseStatus.cancelled => 'خرید لغو شد.',
       PurchaseStatus.failed => result.error ?? 'خرید ناموفق بود.',
     };
-    ZToast.show(context, msg, kind: result.status == PurchaseStatus.success ? ZToastKind.success : ZToastKind.error);
+    ZToast.show(
+      context,
+      msg,
+      kind:
+          result.status == PurchaseStatus.success
+              ? ZToastKind.success
+              : ZToastKind.error,
+    );
   }
 
   void _showBuyCoinsSheet(BuildContext context) {
@@ -126,8 +138,15 @@ class _LoadedView extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: z.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMax))),
-      builder: (_) => _BuyCoinsSheet(onPurchase: (productId) => _purchaseProduct(context, productId)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(ZRadius.sheetMax),
+        ),
+      ),
+      builder:
+          (_) => _BuyCoinsSheet(
+            onPurchase: (productId) => _purchaseProduct(context, productId),
+          ),
     );
   }
 
@@ -136,21 +155,44 @@ class _LoadedView extends StatelessWidget {
     final stats = state.stats;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(ZSpacing.screenGutter, ZSpacing.lg, ZSpacing.screenGutter, ZSpacing.xl),
+      padding: const EdgeInsets.fromLTRB(
+        ZSpacing.screenGutter,
+        ZSpacing.lg,
+        ZSpacing.screenGutter,
+        ZSpacing.xl,
+      ),
       children: [
         BlocBuilder<AuthCubit, AuthState>(
           bloc: getIt<AuthCubit>(),
-          builder: (context, _) => _ProfileHeader(username: _username(context), isGuest: state.isGuest, level: stats.level),
+          builder:
+              (context, _) => _ProfileHeader(
+                username: _username(context),
+                isGuest: state.isGuest,
+                level: stats.level,
+              ),
         ),
         const SizedBox(height: ZSpacing.xl),
 
-        if (!state.isGuest) ...[_LevelCard(stats: stats), const SizedBox(height: ZSpacing.md)],
+        if (!state.isGuest) ...[
+          _LevelCard(stats: stats),
+          const SizedBox(height: ZSpacing.md),
+        ],
 
         Row(
           children: [
-            Expanded(child: _StatCard(value: toPersianDigits(stats.totalMatches), label: 'بازی‌شده')),
+            Expanded(
+              child: _StatCard(
+                value: toPersianDigits(stats.totalMatches),
+                label: 'بازی‌شده',
+              ),
+            ),
             const SizedBox(width: ZSpacing.md),
-            Expanded(child: _StatCard(value: toPersianDigits(stats.bestMatchStreak), label: 'بلندترین زنجیر')),
+            Expanded(
+              child: _StatCard(
+                value: toPersianDigits(stats.bestMatchStreak),
+                label: 'بلندترین زنجیر',
+              ),
+            ),
           ],
         ),
         const SizedBox(height: ZSpacing.md),
@@ -167,7 +209,12 @@ class _LoadedView extends StatelessWidget {
               ),
             ),
             const SizedBox(width: ZSpacing.md),
-            Expanded(child: _StatCard(value: toPersianDigits(stats.dailyStreak), label: 'روز پیاپی')),
+            Expanded(
+              child: _StatCard(
+                value: toPersianDigits(stats.dailyStreak),
+                label: 'روز پیاپی',
+              ),
+            ),
           ],
         ),
 
@@ -204,7 +251,10 @@ class _LoadedView extends StatelessWidget {
           const SizedBox(height: ZSpacing.xl),
         ],
 
-        if (!state.isGuest) ...[const _InviteCard(), const SizedBox(height: ZSpacing.xl)],
+        if (!state.isGuest) ...[
+          const _InviteCard(),
+          const SizedBox(height: ZSpacing.xl),
+        ],
 
         _SectionLabel('تنظیمات'),
         const SizedBox(height: ZSpacing.sm),
@@ -301,29 +351,54 @@ class _InviteCardState extends State<_InviteCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('دعوت از دوستان', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+          Text(
+            'دعوت از دوستان',
+            style: ZTypography.cardTitle.copyWith(color: z.ink),
+          ),
           const SizedBox(height: 4),
-          Text('دوستت ۱۰۰ سکه می‌گیرد و تو هم ۵۰ سکه!', style: ZTypography.metaLabel.copyWith(color: z.ink60)),
+          Text(
+            'دوستت ۱۰۰ سکه می‌گیرد و تو هم ۵۰ سکه!',
+            style: ZTypography.metaLabel.copyWith(color: z.ink60),
+          ),
           const SizedBox(height: ZSpacing.md),
           if (_failed)
             NeutralButton(label: 'تلاش دوباره', onPressed: _load)
           else if (code == null)
-            SizedBox(height: 52, child: Center(child: CircularProgressIndicator(color: z.indigo, strokeWidth: 2)))
+            SizedBox(
+              height: 52,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: z.indigo,
+                  strokeWidth: 2,
+                ),
+              ),
+            )
           else ...[
             GestureDetector(
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: code));
                 if (!context.mounted) return;
-                ZToast.show(context, 'کد دعوت کپی شد', kind: ZToastKind.success);
+                ZToast.show(
+                  context,
+                  'کد دعوت کپی شد',
+                  kind: ZToastKind.success,
+                );
               },
               child: Container(
                 height: 52,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(color: z.wash, borderRadius: BorderRadius.circular(14)),
+                decoration: BoxDecoration(
+                  color: z.wash,
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Text(
                   code,
                   textDirection: TextDirection.ltr,
-                  style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 20, letterSpacing: 4),
+                  style: ZTypography.cardTitle.copyWith(
+                    color: z.ink,
+                    fontSize: 20,
+                    letterSpacing: 4,
+                  ),
                 ),
               ),
             ),
@@ -383,16 +458,27 @@ class _ProfileHeader extends StatelessWidget {
   final bool isGuest;
   final int level;
 
-  const _ProfileHeader({required this.username, required this.isGuest, required this.level});
+  const _ProfileHeader({
+    required this.username,
+    required this.isGuest,
+    required this.level,
+  });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final initial = username.isEmpty ? '؟' : username.substring(0, 1).toUpperCase();
+    final initial =
+        username.isEmpty ? '؟' : username.substring(0, 1).toUpperCase();
 
     return Row(
       children: [
-        LetterTile(letter: initial, size: 64, accent: ZAccent.teal, radius: 20, fontSize: 28),
+        LetterTile(
+          letter: initial,
+          size: 64,
+          accent: ZAccent.teal,
+          radius: 20,
+          fontSize: 28,
+        ),
         const SizedBox(width: ZSpacing.lg),
         Expanded(
           child: Column(
@@ -403,7 +489,10 @@ class _ProfileHeader extends StatelessWidget {
                   Flexible(
                     child: Text(
                       username,
-                      style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 19),
+                      style: ZTypography.screenTitle.copyWith(
+                        color: z.ink,
+                        fontSize: 19,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -419,10 +508,14 @@ class _ProfileHeader extends StatelessWidget {
               ),
               const SizedBox(height: 5),
               if (isGuest)
-                Text('در حال بازی به‌صورت مهمان', style: ZTypography.metaLabel.copyWith(color: z.ink40))
+                Text(
+                  'در حال بازی به‌صورت مهمان',
+                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                )
               else
                 TintChip(
-                  label: 'سطح ${toPersianDigits(level)} · ${GameConstants.levelTitle(level)}',
+                  label:
+                      'سطح ${toPersianDigits(level)} · ${GameConstants.levelTitle(level)}',
                   tint: ZTint.indigo,
                 ),
             ],
@@ -446,16 +539,28 @@ class _LevelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     return SolidCard(
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ZSpacing.lg,
+        vertical: ZSpacing.lg,
+      ),
       radius: ZRadius.cardMax,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('تا سطح ${toPersianDigits(stats.level + 1)}', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+              Text(
+                'تا سطح ${toPersianDigits(stats.level + 1)}',
+                style: ZTypography.metaLabel.copyWith(color: z.ink40),
+              ),
               const Spacer(),
-              Text('${formatPersianNumber(stats.xpInLevel)} / ${formatPersianNumber(stats.xpForNext)}', style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700)),
+              Text(
+                '${formatPersianNumber(stats.xpInLevel)} / ${formatPersianNumber(stats.xpForNext)}',
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.ink60,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 9),
@@ -466,7 +571,10 @@ class _LevelCard extends StatelessWidget {
               color: z.wash,
               alignment: AlignmentDirectional.centerStart,
               child: FractionallySizedBox(
-                widthFactor: stats.xpForNext <= 0 ? 0 : (stats.xpInLevel / stats.xpForNext).clamp(0.0, 1.0),
+                widthFactor:
+                    stats.xpForNext <= 0
+                        ? 0
+                        : (stats.xpInLevel / stats.xpForNext).clamp(0.0, 1.0),
                 child: Container(color: z.indigo),
               ),
             ),
@@ -532,7 +640,11 @@ class _StatCard extends StatelessWidget {
   final String label;
   final double fontSize;
 
-  const _StatCard({required this.value, required this.label, this.fontSize = 26});
+  const _StatCard({
+    required this.value,
+    required this.label,
+    this.fontSize = 26,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -595,11 +707,17 @@ class _NightModeRow extends StatelessWidget {
                 color: isDark ? z.ink : z.line,
                 borderRadius: BorderRadius.circular(ZRadius.chip),
               ),
-              alignment: isDark ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+              alignment:
+                  isDark
+                      ? AlignmentDirectional.centerEnd
+                      : AlignmentDirectional.centerStart,
               child: Container(
                 width: 20,
                 height: 20,
-                decoration: BoxDecoration(color: z.paper, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: z.paper,
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
@@ -635,7 +753,10 @@ class _CosmeticToggleRow extends StatelessWidget {
       title: title,
       icon: icon,
       showTopBorder: showTopBorder,
-      trailing: Text(valueLabel, style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+      trailing: Text(
+        valueLabel,
+        style: ZTypography.metaLabel.copyWith(color: z.ink40),
+      ),
     );
   }
 }
@@ -648,25 +769,43 @@ class _SettingsShell extends StatelessWidget {
 
   // Material icons stand in for the canvas's bespoke square glyphs, same as
   // ZBottomNav (no glyph assets exist).
-  const _SettingsShell({required this.title, required this.icon, required this.showTopBorder, required this.trailing});
+  const _SettingsShell({
+    required this.title,
+    required this.icon,
+    required this.showTopBorder,
+    required this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),
+      decoration: BoxDecoration(
+        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
+      ),
       child: Row(
         children: [
           Container(
             width: 30,
             height: 30,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: z.wash, borderRadius: BorderRadius.circular(9)),
+            decoration: BoxDecoration(
+              color: z.wash,
+              borderRadius: BorderRadius.circular(9),
+            ),
             child: Icon(icon, size: 17, color: z.ink60),
           ),
           const SizedBox(width: ZSpacing.md),
-          Expanded(child: Text(title, style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink))),
+          Expanded(
+            child: Text(
+              title,
+              style: ZTypography.cardTitle.copyWith(
+                fontSize: 13.5,
+                color: z.ink,
+              ),
+            ),
+          ),
           trailing,
         ],
       ),
@@ -696,7 +835,9 @@ class _SettingsRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),
+        decoration: BoxDecoration(
+          border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -705,16 +846,23 @@ class _SettingsRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: ZTypography.cardTitle.copyWith(fontSize: 14, color: isDestructive ? z.coral : z.ink),
+                    style: ZTypography.cardTitle.copyWith(
+                      fontSize: 14,
+                      color: isDestructive ? z.coral : z.ink,
+                    ),
                   ),
                   if (subtitle.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(subtitle, style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+                    Text(
+                      subtitle,
+                      style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                    ),
                   ],
                 ],
               ),
             ),
-            if (!isDestructive) Icon(Icons.chevron_right, color: z.ink40, size: 20),
+            if (!isDestructive)
+              Icon(Icons.chevron_right, color: z.ink40, size: 20),
           ],
         ),
       ),
@@ -734,7 +882,10 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    return Text(text, style: ZTypography.metaLabel.copyWith(color: z.ink40, letterSpacing: 0.4));
+    return Text(
+      text,
+      style: ZTypography.metaLabel.copyWith(color: z.ink40, letterSpacing: 0.4),
+    );
   }
 }
 
@@ -758,7 +909,12 @@ class _BuyCoinsSheet extends StatelessWidget {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(ZSpacing.screenGutter, ZSpacing.xl, ZSpacing.screenGutter, ZSpacing.xl),
+        padding: const EdgeInsets.fromLTRB(
+          ZSpacing.screenGutter,
+          ZSpacing.xl,
+          ZSpacing.screenGutter,
+          ZSpacing.xl,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -776,19 +932,32 @@ class _BuyCoinsSheet extends StatelessWidget {
                   },
                   child: Container(
                     height: 52,
-                    padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-                    decoration: BoxDecoration(color: z.wash, borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: ZSpacing.lg,
+                    ),
+                    decoration: BoxDecoration(
+                      color: z.wash,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(color: z.amber, shape: BoxShape.circle),
-                        ),
+                        const ZCoin(size: 24),
                         const SizedBox(width: ZSpacing.md),
-                        Text(title, style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 15)),
+                        Text(
+                          title,
+                          style: ZTypography.cardTitle.copyWith(
+                            color: z.ink,
+                            fontSize: 15,
+                          ),
+                        ),
                         const Spacer(),
-                        Text(price, style: ZTypography.cardTitle.copyWith(color: z.amberDeep, fontSize: 15)),
+                        Text(
+                          price,
+                          style: ZTypography.cardTitle.copyWith(
+                            color: z.amberDeep,
+                            fontSize: 15,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -863,7 +1032,11 @@ class _ErrorView extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, color: z.ink40, size: 48),
             const SizedBox(height: ZSpacing.md),
-            Text(message, style: ZTypography.body.copyWith(color: z.ink60), textAlign: TextAlign.center),
+            Text(
+              message,
+              style: ZTypography.body.copyWith(color: z.ink60),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: ZSpacing.lg),
             NeutralButton(label: 'تلاش دوباره', onPressed: onRetry),
           ],

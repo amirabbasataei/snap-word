@@ -50,7 +50,9 @@ class ZFriendsScreen extends StatelessWidget {
         }
         return BlocProvider(
           key: ValueKey('friends-${authState.userId}'),
-          create: (_) => FriendsCubit(repository: getIt<FriendsRepository>())..load(),
+          create:
+              (_) =>
+                  FriendsCubit(repository: getIt<FriendsRepository>())..load(),
           child: TabRefreshListener(
             index: MainTab.friends,
             onRefresh: (ctx) => ctx.read<FriendsCubit>().load(silent: true),
@@ -76,7 +78,10 @@ class _GuestGate extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('دوستان', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+              Text(
+                'دوستان',
+                style: ZTypography.screenTitle.copyWith(color: z.ink),
+              ),
               Expanded(
                 child: Center(
                   child: Column(
@@ -92,7 +97,7 @@ class _GuestGate extends StatelessWidget {
                       const SizedBox(height: ZSpacing.xl),
                       AccentButton(
                         label: 'ثبت‌نام رایگان',
-                        onPressed: () => context.push('/login?return=/friends')
+                        onPressed: () => context.push('/login?return=/friends'),
                       ),
                     ],
                   ),
@@ -154,7 +159,10 @@ class _FriendsViewState extends State<_FriendsView> {
           ZToast.show(context, state.message, kind: ZToastKind.success);
         }
         if (state is FriendsLoaded) {
-          getIt<MessagesCubit>().setPending(state.pendingRequests, state.pendingChallenges);
+          getIt<MessagesCubit>().setPending(
+            state.pendingRequests,
+            state.pendingChallenges,
+          );
         }
         if (state is FriendsLoaded && state.actionError != null) {
           ZToast.show(context, state.actionError!, kind: ZToastKind.error);
@@ -166,7 +174,9 @@ class _FriendsViewState extends State<_FriendsView> {
           child: BlocBuilder<FriendsCubit, FriendsState>(
             builder: (context, state) {
               if (state is FriendsLoading || state is FriendsInitial) {
-                return Center(child: CircularProgressIndicator(color: z.indigo));
+                return Center(
+                  child: CircularProgressIndicator(color: z.indigo),
+                );
               }
               if (state is FriendsError) {
                 return _ErrorState(
@@ -220,9 +230,7 @@ class _LoadedBodyState extends State<_LoadedBody> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _AddFriendSheet(
-        onSubmit: cubit.sendFriendRequest,
-      ),
+      builder: (_) => _AddFriendSheet(onSubmit: cubit.sendFriendRequest),
     );
   }
 
@@ -231,10 +239,14 @@ class _LoadedBodyState extends State<_LoadedBody> {
     final z = context.z;
     final state = widget.state;
     final query = widget.searchController.text.trim().toLowerCase();
-    final pendingTotal = state.pendingRequests.length + state.pendingChallenges.length;
-    final filteredFriends = query.isEmpty
-        ? state.friends
-        : state.friends.where((f) => f.username.toLowerCase().contains(query)).toList();
+    final pendingTotal =
+        state.pendingRequests.length + state.pendingChallenges.length;
+    final filteredFriends =
+        query.isEmpty
+            ? state.friends
+            : state.friends
+                .where((f) => f.username.toLowerCase().contains(query))
+                .toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -247,7 +259,10 @@ class _LoadedBodyState extends State<_LoadedBody> {
         Row(
           children: [
             Expanded(
-              child: Text('دوستان', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+              child: Text(
+                'دوستان',
+                style: ZTypography.screenTitle.copyWith(color: z.ink),
+              ),
             ),
             GestureDetector(
               onTap: () => _showAddFriendDialog(context),
@@ -289,14 +304,26 @@ class _LoadedBodyState extends State<_LoadedBody> {
         if (pendingTotal > 0) ...[
           Row(
             children: [
-              Text('درخواست‌ها', style: ZTypography.cardTitle.copyWith(fontSize: 12.5, color: z.ink)),
+              Text(
+                'درخواست‌ها',
+                style: ZTypography.cardTitle.copyWith(
+                  fontSize: 12.5,
+                  color: z.ink,
+                ),
+              ),
               const SizedBox(width: ZSpacing.sm),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: z.coral, borderRadius: BorderRadius.circular(ZRadius.chip)),
+                decoration: BoxDecoration(
+                  color: z.coral,
+                  borderRadius: BorderRadius.circular(ZRadius.chip),
+                ),
                 child: Text(
                   toPersianDigits(pendingTotal),
-                  style: ZTypography.metaLabel.copyWith(color: z.onCoral, fontWeight: FontWeight.w700),
+                  style: ZTypography.metaLabel.copyWith(
+                    color: z.onCoral,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -308,7 +335,10 @@ class _LoadedBodyState extends State<_LoadedBody> {
             child: Column(
               children: [
                 for (var i = 0; i < state.pendingRequests.length; i++)
-                  _PendingRequestRow(request: state.pendingRequests[i], showTopBorder: i > 0),
+                  _PendingRequestRow(
+                    request: state.pendingRequests[i],
+                    showTopBorder: i > 0,
+                  ),
                 for (var i = 0; i < state.pendingChallenges.length; i++)
                   _PendingChallengeRow(
                     challenge: state.pendingChallenges[i],
@@ -321,7 +351,13 @@ class _LoadedBodyState extends State<_LoadedBody> {
         ],
         Row(
           children: [
-            Text('دوستان', style: ZTypography.cardTitle.copyWith(fontSize: 12.5, color: z.ink)),
+            Text(
+              'دوستان',
+              style: ZTypography.cardTitle.copyWith(
+                fontSize: 12.5,
+                color: z.ink,
+              ),
+            ),
             const Spacer(),
             Text(
               '${toPersianDigits(filteredFriends.length)} نفر',
@@ -335,7 +371,9 @@ class _LoadedBodyState extends State<_LoadedBody> {
             radius: ZRadius.cardMax,
             child: Center(
               child: Text(
-                state.friends.isEmpty ? 'هنوز دوستی نداری — یکی اضافه کن!' : 'نتیجه‌ای پیدا نشد',
+                state.friends.isEmpty
+                    ? 'هنوز دوستی نداری — یکی اضافه کن!'
+                    : 'نتیجه‌ای پیدا نشد',
                 style: ZTypography.body.copyWith(color: z.ink40),
               ),
             ),
@@ -364,10 +402,16 @@ class _AddButton extends StatelessWidget {
     final z = context.z;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(color: z.tintIndigo, borderRadius: BorderRadius.circular(ZRadius.chip)),
+      decoration: BoxDecoration(
+        color: z.tintIndigo,
+        borderRadius: BorderRadius.circular(ZRadius.chip),
+      ),
       child: Text(
         'افزودن',
-        style: ZTypography.metaLabel.copyWith(color: z.indigo, fontWeight: FontWeight.w700),
+        style: ZTypography.metaLabel.copyWith(
+          color: z.indigo,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -398,7 +442,10 @@ class _ReferralBanner extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: 15),
+        padding: const EdgeInsets.symmetric(
+          horizontal: ZSpacing.lg,
+          vertical: 15,
+        ),
         decoration: BoxDecoration(
           color: z.indigo,
           borderRadius: BorderRadius.circular(ZRadius.cardMax),
@@ -411,22 +458,33 @@ class _ReferralBanner extends StatelessWidget {
                 children: [
                   Text(
                     'کد دعوت داری؟ ۵۰ سکه بگیر',
-                    style: ZTypography.cardTitle.copyWith(color: z.onIndigo, fontSize: 13.5),
+                    style: ZTypography.cardTitle.copyWith(
+                      color: z.onIndigo,
+                      fontSize: 13.5,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'یک‌بار وارد کن',
-                    style: ZTypography.metaLabel.copyWith(color: z.onIndigoSoft),
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.onIndigoSoft,
+                    ),
                   ),
                 ],
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(color: z.surface, borderRadius: BorderRadius.circular(ZRadius.chip)),
+              decoration: BoxDecoration(
+                color: z.surface,
+                borderRadius: BorderRadius.circular(ZRadius.chip),
+              ),
               child: Text(
                 'وارد کردن کد',
-                style: ZTypography.metaLabel.copyWith(color: z.indigo, fontWeight: FontWeight.w800),
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.indigo,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
@@ -444,14 +502,19 @@ class _PendingRequestRow extends StatelessWidget {
   final PendingRequest request;
   final bool showTopBorder;
 
-  const _PendingRequestRow({required this.request, required this.showTopBorder});
+  const _PendingRequestRow({
+    required this.request,
+    required this.showTopBorder,
+  });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),
+      decoration: BoxDecoration(
+        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
+      ),
       child: Row(
         children: [
           _NameAvatar(name: request.username, accent: ZAccent.amber),
@@ -460,8 +523,17 @@ class _PendingRequestRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(request.username, style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink)),
-                Text('می‌خواهد دوست تو شود', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+                Text(
+                  request.username,
+                  style: ZTypography.cardTitle.copyWith(
+                    fontSize: 13.5,
+                    color: z.ink,
+                  ),
+                ),
+                Text(
+                  'می‌خواهد دوست تو شود',
+                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                ),
               ],
             ),
           ),
@@ -469,14 +541,22 @@ class _PendingRequestRow extends StatelessWidget {
             label: 'تأیید',
             bg: z.teal,
             fg: z.onTeal,
-            onTap: () => context.read<FriendsCubit>().respondToRequest(request.requesterId, true),
+            onTap:
+                () => context.read<FriendsCubit>().respondToRequest(
+                  request.requesterId,
+                  true,
+                ),
           ),
           const SizedBox(width: 6),
           _PillAction(
             label: 'رد',
             bg: z.paper,
             fg: z.ink40,
-            onTap: () => context.read<FriendsCubit>().respondToRequest(request.requesterId, false),
+            onTap:
+                () => context.read<FriendsCubit>().respondToRequest(
+                  request.requesterId,
+                  false,
+                ),
           ),
         ],
       ),
@@ -488,7 +568,10 @@ class _PendingChallengeRow extends StatelessWidget {
   final PendingChallenge challenge;
   final bool showTopBorder;
 
-  const _PendingChallengeRow({required this.challenge, required this.showTopBorder});
+  const _PendingChallengeRow({
+    required this.challenge,
+    required this.showTopBorder,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -496,17 +579,31 @@ class _PendingChallengeRow extends StatelessWidget {
     final modeName = 'کلاسیک';
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),
+      decoration: BoxDecoration(
+        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
+      ),
       child: Row(
         children: [
-          _NameAvatar(name: challenge.challengerUsername, accent: ZAccent.coral),
+          _NameAvatar(
+            name: challenge.challengerUsername,
+            accent: ZAccent.coral,
+          ),
           const SizedBox(width: ZSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(challenge.challengerUsername, style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink)),
-                Text('چالش فرستاد · $modeName', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+                Text(
+                  challenge.challengerUsername,
+                  style: ZTypography.cardTitle.copyWith(
+                    fontSize: 13.5,
+                    color: z.ink,
+                  ),
+                ),
+                Text(
+                  'چالش فرستاد · $modeName',
+                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                ),
               ],
             ),
           ),
@@ -514,14 +611,24 @@ class _PendingChallengeRow extends StatelessWidget {
             label: 'تأیید',
             bg: z.teal,
             fg: z.onTeal,
-            onTap: () => context.read<FriendsCubit>().respondToChallenge(challenge.id, true, challenge.mode),
+            onTap:
+                () => context.read<FriendsCubit>().respondToChallenge(
+                  challenge.id,
+                  true,
+                  challenge.mode,
+                ),
           ),
           const SizedBox(width: 6),
           _PillAction(
             label: 'رد',
             bg: z.paper,
             fg: z.ink40,
-            onTap: () => context.read<FriendsCubit>().respondToChallenge(challenge.id, false, challenge.mode),
+            onTap:
+                () => context.read<FriendsCubit>().respondToChallenge(
+                  challenge.id,
+                  false,
+                  challenge.mode,
+                ),
           ),
         ],
       ),
@@ -535,7 +642,12 @@ class _PillAction extends StatelessWidget {
   final Color fg;
   final VoidCallback onTap;
 
-  const _PillAction({required this.label, required this.bg, required this.fg, required this.onTap});
+  const _PillAction({
+    required this.label,
+    required this.bg,
+    required this.fg,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -543,8 +655,17 @@ class _PillAction extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(ZRadius.chip)),
-        child: Text(label, style: ZTypography.metaLabel.copyWith(color: fg, fontWeight: FontWeight.w800)),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(ZRadius.chip),
+        ),
+        child: Text(
+          label,
+          style: ZTypography.metaLabel.copyWith(
+            color: fg,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }
@@ -566,10 +687,11 @@ class _FriendRow extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => FriendChallengeSheet(
-        friendUsername: friend.username,
-        onSend: (mode) => cubit.sendChallenge(friend.userId, mode),
-      ),
+      builder:
+          (_) => FriendChallengeSheet(
+            friendUsername: friend.username,
+            onSend: (mode) => cubit.sendChallenge(friend.userId, mode),
+          ),
     );
   }
 
@@ -578,7 +700,9 @@ class _FriendRow extends StatelessWidget {
     final z = context.z;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null),
+      decoration: BoxDecoration(
+        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
+      ),
       child: Row(
         children: [
           _NameAvatar(name: friend.username, accent: ZAccent.indigo),
@@ -587,7 +711,13 @@ class _FriendRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(friend.username, style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink)),
+                Text(
+                  friend.username,
+                  style: ZTypography.cardTitle.copyWith(
+                    fontSize: 13.5,
+                    color: z.ink,
+                  ),
+                ),
                 Text(
                   friend.weeklyScore > 0
                       ? '${toPersianDigits(friend.weeklyScore)} امتیاز این هفته'
@@ -601,10 +731,16 @@ class _FriendRow extends StatelessWidget {
             onTap: () => _showChallengeSheet(context),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-              decoration: BoxDecoration(color: z.tintCoral, borderRadius: BorderRadius.circular(ZRadius.chip)),
+              decoration: BoxDecoration(
+                color: z.tintCoral,
+                borderRadius: BorderRadius.circular(ZRadius.chip),
+              ),
               child: Text(
                 'رویارویی',
-                style: ZTypography.metaLabel.copyWith(color: z.coral, fontWeight: FontWeight.w800),
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.coral,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
@@ -623,7 +759,13 @@ class _NameAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = name.isEmpty ? '؟' : name.substring(0, 1).toUpperCase();
-    return LetterTile(letter: initial, size: 34, accent: accent, radius: 11, fontSize: 15);
+    return LetterTile(
+      letter: initial,
+      size: 34,
+      accent: accent,
+      radius: 11,
+      fontSize: 15,
+    );
   }
 }
 
@@ -648,7 +790,11 @@ class _ErrorState extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, color: z.ink40, size: 44),
             const SizedBox(height: ZSpacing.md),
-            Text(message, style: ZTypography.body.copyWith(color: z.ink60), textAlign: TextAlign.center),
+            Text(
+              message,
+              style: ZTypography.body.copyWith(color: z.ink60),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: ZSpacing.lg),
             NeutralButton(label: 'تلاش دوباره', onPressed: onRetry),
           ],
@@ -687,11 +833,15 @@ class _AddFriendSheetState extends State<_AddFriendSheet> {
   Widget build(BuildContext context) {
     final z = context.z;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: z.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMax)),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(ZRadius.sheetMax),
+          ),
         ),
         child: SafeArea(
           child: Padding(
@@ -705,7 +855,10 @@ class _AddFriendSheetState extends State<_AddFriendSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('افزودن دوست', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+                Text(
+                  'افزودن دوست',
+                  style: ZTypography.screenTitle.copyWith(color: z.ink),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'نام کاربری دقیق دوستت را وارد کن',

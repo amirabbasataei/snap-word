@@ -18,9 +18,9 @@ class LobbySearching extends LobbyState {
   const LobbySearching({required this.mode, required this.elapsedSeconds});
 
   LobbySearching copyWith({int? elapsedSeconds}) => LobbySearching(
-        mode: mode,
-        elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
-      );
+    mode: mode,
+    elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+  );
 
   @override
   List<Object?> get props => [mode, elapsedSeconds];

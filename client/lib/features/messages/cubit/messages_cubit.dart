@@ -67,7 +67,10 @@ class MessagesCubit extends Cubit<MessagesState> {
 
   /// Lets the Friends screen share what it just loaded so the home badge stays
   /// in step without another round trip.
-  void setPending(List<PendingRequest> requests, List<PendingChallenge> challenges) {
+  void setPending(
+    List<PendingRequest> requests,
+    List<PendingChallenge> challenges,
+  ) {
     if (_auth.state is! AuthAuthenticated) return;
     emit(MessagesState(requests: requests, challenges: challenges));
   }

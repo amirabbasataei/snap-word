@@ -17,9 +17,9 @@ class RewardsCubit extends Cubit<RewardsState> {
   final AuthCubit _auth;
 
   RewardsCubit({required RewardsRepository repo, required AuthCubit auth})
-      : _repo = repo,
-        _auth = auth,
-        super(const RewardsState());
+    : _repo = repo,
+      _auth = auth,
+      super(const RewardsState());
 
   /// Best-effort: on failure the previous list (and badge) is kept.
   Future<void> refresh() async {
@@ -42,9 +42,11 @@ class RewardsCubit extends Cubit<RewardsState> {
   Future<int> claim(String id) async {
     final coins = await _repo.claim(id);
     await _auth.creditCoins(coins);
-    emit(RewardsState(
-      items: [for (final i in state.items) i.id == id ? i.asClaimed() : i],
-    ));
+    emit(
+      RewardsState(
+        items: [for (final i in state.items) i.id == id ? i.asClaimed() : i],
+      ),
+    );
     return coins;
   }
 }

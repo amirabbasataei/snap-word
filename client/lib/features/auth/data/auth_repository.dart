@@ -55,8 +55,8 @@ class AuthRepository {
   final SharedPreferences _prefs;
 
   AuthRepository({required Dio dio, required SharedPreferences prefs})
-      : _dio = dio,
-        _prefs = prefs;
+    : _dio = dio,
+      _prefs = prefs;
 
   bool get hasAccessToken => _prefs.getString('jwt_access_token') != null;
   bool get hasRefreshToken => _prefs.getString('jwt_refresh_token') != null;
@@ -64,7 +64,10 @@ class AuthRepository {
   String? get storedUsername => _prefs.getString('username');
   int get storedCoins => _prefs.getInt('coins') ?? 0;
 
-  Future<SendOtpResult> sendOtp({required String phone, bool voice = false}) async {
+  Future<SendOtpResult> sendOtp({
+    required String phone,
+    bool voice = false,
+  }) async {
     try {
       final response = await _dio.post(
         ApiEndpoints.sendOtp,
@@ -146,7 +149,8 @@ class AuthRepository {
 
   Future<void> setCoins(int coins) => _prefs.setInt('coins', coins);
 
-  Future<void> creditCoins(int amount) => _prefs.setInt('coins', storedCoins + amount);
+  Future<void> creditCoins(int amount) =>
+      _prefs.setInt('coins', storedCoins + amount);
 
   /// The caller's own referral code, for sharing with friends.
   Future<String> fetchMyReferralCode() async {
@@ -174,7 +178,10 @@ class AuthRepository {
         options: Options(headers: {'Authorization': null}),
       );
       final data = response.data['data'] as Map<String, dynamic>;
-      await _prefs.setString('jwt_access_token', data['access_token'] as String);
+      await _prefs.setString(
+        'jwt_access_token',
+        data['access_token'] as String,
+      );
     } on DioException catch (e) {
       throw _mapError(e);
     }

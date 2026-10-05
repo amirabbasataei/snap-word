@@ -11,8 +11,8 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
   LeaderboardCubit({
     required LeaderboardRepository repository,
     required this.currentUserId,
-  })  : _repo = repository,
-        super(const LeaderboardInitial());
+  }) : _repo = repository,
+       super(const LeaderboardInitial());
 
   bool _hasLoaded = false;
 
@@ -27,12 +27,14 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
         _repo.fetchAllTime(),
         _repo.fetchFriends(),
       ]);
-      emit(LeaderboardLoaded(
-        global: results[0],
-        allTime: results[1],
-        friends: results[2],
-        currentUserId: currentUserId,
-      ));
+      emit(
+        LeaderboardLoaded(
+          global: results[0],
+          allTime: results[1],
+          friends: results[2],
+          currentUserId: currentUserId,
+        ),
+      );
       _hasLoaded = true;
     } on LeaderboardException catch (e) {
       if (!quiet) emit(LeaderboardError(e.message));

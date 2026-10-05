@@ -131,16 +131,18 @@ class GameActive extends GameState {
       score: score ?? this.score,
       streak: streak ?? this.streak,
       turnTimeRemaining: turnTimeRemaining ?? this.turnTimeRemaining,
-      nextStartLetter: nextStartLetter == _sentinel
-          ? this.nextStartLetter
-          : nextStartLetter as String?,
+      nextStartLetter:
+          nextStartLetter == _sentinel
+              ? this.nextStartLetter
+              : nextStartLetter as String?,
       hintWord: hintWord == _sentinel ? this.hintWord : hintWord as String?,
       guestHintUsesLeft: guestHintUsesLeft ?? this.guestHintUsesLeft,
       continueUsed: continueUsed ?? this.continueUsed,
       livesRemaining: livesRemaining ?? this.livesRemaining,
-      lastMistakeReason: lastMistakeReason == _sentinel
-          ? this.lastMistakeReason
-          : lastMistakeReason as String?,
+      lastMistakeReason:
+          lastMistakeReason == _sentinel
+              ? this.lastMistakeReason
+              : lastMistakeReason as String?,
       isMyTurn: isMyTurn ?? this.isMyTurn,
       myPlayerId: myPlayerId,
       opponentId: opponentId,
@@ -149,7 +151,8 @@ class GameActive extends GameState {
       opponentContinueWindowActive:
           opponentContinueWindowActive ?? this.opponentContinueWindowActive,
       opponentContinueWindowRemaining:
-          opponentContinueWindowRemaining ?? this.opponentContinueWindowRemaining,
+          opponentContinueWindowRemaining ??
+          this.opponentContinueWindowRemaining,
       opponentDisconnected: opponentDisconnected ?? this.opponentDisconnected,
       powerupCounts: powerupCounts ?? this.powerupCounts,
       usedPowerups: usedPowerups ?? this.usedPowerups,
@@ -201,9 +204,11 @@ class GameActive extends GameState {
 class GameOver extends GameState {
   final int localMatchId;
   final String mode;
-  final String reason; // invalid_word | timeout | ended_by_user | game_over | opponent_disconnected
+  final String
+  reason; // invalid_word | timeout | ended_by_user | game_over | opponent_disconnected
   final String? rejectedWord;
-  final String? rejectionReason; // not_in_dictionary | wrong_letter | already_used | too_short
+  final String?
+  rejectionReason; // not_in_dictionary | wrong_letter | already_used | too_short
   final int score;
   final int chainLength;
   final List<String> wordChain;
@@ -215,7 +220,8 @@ class GameOver extends GameState {
   // while the match is still undecided (my loss_event, continue window open).
   final bool? iWon;
   final int opponentScore;
-  final String? opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
+  final String?
+  opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
   // 1v1 entry fee paid for this match (0 vs AI / solo) and the net coin change
   // after the payout (+fee for the winner, -fee for the loser, 0 on a draw).
   final int entryFee;
@@ -241,10 +247,7 @@ class GameOver extends GameState {
     this.coinsNet = 0,
   });
 
-  GameOver copyWith({
-    int? continueTimeRemaining,
-    bool? isSaved,
-  }) {
+  GameOver copyWith({int? continueTimeRemaining, bool? isSaved}) {
     return GameOver(
       localMatchId: localMatchId,
       mode: mode,
@@ -255,7 +258,8 @@ class GameOver extends GameState {
       chainLength: chainLength,
       wordChain: wordChain,
       canContinue: canContinue,
-      continueTimeRemaining: continueTimeRemaining ?? this.continueTimeRemaining,
+      continueTimeRemaining:
+          continueTimeRemaining ?? this.continueTimeRemaining,
       isSaved: isSaved ?? this.isSaved,
       winnerId: winnerId,
       iWon: iWon,
@@ -266,28 +270,31 @@ class GameOver extends GameState {
     );
   }
 
-  bool get isMultiplayer => winnerId != null || opponentScore > 0 || (opponentType != null && opponentType!.startsWith('ai_'));
+  bool get isMultiplayer =>
+      winnerId != null ||
+      opponentScore > 0 ||
+      (opponentType != null && opponentType!.startsWith('ai_'));
 
   @override
   List<Object?> get props => [
-        localMatchId,
-        mode,
-        reason,
-        rejectedWord,
-        rejectionReason,
-        score,
-        chainLength,
-        wordChain,
-        canContinue,
-        continueTimeRemaining,
-        isSaved,
-        winnerId,
-        iWon,
-        opponentScore,
-        opponentType,
-        entryFee,
-        coinsNet,
-      ];
+    localMatchId,
+    mode,
+    reason,
+    rejectedWord,
+    rejectionReason,
+    score,
+    chainLength,
+    wordChain,
+    canContinue,
+    continueTimeRemaining,
+    isSaved,
+    winnerId,
+    iWon,
+    opponentScore,
+    opponentType,
+    entryFee,
+    coinsNet,
+  ];
 }
 
 class GameError extends GameState {

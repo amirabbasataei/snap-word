@@ -24,9 +24,12 @@ class AvatarTile extends StatelessWidget {
     final trimmed = name.trim();
     final index = trimmed.isEmpty ? 0 : trimmed.codeUnitAt(0) % accents.length;
     final (bg, onColor, deep) = accents[index];
-    final initial = trimmed.isEmpty ? '؟' : trimmed.substring(0, 1).toUpperCase();
-    final radius = (size * (ZRadius.tileMax / ZTileSize.heroMax))
-        .clamp(ZRadius.tileMin, ZRadius.tileMax);
+    final initial =
+        trimmed.isEmpty ? '؟' : trimmed.substring(0, 1).toUpperCase();
+    final radius = (size * (ZRadius.tileMax / ZTileSize.heroMax)).clamp(
+      ZRadius.tileMin,
+      ZRadius.tileMax,
+    );
 
     return Container(
       width: size,

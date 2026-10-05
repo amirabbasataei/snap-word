@@ -28,11 +28,14 @@ abstract final class ZRadius {
 abstract final class ZTileSize {
   /// Inline within a running word chain.
   static const inline = 26.0;
+
   /// A single-letter prompt (e.g. required starting letter).
   static const prompt = 34.0;
+
   /// Hero contexts (game-over tumble, wordmark).
   static const heroMin = 42.0;
   static const heroMax = 56.0;
+
   /// Daily Challenge seed-letter hero.
   static const dailySeed = 96.0;
 }

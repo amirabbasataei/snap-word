@@ -127,13 +127,19 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
     () => RewardsRepository(dio: getIt<DioClient>().dio),
   );
   getIt.registerLazySingleton<RewardsCubit>(
-    () => RewardsCubit(repo: getIt<RewardsRepository>(), auth: getIt<AuthCubit>()),
+    () => RewardsCubit(
+      repo: getIt<RewardsRepository>(),
+      auth: getIt<AuthCubit>(),
+    ),
   );
 
   getIt.registerLazySingleton<TabRefreshBus>(TabRefreshBus.new);
 
   // Messages (friend requests + challenges)
   getIt.registerLazySingleton<MessagesCubit>(
-    () => MessagesCubit(repo: getIt<FriendsRepository>(), auth: getIt<AuthCubit>()),
+    () => MessagesCubit(
+      repo: getIt<FriendsRepository>(),
+      auth: getIt<AuthCubit>(),
+    ),
   );
 }

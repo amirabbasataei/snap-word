@@ -66,15 +66,16 @@ class LetterTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(effectiveRadius),
         boxShadow: ZElevation.solidEdge(deep, depth: ZElevation.tileDepth),
       ),
-      child: icon != null
-          ? ZIcon(icon!, size: size * 0.5, color: onColor)
-          : Text(
-              letter,
-              style: ZTypography.chainWordActive.copyWith(
-                color: onColor,
-                fontSize: fontSize ?? size * 0.55,
+      child:
+          icon != null
+              ? ZIcon(icon!, size: size * 0.5, color: onColor)
+              : Text(
+                letter,
+                style: ZTypography.chainWordActive.copyWith(
+                  color: onColor,
+                  fontSize: fontSize ?? size * 0.55,
+                ),
               ),
-            ),
     );
 
     if (rotation != 0) {

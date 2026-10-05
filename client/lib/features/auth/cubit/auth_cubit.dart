@@ -16,9 +16,9 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit({
     required AuthRepository authRepository,
     required SyncService syncService,
-  })  : _repo = authRepository,
-        _syncService = syncService,
-        super(const AuthInitial());
+  }) : _repo = authRepository,
+       _syncService = syncService,
+       super(const AuthInitial());
 
   bool get isGuest => state is! AuthAuthenticated;
 
@@ -30,7 +30,13 @@ class AuthCubit extends Cubit<AuthState> {
       final userId = _repo.storedUserId;
       final username = _repo.storedUsername;
       if (userId != null && username != null) {
-        emit(AuthAuthenticated(userId: userId, username: username, coins: _repo.storedCoins));
+        emit(
+          AuthAuthenticated(
+            userId: userId,
+            username: username,
+            coins: _repo.storedCoins,
+          ),
+        );
         unawaited(_syncService.sync());
         return;
       }
@@ -41,7 +47,13 @@ class AuthCubit extends Cubit<AuthState> {
         await _repo.refreshToken();
         final userId = _repo.storedUserId ?? '';
         final username = _repo.storedUsername ?? '';
-        emit(AuthAuthenticated(userId: userId, username: username, coins: _repo.storedCoins));
+        emit(
+          AuthAuthenticated(
+            userId: userId,
+            username: username,
+            coins: _repo.storedCoins,
+          ),
+        );
         unawaited(_syncService.sync());
         return;
       } catch (e) {
@@ -68,8 +80,18 @@ class AuthCubit extends Cubit<AuthState> {
     required String code,
     String? referralCode,
   }) async {
-    final result = await _repo.verifyOtp(phone: phone, code: code, referralCode: referralCode);
-    emit(AuthAuthenticated(userId: result.userId, username: result.username, coins: result.coins));
+    final result = await _repo.verifyOtp(
+      phone: phone,
+      code: code,
+      referralCode: referralCode,
+    );
+    emit(
+      AuthAuthenticated(
+        userId: result.userId,
+        username: result.username,
+        coins: result.coins,
+      ),
+    );
     unawaited(_syncService.sync());
     return result;
   }

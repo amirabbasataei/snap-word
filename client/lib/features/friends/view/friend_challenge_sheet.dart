@@ -30,12 +30,18 @@ class _FriendChallengeSheetState extends State<FriendChallengeSheet> {
     return Container(
       decoration: BoxDecoration(
         color: z.paper,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMin)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(ZRadius.sheetMin),
+        ),
       ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              ZSpacing.xxl, ZSpacing.xl, ZSpacing.xxl, ZSpacing.xxl),
+            ZSpacing.xxl,
+            ZSpacing.xl,
+            ZSpacing.xxl,
+            ZSpacing.xxl,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,11 +52,15 @@ class _FriendChallengeSheetState extends State<FriendChallengeSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('چالش با دوست',
-                            style: ZTypography.screenTitle.copyWith(color: z.ink)),
+                        Text(
+                          'چالش با دوست',
+                          style: ZTypography.screenTitle.copyWith(color: z.ink),
+                        ),
                         const SizedBox(height: 2),
-                        Text(widget.friendUsername,
-                            style: ZTypography.body.copyWith(color: z.ink60)),
+                        Text(
+                          widget.friendUsername,
+                          style: ZTypography.body.copyWith(color: z.ink60),
+                        ),
                       ],
                     ),
                   ),

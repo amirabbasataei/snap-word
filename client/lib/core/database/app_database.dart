@@ -17,10 +17,8 @@ class LocalMatches extends Table {
   TextColumn get status => text()();
   IntColumn get score => integer().withDefault(const Constant(0))();
   IntColumn get chainLength => integer().withDefault(const Constant(0))();
-  TextColumn get wordChain =>
-      text().withDefault(const Constant('[]'))();
-  BoolColumn get synced =>
-      boolean().withDefault(const Constant(false))();
+  TextColumn get wordChain => text().withDefault(const Constant('[]'))();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
 }
@@ -34,18 +32,12 @@ class LocalUsedWords extends Table {
 }
 
 class LocalPlayerStats extends Table {
-  IntColumn get id =>
-      integer().withDefault(const Constant(1))();
-  IntColumn get totalMatches =>
-      integer().withDefault(const Constant(0))();
-  IntColumn get wins =>
-      integer().withDefault(const Constant(0))();
-  IntColumn get bestScore =>
-      integer().withDefault(const Constant(0))();
-  IntColumn get bestMatchStreak =>
-      integer().withDefault(const Constant(0))();
-  IntColumn get dailyStreak =>
-      integer().withDefault(const Constant(0))();
+  IntColumn get id => integer().withDefault(const Constant(1))();
+  IntColumn get totalMatches => integer().withDefault(const Constant(0))();
+  IntColumn get wins => integer().withDefault(const Constant(0))();
+  IntColumn get bestScore => integer().withDefault(const Constant(0))();
+  IntColumn get bestMatchStreak => integer().withDefault(const Constant(0))();
+  IntColumn get dailyStreak => integer().withDefault(const Constant(0))();
   IntColumn get longestDailyStreak =>
       integer().withDefault(const Constant(0))();
   TextColumn get longestWord => text().nullable()();
@@ -58,8 +50,7 @@ class LocalPlayerStats extends Table {
 @DataClassName('LocalPowerupCacheEntry')
 class LocalPowerupCache extends Table {
   TextColumn get powerupType => text()();
-  IntColumn get quantity =>
-      integer().withDefault(const Constant(0))();
+  IntColumn get quantity => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastSyncedAt => dateTime().nullable()();
 
   @override
@@ -67,12 +58,7 @@ class LocalPowerupCache extends Table {
 }
 
 @DriftDatabase(
-  tables: [
-    LocalMatches,
-    LocalUsedWords,
-    LocalPlayerStats,
-    LocalPowerupCache,
-  ],
+  tables: [LocalMatches, LocalUsedWords, LocalPlayerStats, LocalPowerupCache],
   daos: [MatchDao, UsedWordDao, StatsDao, PowerupCacheDao],
 )
 class AppDatabase extends _$AppDatabase {

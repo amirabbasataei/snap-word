@@ -24,11 +24,13 @@ class DioClient {
     );
 
     dio.interceptors.add(_AuthInterceptor(prefs, dio));
-    dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      // logPrint: (obj) => Logger().d(obj.toString()),
-    ));
+    dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        // logPrint: (obj) => Logger().d(obj.toString()),
+      ),
+    );
   }
 }
 
@@ -57,7 +59,8 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    final alreadyRetried = err.requestOptions.extra['retriedAfterRefresh'] == true;
+    final alreadyRetried =
+        err.requestOptions.extra['retriedAfterRefresh'] == true;
     final isRefreshCall = err.requestOptions.extra['isAuthRefresh'] == true;
     if (err.response?.statusCode != 401 || alreadyRetried || isRefreshCall) {
       // The refresh call's own errors must not re-enter this dance: it would
@@ -81,9 +84,10 @@ class _AuthInterceptor extends Interceptor {
     }
 
     try {
-      final retryOptions = err.requestOptions
-        ..headers['Authorization'] = 'Bearer $newToken'
-        ..extra['retriedAfterRefresh'] = true;
+      final retryOptions =
+          err.requestOptions
+            ..headers['Authorization'] = 'Bearer $newToken'
+            ..extra['retriedAfterRefresh'] = true;
       final retryResponse = await _dio.fetch(retryOptions);
       handler.resolve(retryResponse);
     } catch (_) {

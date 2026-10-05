@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wordchain/core/widgets/z_coin.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
@@ -72,14 +73,7 @@ class _InsufficientCoinsDialog extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: z.amber,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+                child: const ZCoin(size: 44),
               ),
             ),
             const SizedBox(height: ZSpacing.lg),
@@ -192,7 +186,7 @@ class _EarnRow extends StatelessWidget {
                 ),
                 if (onTap != null) ...[
                   const SizedBox(width: ZSpacing.xs),
-                  Icon(Icons.chevron_left_rounded, size: 18, color: z.ink60),
+                  Icon(Icons.chevron_right_rounded, size: 18, color: z.ink60),
                 ],
               ],
             ),

@@ -10,7 +10,9 @@ import 'package:tapsell_mediation/tapsell.dart';
 /// lives in `android/app/build.gradle.kts`). Pass at build time:
 /// `--dart-define=TAPSELL_REWARDED_ZONE=...`. An empty id disables ads.
 abstract final class AdZones {
-  static const String rewarded = String.fromEnvironment('TAPSELL_REWARDED_ZONE');
+  static const String rewarded = String.fromEnvironment(
+    'TAPSELL_REWARDED_ZONE',
+  );
 }
 
 /// Player-initiated rewarded ads only. There are deliberately no banners or
@@ -21,7 +23,6 @@ class AdService {
 
   final Logger _log = Logger();
   bool _rewardedBusy = false;
-
 
   bool get _supported => !kIsWeb && Platform.isAndroid;
   bool get rewardedEnabled => _supported && AdZones.rewarded.isNotEmpty;
@@ -45,8 +46,9 @@ class AdService {
     if (!rewardedEnabled || _rewardedBusy) return false;
     _rewardedBusy = true;
     try {
-      final adId = await Tapsell.requestRewardedAd(AdZones.rewarded)
-          .timeout(_requestTimeout);
+      final adId = await Tapsell.requestRewardedAd(
+        AdZones.rewarded,
+      ).timeout(_requestTimeout);
       _log.d('Rewarded ad id: $adId');
       if (adId == null || adId.isEmpty) return false;
 

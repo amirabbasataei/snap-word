@@ -10,10 +10,11 @@ class MatchDao extends DatabaseAccessor<AppDatabase> with _$MatchDaoMixin {
   Future<bool> updateMatch(LocalMatchesCompanion match) =>
       update(localMatches).replace(match);
 
-  Future<LocalMatche?> getActiveMatch() => (select(localMatches)
-        ..where((t) => t.status.equals('active'))
-        ..limit(1))
-      .getSingleOrNull();
+  Future<LocalMatche?> getActiveMatch() =>
+      (select(localMatches)
+            ..where((t) => t.status.equals('active'))
+            ..limit(1))
+          .getSingleOrNull();
 
   Future<List<LocalMatche>> getUnsyncedMatches() =>
       (select(localMatches)
@@ -21,13 +22,10 @@ class MatchDao extends DatabaseAccessor<AppDatabase> with _$MatchDaoMixin {
             ..orderBy([(t) => OrderingTerm.asc(t.startedAt)]))
           .get();
 
-  Future<void> markSynced(int id, String remoteId) =>
-      (update(localMatches)..where((t) => t.id.equals(id))).write(
-        LocalMatchesCompanion(
-          synced: const Value(true),
-          remoteId: Value(remoteId),
-        ),
-      );
+  Future<void> markSynced(int id, String remoteId) => (update(localMatches)
+    ..where((t) => t.id.equals(id))).write(
+    LocalMatchesCompanion(synced: const Value(true), remoteId: Value(remoteId)),
+  );
 
   Future<LocalMatche?> getMatchById(int id) =>
       (select(localMatches)..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -45,14 +43,13 @@ class MatchDao extends DatabaseAccessor<AppDatabase> with _$MatchDaoMixin {
     int score,
     int chainLength,
     String wordChainJson,
-  ) =>
-      (update(localMatches)..where((t) => t.id.equals(id))).write(
-        LocalMatchesCompanion(
-          status: const Value('finished'),
-          score: Value(score),
-          chainLength: Value(chainLength),
-          wordChain: Value(wordChainJson),
-          endedAt: Value(DateTime.now()),
-        ),
-      );
+  ) => (update(localMatches)..where((t) => t.id.equals(id))).write(
+    LocalMatchesCompanion(
+      status: const Value('finished'),
+      score: Value(score),
+      chainLength: Value(chainLength),
+      wordChain: Value(wordChainJson),
+      endedAt: Value(DateTime.now()),
+    ),
+  );
 }

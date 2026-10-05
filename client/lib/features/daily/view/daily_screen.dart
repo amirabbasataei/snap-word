@@ -27,7 +27,13 @@ import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 // Persian week starts Saturday — same weekday-1 index StreakStrip uses,
 // spelled out in full rather than initials.
 const _weekdayNamesFull = [
-  'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه', 'یکشنبه',
+  'دوشنبه',
+  'سه‌شنبه',
+  'چهارشنبه',
+  'پنجشنبه',
+  'جمعه',
+  'شنبه',
+  'یکشنبه',
 ];
 
 String _mapDailyError(String code) {
@@ -52,9 +58,10 @@ String _mapDailyError(String code) {
 String _headerSubtitle(String? challengeDateIso) {
   DateTime date;
   try {
-    date = challengeDateIso != null && challengeDateIso.isNotEmpty
-        ? DateTime.parse(challengeDateIso)
-        : DateTime.now();
+    date =
+        challengeDateIso != null && challengeDateIso.isNotEmpty
+            ? DateTime.parse(challengeDateIso)
+            : DateTime.now();
   } catch (_) {
     date = DateTime.now();
   }
@@ -69,8 +76,7 @@ class DailyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          DailyCubit(repository: getIt<DailyRepository>())..load(),
+      create: (_) => DailyCubit(repository: getIt<DailyRepository>())..load(),
       child: const _DailyView(),
     );
   }
@@ -82,10 +88,15 @@ class _DailyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<DailyCubit, DailyState>(
-      listenWhen: (prev, curr) => curr is DailyRetryAvailable || curr is DailyInsufficientCoins,
+      listenWhen:
+          (prev, curr) =>
+              curr is DailyRetryAvailable || curr is DailyInsufficientCoins,
       listener: (context, state) {
         if (state is DailyInsufficientCoins) {
-          showInsufficientCoinsDialog(context, cost: GameConstants.dailyRetryCostCoins);
+          showInsufficientCoinsDialog(
+            context,
+            cost: GameConstants.dailyRetryCostCoins,
+          );
         }
         if (state is DailyRetryAvailable) {
           context.push(
@@ -169,7 +180,11 @@ class _DailyBeforeViewState extends State<_DailyBeforeView> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              ZSpacing.screenGutter, ZSpacing.md, ZSpacing.screenGutter, ZSpacing.lg),
+            ZSpacing.screenGutter,
+            ZSpacing.md,
+            ZSpacing.screenGutter,
+            ZSpacing.lg,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -207,14 +222,15 @@ class _DailyBeforeViewState extends State<_DailyBeforeView> {
               const SizedBox(height: ZSpacing.md),
               _InkButton(
                 label: 'شروع چالش امروز',
-                onTap: () => context.push(
-                  '/game',
-                  extra: GameRouteArgs(
-                    mode: 'daily',
-                    opponentType: 'solo',
-                    startLetter: challenge.startLetter,
-                  ),
-                ),
+                onTap:
+                    () => context.push(
+                      '/game',
+                      extra: GameRouteArgs(
+                        mode: 'daily',
+                        opponentType: 'solo',
+                        startLetter: challenge.startLetter,
+                      ),
+                    ),
               ),
               const SizedBox(height: ZSpacing.sm),
               NeutralButton(
@@ -237,21 +253,31 @@ class _SeedHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final subtitle = challenge.todaysBest > 0
-        ? 'رکورد امروز ${toPersianDigits(challenge.todaysBest)} امتیاز'
-        : 'اولین نفری باش که امروز بازی می‌کنه!';
+    final subtitle =
+        challenge.todaysBest > 0
+            ? 'رکورد امروز ${toPersianDigits(challenge.todaysBest)} امتیاز'
+            : 'اولین نفری باش که امروز بازی می‌کنه!';
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.xl, vertical: ZSpacing.xxl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ZSpacing.xl,
+        vertical: ZSpacing.xxl,
+      ),
       decoration: BoxDecoration(
         color: z.indigo,
         borderRadius: BorderRadius.circular(ZRadius.sheetMax),
-        boxShadow: ZElevation.solidEdge(z.indigoDeep, depth: ZElevation.tileDepth),
+        boxShadow: ZElevation.solidEdge(
+          z.indigoDeep,
+          depth: ZElevation.tileDepth,
+        ),
       ),
       child: Column(
         children: [
-          Text('حرف شروع امروز', style: ZTypography.metaLabel.copyWith(color: z.onIndigoSoft)),
+          Text(
+            'حرف شروع امروز',
+            style: ZTypography.metaLabel.copyWith(color: z.onIndigoSoft),
+          ),
           const SizedBox(height: ZSpacing.md),
           Container(
             width: ZTileSize.dailySeed,
@@ -260,18 +286,35 @@ class _SeedHero extends StatelessWidget {
             decoration: BoxDecoration(
               color: z.surface,
               borderRadius: BorderRadius.circular(22),
-              boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.tileDepth),
+              boxShadow: ZElevation.solidEdge(
+                z.line,
+                depth: ZElevation.tileDepth,
+              ),
             ),
             child: Text(
               challenge.startLetter,
-              style: ZTypography.display.copyWith(color: z.indigo, fontSize: 60),
+              style: ZTypography.display.copyWith(
+                color: z.indigo,
+                fontSize: 60,
+              ),
             ),
           ),
           const SizedBox(height: ZSpacing.md),
-          Text('تا کجا می‌کشونیش؟',
-              style: ZTypography.screenTitle.copyWith(color: z.onIndigo, fontSize: 20)),
+          Text(
+            'تا کجا می‌کشونیش؟',
+            style: ZTypography.screenTitle.copyWith(
+              color: z.onIndigo,
+              fontSize: 20,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(subtitle, style: ZTypography.body.copyWith(color: z.onIndigoSoft, fontSize: 12.5)),
+          Text(
+            subtitle,
+            style: ZTypography.body.copyWith(
+              color: z.onIndigoSoft,
+              fontSize: 12.5,
+            ),
+          ),
         ],
       ),
     );
@@ -324,7 +367,10 @@ class _RulesCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       rows[i].$3,
-                      style: ZTypography.metaLabel.copyWith(color: z.ink60, fontSize: 12.5),
+                      style: ZTypography.metaLabel.copyWith(
+                        color: z.ink60,
+                        fontSize: 12.5,
+                      ),
                     ),
                   ),
                 ],
@@ -354,10 +400,17 @@ class _RuleBadge extends StatelessWidget {
       width: 30,
       height: 30,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(9)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(9),
+      ),
       child: Text(
         text,
-        style: ZTypography.cardTitle.copyWith(color: fg, fontSize: 14, fontWeight: FontWeight.w900),
+        style: ZTypography.cardTitle.copyWith(
+          color: fg,
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -380,7 +433,10 @@ class _StreakCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ZSpacing.lg,
+        vertical: ZSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: z.surface,
         border: Border.all(color: z.line),
@@ -391,16 +447,26 @@ class _StreakCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('${toPersianDigits(streakCount)} روز پیاپی',
-                  style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5)),
+              Text(
+                '${toPersianDigits(streakCount)} روز پیاپی',
+                style: ZTypography.cardTitle.copyWith(
+                  color: z.ink,
+                  fontSize: 13.5,
+                ),
+              ),
               if (showTodayBadge) ...[
                 const SizedBox(width: ZSpacing.sm),
                 const TintChip(label: '‎+۱ امروز', tint: ZTint.teal),
               ],
               const Spacer(),
               if (recordDays != null && recordDays! > 0)
-                Text('رکورد: ${toPersianDigits(recordDays!)}',
-                    style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5)),
+                Text(
+                  'رکورد: ${toPersianDigits(recordDays!)}',
+                  style: ZTypography.metaLabel.copyWith(
+                    color: z.ink40,
+                    fontSize: 11.5,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: ZSpacing.md),
@@ -429,9 +495,15 @@ class _InkButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: z.ink,
           borderRadius: BorderRadius.circular(ZRadius.cardMin),
-          boxShadow: ZElevation.solidEdge(z.inkSurfaceDeep, depth: ZElevation.buttonDepth),
+          boxShadow: ZElevation.solidEdge(
+            z.inkSurfaceDeep,
+            depth: ZElevation.buttonDepth,
+          ),
         ),
-        child: Text(label, style: ZTypography.button.copyWith(color: z.paper, fontSize: 17)),
+        child: Text(
+          label,
+          style: ZTypography.button.copyWith(color: z.paper, fontSize: 17),
+        ),
       ),
     );
   }
@@ -442,7 +514,11 @@ class _BackHeader extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  const _BackHeader({required this.title, required this.subtitle, required this.onTap});
+  const _BackHeader({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -454,9 +530,21 @@ class _BackHeader extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 18)),
+            Text(
+              title,
+              style: ZTypography.screenTitle.copyWith(
+                color: z.ink,
+                fontSize: 18,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(subtitle, style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5)),
+            Text(
+              subtitle,
+              style: ZTypography.metaLabel.copyWith(
+                color: z.ink40,
+                fontSize: 11.5,
+              ),
+            ),
           ],
         ),
       ],
@@ -510,7 +598,11 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              ZSpacing.screenGutter, ZSpacing.md, ZSpacing.screenGutter, ZSpacing.lg),
+            ZSpacing.screenGutter,
+            ZSpacing.md,
+            ZSpacing.screenGutter,
+            ZSpacing.lg,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -540,7 +632,8 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
                       ],
                       const SizedBox(height: ZSpacing.lg),
                       const _NextChallengeRow(),
-                      if (challenge.hasRetried && challenge.attempt != null) ...[
+                      if (challenge.hasRetried &&
+                          challenge.attempt != null) ...[
                         const SizedBox(height: ZSpacing.lg),
                         _RetryComparisonCard(
                           first: challenge.attempt!,
@@ -555,14 +648,15 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
               AccentButton(
                 accent: ZAccentColor.coral,
                 label: 'اشتراک‌گذاری نتیجه',
-                onPressed: () => getIt<ShareService>().shareDaily(
-                  DailyChallengeResult(
-                    dayNumber: challenge.dayNumber,
-                    score: attempt.score,
-                    chainLength: attempt.chainLength,
-                    wordChain: attempt.wordChain,
-                  ),
-                ),
+                onPressed:
+                    () => getIt<ShareService>().shareDaily(
+                      DailyChallengeResult(
+                        dayNumber: challenge.dayNumber,
+                        score: attempt.score,
+                        chainLength: attempt.chainLength,
+                        wordChain: attempt.wordChain,
+                      ),
+                    ),
               ),
               const SizedBox(height: ZSpacing.sm),
               Row(
@@ -577,10 +671,14 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
                   Expanded(
                     child: NeutralButton(
                       label: 'بازی تک‌نفره',
-                      onPressed: () => context.push(
-                        '/game',
-                        extra: const GameRouteArgs(mode: 'classic', opponentType: 'solo'),
-                      ),
+                      onPressed:
+                          () => context.push(
+                            '/game',
+                            extra: const GameRouteArgs(
+                              mode: 'classic',
+                              opponentType: 'solo',
+                            ),
+                          ),
                     ),
                   ),
                 ],
@@ -588,7 +686,8 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
               if (canRetry) ...[
                 const SizedBox(height: ZSpacing.sm),
                 NeutralButton(
-                  label: 'امتحان دوباره (${toPersianDigits(GameConstants.dailyRetryCostCoins)} 🪙)',
+                  label:
+                      'امتحان دوباره (${toPersianDigits(GameConstants.dailyRetryCostCoins)} سکه)',
                   onPressed: () => context.read<DailyCubit>().retry(),
                 ),
               ],
@@ -615,7 +714,10 @@ class _ResultHero extends StatelessWidget {
       decoration: BoxDecoration(
         color: z.teal,
         borderRadius: BorderRadius.circular(ZRadius.sheetMax),
-        boxShadow: ZElevation.solidEdge(z.tealDeep, depth: ZElevation.tileDepth),
+        boxShadow: ZElevation.solidEdge(
+          z.tealDeep,
+          depth: ZElevation.tileDepth,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,27 +725,52 @@ class _ResultHero extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('زنجیر تو', style: ZTypography.metaLabel.copyWith(color: z.onTealSoft)),
+              Text(
+                'زنجیر تو',
+                style: ZTypography.metaLabel.copyWith(color: z.onTealSoft),
+              ),
               const SizedBox(height: 4),
-              Text(toPersianDigits(attempt.chainLength),
-                  style: ZTypography.display.copyWith(color: z.onTeal, fontSize: 44)),
-              Text('کلمه', style: ZTypography.cardTitle.copyWith(color: z.onTealSoft, fontSize: 12)),
+              Text(
+                toPersianDigits(attempt.chainLength),
+                style: ZTypography.display.copyWith(
+                  color: z.onTeal,
+                  fontSize: 44,
+                ),
+              ),
+              Text(
+                'کلمه',
+                style: ZTypography.cardTitle.copyWith(
+                  color: z.onTealSoft,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
           const SizedBox(width: ZSpacing.lg),
-          Container(width: 1, height: 66, color: z.onTealSoft.withValues(alpha: .35)),
+          Container(
+            width: 1,
+            height: 66,
+            color: z.onTealSoft.withValues(alpha: .35),
+          ),
           const SizedBox(width: ZSpacing.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  rank != null ? 'رتبهٔ ${toPersianDigits(rank!)} امروز' : 'نتیجهٔ امروزت ثبت شد',
-                  style: ZTypography.cardTitle.copyWith(color: z.onTeal, fontSize: 17),
+                  rank != null
+                      ? 'رتبهٔ ${toPersianDigits(rank!)} امروز'
+                      : 'نتیجهٔ امروزت ثبت شد',
+                  style: ZTypography.cardTitle.copyWith(
+                    color: z.onTeal,
+                    fontSize: 17,
+                  ),
                 ),
                 const SizedBox(height: ZSpacing.sm),
-                Text('${toPersianDigits(attempt.score)} امتیاز',
-                    style: ZTypography.body.copyWith(color: z.onTealSoft)),
+                Text(
+                  '${toPersianDigits(attempt.score)} امتیاز',
+                  style: ZTypography.body.copyWith(color: z.onTealSoft),
+                ),
               ],
             ),
           ),
@@ -665,7 +792,10 @@ class _ChainChipsCard extends StatelessWidget {
     final z = context.z;
     if (wordChain.isEmpty) return const SizedBox.shrink();
 
-    final visible = wordChain.length > _shownLimit ? wordChain.sublist(0, _shownLimit) : wordChain;
+    final visible =
+        wordChain.length > _shownLimit
+            ? wordChain.sublist(0, _shownLimit)
+            : wordChain;
     final remaining = wordChain.length - visible.length;
     // Longest among the *visible* chips only — the true longest word can
     // fall in the "+N دیگر" overflow, where highlighting it would show no
@@ -677,7 +807,10 @@ class _ChainChipsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('زنجیر امروزت', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11)),
+          Text(
+            'زنجیر امروزت',
+            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11),
+          ),
           const SizedBox(height: ZSpacing.sm),
           Wrap(
             spacing: 6,
@@ -685,7 +818,10 @@ class _ChainChipsCard extends StatelessWidget {
             children: [
               for (final w in visible)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: w == longest ? z.indigo : z.paper,
                     borderRadius: BorderRadius.circular(ZRadius.chip),
@@ -701,11 +837,21 @@ class _ChainChipsCard extends StatelessWidget {
                 ),
               if (remaining > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                  decoration: BoxDecoration(color: z.paper, borderRadius: BorderRadius.circular(ZRadius.chip)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: z.paper,
+                    borderRadius: BorderRadius.circular(ZRadius.chip),
+                  ),
                   child: Text(
                     '‎+${toPersianDigits(remaining)} دیگر',
-                    style: ZTypography.metaLabel.copyWith(color: z.ink40, fontWeight: FontWeight.w600, fontSize: 12.5),
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.ink40,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ),
             ],
@@ -756,22 +902,45 @@ class _NextChallengeRowState extends State<_NextChallengeRow> {
   Widget build(BuildContext context) {
     final z = context.z;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.md),
-      decoration: BoxDecoration(color: z.inkSurface, borderRadius: BorderRadius.circular(ZRadius.cardMax)),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ZSpacing.lg,
+        vertical: ZSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: z.inkSurface,
+        borderRadius: BorderRadius.circular(ZRadius.cardMax),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('چالش بعدی', style: ZTypography.cardTitle.copyWith(color: z.onInkSurface, fontSize: 13)),
-                Text('فردا ساعت ۰۰:۰۰ با حرف تازه',
-                    style: ZTypography.metaLabel.copyWith(color: z.onInkSurfaceSoft, fontSize: 11.5)),
+                Text(
+                  'چالش بعدی',
+                  style: ZTypography.cardTitle.copyWith(
+                    color: z.onInkSurface,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  'فردا ساعت ۰۰:۰۰ با حرف تازه',
+                  style: ZTypography.metaLabel.copyWith(
+                    color: z.onInkSurfaceSoft,
+                    fontSize: 11.5,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(_label,
-              style: ZTypography.cardTitle.copyWith(color: z.onInkSurface, fontSize: 20, fontWeight: FontWeight.w900)),
+          Text(
+            _label,
+            style: ZTypography.cardTitle.copyWith(
+              color: z.onInkSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
@@ -792,13 +961,24 @@ class _RetryComparisonCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('مقایسهٔ دو تلاش', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11)),
+          Text(
+            'مقایسهٔ دو تلاش',
+            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11),
+          ),
           const SizedBox(height: ZSpacing.md),
           Row(
             children: [
-              _CompareCell(label: 'تلاش اول', score: first.score, words: first.chainLength),
+              _CompareCell(
+                label: 'تلاش اول',
+                score: first.score,
+                words: first.chainLength,
+              ),
               const SizedBox(width: ZSpacing.lg),
-              _CompareCell(label: 'تلاش دوباره', score: retry.score, words: retry.chainLength),
+              _CompareCell(
+                label: 'تلاش دوباره',
+                score: retry.score,
+                words: retry.chainLength,
+              ),
             ],
           ),
         ],
@@ -812,7 +992,11 @@ class _CompareCell extends StatelessWidget {
   final int score;
   final int words;
 
-  const _CompareCell({required this.label, required this.score, required this.words});
+  const _CompareCell({
+    required this.label,
+    required this.score,
+    required this.words,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -821,12 +1005,29 @@ class _CompareCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: ZTypography.metaLabel.copyWith(color: z.ink60, fontSize: 11.5)),
+          Text(
+            label,
+            style: ZTypography.metaLabel.copyWith(
+              color: z.ink60,
+              fontSize: 11.5,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(toPersianDigits(score),
-              style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 19, fontWeight: FontWeight.w900)),
-          Text('${toPersianDigits(words)} کلمه',
-              style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11.5)),
+          Text(
+            toPersianDigits(score),
+            style: ZTypography.cardTitle.copyWith(
+              color: z.ink,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            '${toPersianDigits(words)} کلمه',
+            style: ZTypography.metaLabel.copyWith(
+              color: z.ink40,
+              fontSize: 11.5,
+            ),
+          ),
         ],
       ),
     );

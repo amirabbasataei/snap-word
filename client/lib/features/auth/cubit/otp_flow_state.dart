@@ -28,7 +28,8 @@ class OtpFlowState extends Equatable {
     bool clearError = false,
   }) {
     return OtpFlowState(
-      cooldownSecondsRemaining: cooldownSecondsRemaining ?? this.cooldownSecondsRemaining,
+      cooldownSecondsRemaining:
+          cooldownSecondsRemaining ?? this.cooldownSecondsRemaining,
       submitting: submitting ?? this.submitting,
       sendingResend: sendingResend ?? this.sendingResend,
       errorCode: clearError ? null : (errorCode ?? this.errorCode),
@@ -38,10 +39,10 @@ class OtpFlowState extends Equatable {
 
   @override
   List<Object?> get props => [
-        cooldownSecondsRemaining,
-        submitting,
-        sendingResend,
-        errorCode,
-        errorMessage,
-      ];
+    cooldownSecondsRemaining,
+    submitting,
+    sendingResend,
+    errorCode,
+    errorMessage,
+  ];
 }

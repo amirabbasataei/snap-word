@@ -32,7 +32,8 @@ class _DailyBoardScreenState extends State<DailyBoardScreen> {
     _future = getIt<DailyRepository>().getLeaderboard();
   }
 
-  void _reload() => setState(() => _future = getIt<DailyRepository>().getLeaderboard());
+  void _reload() =>
+      setState(() => _future = getIt<DailyRepository>().getLeaderboard());
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +53,10 @@ class _DailyBoardScreenState extends State<DailyBoardScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    ZSpacing.screenGutter, ZSpacing.lg, ZSpacing.screenGutter, ZSpacing.sm,
+                    ZSpacing.screenGutter,
+                    ZSpacing.lg,
+                    ZSpacing.screenGutter,
+                    ZSpacing.sm,
                   ),
                   child: Row(
                     children: [
@@ -73,7 +77,9 @@ class _DailyBoardScreenState extends State<DailyBoardScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: ZSpacing.screenGutter),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: ZSpacing.screenGutter,
+                  ),
                   child: Text(
                     'جایزه‌ها نیمه‌شب به وقت ایران در «پیام‌ها» می‌آید: '
                     'همهٔ شرکت‌کننده‌ها ${toPersianDigits(GameConstants.dailyCompletePrize)} سکه، '
@@ -91,14 +97,22 @@ class _DailyBoardScreenState extends State<DailyBoardScreen> {
     );
   }
 
-  Widget _body(BuildContext context, AsyncSnapshot<DailyBoard> snap, DailyBoard? board, String myId) {
+  Widget _body(
+    BuildContext context,
+    AsyncSnapshot<DailyBoard> snap,
+    DailyBoard? board,
+    String myId,
+  ) {
     final z = context.z;
     if (snap.hasError) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('بارگذاری جدول ممکن نشد', style: ZTypography.body.copyWith(color: z.ink60)),
+            Text(
+              'بارگذاری جدول ممکن نشد',
+              style: ZTypography.body.copyWith(color: z.ink60),
+            ),
             const SizedBox(height: ZSpacing.md),
             NeutralButton(label: 'تلاش دوباره', onPressed: _reload),
           ],
@@ -118,7 +132,10 @@ class _DailyBoardScreenState extends State<DailyBoardScreen> {
     }
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter, 0, ZSpacing.screenGutter, ZSpacing.xl,
+        ZSpacing.screenGutter,
+        0,
+        ZSpacing.screenGutter,
+        ZSpacing.xl,
       ),
       children: [
         SolidCard(
@@ -145,7 +162,11 @@ class _Row extends StatelessWidget {
   final bool isMe;
   final bool showTopBorder;
 
-  const _Row({required this.entry, required this.isMe, required this.showTopBorder});
+  const _Row({
+    required this.entry,
+    required this.isMe,
+    required this.showTopBorder,
+  });
 
   static const _accents = [ZAccent.amber, ZAccent.indigo, ZAccent.teal];
 
@@ -153,9 +174,18 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final prizes = GameConstants.dailyRankPrizes;
-    final prize = entry.rank >= 1 && entry.rank <= prizes.length ? prizes[entry.rank - 1] : null;
-    final initial = entry.username.isEmpty ? '؟' : entry.username.substring(0, 1).toUpperCase();
-    final accent = entry.rank >= 1 && entry.rank <= _accents.length ? _accents[entry.rank - 1] : ZAccent.coral;
+    final prize =
+        entry.rank >= 1 && entry.rank <= prizes.length
+            ? prizes[entry.rank - 1]
+            : null;
+    final initial =
+        entry.username.isEmpty
+            ? '؟'
+            : entry.username.substring(0, 1).toUpperCase();
+    final accent =
+        entry.rank >= 1 && entry.rank <= _accents.length
+            ? _accents[entry.rank - 1]
+            : ZAccent.coral;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
@@ -168,11 +198,20 @@ class _Row extends StatelessWidget {
             width: 24,
             child: Text(
               toPersianDigits(entry.rank),
-              style: ZTypography.cardTitle.copyWith(fontSize: 13, color: z.ink40),
+              style: ZTypography.cardTitle.copyWith(
+                fontSize: 13,
+                color: z.ink40,
+              ),
             ),
           ),
           const SizedBox(width: ZSpacing.md),
-          LetterTile(letter: initial, size: 32, accent: accent, radius: 10, fontSize: 14),
+          LetterTile(
+            letter: initial,
+            size: 32,
+            accent: accent,
+            radius: 10,
+            fontSize: 14,
+          ),
           const SizedBox(width: ZSpacing.md),
           Expanded(
             child: Column(

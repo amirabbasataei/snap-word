@@ -30,7 +30,8 @@ class AuthAuthenticated extends AuthState {
     this.coins = 0,
   });
 
-  AuthAuthenticated copyWith({int? coins, String? username}) => AuthAuthenticated(
+  AuthAuthenticated copyWith({int? coins, String? username}) =>
+      AuthAuthenticated(
         userId: userId,
         username: username ?? this.username,
         coins: coins ?? this.coins,

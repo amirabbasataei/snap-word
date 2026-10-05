@@ -30,10 +30,10 @@ class GameRepository {
     required MatchDao matchDao,
     required UsedWordDao usedWordDao,
     required Dio dio,
-  })  : _db = db,
-        _matchDao = matchDao,
-        _usedWordDao = usedWordDao,
-        _dio = dio;
+  }) : _db = db,
+       _matchDao = matchDao,
+       _usedWordDao = usedWordDao,
+       _dio = dio;
 
   Future<int> startLocalGame(String mode, String opponentType) =>
       _matchDao.createMatch(
@@ -63,16 +63,15 @@ class GameRepository {
     int localMatchId,
     int score,
     List<String> wordChain,
-  ) =>
-      _db.transaction(() async {
-        await _matchDao.finishMatch(
-          localMatchId,
-          score,
-          wordChain.length,
-          jsonEncode(wordChain),
-        );
-        await _usedWordDao.deleteWordsForMatch(localMatchId);
-      });
+  ) => _db.transaction(() async {
+    await _matchDao.finishMatch(
+      localMatchId,
+      score,
+      wordChain.length,
+      jsonEncode(wordChain),
+    );
+    await _usedWordDao.deleteWordsForMatch(localMatchId);
+  });
 
   /// Owned inventory per power-up type, as last synced from the server.
   Future<Map<String, int>> getPowerupCounts() async {

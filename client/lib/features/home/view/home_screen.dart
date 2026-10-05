@@ -167,39 +167,45 @@ class _HomeScreenState extends State<HomeScreen> {
           top: Radius.circular(ZRadius.sheetMax),
         ),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('حریف هوشمند — انتخاب سطح',
-                  style: ZTypography.screenTitle.copyWith(color: z.ink)),
-              const SizedBox(height: ZSpacing.xxl),
-              for (final entry in [
-                ('آسان', 'ai_easy', 'اشتباه زیاد، پاسخ کند', ZAccent.teal),
-                ('متوسط', 'ai_medium', 'چالش متعادل', ZAccent.amber),
-                ('سخت', 'ai_hard', 'سریع و با کلمات تله', ZAccent.coral),
-              ]) ...[
-                _DifficultyTile(
-                  label: entry.$1,
-                  subtitle: entry.$3,
-                  accent: entry.$4,
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.push(
-                      '/game',
-                      extra: GameRouteArgs(mode: 'classic', opponentType: entry.$2),
-                    );
-                  },
-                ),
-                const SizedBox(height: ZSpacing.sm),
-              ],
-            ],
+      builder:
+          (ctx) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(ZSpacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'حریف هوشمند — انتخاب سطح',
+                    style: ZTypography.screenTitle.copyWith(color: z.ink),
+                  ),
+                  const SizedBox(height: ZSpacing.xxl),
+                  for (final entry in [
+                    ('آسان', 'ai_easy', 'اشتباه زیاد، پاسخ کند', ZAccent.teal),
+                    ('متوسط', 'ai_medium', 'چالش متعادل', ZAccent.amber),
+                    ('سخت', 'ai_hard', 'سریع و با کلمات تله', ZAccent.coral),
+                  ]) ...[
+                    _DifficultyTile(
+                      label: entry.$1,
+                      subtitle: entry.$3,
+                      accent: entry.$4,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        context.push(
+                          '/game',
+                          extra: GameRouteArgs(
+                            mode: 'classic',
+                            opponentType: entry.$2,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: ZSpacing.sm),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -294,31 +300,36 @@ class _TopBar extends StatelessWidget {
         CoinPill(amount: coins),
         const Spacer(),
         // Settings (incl. the حالت شب switch) live in ZProfile.
-        _IconSquare(
-          icon: 'settings',
-          onTap: () => context.go('/profile'),
-        ),
+        _IconSquare(icon: 'settings', onTap: () => context.go('/profile')),
         const SizedBox(width: ZSpacing.sm),
         BlocBuilder<MessagesCubit, MessagesState>(
           bloc: getIt<MessagesCubit>(),
-          builder: (context, messages) => _IconSquare(
-            icon: 'mail',
-            badgeCount: messages.count,
-            onTap: () => context.push(
-              getIt<AuthCubit>().state is AuthAuthenticated ? '/messages' : '/login?return=/messages',
-            ),
-          ),
+          builder:
+              (context, messages) => _IconSquare(
+                icon: 'mail',
+                badgeCount: messages.count,
+                onTap:
+                    () => context.push(
+                      getIt<AuthCubit>().state is AuthAuthenticated
+                          ? '/messages'
+                          : '/login?return=/messages',
+                    ),
+              ),
         ),
         const SizedBox(width: ZSpacing.sm),
         BlocBuilder<RewardsCubit, RewardsState>(
           bloc: getIt<RewardsCubit>(),
-          builder: (context, rewards) => _IconSquare(
-            icon: 'gift',
-            badgeCount: rewards.unclaimedCount,
-            onTap: () => context.push(
-              getIt<AuthCubit>().state is AuthAuthenticated ? '/rewards' : '/login?return=/rewards',
-            ),
-          ),
+          builder:
+              (context, rewards) => _IconSquare(
+                icon: 'gift',
+                badgeCount: rewards.unclaimedCount,
+                onTap:
+                    () => context.push(
+                      getIt<AuthCubit>().state is AuthAuthenticated
+                          ? '/rewards'
+                          : '/login?return=/rewards',
+                    ),
+              ),
         ),
       ],
     );
@@ -349,7 +360,11 @@ class _IconSquare extends StatelessWidget {
               border: Border.all(color: z.line),
               borderRadius: BorderRadius.circular(ZRadius.tileMax),
             ),
-            child: ZIcon(icon, size: 18, color: badgeCount > 0 ? z.ink : z.ink40),
+            child: ZIcon(
+              icon,
+              size: 18,
+              color: badgeCount > 0 ? z.ink : z.ink40,
+            ),
           ),
           if (badgeCount > 0)
             PositionedDirectional(
@@ -439,7 +454,10 @@ class _Wordmark extends StatelessWidget {
               ),
               Text(
                 'حرف آخر، حرف اول!',
-                style: ZTypography.metaLabel.copyWith(color: z.ink60, fontSize: 12),
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.ink60,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -480,7 +498,10 @@ class _StreakCard extends StatelessWidget {
       radius: ZRadius.cardMax,
       // 16px horizontal / 14px vertical — the design's card padding here
       // doesn't land on a named ZSpacing step.
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: ZSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: ZSpacing.lg,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -491,7 +512,8 @@ class _StreakCard extends StatelessWidget {
                 style: ZTypography.cardTitle.copyWith(color: z.ink),
               ),
               const SizedBox(width: ZSpacing.sm),
-              if (!_playedToday) const TintChip(label: 'امروز هم بزن!', tint: ZTint.coral),
+              if (!_playedToday)
+                const TintChip(label: 'امروز هم بزن!', tint: ZTint.coral),
               const Spacer(),
               Text(
                 'رکورد: ${formatPersianNumber(bestStreak)}',
@@ -581,24 +603,35 @@ class _DailyHero extends StatelessWidget {
   final int hoursLeft;
   final VoidCallback onTap;
 
-  const _DailyHero({required this.daily, required this.hoursLeft, required this.onTap});
+  const _DailyHero({
+    required this.daily,
+    required this.hoursLeft,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     final letter = daily?.startLetter.toUpperCase();
-    final subtitle = daily == null
-        ? '${formatPersianNumber(hoursLeft)} ساعت مانده'
-        : '${formatPersianNumber(hoursLeft)} ساعت مانده · رکورد امروز ${formatPersianNumber(daily!.todaysBest)}';
+    final subtitle =
+        daily == null
+            ? '${formatPersianNumber(hoursLeft)} ساعت مانده'
+            : '${formatPersianNumber(hoursLeft)} ساعت مانده · رکورد امروز ${formatPersianNumber(daily!.todaysBest)}';
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: ZSpacing.xl, vertical: ZSpacing.xxl),
+        padding: const EdgeInsets.symmetric(
+          horizontal: ZSpacing.xl,
+          vertical: ZSpacing.xxl,
+        ),
         decoration: BoxDecoration(
           color: z.indigo,
           borderRadius: BorderRadius.circular(ZRadius.cardMax),
-          boxShadow: ZElevation.solidEdge(z.indigoDeep, depth: ZElevation.tileDepth),
+          boxShadow: ZElevation.solidEdge(
+            z.indigoDeep,
+            depth: ZElevation.tileDepth,
+          ),
         ),
         child: Row(
           children: [
@@ -608,16 +641,24 @@ class _DailyHero extends StatelessWidget {
                 children: [
                   Text(
                     'چالش روزانه',
-                    style: ZTypography.metaLabel.copyWith(color: z.onIndigoSoft),
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.onIndigoSoft,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'زنجیر امروز',
-                    style: ZTypography.screenTitle.copyWith(color: z.onIndigo, fontSize: 21),
+                    style: ZTypography.screenTitle.copyWith(
+                      color: z.onIndigo,
+                      fontSize: 21,
+                    ),
                   ),
                   Text(
                     subtitle,
-                    style: ZTypography.body.copyWith(color: z.onIndigoSoft, fontSize: 12),
+                    style: ZTypography.body.copyWith(
+                      color: z.onIndigoSoft,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -630,11 +671,17 @@ class _DailyHero extends StatelessWidget {
               decoration: BoxDecoration(
                 color: z.surface,
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.tileDepth),
+                boxShadow: ZElevation.solidEdge(
+                  z.line,
+                  depth: ZElevation.tileDepth,
+                ),
               ),
               child: Text(
                 letter ?? '؟',
-                style: ZTypography.display.copyWith(color: z.indigo, fontSize: 34),
+                style: ZTypography.display.copyWith(
+                  color: z.indigo,
+                  fontSize: 34,
+                ),
               ),
             ),
           ],
@@ -696,19 +743,32 @@ class _OnlineCard extends StatelessWidget {
       onTap: onTap,
       child: SolidCard(
         radius: ZRadius.cardMax,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: ZSpacing.lg),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: ZSpacing.lg,
+        ),
         child: Row(
           children: [
-            const LetterTile(icon: 'swords', accent: ZAccent.coral, size: ZTileSize.prompt),
+            const LetterTile(
+              icon: 'swords',
+              accent: ZAccent.coral,
+              size: ZTileSize.prompt,
+            ),
             const SizedBox(width: ZSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('رویارویی آنلاین', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+                  Text(
+                    'رویارویی آنلاین',
+                    style: ZTypography.cardTitle.copyWith(color: z.ink),
+                  ),
                   Text(
                     'با بازیکنان دیگر به رقابت بپرداز',
-                    style: ZTypography.body.copyWith(color: z.ink60, fontSize: 11.5),
+                    style: ZTypography.body.copyWith(
+                      color: z.ink60,
+                      fontSize: 11.5,
+                    ),
                   ),
                 ],
               ),
@@ -734,9 +794,10 @@ class _WeeklyRankTeaser extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final subtitle = rank == null
-        ? 'برای دیدن رتبه‌ات یک بازی آنلاین انجام بده'
-        : rank! <= 10
+    final subtitle =
+        rank == null
+            ? 'برای دیدن رتبه‌ات یک بازی آنلاین انجام بده'
+            : rank! <= 10
             ? 'تو نفر ${formatPersianNumber(rank!)}اُمی؛ در ده‌تای اول!'
             : 'تو نفر ${formatPersianNumber(rank!)}اُمی؛ ${formatPersianNumber(rank! - 10)} پله تا ده‌تای اول';
 
@@ -744,7 +805,10 @@ class _WeeklyRankTeaser extends StatelessWidget {
       onTap: onTap,
       child: SolidCard(
         radius: ZRadius.cardMax,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: ZSpacing.md + 1),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: ZSpacing.md + 1,
+        ),
         child: Row(
           children: [
             SizedBox(
@@ -764,8 +828,20 @@ class _WeeklyRankTeaser extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('جدول هفته', style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5)),
-                  Text(subtitle, style: ZTypography.body.copyWith(color: z.ink60, fontSize: 11.5)),
+                  Text(
+                    'جدول هفته',
+                    style: ZTypography.cardTitle.copyWith(
+                      color: z.ink,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: ZTypography.body.copyWith(
+                      color: z.ink60,
+                      fontSize: 11.5,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -828,10 +904,16 @@ class _ResumeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ادامهٔ بازی', style: ZTypography.cardTitle.copyWith(color: z.ink)),
+                  Text(
+                    'ادامهٔ بازی',
+                    style: ZTypography.cardTitle.copyWith(color: z.ink),
+                  ),
                   Text(
                     'کلاسیک · ${match.opponentType == 'solo' ? 'تک‌نفره' : 'حریف هوشمند'}',
-                    style: ZTypography.body.copyWith(color: z.ink60, fontSize: 11.5),
+                    style: ZTypography.body.copyWith(
+                      color: z.ink60,
+                      fontSize: 11.5,
+                    ),
                   ),
                 ],
               ),
@@ -904,17 +986,33 @@ class _DifficultyTile extends StatelessWidget {
       onTap: onTap,
       child: SolidCard(
         elevated: false,
-        padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: ZSpacing.lg,
+          vertical: ZSpacing.md,
+        ),
         child: Row(
           children: [
-            LetterTile(letter: label[0], accent: accent, size: ZTileSize.prompt),
+            LetterTile(
+              letter: label[0],
+              accent: accent,
+              size: ZTileSize.prompt,
+            ),
             const SizedBox(width: ZSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: ZTypography.cardTitle.copyWith(color: z.ink)),
-                  Text(subtitle, style: ZTypography.body.copyWith(color: z.ink60, fontSize: 11.5)),
+                  Text(
+                    label,
+                    style: ZTypography.cardTitle.copyWith(color: z.ink),
+                  ),
+                  Text(
+                    subtitle,
+                    style: ZTypography.body.copyWith(
+                      color: z.ink60,
+                      fontSize: 11.5,
+                    ),
+                  ),
                 ],
               ),
             ),

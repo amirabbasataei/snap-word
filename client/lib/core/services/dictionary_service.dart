@@ -47,12 +47,19 @@ class DictionaryService {
 
   /// Valid words starting with [startLetter] that are not in [exclude]
   /// (the words already played in the current chain).
-  List<String> suggestWords(String startLetter, {Set<String> exclude = const {}}) {
+  List<String> suggestWords(
+    String startLetter, {
+    Set<String> exclude = const {},
+  }) {
     final letter = startLetter.trim();
     if (letter.isEmpty) return const [];
     return _words
-        .where((w) =>
-            w.startsWith(letter) && w.length >= _minLength && !exclude.contains(w))
+        .where(
+          (w) =>
+              w.startsWith(letter) &&
+              w.length >= _minLength &&
+              !exclude.contains(w),
+        )
         .take(20)
         .toList();
   }

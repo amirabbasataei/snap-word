@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/widgets/z_coin.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 
-/// Coin balance pill — amber dot + Persian-formatted number
+/// Coin balance pill — amber coin icon + Persian-formatted number
 /// (e.g. `۱٬۲۴۰`), on a `surface` chip with a `line` border.
 class CoinPill extends StatelessWidget {
   final int amount;
@@ -32,11 +33,7 @@ class CoinPill extends StatelessWidget {
             ),
           ),
           const SizedBox(width: ZSpacing.sm),
-          Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(color: z.amber, shape: BoxShape.circle),
-          ),
+          const ZCoin(size: 20),
         ],
       ),
     );

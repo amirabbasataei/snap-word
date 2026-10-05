@@ -46,7 +46,8 @@ class _ZOverScreenState extends State<ZOverScreen> {
   Future<void> _loadRecord() async {
     try {
       final stats = await getIt<StatsDao>().getStats();
-      if (mounted) setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
+      if (mounted)
+        setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
     } catch (_) {
       // Best-effort — near-miss/record lines just stay hidden.
     }
@@ -62,14 +63,21 @@ class _ZOverScreenState extends State<ZOverScreen> {
       final watched = await getIt<AdService>().showRewardedAd();
       if (!context.mounted) return;
       if (!watched) {
-        ZToast.show(context, 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن.', kind: ZToastKind.error);
+        ZToast.show(
+          context,
+          'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن.',
+          kind: ZToastKind.error,
+        );
         return;
       }
     } else if (method == 'coins') {
       final spent = monetization.spendCoins(GameConstants.continueCostCoins);
       if (!spent) {
         if (context.mounted) {
-          showInsufficientCoinsDialog(context, cost: GameConstants.continueCostCoins);
+          showInsufficientCoinsDialog(
+            context,
+            cost: GameConstants.continueCostCoins,
+          );
         }
         return;
       }
@@ -91,16 +99,23 @@ class _ZOverScreenState extends State<ZOverScreen> {
       return Scaffold(
         backgroundColor: z.paper,
         body: Center(
-          child: state.isSaved
-              ? const SizedBox.shrink()
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(strokeWidth: 2, color: z.indigo),
-                    const SizedBox(height: ZSpacing.md),
-                    Text('در حال ذخیره…', style: ZTypography.body.copyWith(color: z.ink60)),
-                  ],
-                ),
+          child:
+              state.isSaved
+                  ? const SizedBox.shrink()
+                  : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: z.indigo,
+                      ),
+                      const SizedBox(height: ZSpacing.md),
+                      Text(
+                        'در حال ذخیره…',
+                        style: ZTypography.body.copyWith(color: z.ink60),
+                      ),
+                    ],
+                  ),
         ),
       );
     }
@@ -108,12 +123,19 @@ class _ZOverScreenState extends State<ZOverScreen> {
     // True multiplayer's WS-driven GameOver never sets opponentType (see
     // GameBloc._handleWsLossEvent/_handleWsGameOver).
     final isVersus = state.opponentType == null;
-    final isAIDuel = state.opponentType != null && state.opponentType!.startsWith('ai_') && state.opponentScore > 0;
+    final isAIDuel =
+        state.opponentType != null &&
+        state.opponentType!.startsWith('ai_') &&
+        state.opponentScore > 0;
     final isDuel = isVersus || isAIDuel;
     // Versus: the server decides (a mistake loses regardless of score); null
     // while my own continue window is still open.
-    final bool? iWon = isVersus ? state.iWon : (isAIDuel ? state.score > state.opponentScore : null);
-    final showContinue = !state.isSaved && state.canContinue && state.continueTimeRemaining > 0;
+    final bool? iWon =
+        isVersus
+            ? state.iWon
+            : (isAIDuel ? state.score > state.opponentScore : null);
+    final showContinue =
+        !state.isSaved && state.canContinue && state.continueTimeRemaining > 0;
 
     return Scaffold(
       backgroundColor: z.paper,
@@ -135,7 +157,9 @@ class _ZOverScreenState extends State<ZOverScreen> {
                     const SizedBox(height: ZSpacing.lg),
                     if (!isDuel && _recordChainLength > state.chainLength)
                       _NearMissBar(gap: _recordChainLength - state.chainLength),
-                    if (!isDuel && state.chainLength > 0 && _recordChainLength <= state.chainLength) ...[
+                    if (!isDuel &&
+                        state.chainLength > 0 &&
+                        _recordChainLength <= state.chainLength) ...[
                       const SizedBox(height: ZSpacing.lg),
                       _NewRecordBanner(),
                     ],
@@ -146,7 +170,10 @@ class _ZOverScreenState extends State<ZOverScreen> {
                       _ContinueActions(
                         state: state,
                         onContinue: (m) => _handleContinue(context, m),
-                        onAcceptDefeat: () => context.read<GameBloc>().add(const AcceptDefeat()),
+                        onAcceptDefeat:
+                            () => context.read<GameBloc>().add(
+                              const AcceptDefeat(),
+                            ),
                       )
                     else
                       _FinalActions(
@@ -178,7 +205,9 @@ class _Hero extends StatelessWidget {
 
   String get _subtitle {
     final requiredLetter =
-        state.wordChain.isNotEmpty ? state.wordChain.last[state.wordChain.last.length - 1] : null;
+        state.wordChain.isNotEmpty
+            ? state.wordChain.last[state.wordChain.last.length - 1]
+            : null;
     switch (state.reason) {
       case 'timeout':
         return requiredLetter != null
@@ -205,15 +234,25 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final requiredLetter =
-        state.wordChain.isNotEmpty ? state.wordChain.last[state.wordChain.last.length - 1] : '؟';
-    final lastFirstLetter = state.wordChain.isNotEmpty ? state.wordChain.last[0] : '؟';
+        state.wordChain.isNotEmpty
+            ? state.wordChain.last[state.wordChain.last.length - 1]
+            : '؟';
+    final lastFirstLetter =
+        state.wordChain.isNotEmpty ? state.wordChain.last[0] : '؟';
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(ZSpacing.xxl, ZSpacing.xxxl, ZSpacing.xxl, ZSpacing.xxxl),
+      padding: const EdgeInsets.fromLTRB(
+        ZSpacing.xxl,
+        ZSpacing.xxxl,
+        ZSpacing.xxl,
+        ZSpacing.xxxl,
+      ),
       decoration: BoxDecoration(
         color: z.inkSurface,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ZRadius.sheetMax)),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(ZRadius.sheetMax),
+        ),
       ),
       child: Column(
         children: [
@@ -222,14 +261,32 @@ class _Hero extends StatelessWidget {
             children: [
               Transform.translate(
                 offset: const Offset(0, 4),
-                child: LetterTile(letter: requiredLetter, size: 42, height: 50, accent: ZAccent.coral, rotation: -0.12),
+                child: LetterTile(
+                  letter: requiredLetter,
+                  size: 42,
+                  height: 50,
+                  accent: ZAccent.coral,
+                  rotation: -0.12,
+                ),
               ),
               const SizedBox(width: ZSpacing.sm),
-              LetterTile(letter: lastFirstLetter, size: 42, height: 50, accent: ZAccent.amber, rotation: 0.07),
+              LetterTile(
+                letter: lastFirstLetter,
+                size: 42,
+                height: 50,
+                accent: ZAccent.amber,
+                rotation: 0.07,
+              ),
               const SizedBox(width: ZSpacing.sm),
               Transform.translate(
                 offset: const Offset(0, 6),
-                child: const LetterTile(letter: '؟', size: 42, height: 50, accent: ZAccent.indigo, rotation: -0.05),
+                child: const LetterTile(
+                  letter: '؟',
+                  size: 42,
+                  height: 50,
+                  accent: ZAccent.indigo,
+                  rotation: -0.05,
+                ),
               ),
             ],
           ),
@@ -237,7 +294,10 @@ class _Hero extends StatelessWidget {
           Text(
             _title,
             textAlign: TextAlign.center,
-            style: ZTypography.screenTitle.copyWith(color: z.onInkSurface, fontSize: 27),
+            style: ZTypography.screenTitle.copyWith(
+              color: z.onInkSurface,
+              fontSize: 27,
+            ),
           ),
           if (_subtitle.isNotEmpty) ...[
             const SizedBox(height: ZSpacing.sm),
@@ -270,7 +330,9 @@ class _ScoreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final longestWord =
-        state.wordChain.isEmpty ? null : state.wordChain.reduce((a, b) => a.length >= b.length ? a : b);
+        state.wordChain.isEmpty
+            ? null
+            : state.wordChain.reduce((a, b) => a.length >= b.length ? a : b);
 
     return SolidCard(
       elevated: false,
@@ -281,18 +343,30 @@ class _ScoreCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('امتیاز این دست', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11)),
+              Text(
+                'امتیاز این دست',
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.ink40,
+                  fontSize: 11,
+                ),
+              ),
               const SizedBox(height: 5),
-              Text(toPersianDigits(state.score),
-                  style: ZTypography.display.copyWith(color: z.ink, fontSize: 40)),
+              Text(
+                toPersianDigits(state.score),
+                style: ZTypography.display.copyWith(color: z.ink, fontSize: 40),
+              ),
             ],
           ),
           const Spacer(),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _StatLine(label: 'طول زنجیر', value: '${toPersianDigits(state.chainLength)} کلمه'),
-              if (longestWord != null) _StatLine(label: 'بلندترین کلمه', value: longestWord),
+              _StatLine(
+                label: 'طول زنجیر',
+                value: '${toPersianDigits(state.chainLength)} کلمه',
+              ),
+              if (longestWord != null)
+                _StatLine(label: 'بلندترین کلمه', value: longestWord),
               if (showOpponent)
                 _StatLine(
                   label: 'امتیاز حریف',
@@ -302,12 +376,14 @@ class _ScoreCard extends StatelessWidget {
               if (state.entryFee > 0)
                 _StatLine(
                   label: 'سکه',
-                  value: state.coinsNet == 0
-                      ? 'بدون تغییر'
-                      : '${state.coinsNet > 0 ? '+' : '−'}${toPersianDigits(state.coinsNet.abs())}',
-                  valueColor: state.coinsNet > 0
-                      ? z.teal
-                      : state.coinsNet < 0
+                  value:
+                      state.coinsNet == 0
+                          ? 'بدون تغییر'
+                          : '${state.coinsNet > 0 ? '+' : '−'}${toPersianDigits(state.coinsNet.abs())}',
+                  valueColor:
+                      state.coinsNet > 0
+                          ? z.teal
+                          : state.coinsNet < 0
                           ? z.coral
                           : null,
                 ),
@@ -345,7 +421,10 @@ class _StatLine extends StatelessWidget {
             TextSpan(text: '$label: '),
             TextSpan(
               text: value,
-              style: TextStyle(color: valueColor ?? z.ink, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: valueColor ?? z.ink,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),
@@ -372,15 +451,27 @@ class _NearMissBar extends StatelessWidget {
             width: 30,
             height: 30,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: z.amber, borderRadius: BorderRadius.circular(9)),
-            child: Text(toPersianDigits(gap),
-                style: ZTypography.cardTitle.copyWith(color: z.onAmber, fontSize: 14)),
+            decoration: BoxDecoration(
+              color: z.amber,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Text(
+              toPersianDigits(gap),
+              style: ZTypography.cardTitle.copyWith(
+                color: z.onAmber,
+                fontSize: 14,
+              ),
+            ),
           ),
           const SizedBox(width: ZSpacing.md),
           Expanded(
             child: Text(
               '${toPersianDigits(gap)} کلمهٔ دیگر تا شکستن رکوردت مانده بود.',
-              style: ZTypography.body.copyWith(color: z.ink60, fontWeight: FontWeight.w600, fontSize: 12),
+              style: ZTypography.body.copyWith(
+                color: z.ink60,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -398,7 +489,10 @@ class _NewRecordBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(color: z.tintTeal, borderRadius: BorderRadius.circular(ZRadius.cardMin)),
+      decoration: BoxDecoration(
+        color: z.tintTeal,
+        borderRadius: BorderRadius.circular(ZRadius.cardMin),
+      ),
       child: Text(
         'رکورد جدید! 🎉',
         textAlign: TextAlign.center,
@@ -427,7 +521,10 @@ class _ChainTail extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('آخر زنجیر', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11)),
+          Text(
+            'آخر زنجیر',
+            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11),
+          ),
           const SizedBox(height: ZSpacing.sm),
           Wrap(
             spacing: 6,
@@ -435,14 +532,40 @@ class _ChainTail extends StatelessWidget {
             children: [
               for (final w in tail)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                  decoration: BoxDecoration(color: z.paper, borderRadius: BorderRadius.circular(ZRadius.chip)),
-                  child: Text(w, style: ZTypography.metaLabel.copyWith(color: z.ink, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: z.paper,
+                    borderRadius: BorderRadius.circular(ZRadius.chip),
+                  ),
+                  child: Text(
+                    w,
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.ink,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                    ),
+                  ),
                 ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                decoration: BoxDecoration(color: z.coral, borderRadius: BorderRadius.circular(ZRadius.chip)),
-                child: Text(failChip, style: ZTypography.metaLabel.copyWith(color: z.onCoral, fontWeight: FontWeight.w700, fontSize: 12.5)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: z.coral,
+                  borderRadius: BorderRadius.circular(ZRadius.chip),
+                ),
+                child: Text(
+                  failChip,
+                  style: ZTypography.metaLabel.copyWith(
+                    color: z.onCoral,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                  ),
+                ),
               ),
             ],
           ),
@@ -476,17 +599,38 @@ class _ContinueActions extends StatelessWidget {
             decoration: BoxDecoration(
               color: z.teal,
               borderRadius: BorderRadius.circular(ZRadius.cardMin),
-              boxShadow: ZElevation.solidEdge(z.tealDeep, depth: ZElevation.buttonDepth),
+              boxShadow: ZElevation.solidEdge(
+                z.tealDeep,
+                depth: ZElevation.buttonDepth,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('ادامه با تماشای ویدیو', style: ZTypography.button.copyWith(color: z.onTeal, fontSize: 16)),
+                Text(
+                  'ادامه با تماشای ویدیو',
+                  style: ZTypography.button.copyWith(
+                    color: z.onTeal,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(width: ZSpacing.sm),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                  decoration: BoxDecoration(color: z.onTeal.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(999)),
-                  child: Text('۳۰ ثانیه', style: ZTypography.metaLabel.copyWith(color: z.onTeal, fontSize: 11)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: z.onTeal.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '۳۰ ثانیه',
+                    style: ZTypography.metaLabel.copyWith(
+                      color: z.onTeal,
+                      fontSize: 11,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -504,13 +648,21 @@ class _ContinueActions extends StatelessWidget {
                     color: z.surface,
                     borderRadius: BorderRadius.circular(ZRadius.cardMin),
                     border: Border.all(color: z.line),
-                    boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth),
+                    boxShadow: ZElevation.solidEdge(
+                      z.line,
+                      depth: ZElevation.cardDepth,
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('ادامه با ${toPersianDigits(GameConstants.continueCostCoins)}',
-                          style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
+                      Text(
+                        'ادامه با ${toPersianDigits(GameConstants.continueCostCoins)}',
+                        style: ZTypography.cardTitle.copyWith(
+                          color: z.ink,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(width: ZSpacing.sm),
                       Container(
                         width: 16,
@@ -518,7 +670,10 @@ class _ContinueActions extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: z.amber,
                           shape: BoxShape.circle,
-                          boxShadow: ZElevation.solidEdge(z.amberDeep, depth: 2),
+                          boxShadow: ZElevation.solidEdge(
+                            z.amberDeep,
+                            depth: 2,
+                          ),
                         ),
                       ),
                     ],
@@ -529,7 +684,11 @@ class _ContinueActions extends StatelessWidget {
             const SizedBox(width: ZSpacing.sm),
             Expanded(
               child: GestureDetector(
-                onTap: () => getIt<ShareService>().shareMatch(score: state.score, chainLength: state.chainLength),
+                onTap:
+                    () => getIt<ShareService>().shareMatch(
+                      score: state.score,
+                      chainLength: state.chainLength,
+                    ),
                 child: Container(
                   height: 50,
                   alignment: Alignment.center,
@@ -537,9 +696,18 @@ class _ContinueActions extends StatelessWidget {
                     color: z.surface,
                     borderRadius: BorderRadius.circular(ZRadius.cardMin),
                     border: Border.all(color: z.line),
-                    boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth),
+                    boxShadow: ZElevation.solidEdge(
+                      z.line,
+                      depth: ZElevation.cardDepth,
+                    ),
                   ),
-                  child: Text('اشتراک‌گذاری نتیجه', style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14)),
+                  child: Text(
+                    'اشتراک‌گذاری نتیجه',
+                    style: ZTypography.cardTitle.copyWith(
+                      color: z.ink,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -555,7 +723,11 @@ class _ContinueActions extends StatelessWidget {
               state.continueTimeRemaining > 0
                   ? 'بازگشت به خانه (${toPersianDigits(state.continueTimeRemaining)})'
                   : 'بازگشت به خانه',
-              style: ZTypography.body.copyWith(color: z.ink40, fontWeight: FontWeight.w600, fontSize: 13),
+              style: ZTypography.body.copyWith(
+                color: z.ink40,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
         ),
@@ -578,7 +750,11 @@ class _FinalActions extends StatelessWidget {
         AccentButton(
           accent: ZAccentColor.teal,
           label: 'اشتراک‌گذاری نتیجه',
-          onPressed: () => getIt<ShareService>().shareMatch(score: state.score, chainLength: state.chainLength),
+          onPressed:
+              () => getIt<ShareService>().shareMatch(
+                score: state.score,
+                chainLength: state.chainLength,
+              ),
         ),
         const SizedBox(height: ZSpacing.md),
         GestureDetector(
@@ -586,8 +762,14 @@ class _FinalActions extends StatelessWidget {
           child: Container(
             height: 44,
             alignment: Alignment.center,
-            child: Text('بازگشت به خانه',
-                style: ZTypography.body.copyWith(color: z.ink40, fontWeight: FontWeight.w600, fontSize: 13)),
+            child: Text(
+              'بازگشت به خانه',
+              style: ZTypography.body.copyWith(
+                color: z.ink40,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
           ),
         ),
       ],

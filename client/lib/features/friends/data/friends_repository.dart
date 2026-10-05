@@ -22,28 +22,26 @@ class FriendModel {
     required this.weeklyScore,
   });
 
-  factory FriendModel.fromJson(Map<String, dynamic> json,
-      {int weeklyScore = 0}) =>
-      FriendModel(
-        userId: json['user_id'] as String,
-        username: json['username'] as String,
-        weeklyScore: weeklyScore,
-      );
+  factory FriendModel.fromJson(
+    Map<String, dynamic> json, {
+    int weeklyScore = 0,
+  }) => FriendModel(
+    userId: json['user_id'] as String,
+    username: json['username'] as String,
+    weeklyScore: weeklyScore,
+  );
 }
 
 class PendingRequest {
   final String requesterId;
   final String username;
 
-  const PendingRequest({
-    required this.requesterId,
-    required this.username,
-  });
+  const PendingRequest({required this.requesterId, required this.username});
 
   factory PendingRequest.fromJson(Map<String, dynamic> json) => PendingRequest(
-        requesterId: json['requester_id'] as String,
-        username: json['username'] as String,
-      );
+    requesterId: json['requester_id'] as String,
+    username: json['username'] as String,
+  );
 }
 
 class PendingChallenge {
@@ -64,16 +62,16 @@ class PendingChallenge {
   factory PendingChallenge.fromJson(
     Map<String, dynamic> json, {
     String? challengerUsername,
-  }) =>
-      PendingChallenge(
-        id: json['id'] as String,
-        challengerId: json['challenger_id'] as String,
-        challengerUsername: challengerUsername ??
-            json['challenger_username'] as String? ??
-            json['challenger_id'] as String,
-        mode: json['mode'] as String,
-        expiresAt: DateTime.parse(json['expires_at'] as String),
-      );
+  }) => PendingChallenge(
+    id: json['id'] as String,
+    challengerId: json['challenger_id'] as String,
+    challengerUsername:
+        challengerUsername ??
+        json['challenger_username'] as String? ??
+        json['challenger_id'] as String,
+    mode: json['mode'] as String,
+    expiresAt: DateTime.parse(json['expires_at'] as String),
+  );
 }
 
 class FriendsRepository {
@@ -97,18 +95,19 @@ class FriendsRepository {
             (lbResp.data['data']?['entries'] as List<dynamic>?) ?? [];
         for (final e in entries) {
           final m = e as Map<String, dynamic>;
-          scoreMap[m['user_id'] as String] =
-              (m['score'] as num?)?.toInt() ?? 0;
+          scoreMap[m['user_id'] as String] = (m['score'] as num?)?.toInt() ?? 0;
         }
       } catch (_) {
         // Scores unavailable — show 0
       }
 
       return friendList
-          .map((e) => FriendModel.fromJson(
-                e as Map<String, dynamic>,
-                weeklyScore: scoreMap[e['user_id'] as String] ?? 0,
-              ))
+          .map(
+            (e) => FriendModel.fromJson(
+              e as Map<String, dynamic>,
+              weeklyScore: scoreMap[e['user_id'] as String] ?? 0,
+            ),
+          )
           .toList();
     } on DioException catch (e) {
       throw _mapError(e);
@@ -120,8 +119,7 @@ class FriendsRepository {
       final response = await _dio.get(ApiEndpoints.friendsRequests);
       final list = (response.data['data'] as List<dynamic>?) ?? [];
       return list
-          .map((e) =>
-              PendingRequest.fromJson(e as Map<String, dynamic>))
+          .map((e) => PendingRequest.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _mapError(e);
@@ -133,8 +131,7 @@ class FriendsRepository {
       final response = await _dio.get(ApiEndpoints.challengesPending);
       final list = (response.data['data'] as List<dynamic>?) ?? [];
       return list
-          .map((e) =>
-              PendingChallenge.fromJson(e as Map<String, dynamic>))
+          .map((e) => PendingChallenge.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _mapError(e);
@@ -226,7 +223,8 @@ class FriendsRepository {
   FriendsException _mapError(DioException e) {
     final code =
         e.response?.data?['error']?['code'] as String? ?? 'unknown_error';
-    final message = e.response?.data?['error']?['message'] as String? ??
+    final message =
+        e.response?.data?['error']?['message'] as String? ??
         'An error occurred.';
     return FriendsException(code: code, message: message);
   }

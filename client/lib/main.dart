@@ -77,10 +77,11 @@ class _WordChainAppState extends State<WordChainApp> {
           // Persian is RTL; the widget tree itself is not yet audited for
           // RTL layout screen-by-screen (see REDESIGN_PLAN.md Stage 1), but
           // the app-wide reading direction must be correct regardless.
-          builder: (context, child) => Directionality(
-            textDirection: TextDirection.rtl,
-            child: child!,
-          ),
+          builder:
+              (context, child) => Directionality(
+                textDirection: TextDirection.rtl,
+                child: child!,
+              ),
         );
       },
     );

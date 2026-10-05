@@ -12,7 +12,11 @@ class OtpKeypad extends StatelessWidget {
   final ValueChanged<String> onDigit;
   final VoidCallback onBackspace;
 
-  const OtpKeypad({super.key, required this.onDigit, required this.onBackspace});
+  const OtpKeypad({
+    super.key,
+    required this.onDigit,
+    required this.onBackspace,
+  });
 
   static const _rows = [
     ['1', '2', '3'],
@@ -57,18 +61,20 @@ class OtpKeypad extends StatelessWidget {
           color: isBackspace ? z.wash : z.paper,
           borderRadius: BorderRadius.circular(12),
           border: isBackspace ? null : Border.all(color: z.line),
-          boxShadow: isBackspace ? null : ZElevation.solidEdge(z.line, depth: 2),
+          boxShadow:
+              isBackspace ? null : ZElevation.solidEdge(z.line, depth: 2),
         ),
-        child: isBackspace
-            ? Icon(Icons.backspace_outlined, size: 17, color: z.ink60)
-            : Text(
-                toPersianDigits(key),
-                style: ZTypography.cardTitle.copyWith(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: z.ink,
+        child:
+            isBackspace
+                ? Icon(Icons.backspace_outlined, size: 17, color: z.ink60)
+                : Text(
+                  toPersianDigits(key),
+                  style: ZTypography.cardTitle.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: z.ink,
+                  ),
                 ),
-              ),
       ),
     );
   }

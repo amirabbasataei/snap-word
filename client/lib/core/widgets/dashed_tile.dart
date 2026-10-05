@@ -21,7 +21,10 @@ class DashedBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius));
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
     final path = Path()..addRRect(rrect);
     final dashPath = Path();
     for (final metric in path.computeMetrics()) {

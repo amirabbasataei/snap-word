@@ -51,7 +51,9 @@ abstract final class GameConstants {
   ];
 
   static String levelTitle(int level) =>
-      levelTitles.lastWhere((t) => level >= t.$1, orElse: () => levelTitles.first).$2;
+      levelTitles
+          .lastWhere((t) => level >= t.$1, orElse: () => levelTitles.first)
+          .$2;
 
   // Daily Challenge prizes, paid as claimable rewards at Iran midnight. Mirror
   // config.CoinDailyRank1..3 / CoinDailyComplete on the backend.

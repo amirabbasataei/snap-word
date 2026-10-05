@@ -8,8 +8,8 @@ class DailyCubit extends Cubit<DailyState> {
   final DailyRepository _repo;
 
   DailyCubit({required DailyRepository repository})
-      : _repo = repository,
-        super(const DailyInitial());
+    : _repo = repository,
+      super(const DailyInitial());
 
   Future<void> load() async {
     emit(const DailyLoading());

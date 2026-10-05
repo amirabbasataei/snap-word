@@ -20,7 +20,8 @@ import 'package:wordchain/features/game/view/z_versus_screen.dart';
 
 class GameRouteArgs {
   final String mode; // classic | daily
-  final String opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
+  final String
+  opponentType; // solo | ai_easy | ai_medium | ai_hard | multiplayer
   final int? resumeMatchId;
   final String? roomId; // multiplayer WS room
   final String? myPlayerId; // authenticated user's UUID
@@ -53,22 +54,25 @@ class GameScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => GameBloc(
-        gameRepository: getIt(),
-        dictionaryService: getIt(),
-        statsDao: getIt(),
-        syncService: getIt(),
-        prefs: getIt(),
-        wsService: getIt(),
-        onCoinsChanged: (delta) => getIt<AuthCubit>().creditCoins(delta),
-      )..add(GameStarted(
-          mode: args.mode,
-          opponentType: args.opponentType,
-          resumeMatchId: args.resumeMatchId,
-          roomId: args.roomId,
-          myPlayerId: args.myPlayerId ?? _authenticatedUserId(),
-          startLetter: args.startLetter,
-        )),
+      create:
+          (_) => GameBloc(
+            gameRepository: getIt(),
+            dictionaryService: getIt(),
+            statsDao: getIt(),
+            syncService: getIt(),
+            prefs: getIt(),
+            wsService: getIt(),
+            onCoinsChanged: (delta) => getIt<AuthCubit>().creditCoins(delta),
+          )..add(
+            GameStarted(
+              mode: args.mode,
+              opponentType: args.opponentType,
+              resumeMatchId: args.resumeMatchId,
+              roomId: args.roomId,
+              myPlayerId: args.myPlayerId ?? _authenticatedUserId(),
+              startLetter: args.startLetter,
+            ),
+          ),
       child: const _GameView(),
     );
   }
@@ -82,11 +86,12 @@ class _GameView extends StatelessWidget {
     return BlocListener<GameBloc, GameState>(
       // Power-up feedback: transient notices, and the balance reported by a
       // paid use pushed into the app-wide coin balance.
-      listenWhen: (prev, curr) =>
-          curr is GameActive &&
-          (prev is! GameActive ||
-              curr.powerupNoticeSeq != prev.powerupNoticeSeq ||
-              curr.coinBalance != prev.coinBalance),
+      listenWhen:
+          (prev, curr) =>
+              curr is GameActive &&
+              (prev is! GameActive ||
+                  curr.powerupNoticeSeq != prev.powerupNoticeSeq ||
+                  curr.coinBalance != prev.coinBalance),
       listener: (context, state) {
         if (state is! GameActive) return;
         final coins = state.coinBalance;
@@ -102,9 +107,13 @@ class _GameView extends StatelessWidget {
 
   Widget _buildGame(BuildContext context) {
     return BlocConsumer<GameBloc, GameState>(
-      listenWhen: (prev, curr) =>
-          (curr is GameOver && curr.isSaved && prev is GameOver && !prev.isSaved) ||
-          (curr is GameError && curr.insufficientCoins),
+      listenWhen:
+          (prev, curr) =>
+              (curr is GameOver &&
+                  curr.isSaved &&
+                  prev is GameOver &&
+                  !prev.isSaved) ||
+              (curr is GameError && curr.insufficientCoins),
       listener: (context, state) {
         if (state is GameError) {
           showInsufficientCoinsDialog(context);
@@ -121,7 +130,9 @@ class _GameView extends StatelessWidget {
         if (state is GameLoading || state is GameInitial) {
           return Scaffold(
             backgroundColor: z.paper,
-            body: Center(child: CircularProgressIndicator(strokeWidth: 2, color: z.indigo)),
+            body: Center(
+              child: CircularProgressIndicator(strokeWidth: 2, color: z.indigo),
+            ),
           );
         }
 
@@ -135,7 +146,11 @@ class _GameView extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.error_outline_rounded, color: z.coral, size: 44),
+                      Icon(
+                        Icons.error_outline_rounded,
+                        color: z.coral,
+                        size: 44,
+                      ),
                       const SizedBox(height: ZSpacing.lg),
                       Text(
                         state.message,
@@ -143,7 +158,10 @@ class _GameView extends StatelessWidget {
                         style: ZTypography.body.copyWith(color: z.ink60),
                       ),
                       const SizedBox(height: ZSpacing.xxl),
-                      NeutralButton(label: 'بازگشت', onPressed: () => context.pop()),
+                      NeutralButton(
+                        label: 'بازگشت',
+                        onPressed: () => context.pop(),
+                      ),
                     ],
                   ),
                 ),
@@ -211,7 +229,10 @@ class _OpponentContinueOverlay extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: ZSpacing.xxxl),
             child: SolidCard(
               radius: ZRadius.sheetMin,
-              padding: const EdgeInsets.symmetric(horizontal: ZSpacing.xxl, vertical: ZSpacing.xxxl),
+              padding: const EdgeInsets.symmetric(
+                horizontal: ZSpacing.xxl,
+                vertical: ZSpacing.xxxl,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -233,7 +254,10 @@ class _OpponentContinueOverlay extends StatelessWidget {
                         ),
                         Text(
                           toPersianDigits(remaining),
-                          style: ZTypography.display.copyWith(color: z.coral, fontSize: 30),
+                          style: ZTypography.display.copyWith(
+                            color: z.coral,
+                            fontSize: 30,
+                          ),
                         ),
                       ],
                     ),
@@ -242,13 +266,19 @@ class _OpponentContinueOverlay extends StatelessWidget {
                   Text(
                     '$opponentName دارد تصمیم می‌گیرد…',
                     textAlign: TextAlign.center,
-                    style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 15),
+                    style: ZTypography.cardTitle.copyWith(
+                      color: z.ink,
+                      fontSize: 15,
+                    ),
                   ),
                   const SizedBox(height: ZSpacing.sm),
                   Text(
                     'حریف می‌تواند با تماشای ویدیو یا خرج سکه ادامه دهد.',
                     textAlign: TextAlign.center,
-                    style: ZTypography.body.copyWith(color: z.ink60, height: 1.6),
+                    style: ZTypography.body.copyWith(
+                      color: z.ink60,
+                      height: 1.6,
+                    ),
                   ),
                 ],
               ),
@@ -275,7 +305,10 @@ class _DisconnectedBanner extends StatelessWidget {
       start: ZSpacing.screenGutter,
       end: ZSpacing.screenGutter,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: ZSpacing.lg,
+          vertical: 10,
+        ),
         decoration: BoxDecoration(
           color: z.coral,
           borderRadius: BorderRadius.circular(ZRadius.tileMax),
@@ -287,7 +320,10 @@ class _DisconnectedBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 'اتصال حریف قطع شد — ${toPersianDigits(GameConstants.reconnectGraceSec)} ثانیه صبر می‌کنیم…',
-                style: ZTypography.metaLabel.copyWith(color: z.onCoral, fontSize: 12.5),
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.onCoral,
+                  fontSize: 12.5,
+                ),
               ),
             ),
           ],

@@ -94,11 +94,15 @@ class _EditUsernameSheetState extends State<EditUsernameSheet> {
   Widget build(BuildContext context) {
     final z = context.z;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: z.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMax)),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(ZRadius.sheetMax),
+          ),
         ),
         child: SafeArea(
           child: Padding(
@@ -112,7 +116,10 @@ class _EditUsernameSheetState extends State<EditUsernameSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ویرایش نام کاربری', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+                Text(
+                  'ویرایش نام کاربری',
+                  style: ZTypography.screenTitle.copyWith(color: z.ink),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'دوستانت با همین نام پیدایت می‌کنند',
@@ -143,7 +150,10 @@ class _EditUsernameSheetState extends State<EditUsernameSheet> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: ZSpacing.sm),
-                  Text(_error!, style: ZTypography.metaLabel.copyWith(color: z.coral)),
+                  Text(
+                    _error!,
+                    style: ZTypography.metaLabel.copyWith(color: z.coral),
+                  ),
                 ],
                 const SizedBox(height: ZSpacing.xl),
                 AccentButton(

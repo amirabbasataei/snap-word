@@ -63,7 +63,11 @@ class _ReferralBottomSheetState extends State<ReferralBottomSheet> {
       final awarded = await getIt<AuthCubit>().redeemReferral(code);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ZToast.show(context, '$awarded سکه به حسابت اضافه شد!', kind: ZToastKind.success);
+      ZToast.show(
+        context,
+        '$awarded سکه به حسابت اضافه شد!',
+        kind: ZToastKind.success,
+      );
     } on AuthException catch (e) {
       setState(() {
         _submitting = false;
@@ -96,7 +100,9 @@ class _ReferralBottomSheetState extends State<ReferralBottomSheet> {
     return Container(
       decoration: BoxDecoration(
         color: z.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(ZRadius.sheetMax)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(ZRadius.sheetMax),
+        ),
       ),
       child: SafeArea(
         child: Padding(
@@ -110,7 +116,10 @@ class _ReferralBottomSheetState extends State<ReferralBottomSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('کد دعوت داری؟', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+              Text(
+                'کد دعوت داری؟',
+                style: ZTypography.screenTitle.copyWith(color: z.ink),
+              ),
               const SizedBox(height: 4),
               Text(
                 _authenticated
@@ -138,12 +147,18 @@ class _ReferralBottomSheetState extends State<ReferralBottomSheet> {
                     counterText: '',
                     isDense: true,
                   ),
-                  style: ZTypography.cardTitle.copyWith(color: z.ink, letterSpacing: 2),
+                  style: ZTypography.cardTitle.copyWith(
+                    color: z.ink,
+                    letterSpacing: 2,
+                  ),
                 ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: ZSpacing.sm),
-                Text(_error!, style: ZTypography.metaLabel.copyWith(color: z.coral)),
+                Text(
+                  _error!,
+                  style: ZTypography.metaLabel.copyWith(color: z.coral),
+                ),
               ],
               const SizedBox(height: ZSpacing.xl),
               AccentButton(

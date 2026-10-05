@@ -30,10 +30,14 @@ class StreakStrip extends StatelessWidget {
     final z = context.z;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final last = lastPlayedDate == null
-        ? null
-        : DateTime(
-            lastPlayedDate!.year, lastPlayedDate!.month, lastPlayedDate!.day);
+    final last =
+        lastPlayedDate == null
+            ? null
+            : DateTime(
+              lastPlayedDate!.year,
+              lastPlayedDate!.month,
+              lastPlayedDate!.day,
+            );
 
     // Most recent Saturday (weekday 6) on or before today.
     final weekStart = today.subtract(Duration(days: (today.weekday + 1) % 7));
@@ -41,7 +45,8 @@ class StreakStrip extends StatelessWidget {
     return Row(
       children: List.generate(totalDays, (i) {
         final day = weekStart.add(Duration(days: i));
-        final done = last != null &&
+        final done =
+            last != null &&
             !day.isAfter(last) &&
             last.difference(day).inDays < streakCount;
         return Expanded(

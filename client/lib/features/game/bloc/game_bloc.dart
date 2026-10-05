@@ -61,14 +61,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     required SharedPreferences prefs,
     required WebSocketService wsService,
     void Function(int delta)? onCoinsChanged,
-  })  : _onCoinsChanged = onCoinsChanged,
-        _gameRepository = gameRepository,
-        _dictionaryService = dictionaryService,
-        _statsDao = statsDao,
-        _syncService = syncService,
-        _prefs = prefs,
-        _wsService = wsService,
-        super(const GameInitial()) {
+  }) : _onCoinsChanged = onCoinsChanged,
+       _gameRepository = gameRepository,
+       _dictionaryService = dictionaryService,
+       _statsDao = statsDao,
+       _syncService = syncService,
+       _prefs = prefs,
+       _wsService = wsService,
+       super(const GameInitial()) {
     on<GameStarted>(_onGameStarted);
     on<WordSubmitted>(_onWordSubmitted);
     on<HintRequested>((_, _) => add(const PowerupRequested('hint')));
@@ -195,7 +195,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
       final vsAI = isVsAI(opponentType);
       if (vsAI) {
-        _aiDifficulty = aiDifficulties[resolveAIDifficulty(opponentType)] ??
+        _aiDifficulty =
+            aiDifficulties[resolveAIDifficulty(opponentType)] ??
             aiDifficulties['easy']!;
       }
 
@@ -249,9 +250,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   void _connectMultiplayerWs(String roomId) {
     final token = _prefs.getString('jwt_access_token') ?? '';
     final wsHost = DioClient.baseUrl.replaceFirst('http://', 'ws://');
-    final uri = token.isNotEmpty
-        ? '$wsHost/api/v1/ws/game/$roomId?token=$token'
-        : '$wsHost/api/v1/ws/game/$roomId';
+    final uri =
+        token.isNotEmpty
+            ? '$wsHost/api/v1/ws/game/$roomId?token=$token'
+            : '$wsHost/api/v1/ws/game/$roomId';
 
     _wsSub?.cancel();
     _wsService.connect(uri);
@@ -312,11 +314,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         // the separate dailyMaxWords cap above once the chain is long enough.
         _turnStartTime = DateTime.now();
         _startTurnTimer();
-        emit(active.copyWith(
-          livesRemaining: active.livesRemaining - 1,
-          turnTimeRemaining: _timeLimitSec,
-          lastMistakeReason: rejectionReason,
-        ));
+        emit(
+          active.copyWith(
+            livesRemaining: active.livesRemaining - 1,
+            turnTimeRemaining: _timeLimitSec,
+            lastMistakeReason: rejectionReason,
+          ),
+        );
         return;
       }
       await _handleGameOver(
@@ -329,9 +333,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
 
-    final responseTimeSec = _turnStartTime != null
-        ? DateTime.now().difference(_turnStartTime!).inMilliseconds / 1000.0
-        : _timeLimitSec.toDouble();
+    final responseTimeSec =
+        _turnStartTime != null
+            ? DateTime.now().difference(_turnStartTime!).inMilliseconds / 1000.0
+            : _timeLimitSec.toDouble();
 
     final turnScore = _calculateScore(
       word,
@@ -342,14 +347,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     final newChain = [...active.wordChain, word];
     final newScores = [...active.wordScores, turnScore];
-    final newOwners = _isVsAI(active)
-        ? [...active.wordOwners, 'player']
-        : active.wordOwners;
+    final newOwners =
+        _isVsAI(active) ? [...active.wordOwners, 'player'] : active.wordOwners;
 
     await _gameRepository.recordAcceptedWord(active.localMatchId, newChain);
 
     // Daily challenge ends automatically after reaching the max word count
-    if (active.mode == 'daily' && newChain.length >= GameConstants.dailyMaxWords) {
+    if (active.mode == 'daily' &&
+        newChain.length >= GameConstants.dailyMaxWords) {
       _stopTurnTimer();
       await _finalizeGame(
         emit: emit,
@@ -366,17 +371,19 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     if (_isVsAI(active)) {
       // Switch to AI turn — restart turn timer so match timer keeps ticking
-      emit(active.copyWith(
-        wordChain: newChain,
-        wordScores: newScores,
-        wordOwners: newOwners,
-        score: active.score + turnScore,
-        streak: active.streak + 1,
-        turnTimeRemaining: _timeLimitSec,
-        nextStartLetter: word[word.length - 1],
-        hintWord: null,
-        isMyTurn: false,
-      ));
+      emit(
+        active.copyWith(
+          wordChain: newChain,
+          wordScores: newScores,
+          wordOwners: newOwners,
+          score: active.score + turnScore,
+          streak: active.streak + 1,
+          turnTimeRemaining: _timeLimitSec,
+          nextStartLetter: word[word.length - 1],
+          hintWord: null,
+          isMyTurn: false,
+        ),
+      );
       _turnStartTime = DateTime.now();
       _startTurnTimer();
       _scheduleAITurn();
@@ -386,16 +393,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     _turnStartTime = DateTime.now();
     _startTurnTimer();
 
-    emit(active.copyWith(
-      wordChain: newChain,
-      wordScores: newScores,
-      score: active.score + turnScore,
-      streak: active.streak + 1,
-      turnTimeRemaining: _timeLimitSec,
-      nextStartLetter: word[word.length - 1],
-      hintWord: null,
-      lastMistakeReason: null,
-    ));
+    emit(
+      active.copyWith(
+        wordChain: newChain,
+        wordScores: newScores,
+        score: active.score + turnScore,
+        streak: active.streak + 1,
+        turnTimeRemaining: _timeLimitSec,
+        nextStartLetter: word[word.length - 1],
+        hintWord: null,
+        lastMistakeReason: null,
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -429,7 +438,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (active is! GameActive) return;
     // Keep the speed bonus fair: the pause doesn't count as thinking time.
     if (_turnStartTime != null && _pausedAt != null) {
-      _turnStartTime = _turnStartTime!.add(DateTime.now().difference(_pausedAt!));
+      _turnStartTime = _turnStartTime!.add(
+        DateTime.now().difference(_pausedAt!),
+      );
     }
     _startTurnTimer();
     if (_isVsAI(active) && !active.isMyTurn) _scheduleAITurn();
@@ -529,7 +540,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     final cur = state;
-    if (cur is! GameActive) return; // game ended while the request was in flight
+    if (cur is! GameActive)
+      return; // game ended while the request was in flight
 
     switch (type) {
       case 'hint':
@@ -633,11 +645,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     );
 
     if (aiWord == null) {
-      await _handleAILoss(
-        emit: emit,
-        active: active,
-        reason: 'no_words',
-      );
+      await _handleAILoss(emit: emit, active: active, reason: 'no_words');
       return;
     }
 
@@ -669,14 +677,16 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     _turnStartTime = DateTime.now();
     _startTurnTimer();
 
-    emit(active.copyWith(
-      wordChain: newChain,
-      wordOwners: newOwners,
-      opponentScore: active.opponentScore + turnScore,
-      turnTimeRemaining: _timeLimitSec,
-      nextStartLetter: aiWord[aiWord.length - 1],
-      isMyTurn: true,
-    ));
+    emit(
+      active.copyWith(
+        wordChain: newChain,
+        wordOwners: newOwners,
+        opponentScore: active.opponentScore + turnScore,
+        turnTimeRemaining: _timeLimitSec,
+        nextStartLetter: aiWord[aiWord.length - 1],
+        isMyTurn: true,
+      ),
+    );
   }
 
   Future<void> _handleAILoss({
@@ -717,11 +727,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (newTurnTime <= 0) {
       _stopTurnTimer();
       if (vsAI && !active.isMyTurn) {
-        await _handleAILoss(
-          emit: emit,
-          active: active,
-          reason: 'timeout',
-        );
+        await _handleAILoss(emit: emit, active: active, reason: 'timeout');
         return;
       }
       if (active.shieldActive) {
@@ -733,11 +739,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           active.livesRemaining > 1) {
         _turnStartTime = DateTime.now();
         _startTurnTimer();
-        emit(active.copyWith(
-          livesRemaining: active.livesRemaining - 1,
-          turnTimeRemaining: _timeLimitSec,
-          lastMistakeReason: 'timeout',
-        ));
+        emit(
+          active.copyWith(
+            livesRemaining: active.livesRemaining - 1,
+            turnTimeRemaining: _timeLimitSec,
+            lastMistakeReason: 'timeout',
+          ),
+        );
         return;
       }
       await _handleGameOver(
@@ -757,10 +765,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   // GameEnded (user taps end game — solo/AI only)
   // ---------------------------------------------------------------------------
 
-  Future<void> _onGameEnded(
-    GameEnded event,
-    Emitter<GameState> emit,
-  ) async {
+  Future<void> _onGameEnded(GameEnded event, Emitter<GameState> emit) async {
     final active = state;
     if (active is! GameActive) return;
 
@@ -803,13 +808,15 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final opponentType = over.opponentType ?? 'solo';
     final vsAI = isVsAI(opponentType);
     if (vsAI) {
-      _aiDifficulty = aiDifficulties[resolveAIDifficulty(opponentType)] ??
+      _aiDifficulty =
+          aiDifficulties[resolveAIDifficulty(opponentType)] ??
           aiDifficulties['easy']!;
     }
-    final difficultyLabel = vsAI
-        ? resolveAIDifficulty(opponentType)[0].toUpperCase() +
-            resolveAIDifficulty(opponentType).substring(1)
-        : '';
+    final difficultyLabel =
+        vsAI
+            ? resolveAIDifficulty(opponentType)[0].toUpperCase() +
+                resolveAIDifficulty(opponentType).substring(1)
+            : '';
 
     final chain = over.wordChain;
     emit(
@@ -884,7 +891,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final newTime = active.opponentContinueWindowRemaining - 1;
     if (newTime <= 0) {
       _stopOpponentContinueTimer();
-      emit(active.copyWith(opponentContinueWindowActive: false, opponentContinueWindowRemaining: 0));
+      emit(
+        active.copyWith(
+          opponentContinueWindowActive: false,
+          opponentContinueWindowRemaining: 0,
+        ),
+      );
     } else {
       emit(active.copyWith(opponentContinueWindowRemaining: newTime));
     }
@@ -1008,9 +1020,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     _timeLimitSec = GameConstants.classicTurnTimerSec;
 
-    final opponentId = players
-        .cast<String>()
-        .firstWhere((id) => id != _myPlayerId, orElse: () => '');
+    final opponentId = players.cast<String>().firstWhere(
+      (id) => id != _myPlayerId,
+      orElse: () => '',
+    );
 
     emit(
       GameActive(
@@ -1046,17 +1059,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     final isMyWord = playerId == _myPlayerId;
 
-    emit(active.copyWith(
-      wordChain: [...active.wordChain, word],
-      wordOwners: [...active.wordOwners, playerId],
-      wordScores: isMyWord ? [...active.wordScores, score] : active.wordScores,
-      score: isMyWord ? active.score + score : active.score,
-      opponentScore: !isMyWord ? active.opponentScore + score : active.opponentScore,
-      streak: isMyWord ? active.streak + 1 : 0,
-      nextStartLetter: nextLetter.isNotEmpty ? nextLetter : null,
-      isMyTurn: !isMyWord, // alternating turns
-      turnTimeRemaining: _timeLimitSec,
-    ));
+    emit(
+      active.copyWith(
+        wordChain: [...active.wordChain, word],
+        wordOwners: [...active.wordOwners, playerId],
+        wordScores:
+            isMyWord ? [...active.wordScores, score] : active.wordScores,
+        score: isMyWord ? active.score + score : active.score,
+        opponentScore:
+            !isMyWord ? active.opponentScore + score : active.opponentScore,
+        streak: isMyWord ? active.streak + 1 : 0,
+        nextStartLetter: nextLetter.isNotEmpty ? nextLetter : null,
+        isMyTurn: !isMyWord, // alternating turns
+        turnTimeRemaining: _timeLimitSec,
+      ),
+    );
   }
 
   void _handleWsWordRejected(
@@ -1068,10 +1085,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     _log.d('word_rejected: $reason');
   }
 
-  void _handleWsTurnChange(
-    Map<String, dynamic> data,
-    Emitter<GameState> emit,
-  ) {
+  void _handleWsTurnChange(Map<String, dynamic> data, Emitter<GameState> emit) {
     final active = state;
     if (active is! GameActive) return;
 
@@ -1104,25 +1118,29 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       // My loss — show continue prompt (Classic only)
       final canContinue = active.mode == 'classic' && !active.continueUsed;
       _activeBeforeLoss = active;
-      emit(GameOver(
-        localMatchId: -1,
-        mode: active.mode,
-        reason: reason,
-        score: active.score,
-        chainLength: active.wordChain.length,
-        wordChain: active.wordChain,
-        canContinue: canContinue,
-        continueTimeRemaining: GameConstants.continueWindowSec,
-        isSaved: false,
-        opponentScore: active.opponentScore,
-      ));
+      emit(
+        GameOver(
+          localMatchId: -1,
+          mode: active.mode,
+          reason: reason,
+          score: active.score,
+          chainLength: active.wordChain.length,
+          wordChain: active.wordChain,
+          canContinue: canContinue,
+          continueTimeRemaining: GameConstants.continueWindowSec,
+          isSaved: false,
+          opponentScore: active.opponentScore,
+        ),
+      );
       if (canContinue) _startContinueTimer();
     } else {
       // Opponent lost — show "Opponent deciding..." overlay
-      emit(active.copyWith(
-        opponentContinueWindowActive: true,
-        opponentContinueWindowRemaining: GameConstants.continueWindowSec,
-      ));
+      emit(
+        active.copyWith(
+          opponentContinueWindowActive: true,
+          opponentContinueWindowRemaining: GameConstants.continueWindowSec,
+        ),
+      );
       _startOpponentContinueTimer();
     }
   }
@@ -1137,10 +1155,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final playerId = data['player_id'] as String? ?? '';
     if (playerId != _myPlayerId) {
       _stopOpponentContinueTimer();
-      emit(active.copyWith(
-        opponentContinueWindowActive: true,
-        opponentContinueWindowRemaining: GameConstants.continueWindowSec,
-      ));
+      emit(
+        active.copyWith(
+          opponentContinueWindowActive: true,
+          opponentContinueWindowRemaining: GameConstants.continueWindowSec,
+        ),
+      );
       _startOpponentContinueTimer();
     }
   }
@@ -1160,13 +1180,15 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         before != null) {
       _activeBeforeLoss = null;
       _stopContinueTimer();
-      emit(before.copyWith(
-        continueUsed: true,
-        isMyTurn: true,
-        turnTimeRemaining: _timeLimitSec,
-        opponentContinueWindowActive: false,
-        opponentContinueWindowRemaining: 0,
-      ));
+      emit(
+        before.copyWith(
+          continueUsed: true,
+          isMyTurn: true,
+          turnTimeRemaining: _timeLimitSec,
+          opponentContinueWindowActive: false,
+          opponentContinueWindowRemaining: 0,
+        ),
+      );
       return;
     }
 
@@ -1176,20 +1198,19 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     _stopOpponentContinueTimer();
 
     if (decision == 'continue') {
-      emit(active.copyWith(
-        opponentContinueWindowActive: false,
-        opponentContinueWindowRemaining: 0,
-        continueUsed: true,
-        isMyTurn: true,
-      ));
+      emit(
+        active.copyWith(
+          opponentContinueWindowActive: false,
+          opponentContinueWindowRemaining: 0,
+          continueUsed: true,
+          isMyTurn: true,
+        ),
+      );
     }
     // If forfeit — game_over event will follow
   }
 
-  void _handleWsGameOver(
-    Map<String, dynamic> data,
-    Emitter<GameState> emit,
-  ) {
+  void _handleWsGameOver(Map<String, dynamic> data, Emitter<GameState> emit) {
     final active = state is GameActive ? state as GameActive : null;
     // After a forfeit/expired continue the bloc is already in GameOver —
     // keep that chain rather than rebuilding the result with an empty one.
@@ -1197,7 +1218,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final scores = data['scores'] as Map<String, dynamic>? ?? {};
     final winner = data['winner'] as String?;
 
-    final myScore = scores[_myPlayerId] as int? ?? (active?.score ?? prevOver?.score ?? 0);
+    final myScore =
+        scores[_myPlayerId] as int? ?? (active?.score ?? prevOver?.score ?? 0);
     final opponentScore = scores.entries
         .where((e) => e.key != _myPlayerId)
         .fold<int>(0, (sum, e) => sum + (e.value as int? ?? 0));
@@ -1214,22 +1236,24 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     _entryFee = 0;
     if (credited > 0) _onCoinsChanged?.call(credited);
 
-    emit(GameOver(
-      localMatchId: -1,
-      mode: active?.mode ?? prevOver?.mode ?? 'classic',
-      reason: 'game_over',
-      score: myScore,
-      chainLength: active?.wordChain.length ?? prevOver?.chainLength ?? 0,
-      wordChain: active?.wordChain ?? prevOver?.wordChain ?? const [],
-      canContinue: false,
-      continueTimeRemaining: 0,
-      isSaved: true, // server manages persistence
-      winnerId: winner,
-      iWon: winner != null && winner == _myPlayerId,
-      opponentScore: opponentScore,
-      entryFee: entryFee,
-      coinsNet: entryFee > 0 ? credited - entryFee : 0,
-    ));
+    emit(
+      GameOver(
+        localMatchId: -1,
+        mode: active?.mode ?? prevOver?.mode ?? 'classic',
+        reason: 'game_over',
+        score: myScore,
+        chainLength: active?.wordChain.length ?? prevOver?.chainLength ?? 0,
+        wordChain: active?.wordChain ?? prevOver?.wordChain ?? const [],
+        canContinue: false,
+        continueTimeRemaining: 0,
+        isSaved: true, // server manages persistence
+        winnerId: winner,
+        iWon: winner != null && winner == _myPlayerId,
+        opponentScore: opponentScore,
+        entryFee: entryFee,
+        coinsNet: entryFee > 0 ? credited - entryFee : 0,
+      ),
+    );
   }
 
   void _handleWsMatchCancelled(
@@ -1241,12 +1265,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
     final broke = (data['player_id'] as String? ?? '') == _myPlayerId;
-    emit(GameError(
-      broke
-          ? 'سکهٔ کافی برای ورودی بازی نداری.'
-          : 'حریف سکهٔ کافی برای ورودی بازی نداشت. سکه‌ای از تو کم نشد.',
-      insufficientCoins: broke,
-    ));
+    emit(
+      GameError(
+        broke
+            ? 'سکهٔ کافی برای ورودی بازی نداری.'
+            : 'حریف سکهٔ کافی برای ورودی بازی نداشت. سکه‌ای از تو کم نشد.',
+        insufficientCoins: broke,
+      ),
+    );
   }
 
   void _handleWsOpponentDisconnected(Emitter<GameState> emit) {
@@ -1272,20 +1298,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final canContinue = active.mode == 'classic' && !active.continueUsed;
 
     if (canContinue) {
-      emit(GameOver(
-        localMatchId: active.localMatchId,
-        mode: active.mode,
-        opponentType: active.opponentType,
-        reason: reason,
-        rejectedWord: rejectedWord,
-        rejectionReason: rejectionReason,
-        score: active.score,
-        chainLength: active.wordChain.length,
-        wordChain: active.wordChain,
-        canContinue: true,
-        continueTimeRemaining: GameConstants.continueWindowSec,
-        isSaved: false,
-      ));
+      emit(
+        GameOver(
+          localMatchId: active.localMatchId,
+          mode: active.mode,
+          opponentType: active.opponentType,
+          reason: reason,
+          rejectedWord: rejectedWord,
+          rejectionReason: rejectionReason,
+          score: active.score,
+          chainLength: active.wordChain.length,
+          wordChain: active.wordChain,
+          canContinue: true,
+          continueTimeRemaining: GameConstants.continueWindowSec,
+          isSaved: false,
+        ),
+      );
       _startContinueTimer();
     } else {
       await _finalizeGame(
@@ -1336,10 +1364,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     await _saveAndEmitFinal(emit, over);
   }
 
-  Future<void> _saveAndEmitFinal(
-    Emitter<GameState> emit,
-    GameOver over,
-  ) async {
+  Future<void> _saveAndEmitFinal(Emitter<GameState> emit, GameOver over) async {
     if (_isMultiplayer) {
       // Server handles persistence for multiplayer games
       if (!over.isSaved) emit(over.copyWith(isSaved: true));
@@ -1353,9 +1378,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         over.wordChain,
       );
 
-      final longestWord = over.wordChain.isEmpty
-          ? null
-          : over.wordChain.reduce((a, b) => a.length >= b.length ? a : b);
+      final longestWord =
+          over.wordChain.isEmpty
+              ? null
+              : over.wordChain.reduce((a, b) => a.length >= b.length ? a : b);
 
       await _statsDao.recordGameResult(
         score: over.score,
@@ -1384,9 +1410,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     double timeLimitSec,
   ) {
     final baseScore = word.length * 10;
-    final speedBonus = ((timeLimitSec - responseTimeSec) * 2)
-        .clamp(0.0, double.infinity)
-        .toInt();
+    final speedBonus =
+        ((timeLimitSec - responseTimeSec) * 2)
+            .clamp(0.0, double.infinity)
+            .toInt();
     final streakBonus = streak >= 3 ? (baseScore * 0.5).toInt() : 0;
     final turnScore = baseScore + speedBonus + streakBonus;
     return word.length >= GameConstants.longWordBonusMinLength

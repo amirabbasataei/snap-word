@@ -10,38 +10,31 @@ abstract final class AppTheme {
   static ThemeData get dark => _build(ZColors.dark, Brightness.dark);
 
   static ThemeData _build(ZColors z, Brightness brightness) => ThemeData(
-        useMaterial3: true,
-        brightness: brightness,
-        fontFamily: 'Vazirmatn',
-        extensions: [z],
-        scaffoldBackgroundColor: z.paper,
-        colorScheme: ColorScheme(
-          brightness: brightness,
-          primary: z.indigo,
-          onPrimary: z.onIndigo,
-          secondary: z.teal,
-          onSecondary: z.onTeal,
-          surface: z.surface,
-          onSurface: z.ink,
-          error: z.coral,
-          onError: z.onCoral,
-        ),
-        textTheme: ZTypography.textTheme(
-          baseColor: z.ink,
-          secondaryColor: z.ink60,
-        ),
-        dialogTheme: DialogThemeData(backgroundColor: z.surface),
-        snackBarTheme: SnackBarThemeData(
-          backgroundColor: z.inkSurface,
-          contentTextStyle: ZTypography.body.copyWith(color: z.onInkSurface),
-          behavior: SnackBarBehavior.floating,
-        ),
-        progressIndicatorTheme: ProgressIndicatorThemeData(color: z.indigo),
-        dividerTheme: DividerThemeData(
-          color: z.line,
-          thickness: 1,
-          space: 1,
-        ),
-        iconTheme: IconThemeData(color: z.ink60),
-      );
+    useMaterial3: true,
+    brightness: brightness,
+    fontFamily: 'Vazirmatn',
+    extensions: [z],
+    scaffoldBackgroundColor: z.paper,
+    colorScheme: ColorScheme(
+      brightness: brightness,
+      primary: z.indigo,
+      onPrimary: z.onIndigo,
+      secondary: z.teal,
+      onSecondary: z.onTeal,
+      surface: z.surface,
+      onSurface: z.ink,
+      error: z.coral,
+      onError: z.onCoral,
+    ),
+    textTheme: ZTypography.textTheme(baseColor: z.ink, secondaryColor: z.ink60),
+    dialogTheme: DialogThemeData(backgroundColor: z.surface),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: z.inkSurface,
+      contentTextStyle: ZTypography.body.copyWith(color: z.onInkSurface),
+      behavior: SnackBarBehavior.floating,
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: z.indigo),
+    dividerTheme: DividerThemeData(color: z.line, thickness: 1, space: 1),
+    iconTheme: IconThemeData(color: z.ink60),
+  );
 }

@@ -25,11 +25,12 @@ class LobbyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => LobbyCubit(
-        repo: getIt(),
-        syncService: getIt(),
-        notificationService: getIt(),
-      ),
+      create:
+          (_) => LobbyCubit(
+            repo: getIt(),
+            syncService: getIt(),
+            notificationService: getIt(),
+          ),
       child: const _LobbyView(),
     );
   }
@@ -68,8 +69,11 @@ class _LobbyViewState extends State<_LobbyView> {
       final mode = _mode;
       final challengeId = await repo.sendChallenge(friend.userId, mode);
       if (mounted) {
-        ZToast.show(context, 'دعوت‌نامه برای ${friend.username} ارسال شد',
-            kind: ZToastKind.success);
+        ZToast.show(
+          context,
+          'دعوت‌نامه برای ${friend.username} ارسال شد',
+          kind: ZToastKind.success,
+        );
       }
       if (challengeId == null) return;
       // Wait for the friend to accept, then join the same room.
@@ -92,7 +96,11 @@ class _LobbyViewState extends State<_LobbyView> {
         if (e is FriendsException && e.code == 'insufficient_coins') {
           showInsufficientCoinsDialog(context);
         } else {
-          ZToast.show(context, 'ارسال دعوت‌نامه ناموفق بود', kind: ZToastKind.error);
+          ZToast.show(
+            context,
+            'ارسال دعوت‌نامه ناموفق بود',
+            kind: ZToastKind.error,
+          );
         }
       }
     }
@@ -127,29 +135,39 @@ class _LobbyViewState extends State<_LobbyView> {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(
-                        ZSpacing.screenGutter, 0, ZSpacing.screenGutter, ZSpacing.xl),
+                      ZSpacing.screenGutter,
+                      0,
+                      ZSpacing.screenGutter,
+                      ZSpacing.xl,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _VersusCard(
-                          state: state,
-                          myUsername: _myUsername,
-                        ),
+                        _VersusCard(state: state, myUsername: _myUsername),
                         const SizedBox(height: ZSpacing.lg),
                         switch (state) {
                           LobbySearching s => _SearchingBlock(state: s),
                           LobbyError e => _ErrorBlock(
-                              message: e.message,
-                              onRetry: () => context.read<LobbyCubit>().startSearch(_mode),
-                            ),
+                            message: e.message,
+                            onRetry:
+                                () => context.read<LobbyCubit>().startSearch(
+                                  _mode,
+                                ),
+                          ),
                           _ => _IdleBlock(
-                              onFindMatch: () => context.read<LobbyCubit>().startSearch(_mode),
-                            ),
+                            onFindMatch:
+                                () => context.read<LobbyCubit>().startSearch(
+                                  _mode,
+                                ),
+                          ),
                         },
                         if (state is! LobbySearching) ...[
                           const SizedBox(height: ZSpacing.lg),
                           if (_friends.isNotEmpty)
-                            _FriendsCard(friends: _friends, onChallenge: _challengeFriend),
+                            _FriendsCard(
+                              friends: _friends,
+                              onChallenge: _challengeFriend,
+                            ),
                         ],
                       ],
                     ),
@@ -191,17 +209,27 @@ class _TopBar extends StatelessWidget {
     final z = context.z;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter, ZSpacing.md, ZSpacing.screenGutter, ZSpacing.md),
+        ZSpacing.screenGutter,
+        ZSpacing.md,
+        ZSpacing.screenGutter,
+        ZSpacing.md,
+      ),
       child: Row(
         children: [
           ZBackButton(onTap: () => context.pop()),
           const SizedBox(width: ZSpacing.md),
-          Text('رویارویی آنلاین', style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 19)),
+          Text(
+            'رویارویی آنلاین',
+            style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 19),
+          ),
           const Spacer(),
           // AuthCubit holds the live balance; fetchStats() never returns coins.
           BlocBuilder<AuthCubit, AuthState>(
             bloc: getIt<AuthCubit>(),
-            builder: (context, auth) => CoinPill(amount: auth is AuthAuthenticated ? auth.coins : 0),
+            builder:
+                (context, auth) => CoinPill(
+                  amount: auth is AuthAuthenticated ? auth.coins : 0,
+                ),
           ),
         ],
       ),
@@ -226,11 +254,17 @@ class _VersusCard extends StatelessWidget {
     final searching = state is LobbySearching;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.xl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ZSpacing.lg,
+        vertical: ZSpacing.xl,
+      ),
       decoration: BoxDecoration(
         color: z.inkSurface,
         borderRadius: BorderRadius.circular(ZRadius.cardMax),
-        boxShadow: ZElevation.solidEdge(z.inkSurfaceDeep, depth: ZElevation.cardDepth),
+        boxShadow: ZElevation.solidEdge(
+          z.inkSurfaceDeep,
+          depth: ZElevation.cardDepth,
+        ),
       ),
       child: Column(
         children: [
@@ -245,8 +279,13 @@ class _VersusCard extends StatelessWidget {
                   dim: false,
                 ),
               ),
-              Text('مقابل',
-                  style: ZTypography.metaLabel.copyWith(color: z.onInkSurfaceSoft, fontWeight: FontWeight.w900)),
+              Text(
+                'مقابل',
+                style: ZTypography.metaLabel.copyWith(
+                  color: z.onInkSurfaceSoft,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               Expanded(
                 child: _VersusSide(
                   letter: '؟',
@@ -291,10 +330,21 @@ class _VersusSide extends StatelessWidget {
           child: LetterTile(letter: letter, size: 56, accent: accent),
         ),
         const SizedBox(height: ZSpacing.sm),
-        Text(name,
-            style: ZTypography.cardTitle.copyWith(color: z.onInkSurface, fontSize: 13),
-            overflow: TextOverflow.ellipsis),
-        Text(subtitle, style: ZTypography.metaLabel.copyWith(color: z.onInkSurfaceSoft, fontSize: 11)),
+        Text(
+          name,
+          style: ZTypography.cardTitle.copyWith(
+            color: z.onInkSurface,
+            fontSize: 13,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          subtitle,
+          style: ZTypography.metaLabel.copyWith(
+            color: z.onInkSurfaceSoft,
+            fontSize: 11,
+          ),
+        ),
       ],
     );
   }
@@ -309,13 +359,17 @@ class _SearchDots extends StatefulWidget {
   State<_SearchDots> createState() => _SearchDotsState();
 }
 
-class _SearchDotsState extends State<_SearchDots> with SingleTickerProviderStateMixin {
+class _SearchDotsState extends State<_SearchDots>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    );
     if (widget.active) _ctrl.repeat();
   }
 
@@ -341,7 +395,8 @@ class _SearchDotsState extends State<_SearchDots> with SingleTickerProviderState
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, _) {
-        final litIndex = widget.active ? (_ctrl.value * 4).floor().clamp(0, 3) : -1;
+        final litIndex =
+            widget.active ? (_ctrl.value * 4).floor().clamp(0, 3) : -1;
         final colors = [z.coral, z.amber, z.teal, z.indigo];
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -354,7 +409,10 @@ class _SearchDotsState extends State<_SearchDots> with SingleTickerProviderState
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: lit ? colors[i] : z.onInkSurfaceSoft.withValues(alpha: 0.4),
+                  color:
+                      lit
+                          ? colors[i]
+                          : z.onInkSurfaceSoft.withValues(alpha: 0.4),
                 ),
               ),
             );
@@ -418,7 +476,8 @@ class _SearchingBlock extends StatelessWidget {
   String get _elapsed {
     final s = state.elapsedSeconds;
     return toPersianDigits(
-        '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}');
+      '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}',
+    );
   }
 
   @override
@@ -426,9 +485,14 @@ class _SearchingBlock extends StatelessWidget {
     final z = context.z;
     return Column(
       children: [
-        Text(_elapsed,
-            style: ZTypography.screenTitle.copyWith(
-                color: z.ink, fontSize: 26, fontFeatures: const [FontFeature.tabularFigures()])),
+        Text(
+          _elapsed,
+          style: ZTypography.screenTitle.copyWith(
+            color: z.ink,
+            fontSize: 26,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
         const SizedBox(height: ZSpacing.lg),
         NeutralButton(
           label: 'لغو جست‌وجو',
@@ -456,9 +520,17 @@ class _ErrorBlock extends StatelessWidget {
       children: [
         Icon(Icons.wifi_off_rounded, color: z.coral, size: 40),
         const SizedBox(height: ZSpacing.md),
-        Text(message, textAlign: TextAlign.center, style: ZTypography.body.copyWith(color: z.ink60)),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: ZTypography.body.copyWith(color: z.ink60),
+        ),
         const SizedBox(height: ZSpacing.lg),
-        AccentButton(label: 'تلاش دوباره', accent: ZAccentColor.coral, onPressed: onRetry),
+        AccentButton(
+          label: 'تلاش دوباره',
+          accent: ZAccentColor.coral,
+          onPressed: onRetry,
+        ),
       ],
     );
   }
@@ -476,7 +548,10 @@ class _EntryFeeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: ZSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: ZSpacing.md,
+        vertical: ZSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: z.amber.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(ZRadius.tileMin + 2),
@@ -484,17 +559,34 @@ class _EntryFeeRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text('ورودی بازی',
-                style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700)),
+            child: Text(
+              'ورودی بازی',
+              style: ZTypography.metaLabel.copyWith(
+                color: z.ink60,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-          Text('${toPersianDigits(GameConstants.entryFeeCoins)} سکه',
-              style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5)),
+          Text(
+            '${toPersianDigits(GameConstants.entryFeeCoins)} سکه',
+            style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5),
+          ),
           const SizedBox(width: ZSpacing.md),
-          Text('جایزهٔ برنده',
-              style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700)),
+          Text(
+            'جایزهٔ برنده',
+            style: ZTypography.metaLabel.copyWith(
+              color: z.ink60,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(width: ZSpacing.sm),
-          Text('${toPersianDigits(GameConstants.entryFeePot)} سکه',
-              style: ZTypography.cardTitle.copyWith(color: z.teal, fontSize: 13.5)),
+          Text(
+            '${toPersianDigits(GameConstants.entryFeePot)} سکه',
+            style: ZTypography.cardTitle.copyWith(
+              color: z.teal,
+              fontSize: 13.5,
+            ),
+          ),
         ],
       ),
     );
@@ -530,7 +622,10 @@ class _FriendsCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: ZSpacing.md),
             child: Row(
               children: [
-                Text('دوستان', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
+                Text(
+                  'دوستان',
+                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                ),
               ],
             ),
           ),
@@ -541,28 +636,54 @@ class _FriendsCard extends StatelessWidget {
               child: Row(
                 children: [
                   LetterTile(
-                    letter: friend.username.isNotEmpty ? friend.username[0] : '؟',
+                    letter:
+                        friend.username.isNotEmpty ? friend.username[0] : '؟',
                     size: 34,
-                    accent: _accentCycle[friends.indexOf(friend) % _accentCycle.length],
+                    accent:
+                        _accentCycle[friends.indexOf(friend) %
+                            _accentCycle.length],
                   ),
                   const SizedBox(width: ZSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(friend.username, style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5)),
-                        Text('${formatPersianNumber(friend.weeklyScore)} امتیاز این هفته',
-                            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11)),
+                        Text(
+                          friend.username,
+                          style: ZTypography.cardTitle.copyWith(
+                            color: z.ink,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                        Text(
+                          '${formatPersianNumber(friend.weeklyScore)} امتیاز این هفته',
+                          style: ZTypography.metaLabel.copyWith(
+                            color: z.ink40,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   GestureDetector(
                     onTap: () => onChallenge(friend),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(color: z.tintTeal, borderRadius: BorderRadius.circular(999)),
-                      child: Text('دعوت',
-                          style: ZTypography.metaLabel.copyWith(color: z.teal, fontWeight: FontWeight.w700, fontSize: 12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: z.tintTeal,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'دعوت',
+                        style: ZTypography.metaLabel.copyWith(
+                          color: z.teal,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -575,4 +696,9 @@ class _FriendsCard extends StatelessWidget {
   }
 }
 
-const _accentCycle = [ZAccent.indigo, ZAccent.teal, ZAccent.amber, ZAccent.coral];
+const _accentCycle = [
+  ZAccent.indigo,
+  ZAccent.teal,
+  ZAccent.amber,
+  ZAccent.coral,
+];

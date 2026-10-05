@@ -8,10 +8,7 @@ class _ZBottomNavItem {
   final String icon;
   final String label;
 
-  const _ZBottomNavItem({
-    required this.icon,
-    required this.label,
-  });
+  const _ZBottomNavItem({required this.icon, required this.label});
 }
 
 /// Custom bottom nav bar — square glyph tiles + Persian labels — replacing
@@ -24,25 +21,17 @@ class ZBottomNav extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   static const _items = [
-    _ZBottomNavItem(
-      icon: 'house',
-      label: 'خانه',
-    ),
-    _ZBottomNavItem(
-      icon: 'trophy',
-      label: 'جدول',
-    ),
-    _ZBottomNavItem(
-      icon: 'users',
-      label: 'دوستان',
-    ),
-    _ZBottomNavItem(
-      icon: 'user',
-      label: 'من',
-    ),
+    _ZBottomNavItem(icon: 'house', label: 'خانه'),
+    _ZBottomNavItem(icon: 'trophy', label: 'جدول'),
+    _ZBottomNavItem(icon: 'users', label: 'دوستان'),
+    _ZBottomNavItem(icon: 'user', label: 'من'),
   ];
 
-  const ZBottomNav({super.key, required this.currentIndex, required this.onTap});
+  const ZBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -90,9 +79,15 @@ class _NavButton extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: ZHitTarget.min, minHeight: ZHitTarget.min),
+        constraints: const BoxConstraints(
+          minWidth: ZHitTarget.min,
+          minHeight: ZHitTarget.min,
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: ZSpacing.sm, vertical: ZSpacing.xs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: ZSpacing.sm,
+            vertical: ZSpacing.xs,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -100,12 +95,13 @@ class _NavButton extends StatelessWidget {
                 width: ZTileSize.prompt,
                 height: ZTileSize.prompt,
                 alignment: Alignment.center,
-                decoration: selected
-                    ? BoxDecoration(
-                        color: z.tintIndigo,
-                        borderRadius: BorderRadius.circular(ZRadius.tileMin),
-                      )
-                    : null,
+                decoration:
+                    selected
+                        ? BoxDecoration(
+                          color: z.tintIndigo,
+                          borderRadius: BorderRadius.circular(ZRadius.tileMin),
+                        )
+                        : null,
                 child: ZIcon(
                   item.icon,
                   size: 22,

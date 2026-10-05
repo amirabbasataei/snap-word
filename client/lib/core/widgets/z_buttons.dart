@@ -78,20 +78,17 @@ class _AccentButtonState extends State<AccentButton> {
         decoration: BoxDecoration(
           color: disabled ? z.wash : bg,
           borderRadius: BorderRadius.circular(ZRadius.tileMax),
-          boxShadow: (disabled || _pressed)
-              ? null
-              : ZElevation.solidEdge(deep, depth: ZElevation.buttonDepth),
+          boxShadow:
+              (disabled || _pressed)
+                  ? null
+                  : ZElevation.solidEdge(deep, depth: ZElevation.buttonDepth),
         ),
         alignment: Alignment.center,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (widget.icon != null) ...[
-              Icon(
-                widget.icon,
-                size: 18,
-                color: disabled ? z.ink40 : onColor,
-              ),
+              Icon(widget.icon, size: 18, color: disabled ? z.ink40 : onColor),
               const SizedBox(width: ZSpacing.sm),
             ],
             Text(
@@ -160,9 +157,10 @@ class _NeutralButtonState extends State<NeutralButton> {
           color: z.surface,
           borderRadius: BorderRadius.circular(ZRadius.tileMax),
           border: Border.all(color: z.line),
-          boxShadow: (disabled || _pressed)
-              ? null
-              : ZElevation.solidEdge(z.line, depth: ZElevation.buttonDepth),
+          boxShadow:
+              (disabled || _pressed)
+                  ? null
+                  : ZElevation.solidEdge(z.line, depth: ZElevation.buttonDepth),
         ),
         alignment: Alignment.center,
         child: Row(

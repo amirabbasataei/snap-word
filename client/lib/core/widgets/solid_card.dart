@@ -34,9 +34,10 @@ class SolidCard extends StatelessWidget {
         color: color ?? z.surface,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: z.line, width: 1),
-        boxShadow: elevated
-            ? ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth)
-            : null,
+        boxShadow:
+            elevated
+                ? ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth)
+                : null,
       ),
       child: child,
     );

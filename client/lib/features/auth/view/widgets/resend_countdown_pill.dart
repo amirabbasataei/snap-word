@@ -57,8 +57,13 @@ class ResendCountdownRow extends StatelessWidget {
                 ),
                 const SizedBox(width: ZSpacing.sm),
                 Text(
-                  _canResend ? 'ارسال دوباره' : 'ارسال دوباره تا ${_formatCountdown(secondsRemaining)}',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink60, fontWeight: FontWeight.w700),
+                  _canResend
+                      ? 'ارسال دوباره'
+                      : 'ارسال دوباره تا ${_formatCountdown(secondsRemaining)}',
+                  style: ZTypography.metaLabel.copyWith(
+                    color: z.ink60,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),

@@ -20,8 +20,8 @@ class OtpFlowCubit extends Cubit<OtpFlowState> {
     required AuthCubit authCubit,
     required this.phone,
     required int initialCooldownSeconds,
-  })  : _authCubit = authCubit,
-        super(OtpFlowState(cooldownSecondsRemaining: initialCooldownSeconds)) {
+  }) : _authCubit = authCubit,
+       super(OtpFlowState(cooldownSecondsRemaining: initialCooldownSeconds)) {
     _startTicker();
   }
 
@@ -36,7 +36,11 @@ class OtpFlowCubit extends Cubit<OtpFlowState> {
         _ticker?.cancel();
         return;
       }
-      emit(state.copyWith(cooldownSecondsRemaining: state.cooldownSecondsRemaining - 1));
+      emit(
+        state.copyWith(
+          cooldownSecondsRemaining: state.cooldownSecondsRemaining - 1,
+        ),
+      );
     });
   }
 
@@ -47,15 +51,29 @@ class OtpFlowCubit extends Cubit<OtpFlowState> {
     emit(state.copyWith(sendingResend: true, clearError: true));
     try {
       final result = await _authCubit.sendOtp(phone: phone, voice: voice);
-      emit(state.copyWith(
-        sendingResend: false,
-        cooldownSecondsRemaining: result.resendCooldownSeconds,
-      ));
+      emit(
+        state.copyWith(
+          sendingResend: false,
+          cooldownSecondsRemaining: result.resendCooldownSeconds,
+        ),
+      );
       _startTicker();
     } on AuthException catch (e) {
-      emit(state.copyWith(sendingResend: false, errorCode: e.code, errorMessage: e.message));
+      emit(
+        state.copyWith(
+          sendingResend: false,
+          errorCode: e.code,
+          errorMessage: e.message,
+        ),
+      );
     } on NetworkException catch (e) {
-      emit(state.copyWith(sendingResend: false, errorCode: 'network_error', errorMessage: e.message));
+      emit(
+        state.copyWith(
+          sendingResend: false,
+          errorCode: 'network_error',
+          errorMessage: e.message,
+        ),
+      );
     }
   }
 
@@ -73,10 +91,22 @@ class OtpFlowCubit extends Cubit<OtpFlowState> {
       emit(state.copyWith(submitting: false));
       return result;
     } on AuthException catch (e) {
-      emit(state.copyWith(submitting: false, errorCode: e.code, errorMessage: e.message));
+      emit(
+        state.copyWith(
+          submitting: false,
+          errorCode: e.code,
+          errorMessage: e.message,
+        ),
+      );
       return null;
     } on NetworkException catch (e) {
-      emit(state.copyWith(submitting: false, errorCode: 'network_error', errorMessage: e.message));
+      emit(
+        state.copyWith(
+          submitting: false,
+          errorCode: 'network_error',
+          errorMessage: e.message,
+        ),
+      );
       return null;
     }
   }

@@ -116,7 +116,10 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                     const SizedBox(height: ZSpacing.xxl),
                     Text(
                       'با شماره‌ات بیا تو',
-                      style: ZTypography.display.copyWith(fontSize: 26, color: z.ink),
+                      style: ZTypography.display.copyWith(
+                        fontSize: 26,
+                        color: z.ink,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -136,7 +139,9 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                         children: [
                           Text(
                             'شمارهٔ موبایل',
-                            style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                            style: ZTypography.metaLabel.copyWith(
+                              color: z.ink40,
+                            ),
                           ),
                           const SizedBox(height: 9),
                           PhoneInputField(
@@ -149,7 +154,9 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                     ),
                     const SizedBox(height: ZSpacing.lg),
                     GestureDetector(
-                      onTap: () => setState(() => _termsAccepted = !_termsAccepted),
+                      onTap:
+                          () =>
+                              setState(() => _termsAccepted = !_termsAccepted),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -161,11 +168,19 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                             decoration: BoxDecoration(
                               color: _termsAccepted ? z.teal : z.surface,
                               borderRadius: BorderRadius.circular(6),
-                              border: _termsAccepted ? null : Border.all(color: z.line),
+                              border:
+                                  _termsAccepted
+                                      ? null
+                                      : Border.all(color: z.line),
                             ),
-                            child: _termsAccepted
-                                ? Icon(Icons.check, size: 12, color: z.onTeal)
-                                : null,
+                            child:
+                                _termsAccepted
+                                    ? Icon(
+                                      Icons.check,
+                                      size: 12,
+                                      color: z.onTeal,
+                                    )
+                                    : null,
                           ),
                           const SizedBox(width: ZSpacing.sm + 1),
                           Expanded(
@@ -180,7 +195,10 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                                   const TextSpan(text: 'با ورود، '),
                                   TextSpan(
                                     text: 'قوانین و حریم خصوصی',
-                                    style: TextStyle(fontWeight: FontWeight.w700, color: z.ink),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: z.ink,
+                                    ),
                                   ),
                                   const TextSpan(text: ' زنجیر را می‌پذیرم.'),
                                 ],
@@ -192,7 +210,10 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: ZSpacing.md),
-                      Text(_error!, style: ZTypography.metaLabel.copyWith(color: z.coral)),
+                      Text(
+                        _error!,
+                        style: ZTypography.metaLabel.copyWith(color: z.coral),
+                      ),
                     ],
                     const SizedBox(height: ZSpacing.lg),
                     AccentButton(
@@ -229,13 +250,19 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _referralCode == null ? 'کد دعوت داری؟' : 'کد دعوت: $_referralCode',
-                                    style: ZTypography.cardTitle.copyWith(color: z.ink),
+                                    _referralCode == null
+                                        ? 'کد دعوت داری؟'
+                                        : 'کد دعوت: $_referralCode',
+                                    style: ZTypography.cardTitle.copyWith(
+                                      color: z.ink,
+                                    ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     'بعد از ورود واردش کن، ۵۰ سکه بگیر',
-                                    style: ZTypography.metaLabel.copyWith(color: z.ink60),
+                                    style: ZTypography.metaLabel.copyWith(
+                                      color: z.ink60,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -262,12 +289,18 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                     children: [
                       Text(
                         'فعلاً مهمان می‌مانم',
-                        style: ZTypography.cardTitle.copyWith(color: z.ink60, fontSize: 13),
+                        style: ZTypography.cardTitle.copyWith(
+                          color: z.ink60,
+                          fontSize: 13,
+                        ),
                       ),
                       const SizedBox(height: 5),
                       Text(
                         'امتیاز مهمان روی این گوشی می‌ماند',
-                        style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11),
+                        style: ZTypography.metaLabel.copyWith(
+                          color: z.ink40,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -282,7 +315,13 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
 
   Widget _wordmark() {
     const letters = ['ز', 'ن', 'ج', 'ی', 'ر'];
-    const accents = [ZAccent.indigo, ZAccent.teal, ZAccent.amber, ZAccent.coral, ZAccent.indigo];
+    const accents = [
+      ZAccent.indigo,
+      ZAccent.teal,
+      ZAccent.amber,
+      ZAccent.coral,
+      ZAccent.indigo,
+    ];
     const rotations = [-5.0, 2.0, -2.0, 4.0, -3.0];
     return Row(
       mainAxisSize: MainAxisSize.min,

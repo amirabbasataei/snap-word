@@ -46,10 +46,11 @@ class ZBoardScreen extends StatelessWidget {
         }
         return BlocProvider(
           key: ValueKey('board-${authState.userId}'),
-          create: (_) => LeaderboardCubit(
-            repository: getIt<LeaderboardRepository>(),
-            currentUserId: authState.userId,
-          )..load(),
+          create:
+              (_) => LeaderboardCubit(
+                repository: getIt<LeaderboardRepository>(),
+                currentUserId: authState.userId,
+              )..load(),
           child: TabRefreshListener(
             index: MainTab.board,
             onRefresh: (ctx) => ctx.read<LeaderboardCubit>().load(silent: true),
@@ -75,13 +76,20 @@ class _GuestGate extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('جدول', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+              Text(
+                'جدول',
+                style: ZTypography.screenTitle.copyWith(color: z.ink),
+              ),
               Expanded(
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.emoji_events_outlined, color: z.ink40, size: 52),
+                      Icon(
+                        Icons.emoji_events_outlined,
+                        color: z.ink40,
+                        size: 52,
+                      ),
                       const SizedBox(height: ZSpacing.lg),
                       Text(
                         'برای دیدن جدول امتیازات، ثبت‌نام کن',
@@ -91,7 +99,8 @@ class _GuestGate extends StatelessWidget {
                       const SizedBox(height: ZSpacing.xl),
                       AccentButton(
                         label: 'ثبت‌نام رایگان',
-                        onPressed: () => context.push('/login?return=/leaderboard'),
+                        onPressed:
+                            () => context.push('/login?return=/leaderboard'),
                       ),
                     ],
                   ),
@@ -115,7 +124,8 @@ class _BoardView extends StatefulWidget {
 }
 
 class _BoardViewState extends State<_BoardView> {
-  int _tab = 0; // 0 = این هفته (global weekly), 1 = همیشه (all-time), 2 = دوستان (friends)
+  int _tab =
+      0; // 0 = این هفته (global weekly), 1 = همیشه (all-time), 2 = دوستان (friends)
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +151,10 @@ class _BoardViewState extends State<_BoardView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('جدول', style: ZTypography.screenTitle.copyWith(color: z.ink)),
+                  Text(
+                    'جدول',
+                    style: ZTypography.screenTitle.copyWith(color: z.ink),
+                  ),
                   const SizedBox(height: ZSpacing.md),
                   Row(
                     children: [
@@ -176,8 +189,11 @@ class _BoardViewState extends State<_BoardView> {
             Expanded(
               child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
                 builder: (context, state) {
-                  if (state is LeaderboardLoading || state is LeaderboardInitial) {
-                    return Center(child: CircularProgressIndicator(color: z.indigo));
+                  if (state is LeaderboardLoading ||
+                      state is LeaderboardInitial) {
+                    return Center(
+                      child: CircularProgressIndicator(color: z.indigo),
+                    );
                   }
                   if (state is LeaderboardError) {
                     return _ErrorState(
@@ -213,7 +229,11 @@ class _TabPill extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _TabPill({required this.label, required this.selected, required this.onTap});
+  const _TabPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -275,9 +295,13 @@ class _LeaderboardBody extends StatelessWidget {
     }
 
     final hasPodium = entries.length >= 3;
-    final podium = hasPodium ? entries.take(3).toList() : const <LeaderboardEntry>[];
+    final podium =
+        hasPodium ? entries.take(3).toList() : const <LeaderboardEntry>[];
     final restStart = hasPodium ? 3 : 0;
-    final rest = entries.length > restStart ? entries.sublist(restStart) : const <LeaderboardEntry>[];
+    final rest =
+        entries.length > restStart
+            ? entries.sublist(restStart)
+            : const <LeaderboardEntry>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -340,17 +364,30 @@ class _Podium extends StatelessWidget {
       children: [
         Expanded(
           flex: 10,
-          child: _PedestalCell(entry: top3[1], accent: ZAccent.teal, avatarSize: 46),
+          child: _PedestalCell(
+            entry: top3[1],
+            accent: ZAccent.teal,
+            avatarSize: 46,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
           flex: 12,
-          child: _PedestalCell(entry: top3[0], accent: ZAccent.amber, avatarSize: 56, isFirst: true),
+          child: _PedestalCell(
+            entry: top3[0],
+            accent: ZAccent.amber,
+            avatarSize: 56,
+            isFirst: true,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
           flex: 10,
-          child: _PedestalCell(entry: top3[2], accent: ZAccent.coral, avatarSize: 46),
+          child: _PedestalCell(
+            entry: top3[2],
+            accent: ZAccent.coral,
+            avatarSize: 46,
+          ),
         ),
       ],
     );
@@ -373,7 +410,10 @@ class _PedestalCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final initial = entry.username.isEmpty ? '؟' : entry.username.substring(0, 1).toUpperCase();
+    final initial =
+        entry.username.isEmpty
+            ? '؟'
+            : entry.username.substring(0, 1).toUpperCase();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -383,11 +423,21 @@ class _PedestalCell extends StatelessWidget {
           style: TextStyle(fontSize: isFirst ? 26 : 22, height: 1.0),
         ),
         const SizedBox(height: 8),
-        LetterTile(letter: initial, size: avatarSize, accent: accent, radius: isFirst ? 16 : 14),
+        LetterTile(
+          letter: initial,
+          size: avatarSize,
+          accent: accent,
+          radius: isFirst ? 16 : 14,
+        ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
-          padding: EdgeInsets.fromLTRB(6, isFirst ? 12 : 10, 6, isFirst ? 20 : 14),
+          padding: EdgeInsets.fromLTRB(
+            6,
+            isFirst ? 12 : 10,
+            6,
+            isFirst ? 20 : 14,
+          ),
           decoration: BoxDecoration(
             color: z.surface,
             border: Border.all(color: z.line),
@@ -395,13 +445,19 @@ class _PedestalCell extends StatelessWidget {
               topLeft: Radius.circular(isFirst ? 18 : 16),
               topRight: Radius.circular(isFirst ? 18 : 16),
             ),
-            boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth),
+            boxShadow: ZElevation.solidEdge(
+              z.line,
+              depth: ZElevation.cardDepth,
+            ),
           ),
           child: Column(
             children: [
               Text(
                 entry.username,
-                style: ZTypography.cardTitle.copyWith(fontSize: isFirst ? 13 : 12, color: z.ink),
+                style: ZTypography.cardTitle.copyWith(
+                  fontSize: isFirst ? 13 : 12,
+                  color: z.ink,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -437,13 +493,22 @@ class _RankRow extends StatelessWidget {
 
   const _RankRow({required this.entry, required this.showTopBorder});
 
-  static const _accents = [ZAccent.indigo, ZAccent.teal, ZAccent.amber, ZAccent.coral];
+  static const _accents = [
+    ZAccent.indigo,
+    ZAccent.teal,
+    ZAccent.amber,
+    ZAccent.coral,
+  ];
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final accent = _accents[(entry.rank - 1).clamp(0, 1 << 30) % _accents.length];
-    final initial = entry.username.isEmpty ? '؟' : entry.username.substring(0, 1).toUpperCase();
+    final accent =
+        _accents[(entry.rank - 1).clamp(0, 1 << 30) % _accents.length];
+    final initial =
+        entry.username.isEmpty
+            ? '؟'
+            : entry.username.substring(0, 1).toUpperCase();
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
@@ -456,16 +521,28 @@ class _RankRow extends StatelessWidget {
             width: 22,
             child: Text(
               toPersianDigits(entry.rank),
-              style: ZTypography.cardTitle.copyWith(fontSize: 13, color: z.ink40),
+              style: ZTypography.cardTitle.copyWith(
+                fontSize: 13,
+                color: z.ink40,
+              ),
             ),
           ),
           const SizedBox(width: ZSpacing.md),
-          LetterTile(letter: initial, size: 32, accent: accent, radius: 10, fontSize: 14),
+          LetterTile(
+            letter: initial,
+            size: 32,
+            accent: accent,
+            radius: 10,
+            fontSize: 14,
+          ),
           const SizedBox(width: ZSpacing.md),
           Expanded(
             child: Text(
               entry.username,
-              style: ZTypography.cardTitle.copyWith(fontSize: 13.5, color: z.ink),
+              style: ZTypography.cardTitle.copyWith(
+                fontSize: 13.5,
+                color: z.ink,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -485,17 +562,23 @@ class _SelfRow extends StatelessWidget {
   final int score;
   final String username;
 
-  const _SelfRow({required this.rank, required this.score, required this.username});
+  const _SelfRow({
+    required this.rank,
+    required this.score,
+    required this.username,
+  });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final initial = username.isEmpty ? '؟' : username.substring(0, 1).toUpperCase();
+    final initial =
+        username.isEmpty ? '؟' : username.substring(0, 1).toUpperCase();
     final unranked = rank <= 0;
 
     final String subtitle;
     if (unranked) {
-      subtitle = 'این هفته امتیازی نداری — یک بازی آنلاین یا چالش روزانه بازی کن';
+      subtitle =
+          'این هفته امتیازی نداری — یک بازی آنلاین یا چالش روزانه بازی کن';
     } else if (rank <= 10) {
       subtitle = 'جزو ده نفر برتری!';
     } else {
@@ -507,7 +590,10 @@ class _SelfRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: z.inkSurface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: ZElevation.solidEdge(z.inkSurfaceDeep, depth: ZElevation.tileDepth),
+        boxShadow: ZElevation.solidEdge(
+          z.inkSurfaceDeep,
+          depth: ZElevation.tileDepth,
+        ),
       ),
       child: Row(
         children: [
@@ -515,11 +601,21 @@ class _SelfRow extends StatelessWidget {
             width: 22,
             child: Text(
               unranked ? '—' : toPersianDigits(rank),
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: z.onInkSurfaceSoft),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                color: z.onInkSurfaceSoft,
+              ),
             ),
           ),
           const SizedBox(width: ZSpacing.md),
-          LetterTile(letter: initial, size: 34, accent: ZAccent.teal, radius: 11, fontSize: 15),
+          LetterTile(
+            letter: initial,
+            size: 34,
+            accent: ZAccent.teal,
+            radius: 11,
+            fontSize: 15,
+          ),
           const SizedBox(width: ZSpacing.md),
           Expanded(
             child: Column(
@@ -527,13 +623,18 @@ class _SelfRow extends StatelessWidget {
               children: [
                 Text(
                   'تو — $username',
-                  style: ZTypography.cardTitle.copyWith(fontSize: 14, color: z.onInkSurface),
+                  style: ZTypography.cardTitle.copyWith(
+                    fontSize: 14,
+                    color: z.onInkSurface,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   subtitle,
-                  style: ZTypography.metaLabel.copyWith(color: z.onInkSurfaceSoft),
+                  style: ZTypography.metaLabel.copyWith(
+                    color: z.onInkSurfaceSoft,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -543,7 +644,11 @@ class _SelfRow extends StatelessWidget {
           if (!unranked)
             Text(
               formatPersianNumber(score),
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: z.onInkSurface),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+                color: z.onInkSurface,
+              ),
             ),
         ],
       ),
@@ -568,7 +673,11 @@ class _ErrorState extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, color: z.ink40, size: 44),
             const SizedBox(height: ZSpacing.md),
-            Text(message, style: ZTypography.body.copyWith(color: z.ink60), textAlign: TextAlign.center),
+            Text(
+              message,
+              style: ZTypography.body.copyWith(color: z.ink60),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: ZSpacing.lg),
             NeutralButton(label: 'تلاش دوباره', onPressed: onRetry),
           ],

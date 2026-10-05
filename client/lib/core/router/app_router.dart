@@ -133,14 +133,8 @@ GoRouter buildAppRouter() {
           return GameScreen(args: args);
         },
       ),
-      GoRoute(
-        path: '/lobby',
-        builder: (context, state) => const LobbyScreen(),
-      ),
-      GoRoute(
-        path: '/daily',
-        builder: (context, state) => const DailyScreen(),
-      ),
+      GoRoute(path: '/lobby', builder: (context, state) => const LobbyScreen()),
+      GoRoute(path: '/daily', builder: (context, state) => const DailyScreen()),
     ],
   );
 }

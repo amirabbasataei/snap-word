@@ -8,8 +8,8 @@ class FriendsCubit extends Cubit<FriendsState> {
   final FriendsRepository _repo;
 
   FriendsCubit({required FriendsRepository repository})
-      : _repo = repository,
-        super(const FriendsInitial());
+    : _repo = repository,
+      super(const FriendsInitial());
 
   bool _hasLoaded = false;
 
@@ -30,24 +30,27 @@ class FriendsCubit extends Cubit<FriendsState> {
 
       // Enrich challenge challenger names using the friends list.
       final friendMap = {for (final f in friends) f.userId: f.username};
-      final challenges = rawChallenges.map((c) {
-        final name = friendMap[c.challengerId];
-        return name != null
-            ? PendingChallenge(
-                id: c.id,
-                challengerId: c.challengerId,
-                challengerUsername: name,
-                mode: c.mode,
-                expiresAt: c.expiresAt,
-              )
-            : c;
-      }).toList();
+      final challenges =
+          rawChallenges.map((c) {
+            final name = friendMap[c.challengerId];
+            return name != null
+                ? PendingChallenge(
+                  id: c.id,
+                  challengerId: c.challengerId,
+                  challengerUsername: name,
+                  mode: c.mode,
+                  expiresAt: c.expiresAt,
+                )
+                : c;
+          }).toList();
 
-      emit(FriendsLoaded(
-        friends: friends,
-        pendingRequests: requests,
-        pendingChallenges: challenges,
-      ));
+      emit(
+        FriendsLoaded(
+          friends: friends,
+          pendingRequests: requests,
+          pendingChallenges: challenges,
+        ),
+      );
       _hasLoaded = true;
     } on FriendsException catch (e) {
       if (!quiet) emit(FriendsError(e.message));
@@ -66,18 +69,21 @@ class FriendsCubit extends Cubit<FriendsState> {
       return;
     }
     final message = switch (e.code) {
-      'challenger_cannot_afford' => 'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد.',
+      'challenger_cannot_afford' =>
+        'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد.',
       'challenge_expired' => 'این چالش دیگر معتبر نیست.',
       _ => e.message,
     };
     final current = state;
     if (current is FriendsLoaded) {
-      emit(FriendsLoaded(
-        friends: current.friends,
-        pendingRequests: current.pendingRequests,
-        pendingChallenges: current.pendingChallenges,
-        actionError: message,
-      ));
+      emit(
+        FriendsLoaded(
+          friends: current.friends,
+          pendingRequests: current.pendingRequests,
+          pendingChallenges: current.pendingChallenges,
+          actionError: message,
+        ),
+      );
     } else {
       emit(FriendsError(message));
     }
