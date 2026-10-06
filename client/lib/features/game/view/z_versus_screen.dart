@@ -53,7 +53,7 @@ class ZVersusActiveScreen extends StatelessWidget {
               child: Stack(
                 children: [
                   _BubbleChain(state: state),
-                  _TauntBubble(state: state),
+                  TauntBubble(state: state),
                 ],
               ),
             ),
@@ -101,8 +101,8 @@ class _Header extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _TauntButton(premium: state.myPremium),
               ZBackButton(onTap: () => zShowEndGameDialog(context)),
+              _TauntButton(premium: state.myPremium),
             ],
           ),
           const SizedBox(height: ZSpacing.sm),
@@ -316,26 +316,27 @@ void _showTauntSheet(BuildContext context, {required bool premium}) {
 
 /// Transient bubble showing the latest taunt for a few seconds; mine on the
 /// end side (like my chain bubbles), the opponent's on the start side.
-class _TauntBubble extends StatefulWidget {
+@visibleForTesting
+class TauntBubble extends StatefulWidget {
   final GameActive state;
 
-  const _TauntBubble({required this.state});
+  const TauntBubble({super.key, required this.state});
 
   @override
-  State<_TauntBubble> createState() => _TauntBubbleState();
+  State<TauntBubble> createState() => TauntBubbleState();
 }
 
-class _TauntBubbleState extends State<_TauntBubble> {
+class TauntBubbleState extends State<TauntBubble> {
   static const _visibleFor = Duration(seconds: 3);
   Timer? _hideTimer;
   int _shownSeq = 0;
   bool _visible = false;
 
   @override
-  void didUpdateWidget(_TauntBubble old) {
-    super.didUpdateWidget(old);
+  void didUpdateWidget(TauntBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
     final seq = widget.state.tauntSeq;
-    if (seq != old.state.tauntSeq && seq != _shownSeq) {
+    if (seq != oldWidget.state.tauntSeq && seq != _shownSeq) {
       _shownSeq = seq;
       _visible = true;
       _hideTimer?.cancel();
