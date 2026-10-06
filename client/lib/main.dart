@@ -43,7 +43,16 @@ Future<void> main() async {
     router: getIt<GoRouter>(),
   ).start();
 
-  // Firebase — graceful fail without google-services config
+  // Firebase must never gate the first frame: on a device without push
+  // config (e.g. the iOS simulator) its calls can hang rather than throw.
+  unawaited(_initFirebase());
+
+  runApp(const WordChainApp());
+}
+
+/// Firebase + push setup, run in the background after `runApp`. Failures (and
+/// hangs, via the timeout) only disable push — they never block the app.
+Future<void> _initFirebase() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -67,8 +76,6 @@ Future<void> main() async {
   } catch (e) {
     Logger().w('Firebase init skipped: $e');
   }
-
-  runApp(const WordChainApp());
 }
 
 class WordChainApp extends StatefulWidget {

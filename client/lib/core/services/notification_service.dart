@@ -34,7 +34,10 @@ class NotificationService {
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
       FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
 
-      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      // Can hang forever without APNs/Firebase config (iOS simulator).
+      final initial = await FirebaseMessaging.instance
+          .getInitialMessage()
+          .timeout(const Duration(seconds: 3));
       if (initial != null) _routeFromMessage(initial);
     } catch (e) {
       _log.w('NotificationService init skipped (Firebase not configured): $e');
