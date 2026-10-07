@@ -16,7 +16,6 @@ import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
-import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
 import 'package:wordchain/features/friends/cubit/friends_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
@@ -416,83 +415,6 @@ class _AddButton extends StatelessWidget {
         style: ZTypography.metaLabel.copyWith(
           color: z.indigo,
           fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Referral banner — repurposed to the real redeem flow.
-//
-// The canvas shows "با کد دعوت، ۵۰ سکه بگیر" with the CALLER's OWN code
-// ("کد تو: ZNJR-۴۸۲") to share outward. No endpoint anywhere returns the
-// logged-in user's own referral_code (verifyOTPResponse/statsResponse/etc.
-// all omit it — it's only ever an INPUT field on verify-otp/redeem). That
-// half of the card can't be built without fabricating a code. The tap
-// target is wired to the real, already-shipped redeem flow
-// (ReferralBottomSheet, same one used from Profile → Settings) instead,
-// since entering a friend's code is the one half of this feature that is
-// real. Flagged in the Stage 5 report.
-// ---------------------------------------------------------------------------
-
-class _ReferralBanner extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _ReferralBanner({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: ZSpacing.lg,
-          vertical: 15,
-        ),
-        decoration: BoxDecoration(
-          color: z.indigo,
-          borderRadius: BorderRadius.circular(ZRadius.cardMax),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'کد دعوت داری؟ ۵۰ سکه بگیر',
-                    style: ZTypography.cardTitle.copyWith(
-                      color: z.onIndigo,
-                      fontSize: 13.5,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'یک‌بار وارد کن',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.onIndigoSoft,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(
-                color: z.surface,
-                borderRadius: BorderRadius.circular(ZRadius.chip),
-              ),
-              child: Text(
-                'وارد کردن کد',
-                style: ZTypography.metaLabel.copyWith(
-                  color: z.indigo,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

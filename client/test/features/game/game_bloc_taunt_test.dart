@@ -7,8 +7,6 @@ import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
-import 'package:wordchain/features/game/bloc/game_event.dart';
-import 'package:wordchain/features/game/bloc/game_state.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
 
 class _FakeRepo extends Fake implements GameRepository {}
