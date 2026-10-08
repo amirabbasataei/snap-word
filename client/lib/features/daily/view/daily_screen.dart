@@ -217,7 +217,7 @@ class _DailyBeforeViewState extends State<_DailyBeforeView> {
                       ),
                     ),
               ),
-              const SizedBox(height: ZSpacing.sm),
+              const SizedBox(height: ZSpacing.md),
               NeutralButton(
                 label: 'دیدن جدول امروز',
                 onPressed: () => context.push('/daily/board'),
@@ -643,7 +643,7 @@ class _DailyAfterViewState extends State<_DailyAfterView> {
                       ),
                     ),
               ),
-              const SizedBox(height: ZSpacing.sm),
+              const SizedBox(height: ZSpacing.md),
               Row(
                 children: [
                   Expanded(

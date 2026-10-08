@@ -282,3 +282,13 @@ func parseServiceAccount(value string) (*serviceAccountKey, error) {
 	}
 	return &key, nil
 }
+
+// faNum renders n with Persian digits for user-facing push text.
+func faNum(n int) string {
+	return strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return '۰' + (r - '0')
+		}
+		return r
+	}, fmt.Sprintf("%d", n))
+}

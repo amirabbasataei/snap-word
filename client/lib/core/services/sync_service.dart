@@ -5,6 +5,7 @@ import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/services/ai_opponent.dart';
 
 class SyncService {
   final SharedPreferences _prefs;
@@ -41,14 +42,18 @@ class SyncService {
       // An active match is still resumable locally — upload it once it ends.
       if (match.status == 'active' || match.endedAt == null) continue;
       try {
+        final chain =
+            (jsonDecode(match.wordChain) as List<dynamic>).cast<String>();
         final response = await _dio.post(
           ApiEndpoints.soloGame,
           data: {
             'mode': match.mode,
             'score': match.score,
             // Stored as a JSON string in Drift; the API expects an array.
-            'word_chain':
-                (jsonDecode(match.wordChain) as List<dynamic>).cast<String>(),
+            'word_chain': chain,
+            // The chain holds the AI's words too; the server must not count
+            // those toward the player's longest word.
+            'longest_word': longestOwnWord(chain, match.opponentType),
             'started_at': _toRfc3339(match.startedAt),
             'ended_at': _toRfc3339(match.endedAt!),
           },

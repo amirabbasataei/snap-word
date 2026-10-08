@@ -222,8 +222,8 @@ func (s *LeaderboardService) RunWeeklyReset(ctx context.Context, weekStart time.
 			slog.Error("weekly reset: CreateInboxReward failed", "userID", entry.UserID, "error", err)
 		}
 		if err := s.notifSvc.SendToUser(ctx, entry.UserID,
-			"Weekly Leaderboard Reward",
-			fmt.Sprintf("You finished #%d and earned %d coins — claim them in your inbox!", entry.Rank, coins),
+			"جایزه جدول هفته",
+			fmt.Sprintf("تو نفر %s شدی و %s سکه گرفتی؛ از صندوق جایزه‌ها بردار!", faNum(entry.Rank), faNum(coins)),
 		); err != nil {
 			slog.Warn("weekly reset: notification failed", "userID", entry.UserID, "error", err)
 		}

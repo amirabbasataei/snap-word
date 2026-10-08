@@ -87,3 +87,15 @@ String resolveAIDifficulty(String opponentType) {
 }
 
 bool isVsAI(String opponentType) => opponentType.startsWith('ai_');
+
+/// The player's longest word in a finished chain, ignoring the opponent's.
+/// vs-AI games always open with the player and strictly alternate, so the
+/// player owns the even indices; solo chains are entirely theirs.
+String? longestOwnWord(List<String> chain, String? opponentType) {
+  String? longest;
+  for (var i = 0; i < chain.length; i++) {
+    if (opponentType != null && isVsAI(opponentType) && i.isOdd) continue;
+    if (longest == null || chain[i].length > longest.length) longest = chain[i];
+  }
+  return longest;
+}

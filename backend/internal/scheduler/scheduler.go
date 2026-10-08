@@ -138,8 +138,8 @@ func (s *Scheduler) sendDailyChallengeReminder(ctx context.Context, now time.Tim
 	}
 
 	if err := s.notifSvc.SendToAll(ctx,
-		"Daily Word Chain Challenge",
-		"Today's Word Chain challenge is ready.",
+		"چالش روزانه زنجیر",
+		"چالش امروز آماده است!",
 	); err != nil {
 		slog.Error("scheduler: daily challenge notification failed", "error", err)
 		return
@@ -171,8 +171,8 @@ func (s *Scheduler) checkStreakAtRisk(ctx context.Context, now time.Time) {
 			continue // Already notified this user today.
 		}
 		if err := s.notifSvc.SendToUser(ctx, uid,
-			"Your streak is at risk!",
-			"Play a game before midnight to keep your daily streak alive.",
+			"زنجیرت در خطره!",
+			"تا نیمه‌شب یک بازی انجام بده تا رکوردت نپره.",
 		); err != nil {
 			slog.Warn("scheduler: streak-at-risk notification failed", "userID", uid, "error", err)
 		} else {

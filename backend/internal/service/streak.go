@@ -92,8 +92,8 @@ func (s *StreakService) awardMilestone(ctx context.Context, userID string, strea
 		return
 	}
 	_ = s.notifSvc.SendToUser(ctx, userID,
-		fmt.Sprintf("%d-day streak!", streak),
-		fmt.Sprintf("You've earned %d coins — claim them in your inbox.", coins),
+		fmt.Sprintf("%s روز پیاپی!", faNum(streak)),
+		fmt.Sprintf("%s سکه جایزه گرفتی؛ از صندوق جایزه‌ها بردار.", faNum(coins)),
 	)
 	slog.Info("streak milestone awarded", "userID", userID, "streak", streak, "coins", coins)
 }

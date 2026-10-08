@@ -683,6 +683,8 @@ Day N = days since `GAME_EPOCH_DATE`, 1-indexed. Each day's `daily_challenges` r
 
 All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout.
 
+**Push text is Persian** (server-composed title/body; numbers via `faNum` in `service/notification.go`). The table below lists the triggers in English for reference only — the actual strings live at each `SendToUser`/`SendToAll` call site. The foreground toast (`main.dart`) shows the push title+body as-is, so any new push must be written in Persian.
+
 | Trigger | Message |
 |---|---|
 | Daily Challenge available (midnight Iran time) | "Today's Word Chain challenge is ready." |
@@ -775,6 +777,7 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 - **Long-word bonus in Go scorer** — Flutter-only today.
 
 **Known bugs / gaps (pre-existing, flagged not fixed):**
+- **Longest word is the player's own words only.** vs-AI chains are shared, so `longestOwnWord` (`core/services/ai_opponent.dart`; player = even indices) feeds local stats and `SyncService` uploads it as `longest_word` on `POST /game/solo`; the server honours it only if it appears in `word_chain` (older clients fall back to the whole chain). Values stored before this fix (an AI word) are never lowered — `player_stats.longest_word` / local `LocalPlayerStats.longestWord` only grow; reset by hand if needed.
 - `test/core/widgets/shared_widgets_golden_test.dart` (light + dark) fails on a clean checkout too (1.05% pixel diff) — verified with `AvatarTile` reverted to HEAD; unrelated to Phase 22.
 - **Fixed:** the iOS-simulator blank white screen. Cause: `NotificationService.init()` awaited `FirebaseMessaging.getInitialMessage()` before `runApp`; without `GoogleService-Info.plist`/APNs it never completes (hangs, doesn't throw, so the `try/catch` didn't help). Now `main.dart` runs Firebase setup in the background (`_initFirebase()`, unawaited, after `runApp`) and `getInitialMessage()` has a 3s timeout. Rule: Firebase/push calls must never gate the first frame. Push itself still doesn't work on iOS until `GoogleService-Info.plist` + an APNs key are added.
 - ZProfile's «صدا و لرزش» and «یادآور چالش روزانه» rows are cosmetic (no setting persisted, no reminder scheduled).

@@ -1433,10 +1433,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         over.wordChain,
       );
 
-      final longestWord =
-          over.wordChain.isEmpty
-              ? null
-              : over.wordChain.reduce((a, b) => a.length >= b.length ? a : b);
+      final longestWord = longestOwnWord(over.wordChain, over.opponentType);
 
       await _statsDao.recordGameResult(
         score: over.score,

@@ -24,22 +24,25 @@ func NewGameHandler(gameSvc *service.GameService) *GameHandler {
 }
 
 type createSoloRequest struct {
-	Mode      string    `json:"mode"       binding:"required"`
-	Score     int       `json:"score"      binding:"min=0"`
-	WordChain []string  `json:"word_chain" binding:"required"`
-	StartedAt time.Time `json:"started_at" binding:"required"`
-	EndedAt   time.Time `json:"ended_at"   binding:"required"`
+	Mode      string   `json:"mode"       binding:"required"`
+	Score     int      `json:"score"      binding:"min=0"`
+	WordChain []string `json:"word_chain" binding:"required"`
+	// LongestWord is the player's own longest word; the chain also holds the
+	// AI's words. Optional — older clients omit it.
+	LongestWord string    `json:"longest_word"`
+	StartedAt   time.Time `json:"started_at" binding:"required"`
+	EndedAt     time.Time `json:"ended_at"   binding:"required"`
 }
 
 type matchResponse struct {
-	ID        string               `json:"id"`
-	Mode      string               `json:"mode"`
-	Status    string               `json:"status"`
-	GameState interface{}          `json:"game_state,omitempty"`
-	StartedAt *time.Time           `json:"started_at,omitempty"`
-	EndedAt   *time.Time           `json:"ended_at,omitempty"`
-	CreatedAt time.Time            `json:"created_at"`
-	Players   []*playerResponse    `json:"players,omitempty"`
+	ID        string            `json:"id"`
+	Mode      string            `json:"mode"`
+	Status    string            `json:"status"`
+	GameState interface{}       `json:"game_state,omitempty"`
+	StartedAt *time.Time        `json:"started_at,omitempty"`
+	EndedAt   *time.Time        `json:"ended_at,omitempty"`
+	CreatedAt time.Time         `json:"created_at"`
+	Players   []*playerResponse `json:"players,omitempty"`
 }
 
 type playerResponse struct {
@@ -78,11 +81,12 @@ func (h *GameHandler) CreateSolo(c *gin.Context) {
 	slog.Info("game/solo upload", "userID", userID, "mode", req.Mode, "score", req.Score)
 
 	in := service.SoloGameInput{
-		Mode:      req.Mode,
-		Score:     req.Score,
-		WordChain: req.WordChain,
-		StartedAt: req.StartedAt,
-		EndedAt:   req.EndedAt,
+		Mode:        req.Mode,
+		Score:       req.Score,
+		WordChain:   req.WordChain,
+		LongestWord: req.LongestWord,
+		StartedAt:   req.StartedAt,
+		EndedAt:     req.EndedAt,
 	}
 
 	match, alreadyExisted, err := h.gameSvc.CreateSoloGame(c.Request.Context(), userID, in)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 	"unicode/utf8"
 
@@ -23,11 +24,14 @@ var (
 
 // SoloGameInput is the payload sent by the Flutter SyncService for a completed solo game.
 type SoloGameInput struct {
-	Mode      string    `json:"mode"`
-	Score     int       `json:"score"`
-	WordChain []string  `json:"word_chain"`
-	StartedAt time.Time `json:"started_at"`
-	EndedAt   time.Time `json:"ended_at"`
+	Mode      string   `json:"mode"`
+	Score     int      `json:"score"`
+	WordChain []string `json:"word_chain"`
+	// LongestWord overrides the chain-wide longest word for stats (vs-AI
+	// chains include the opponent's words). Ignored unless it is in WordChain.
+	LongestWord string    `json:"longest_word"`
+	StartedAt   time.Time `json:"started_at"`
+	EndedAt     time.Time `json:"ended_at"`
 }
 
 // soloGameState is stored as JSONB in matches.game_state.
@@ -124,7 +128,7 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 		}
 	}
 
-	if err := s.updateStatsAfterSoloGame(ctx, userID, in.WordChain); err != nil {
+	if err := s.updateStatsAfterSoloGame(ctx, userID, in); err != nil {
 		// non-fatal: match is already created; log and continue
 		slog.Error("CreateSoloGame: stats update failed", "userID", userID, "error", err)
 	}
@@ -202,8 +206,12 @@ func (s *GameService) EndGame(ctx context.Context, matchID, winnerID string) err
 	return nil
 }
 
-func (s *GameService) updateStatsAfterSoloGame(ctx context.Context, userID string, wordChain []string) error {
-	return s.statsRepo.IncrementMatchStats(ctx, userID, longestWordIn(wordChain))
+func (s *GameService) updateStatsAfterSoloGame(ctx context.Context, userID string, in SoloGameInput) error {
+	longest := longestWordIn(in.WordChain)
+	if in.LongestWord != "" && slices.Contains(in.WordChain, in.LongestWord) {
+		longest = in.LongestWord
+	}
+	return s.statsRepo.IncrementMatchStats(ctx, userID, longest)
 }
 
 // longestWordIn compares by letters (runes), not bytes.
