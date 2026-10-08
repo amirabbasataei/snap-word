@@ -14,7 +14,7 @@ import (
 )
 
 // KavenegarClient sends OTP codes via Kavenegar's Verify Lookup API, which
-// delivers a pre-approved template with a token by SMS or voice call
+// delivers a pre-approved template with a token by SMS
 // (https://kavenegar.com — same endpoint for both, switched by `type`).
 // If no API key is configured, sends are no-ops with a log line — mirrors
 // NotificationService's FCM-not-configured fallback.
@@ -38,23 +38,18 @@ func (k *KavenegarClient) Configured() bool {
 	return k.apiKey != ""
 }
 
-// SendOTP delivers code to phone by SMS, or by voice call if voice is true.
-func (k *KavenegarClient) SendOTP(ctx context.Context, phone, code string, voice bool) error {
+// SendOTP delivers code to phone by SMS.
+func (k *KavenegarClient) SendOTP(ctx context.Context, phone, code string) error {
 	if !k.Configured() {
-		slog.Info("kavenegar not configured, skipping otp send", "phone", maskPhone(phone), "voice", voice)
+		slog.Info("kavenegar not configured, skipping otp send", "phone", maskPhone(phone))
 		return nil
-	}
-
-	deliveryType := "sms"
-	if voice {
-		deliveryType = "call"
 	}
 
 	params := url.Values{}
 	params.Set("receptor", phone)
 	params.Set("token", code)
 	params.Set("template", k.otpTemplate)
-	params.Set("type", deliveryType)
+	params.Set("type", "sms")
 
 	apiURL := fmt.Sprintf("https://api.kavenegar.com/v1/%s/verify/lookup.json?%s", k.apiKey, params.Encode())
 

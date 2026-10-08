@@ -27,7 +27,7 @@ func newTestRouter() *gin.Engine {
 		JWTAccessTTL:      15 * time.Minute,
 		JWTRefreshTTL:     720 * time.Hour,
 		OTPCodeTTL:        2 * time.Minute,
-		OTPResendCooldown: 42 * time.Second,
+		OTPResendCooldown: 120 * time.Second,
 	}
 	// Nil DB — validation errors fire before any DB call in these tests.
 	userRepo := repository.NewUserRepository(nil)

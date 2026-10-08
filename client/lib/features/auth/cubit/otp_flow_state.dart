@@ -15,8 +15,7 @@ class OtpFlowState extends Equatable {
     this.errorMessage,
   });
 
-  /// Both a fresh resend and the voice-call fallback are gated on the same
-  /// cooldown — matches the design's single "ارسال دوباره تا ۰۰:۴۲" timer.
+  /// A resend is gated on the cooldown timer ("ارسال دوباره تا ۰۲:۰۰").
   bool get canResend => cooldownSecondsRemaining <= 0 && !sendingResend;
 
   OtpFlowState copyWith({

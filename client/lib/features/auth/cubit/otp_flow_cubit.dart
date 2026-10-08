@@ -8,7 +8,7 @@ import 'package:wordchain/features/auth/data/auth_repository.dart';
 part 'otp_flow_state.dart';
 
 /// Feature-local, screen-scoped state for ZOtpVerifyScreen: the resend
-/// countdown, resend/voice-call actions, and code submission. Built via
+/// countdown, resend action, and code submission. Built via
 /// BlocProvider per screen instance (not registered in GetIt) since it's
 /// scoped to one in-flight phone verification.
 class OtpFlowCubit extends Cubit<OtpFlowState> {
@@ -44,13 +44,12 @@ class OtpFlowCubit extends Cubit<OtpFlowState> {
     });
   }
 
-  /// Resends the code, by SMS or — once the same cooldown has elapsed — by
-  /// voice call ("تماس صوتی").
-  Future<void> resend({bool voice = false}) async {
+  /// Resends the code by SMS once the cooldown has elapsed.
+  Future<void> resend() async {
     if (!state.canResend) return;
     emit(state.copyWith(sendingResend: true, clearError: true));
     try {
-      final result = await _authCubit.sendOtp(phone: phone, voice: voice);
+      final result = await _authCubit.sendOtp(phone: phone);
       emit(
         state.copyWith(
           sendingResend: false,

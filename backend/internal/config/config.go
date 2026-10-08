@@ -47,7 +47,7 @@ func Load() *Config {
 		KavenegarAPIKey:      getEnv("KAVENEGAR_API_KEY", ""),
 		KavenegarOTPTemplate: getEnv("KAVENEGAR_OTP_TEMPLATE", "wordchain-otp"),
 		OTPCodeTTL:           parseDuration("OTP_CODE_TTL", 2*time.Minute),
-		OTPResendCooldown:    parseDuration("OTP_RESEND_COOLDOWN", 42*time.Second),
+		OTPResendCooldown:    parseDuration("OTP_RESEND_COOLDOWN", 120*time.Second),
 	}
 }
 

@@ -20,7 +20,7 @@ func testAuthService() *service.AuthService {
 		JWTAccessTTL:      15 * time.Minute,
 		JWTRefreshTTL:     720 * time.Hour,
 		OTPCodeTTL:        2 * time.Minute,
-		OTPResendCooldown: 42 * time.Second,
+		OTPResendCooldown: 120 * time.Second,
 	}
 	return service.NewAuthService(
 		repository.NewUserRepository(nil),
@@ -41,7 +41,7 @@ func TestSendOTP_InvalidPhone(t *testing.T) {
 		"+1 555 0100",  // not an Iran number
 	}
 	for _, p := range cases {
-		err := svc.SendOTP(context.Background(), p, false)
+		err := svc.SendOTP(context.Background(), p)
 		if !errors.Is(err, service.ErrInvalidPhone) {
 			t.Errorf("phone=%q: got %v, want ErrInvalidPhone", p, err)
 		}

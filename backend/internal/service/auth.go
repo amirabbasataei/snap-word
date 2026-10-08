@@ -76,7 +76,7 @@ func NewAuthService(userRepo *repository.UserRepository, kavenegar *KavenegarCli
 
 // SendOTP normalizes and validates phone, enforces the resend cooldown and a
 // daily send cap, generates a fresh 4-digit code, and delivers it via Kavenegar.
-func (s *AuthService) SendOTP(ctx context.Context, rawPhone string, voice bool) error {
+func (s *AuthService) SendOTP(ctx context.Context, rawPhone string) error {
 	phone, err := normalizePhone(rawPhone)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (s *AuthService) SendOTP(ctx context.Context, rawPhone string, voice bool) 
 		return fmt.Errorf("SendOTP: %w", err)
 	}
 
-	if err := s.kavenegar.SendOTP(ctx, phone, code, voice); err != nil {
+	if err := s.kavenegar.SendOTP(ctx, phone, code); err != nil {
 		return fmt.Errorf("SendOTP deliver: %w", err)
 	}
 	return nil

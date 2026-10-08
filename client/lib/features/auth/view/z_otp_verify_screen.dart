@@ -247,9 +247,6 @@ class _ZOtpVerifyViewState extends State<_ZOtpVerifyView> {
                       secondsRemaining: state.cooldownSecondsRemaining,
                       sending: state.sendingResend,
                       onResend: () => context.read<OtpFlowCubit>().resend(),
-                      onVoiceCall:
-                          () =>
-                              context.read<OtpFlowCubit>().resend(voice: true),
                     ),
                     const SizedBox(height: ZSpacing.xl),
                     AccentButton(

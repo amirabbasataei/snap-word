@@ -11,21 +11,18 @@ String _formatCountdown(int seconds) {
   return toPersianDigits('$mm:$ss');
 }
 
-/// The "⊙ ارسال دوباره تا ۰۰:۴۲ … تماس صوتی" row from ZOtp.dc.html. Once the
-/// cooldown reaches zero, the pill becomes a tappable "ارسال دوباره" and the
-/// voice-call fallback link (also gated on the same cooldown) becomes active.
+/// The "⊙ ارسال دوباره تا ۰۲:۰۰" row from ZOtp.dc.html. Once the cooldown
+/// reaches zero, the pill becomes a tappable "ارسال دوباره".
 class ResendCountdownRow extends StatelessWidget {
   final int secondsRemaining;
   final bool sending;
   final VoidCallback onResend;
-  final VoidCallback onVoiceCall;
 
   const ResendCountdownRow({
     super.key,
     required this.secondsRemaining,
     required this.sending,
     required this.onResend,
-    required this.onVoiceCall,
   });
 
   bool get _canResend => secondsRemaining <= 0 && !sending;
@@ -66,17 +63,6 @@ class ResendCountdownRow extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ),
-        const Spacer(),
-        GestureDetector(
-          onTap: _canResend ? onVoiceCall : null,
-          child: Text(
-            'تماس صوتی',
-            style: ZTypography.metaLabel.copyWith(
-              color: _canResend ? z.ink : z.ink40,
-              fontWeight: FontWeight.w700,
             ),
           ),
         ),

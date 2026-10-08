@@ -65,14 +65,11 @@ class AuthRepository {
   String? get storedUsername => _prefs.getString('username');
   int get storedCoins => _prefs.getInt('coins') ?? 0;
 
-  Future<SendOtpResult> sendOtp({
-    required String phone,
-    bool voice = false,
-  }) async {
+  Future<SendOtpResult> sendOtp({required String phone}) async {
     try {
       final response = await _dio.post(
         ApiEndpoints.sendOtp,
-        data: {'phone': phone, 'voice': voice},
+        data: {'phone': phone},
         options: Options(headers: {'Authorization': null}),
       );
       final data = response.data['data'] as Map<String, dynamic>;

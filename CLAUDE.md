@@ -56,7 +56,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 | Database | PostgreSQL 16 |
 | Cache | Redis 7 |
 | Dictionary | Hybrid — Flutter `HashSet<String>` (solo/AI, instant, offline) + Go `map[string]struct{}` (multiplayer, authoritative) |
-| Auth | Phone number + 4-digit OTP (Kavenegar SMS / voice fallback) → JWT (access + refresh tokens). No email/password. |
+| Auth | Phone number + 4-digit OTP (Kavenegar SMS) → JWT (access + refresh tokens). No email/password. |
 | Migrations | `golang-migrate/migrate` (numbered `NNN_name.up.sql` / `.down.sql`) |
 | Logging | Go: `slog` (structured JSON in prod, text in dev). Flutter: `logger` package. |
 | Push Notifications | Firebase Cloud Messaging (FCM) — Android + iOS via `firebase_messaging` Flutter package |
@@ -510,7 +510,7 @@ turn_score   = base_score + speed_bonus + streak_bonus
 
 Screens: `ZLoginScreen` (`/login`, phone entry) and `ZOtpVerifyScreen` (`/login/otp`, 4-box OTP driven by the phone's own number keyboard via a hidden TextField) in `features/auth/view/`. The old email/password `login_screen.dart`/`register_screen.dart` and `/register` route are gone. A dev/test bypass code `1111` exists while no Kavenegar account is purchased; real SMS delivery is still unverified end-to-end.
 
-Identity is phone number + OTP (Kavenegar SMS, with a voice-call fallback), not email/password — there is no username/email login. `POST /auth/send-otp` generates and delivers a 4-digit code (~2min expiry, ~42s resend cooldown, rate-limited); `POST /auth/verify-otp` checks it and issues a session. First-time verification of a phone number **is** signup — a username and referral code are auto-generated at that point (`AuthService.VerifyOTP`, `backend/internal/service/auth.go`). Guest local/offline data (below) is intentionally **not** tied to this schema and is not migrated into a phone account on signup — open item, not yet built.
+Identity is phone number + OTP (Kavenegar SMS), not email/password — there is no username/email login. `POST /auth/send-otp` generates and delivers a 4-digit code (~2min expiry, 120s resend cooldown, rate-limited); `POST /auth/verify-otp` checks it and issues a session. First-time verification of a phone number **is** signup — a username and referral code are auto-generated at that point (`AuthService.VerifyOTP`, `backend/internal/service/auth.go`). Guest local/offline data (below) is intentionally **not** tied to this schema and is not migrated into a phone account on signup — open item, not yet built.
 
 ### What guests can do
 - Play Solo and vs AI — fully offline, no server calls
@@ -818,10 +818,10 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 | `FCM_PROJECT_ID` | yes | `wordchain-prod` | Firebase project ID |
 | `FCM_SERVICE_ACCOUNT_JSON` | yes | (path or inline JSON) | Service account for FCM auth |
 | `GAME_EPOCH_DATE` | no | `2025-01-01` | Day #1 for Daily Challenge numbering |
-| `KAVENEGAR_API_KEY` | no | (Kavenegar panel API key) | OTP SMS/voice delivery. Empty = dev no-op (logs instead of sending) |
+| `KAVENEGAR_API_KEY` | no | (Kavenegar panel API key) | OTP SMS delivery. Empty = dev no-op (logs instead of sending) |
 | `KAVENEGAR_OTP_TEMPLATE` | no | `wordchain-otp` | Verify Lookup API template name, provisioned in the Kavenegar panel |
 | `OTP_CODE_TTL` | no | `2m` | OTP code expiry |
-| `OTP_RESEND_COOLDOWN` | no | `42s` | Minimum time between OTP sends to the same phone |
+| `OTP_RESEND_COOLDOWN` | no | `120s` | Minimum time between OTP sends to the same phone |
 
 ---
 

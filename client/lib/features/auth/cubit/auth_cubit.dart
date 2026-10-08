@@ -72,8 +72,8 @@ class AuthCubit extends Cubit<AuthState> {
   /// Sends (or resends) a 4-digit OTP to [phone]. Throws AuthException /
   /// NetworkException on failure — the caller (OtpFlowCubit) owns the
   /// countdown/error UI, so this does not touch AuthCubit's own state.
-  Future<SendOtpResult> sendOtp({required String phone, bool voice = false}) {
-    return _repo.sendOtp(phone: phone, voice: voice);
+  Future<SendOtpResult> sendOtp({required String phone}) {
+    return _repo.sendOtp(phone: phone);
   }
 
   /// Verifies the OTP and, on success, transitions to AuthAuthenticated.

@@ -26,7 +26,6 @@ func NewAuthHandler(authSvc *service.AuthService, cfg *config.Config) *AuthHandl
 
 type sendOTPRequest struct {
 	Phone string `json:"phone" binding:"required"`
-	Voice bool   `json:"voice"`
 }
 
 type sendOTPResponse struct {
@@ -77,9 +76,7 @@ func (h *AuthHandler) SendOTP(c *gin.Context) {
 		return
 	}
 
-	slog.Info("send-otp attempt", "voice", req.Voice)
-
-	if err := h.authSvc.SendOTP(c.Request.Context(), req.Phone, req.Voice); err != nil {
+	if err := h.authSvc.SendOTP(c.Request.Context(), req.Phone); err != nil {
 		respondAuthError(c, err)
 		return
 	}
