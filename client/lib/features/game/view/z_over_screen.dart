@@ -260,6 +260,14 @@ class _Hero extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              LetterTile(
+                letter: lastFirstLetter,
+                size: 42,
+                height: 50,
+                accent: ZAccent.amber,
+                rotation: 0.07,
+              ),
+              const SizedBox(width: ZSpacing.sm),
               Transform.translate(
                 offset: const Offset(0, 4),
                 child: LetterTile(
@@ -269,14 +277,6 @@ class _Hero extends StatelessWidget {
                   accent: ZAccent.coral,
                   rotation: -0.12,
                 ),
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              LetterTile(
-                letter: lastFirstLetter,
-                size: 42,
-                height: 50,
-                accent: ZAccent.amber,
-                rotation: 0.07,
               ),
               const SizedBox(width: ZSpacing.sm),
               Transform.translate(

@@ -9,7 +9,6 @@ import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
-import 'package:wordchain/features/auth/view/widgets/carrier_chip.dart';
 import 'package:wordchain/features/auth/view/widgets/phone_input_field.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
 import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
@@ -136,7 +135,6 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                             onDigitsChanged: (d) => setState(() => _digits = d),
                           ),
                           const SizedBox(height: 11),
-                          CarrierChip(digits: _digits),
                         ],
                       ),
                     ),
@@ -247,7 +245,7 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'بعد از ورود واردش کن، ۵۰ سکه بگیر',
+                                    'الان یا بعد از ورود واردش کن، ۵۰ سکه بگیر',
                                     style: ZTypography.metaLabel.copyWith(
                                       color: z.ink60,
                                     ),
@@ -284,7 +282,7 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        'امتیاز مهمان روی این گوشی می‌ماند',
+                        'امتیاز مهمان فقط روی گوشی ذخیره می‌شود',
                         style: ZTypography.metaLabel.copyWith(
                           color: z.ink40,
                           fontSize: 11,

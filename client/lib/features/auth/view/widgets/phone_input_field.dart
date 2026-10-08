@@ -52,8 +52,7 @@ class _PhoneGroupingFormatter extends TextInputFormatter {
 }
 
 /// Matches ZPhone.dc.html's "شمارهٔ موبایل" field: a 2px-bordered box showing
-/// the phone number grouped and in Persian digits (LTR), with a coral
-/// cursor-bar cue while focused. Reports the normalized ASCII digit string
+/// the phone number grouped and in Persian digits (LTR). Reports the normalized ASCII digit string
 /// via [onDigitsChanged] — the network layer never sees the display string.
 class PhoneInputField extends StatefulWidget {
   final ValueChanged<String> onDigitsChanged;
@@ -67,15 +66,6 @@ class PhoneInputField extends StatefulWidget {
 class _PhoneInputFieldState extends State<PhoneInputField> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
-  bool _focused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(() {
-      setState(() => _focused = _focusNode.hasFocus);
-    });
-  }
 
   @override
   void dispose() {
@@ -127,7 +117,6 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
               ),
             ),
           ),
-          if (_focused) Container(width: 2, height: 24, color: z.coral),
         ],
       ),
     );
