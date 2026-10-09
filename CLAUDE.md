@@ -634,7 +634,7 @@ Both players' inventories are visible at match start. Multiplayer limits enforce
 
 The matchmaking AI-fallback opponent is persisted as a single fixed user, `config.SystemAIUserID` (`00000000-0000-0000-0000-000000000001`, seeded by migration `004_ai_system_user`), with `match_players.is_ai = true`. It is never recorded in `player_stats` or the weekly leaderboard.
 
-**Trap letters**: ژ ظ ث ذ ض — the five letters that the fewest `fa.txt` words start with (26–54 words each). ی is deliberately excluded (few words start with it, ~2.6k end with it). Trap preference applies only when at least one trap-ending word exists for the required starting letter; otherwise it falls back to random. Go: `config.AITrapLetters` + `engine.SelectAIWord` (rune-based); Flutter: `aiTrapLetters` in `core/services/ai_opponent.dart`. Keep both in sync. The table's "Min word length" is in letters, not bytes.
+**Trap letters**: ژ ظ ث ذ ض — the five letters that the fewest `fa.txt` words start with (33–69 words each). ی is deliberately excluded (few words start with it, ~2.6k end with it). Trap preference applies only when at least one trap-ending word exists for the required starting letter; otherwise it falls back to random. Go: `config.AITrapLetters` + `engine.SelectAIWord` (rune-based); Flutter: `aiTrapLetters` in `core/services/ai_opponent.dart`. Keep both in sync. The table's "Min word length" is in letters, not bytes.
 
 ---
 
@@ -760,7 +760,6 @@ flutter test
 - **Production host (`root@185.110.191.158`, Ubuntu, 2 GB RAM, shares the box with the unrelated `hamketab` site):** backend lives in `/opt/wordchain` as its own compose project `wordchain` (own Postgres 16 + Redis 7, no host ports published; `.env` there holds the generated `DB_PASSWORD`/`JWT_SECRET`; `secrets/fcm-service-account.json` is mounted). The app binds `127.0.0.1:18080`; nginx (`/etc/nginx/conf.d/wordchain.conf`) exposes it publicly on **`http://185.110.191.158:8080`** (WebSocket upgrade enabled) — the port-80 hamketab config is untouched. No TLS/domain yet. Redeploy: `rsync -a --exclude /server --exclude /.env --exclude 'docker-compose*.yml' --exclude '*.md' backend/ root@185.110.191.158:/opt/wordchain/` then `ssh root@… 'cd /opt/wordchain && docker compose up -d --build app'`. **Client:** `DioClient.baseUrl` defaults to that URL (`--dart-define=API_BASE_URL=http://10.0.2.2:8080` for a local backend); Android main manifest allows cleartext + INTERNET until TLS exists. Prod compose file is server-only (differs from the dev `docker-compose.yml`).
 - Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels), `010_premium_perks` (adds `users.premium_until` + `users.avatar_id`).
 - **Ads (Tapsell Mediation, Android only):** the app key is a manifest placeholder in `client/android/app/build.gradle.kts`; the zone id is compile-time `--dart-define`s read in `core/services/ad_service.dart` (`AdZones`). Copy `client/tapsell.example.json` to `client/tapsell.json` (gitignored), fill in the rewarded zone id, and pass `--dart-define-from-file=tapsell.json` to `flutter run`/`build`. An empty id silently disables ads. Policy: only player-initiated rewarded ads — no interstitials and no banners (the Tapsell banner is a native overlay that leaked across screens and covered `ZBottomNav`; removed).
-- `AGENTS.md` is a condensed version of these rules for other coding agents — keep it consistent with this file.
 
 ---
 
@@ -788,7 +787,7 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 
 ## ⚠️ Important Notes for Claude Code
 
-- **After any backend change, rebuild and restart the backend** (it runs in Docker: `cd backend && docker compose up -d --build app`) and **always update CLAUDE.md** (and keep AGENTS.md consistent).
+- **After any backend change, rebuild and restart the backend** (it runs in Docker: `cd backend && docker compose up -d --build app`) and **always update CLAUDE.md** .
 
 - **Read REDESIGN_PLAN.md too while Phase 17 is in progress.** Record each stage's outcome, decisions, and flagged issues there.
 - **Verify on-device.** Phase 17 found multiple bugs that only a live run exposed (Stage 4 multiplayer was non-functional end-to-end despite passing analysis). Don't mark a stage complete from `flutter analyze`/tests alone.
@@ -830,8 +829,8 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 
 ## 📎 Appendix: Dictionary & Word Frequency List
 
-**Persian dictionary (`fa.txt`)** — the only word data in the project. 17,414 words after the cleanup in commit `2758a1c` (was 162,626), one word per line, no spaces, no teh marbuta (ة) or diacritics. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical).
+**Persian dictionary (`fa.txt`)** — the only word data in the project. 21,527 words, one word per line, no spaces, no teh marbuta (ة) or diacritics. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical). History: 162,626 (noisy) → 17,414 in commit `2758a1c` → 17,321 → 21,527 on 2026-10-09.
 
-**Decision (2026-09-28): the 17,414-word list is final.** The larger original contained many incomplete entries; do not restore it. Common words missing from it (e.g. «روباه», «تهران») are accepted as a known gap.
+**Decision (2026-10-09): the 21,527-word list is final; do not restore the 162k list.** It is the 17.3k curated list plus 4,205 words that passed *all* of: present in the Hunspell `fa` dictionary (or Wiktionary lemma) **and** OpenSubtitles frequency ≥ 30, not a verb conjugation/plural/colloquial spelling, then a manual review of every candidate. Policy: countries/cities/historic figures in, foreign first names out; infinitives and bare past forms («رفت») in, personal conjugations and imperatives out; no words ending in ء. The 3,750 words rejected in that review are kept in `output/dictionary/rejected_words.txt` (untracked) so a future rebuild does not re-add them; the added words are visible in `git diff` of `fa.txt`. Source licenses (Hunspell fa, Wiktionary, OpenSubtitles) were **not** checked — verify before commercial release. Trap letters stay ژ ظ ث ذ ض (still the five rarest starts: 33–69 words).
 
 The English `word_freq_ranks.txt` and `engine/frequency.go` were deleted — there is no English data left in the project.
