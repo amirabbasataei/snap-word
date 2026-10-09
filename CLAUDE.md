@@ -579,9 +579,9 @@ Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `re
 | Stream | Details |
 |---|---|
 | Rewarded ads | Watch ad → earn 20 coins or use as a free continue |
-| Coin IAP bundles | Toman-denominated (not USD-pegged): ۱۰۰ coins ۱۵٬۰۰۰ · ۳۵۰ coins ۴۵٬۰۰۰ · ۱۵۰۰ coins ۱۵۰٬۰۰۰ Toman (`MockMonetizationService`, `ZProfile` buy sheet) |
-| Remove Ads IAP | ۲۹٬۰۰۰ Toman one-time; keeps rewarded ads (player-initiated) |
-| Premium subscription | no ads + 200 coins/week + taunts + avatars + badge (see § Premium Perks). Price is **Rial-denominated** for the Iranian market, not USD: launch proposal ۴۹۰٬۰۰۰ Rials/month (۴۹٬۰۰۰ Toman; show Toman in the UI), 3 months ۱٬۲۹۰٬۰۰۰, yearly ۳٬۹۰۰٬۰۰۰, weekly ۱۹۰٬۰۰۰ (lowered from ۹۹٬۰۰۰ Toman/month, 2026-10). Unvalidated — no competitor price data could be found (store pages hide IAP amounts); A/B the monthly price. Free-market dollar ≈ ۲۶۶٬۰۰۰ Toman on 2026-10-09, so a literal USD conversion ($0.99 ≈ ۲۶۳٬۰۰۰ Toman) was rejected as unaffordable |
+| Coin IAP bundles | Toman-denominated (not USD-pegged): ۱۰۰ coins ۹٬۰۰۰ · ۳۵۰ coins ۲۵٬۰۰۰ · ۱۵۰۰ coins ۷۹٬۰۰۰ Toman (`MockMonetizationService`, `ZProfile` buy sheet) |
+| Remove Ads IAP | ۱۵٬۰۰۰ Toman one-time; keeps rewarded ads (player-initiated) |
+| Premium subscription | no ads + 200 coins/week + taunts + avatars + badge (see § Premium Perks). Price is **Rial-denominated** for the Iranian market, not USD: launch proposal ۱۹۰٬۰۰۰ Rials/month (۱۹٬۰۰۰ Toman; show Toman in the UI), 3 months ۴۹۰٬۰۰۰, yearly ۱٬۴۹۰٬۰۰۰, weekly ۷۰٬۰۰۰ (lowered twice from ۹۹٬۰۰۰ Toman/month, 2026-10; deliberately cheap — entertainment spend is minimal in the current economy). Unvalidated — no competitor price data could be found (store pages hide IAP amounts); A/B the monthly price. Free-market dollar ≈ ۲۶۶٬۰۰۰ Toman on 2026-10-09, so a literal USD conversion ($0.99 ≈ ۲۶۳٬۰۰۰ Toman) was rejected as unaffordable |
 
 ### Coin economy
 
