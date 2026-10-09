@@ -75,6 +75,7 @@ flutter:
   assets:
     - assets/words/fa.txt
     - assets/icons/
+    - assets/avatars/
 
   fonts:
     - family: Vazirmatn

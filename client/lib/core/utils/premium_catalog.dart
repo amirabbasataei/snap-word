@@ -15,33 +15,35 @@ abstract final class PremiumCatalog {
     'oops': 'ای وای! 😅',
   };
 
-  /// Premium avatars (id → glyph). Placeholder art drawn as a glyph on a
-  /// token-coloured tile; swap for commissioned illustrations later without
-  /// changing the IDs.
-  static const Map<String, String> avatars = {
-    'lion': '🦁',
-    'simorgh': '🦚',
-    'falcon': '🦅',
-    'fox': '🦊',
-    'owl': '🦉',
-    'cat': '🐱',
-    'horse': '🐎',
-    'dragon': '🐉',
-    'crown': '👑',
-    'pen': '🖋️',
-    'flame': '🔥',
-    'moon': '🌙',
-    'star': '⭐',
-    'diamond': '💎',
-    'bolt': '⚡',
-    'rose': '🌹',
-  };
+  /// Premium avatar IDs, in picker order. Art is `assets/avatars/<id>.png`
+  /// (DiceBear "Lorelei" by Lisa Wischofsky, CC0 1.0). The IDs are opaque keys
+  /// stored server-side, so the art can be swapped without a migration.
+  static const List<String> avatarIds = [
+    'lion',
+    'simorgh',
+    'falcon',
+    'fox',
+    'owl',
+    'cat',
+    'horse',
+    'dragon',
+    'crown',
+    'pen',
+    'flame',
+    'moon',
+    'star',
+    'diamond',
+    'bolt',
+    'rose',
+  ];
 
   static String? tauntText(String id) => taunts[id];
 
-  static String? avatarGlyph(String? id) => id == null ? null : avatars[id];
+  static bool hasAvatar(String? id) => id != null && avatarIds.contains(id);
+
+  static String avatarAsset(String id) => 'assets/avatars/$id.png';
 
   /// Stable position of [id] in the catalogue, used to pick the tile accent.
   static int avatarIndex(String id) =>
-      avatars.keys.toList().indexOf(id).clamp(0, avatars.length);
+      avatarIds.indexOf(id).clamp(0, avatarIds.length);
 }

@@ -22,6 +22,8 @@ type LeaderboardEntry struct {
 	UserID   string  `json:"user_id"`
 	Username string  `json:"username"`
 	Score    float64 `json:"score"`
+	// AvatarID is the player's premium avatar; empty for free/lapsed players.
+	AvatarID string `json:"avatar_id,omitempty"`
 }
 
 // LeaderboardService manages the Redis weekly sorted set and weekly reset logic.
@@ -61,6 +63,33 @@ func (s *LeaderboardService) AddScore(ctx context.Context, userID string, score 
 	return nil
 }
 
+// attachAvatars fills AvatarID from active premium perks. A lookup failure only
+// costs the avatars, never the board, so it is logged and swallowed.
+func (s *LeaderboardService) attachAvatars(ctx context.Context, entries []LeaderboardEntry) {
+	ids := make([]string, len(entries))
+	for i, e := range entries {
+		ids[i] = e.UserID
+	}
+	perks, err := s.userRepo.GetPerks(ctx, ids)
+	if err != nil {
+		slog.Warn("leaderboard: GetPerks failed", "error", err)
+		return
+	}
+	for i := range entries {
+		entries[i].AvatarID = perks[entries[i].UserID].AvatarID
+	}
+}
+
+// GetAvatarID returns the user's active premium avatar ("" when none).
+func (s *LeaderboardService) GetAvatarID(ctx context.Context, userID string) string {
+	perks, err := s.userRepo.GetPerks(ctx, []string{userID})
+	if err != nil {
+		slog.Warn("leaderboard: GetPerks failed", "userID", userID, "error", err)
+		return ""
+	}
+	return perks[userID].AvatarID
+}
+
 // GetAllTimeTop returns the top n players by lifetime score.
 func (s *LeaderboardService) GetAllTimeTop(ctx context.Context, n int) ([]LeaderboardEntry, error) {
 	rows, err := s.lbRepo.GetAllTimeTop(ctx, n, config.SystemAIUserID)
@@ -71,6 +100,7 @@ func (s *LeaderboardService) GetAllTimeTop(ctx context.Context, n int) ([]Leader
 	for i, r := range rows {
 		entries[i] = LeaderboardEntry{Rank: i + 1, UserID: r.UserID, Username: r.Username, Score: float64(r.Score)}
 	}
+	s.attachAvatars(ctx, entries)
 	return entries, nil
 }
 
@@ -113,6 +143,7 @@ func (s *LeaderboardService) GetTopN(ctx context.Context, n int) ([]LeaderboardE
 			Score:    m.Score,
 		}
 	}
+	s.attachAvatars(ctx, entries)
 	return entries, nil
 }
 
@@ -185,6 +216,7 @@ func (s *LeaderboardService) GetFriendsLeaderboard(ctx context.Context, userID s
 			Score:    c.score,
 		}
 	}
+	s.attachAvatars(ctx, entries)
 	return entries, nil
 }
 

@@ -570,7 +570,7 @@ class _AvatarPickerSheet extends StatelessWidget {
               spacing: ZSpacing.md,
               runSpacing: ZSpacing.md,
               children: [
-                for (final id in PremiumCatalog.avatars.keys)
+                for (final id in PremiumCatalog.avatarIds)
                   GestureDetector(
                     onTap: () => onPick(id),
                     child: Container(
@@ -615,7 +615,7 @@ class _ProfileHeader extends StatelessWidget {
 
     return Row(
       children: [
-        if (PremiumCatalog.avatarGlyph(perks.avatarId) != null)
+        if (PremiumCatalog.hasAvatar(perks.avatarId))
           AvatarTile(name: username, size: 64, avatarId: perks.avatarId)
         else
           LetterTile(

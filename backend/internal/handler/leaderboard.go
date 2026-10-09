@@ -63,9 +63,10 @@ func (h *LeaderboardHandler) Get(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"entries":      entries,
-			"player_rank":  rank,
-			"player_score": score,
+			"entries":          entries,
+			"player_rank":      rank,
+			"player_score":     score,
+			"player_avatar_id": h.svc.GetAvatarID(c.Request.Context(), userID),
 		},
 	})
 }

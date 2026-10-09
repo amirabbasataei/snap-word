@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wordchain/core/widgets/avatar_tile.dart';
 
@@ -9,13 +10,13 @@ void main() {
     expect(find.text('S'), findsOneWidget);
   });
 
-  testWidgets('a known avatar id replaces the initial with its glyph', (
+  testWidgets('a known avatar id replaces the initial with its image', (
     tester,
   ) async {
     await tester.pumpWidget(
       zTestApp(const AvatarTile(name: 'sara', avatarId: 'lion')),
     );
-    expect(find.text('🦁'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
     expect(find.text('S'), findsNothing);
   });
 

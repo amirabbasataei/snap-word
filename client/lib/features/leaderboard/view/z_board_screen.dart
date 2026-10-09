@@ -8,6 +8,8 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
+import 'package:wordchain/core/utils/premium_catalog.dart';
+import 'package:wordchain/core/widgets/avatar_tile.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
@@ -329,6 +331,7 @@ class _LeaderboardBody extends StatelessWidget {
           rank: result.playerRank,
           score: result.playerScore,
           username: username,
+          avatarId: result.playerAvatarId,
         ),
         const SizedBox(height: ZSpacing.md),
       ],
@@ -423,8 +426,10 @@ class _PedestalCell extends StatelessWidget {
           style: TextStyle(fontSize: isFirst ? 26 : 22, height: 1.0),
         ),
         const SizedBox(height: 8),
-        LetterTile(
+        _BoardAvatar(
+          name: entry.username,
           letter: initial,
+          avatarId: entry.avatarId,
           size: avatarSize,
           accent: accent,
           radius: isFirst ? 16 : 14,
@@ -528,8 +533,10 @@ class _RankRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: ZSpacing.md),
-          LetterTile(
+          _BoardAvatar(
+            name: entry.username,
             letter: initial,
+            avatarId: entry.avatarId,
             size: 32,
             accent: accent,
             radius: 10,
@@ -561,11 +568,13 @@ class _SelfRow extends StatelessWidget {
   final int rank;
   final int score;
   final String username;
+  final String? avatarId;
 
   const _SelfRow({
     required this.rank,
     required this.score,
     required this.username,
+    this.avatarId,
   });
 
   @override
@@ -609,8 +618,10 @@ class _SelfRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: ZSpacing.md),
-          LetterTile(
+          _BoardAvatar(
+            name: username,
             letter: initial,
+            avatarId: avatarId,
             size: 34,
             accent: ZAccent.teal,
             radius: 11,
@@ -683,6 +694,41 @@ class _ErrorState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Premium avatar when the player has one, else the coloured initial tile.
+class _BoardAvatar extends StatelessWidget {
+  final String name;
+  final String letter;
+  final String? avatarId;
+  final double size;
+  final ZAccent accent;
+  final double radius;
+  final double? fontSize;
+
+  const _BoardAvatar({
+    required this.name,
+    required this.letter,
+    required this.avatarId,
+    required this.size,
+    required this.accent,
+    required this.radius,
+    this.fontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (PremiumCatalog.hasAvatar(avatarId)) {
+      return AvatarTile(name: name, size: size, avatarId: avatarId);
+    }
+    return LetterTile(
+      letter: letter,
+      size: size,
+      accent: accent,
+      radius: radius,
+      fontSize: fontSize,
     );
   }
 }

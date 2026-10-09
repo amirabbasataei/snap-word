@@ -7,7 +7,7 @@ import 'package:wordchain/core/utils/premium_catalog.dart';
 
 /// Rounded-square initial avatar (32–64px). The accent is derived from the
 /// name so the same person always gets the same tile colour. A known premium
-/// [avatarId] swaps the initial for that avatar's glyph.
+/// [avatarId] swaps the initial for that avatar's illustration.
 class AvatarTile extends StatelessWidget {
   final String name;
   final double size;
@@ -30,9 +30,9 @@ class AvatarTile extends StatelessWidget {
       (z.coral, z.onCoral, z.coralDeep),
     ];
     final trimmed = name.trim();
-    final glyph = PremiumCatalog.avatarGlyph(avatarId);
+    final hasArt = PremiumCatalog.hasAvatar(avatarId);
     final index =
-        glyph != null
+        hasArt
             ? PremiumCatalog.avatarIndex(avatarId!) % accents.length
             : trimmed.isEmpty
             ? 0
@@ -49,18 +49,28 @@ class AvatarTile extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(radius),
         boxShadow: ZElevation.solidEdge(deep, depth: ZElevation.tileDepth),
       ),
-      child: Text(
-        glyph ?? initial,
-        style: ZTypography.cardTitle.copyWith(
-          color: onColor,
-          fontSize: glyph != null ? size * 0.5 : size * 0.4,
-        ),
-      ),
+      child:
+          hasArt
+              ? Image.asset(
+                PremiumCatalog.avatarAsset(avatarId!),
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+              )
+              : Text(
+                initial,
+                style: ZTypography.cardTitle.copyWith(
+                  color: onColor,
+                  fontSize: size * 0.4,
+                ),
+              ),
     );
   }
 }

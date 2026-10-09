@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 
+String? _nonEmpty(Object? v) => v is String && v.isNotEmpty ? v : null;
+
 class LeaderboardException implements Exception {
   final String message;
   const LeaderboardException(this.message);
@@ -12,12 +14,14 @@ class LeaderboardEntry {
   final String username;
   final int score;
   final int rank;
+  final String? avatarId;
 
   const LeaderboardEntry({
     required this.userId,
     required this.username,
     required this.score,
     required this.rank,
+    this.avatarId,
   });
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) =>
@@ -26,6 +30,7 @@ class LeaderboardEntry {
         username: json['username'] as String,
         score: (json['score'] as num).toInt(),
         rank: json['rank'] as int? ?? 0,
+        avatarId: _nonEmpty(json['avatar_id']),
       );
 }
 
@@ -33,11 +38,13 @@ class LeaderboardResult {
   final List<LeaderboardEntry> entries;
   final int playerRank;
   final int playerScore;
+  final String? playerAvatarId;
 
   const LeaderboardResult({
     required this.entries,
     required this.playerRank,
     required this.playerScore,
+    this.playerAvatarId,
   });
 }
 
@@ -69,6 +76,7 @@ class LeaderboardRepository {
                 .toList(),
         playerRank: (data['player_rank'] as num?)?.toInt() ?? 0,
         playerScore: (data['player_score'] as num?)?.toInt() ?? 0,
+        playerAvatarId: _nonEmpty(data['player_avatar_id']),
       );
     } on DioException catch (e) {
       throw LeaderboardException(

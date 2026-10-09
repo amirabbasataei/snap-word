@@ -26,10 +26,17 @@ void main() {
   });
 
   test('avatar ids match the backend catalogue (config.AvatarIDs)', () {
-    expect(
-      PremiumCatalog.avatars.keys.toSet(),
-      _goMapKeys(goConfig, 'AvatarIDs'),
-    );
+    expect(PremiumCatalog.avatarIds.toSet(), _goMapKeys(goConfig, 'AvatarIDs'));
+  });
+
+  test('every avatar id has a bundled image', () {
+    for (final id in PremiumCatalog.avatarIds) {
+      expect(
+        File(PremiumCatalog.avatarAsset(id)).existsSync(),
+        isTrue,
+        reason: id,
+      );
+    }
   });
 
   test('taunt text is Persian (emoji allowed, no Latin letters)', () {
@@ -40,8 +47,8 @@ void main() {
   });
 
   test('lookups tolerate unknown / null ids', () {
-    expect(PremiumCatalog.avatarGlyph(null), isNull);
-    expect(PremiumCatalog.avatarGlyph('nope'), isNull);
+    expect(PremiumCatalog.hasAvatar(null), isFalse);
+    expect(PremiumCatalog.hasAvatar('nope'), isFalse);
     expect(PremiumCatalog.tauntText('nope'), isNull);
   });
 }

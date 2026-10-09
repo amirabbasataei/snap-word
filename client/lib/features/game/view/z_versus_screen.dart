@@ -195,7 +195,7 @@ class _PlayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (PremiumCatalog.avatarGlyph(avatarId) != null) {
+    if (PremiumCatalog.hasAvatar(avatarId)) {
       return AvatarTile(name: name, size: 36, avatarId: avatarId);
     }
     return LetterTile(
