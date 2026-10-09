@@ -313,7 +313,7 @@ class _LoadedView extends StatelessWidget {
                 // ),
                 // _SettingsRow(
                 //   title: 'حذف تبلیغات',
-                //   subtitle: 'خرید یک‌بار · ۲.۹۹ دلار',
+                //   subtitle: 'خرید یک‌بار · ۲۹٬۰۰۰ تومان',
                 //   showTopBorder: true,
                 //   onTap: () => _purchaseProduct(context, 'remove_ads'),
                 // ),
@@ -1022,9 +1022,9 @@ class _BuyCoinsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     const coinBundles = [
-      ('coins_099', '۱۰۰ سکه', '\$۰.۹۹'),
-      ('coins_299', '۳۵۰ سکه', '\$۲.۹۹'),
-      ('coins_999', '۱۵۰۰ سکه', '\$۹.۹۹'),
+      ('coins_100', '۱۰۰ سکه', '۱۵٬۰۰۰ تومان'),
+      ('coins_350', '۳۵۰ سکه', '۴۵٬۰۰۰ تومان'),
+      ('coins_1500', '۱۵۰۰ سکه', '۱۵۰٬۰۰۰ تومان'),
     ];
 
     return SafeArea(

@@ -1,3 +1,5 @@
+import '../utils/persian_digits.dart';
+
 abstract class MonetizationService {
   int get coinBalance;
 
@@ -15,17 +17,20 @@ enum ProductType { coins, removeAds, premium }
 class Product {
   final String id;
   final String title;
-  final String price;
+  /// Store price in Toman (Bazaar/Myket bill in Rial = Toman × 10).
+  final int priceToman;
   final ProductType type;
   final int? coinsAwarded;
 
   const Product({
     required this.id,
     required this.title,
-    required this.price,
+    required this.priceToman,
     required this.type,
     this.coinsAwarded,
   });
+
+  String get price => '${formatPersianNumber(priceToman)} تومان';
 }
 
 enum PurchaseStatus { success, failed, cancelled }
@@ -50,36 +55,36 @@ class MockMonetizationService implements MonetizationService {
   Future<List<Product>> getProducts() async {
     return const [
       Product(
-        id: 'coins_099',
+        id: 'coins_100',
         title: '100 Coins',
-        price: '\$0.99',
+        priceToman: 15000,
         type: ProductType.coins,
         coinsAwarded: 100,
       ),
       Product(
-        id: 'coins_299',
+        id: 'coins_350',
         title: '350 Coins',
-        price: '\$2.99',
+        priceToman: 45000,
         type: ProductType.coins,
         coinsAwarded: 350,
       ),
       Product(
-        id: 'coins_999',
+        id: 'coins_1500',
         title: '1500 Coins',
-        price: '\$9.99',
+        priceToman: 150000,
         type: ProductType.coins,
         coinsAwarded: 1500,
       ),
       Product(
         id: 'remove_ads',
         title: 'Remove Ads',
-        price: '\$2.99',
+        priceToman: 29000,
         type: ProductType.removeAds,
       ),
       Product(
         id: 'premium_monthly',
         title: 'Premium — no ads + 200 coins/week',
-        price: '\$3.99/mo',
+        priceToman: 49000, // per month,
         type: ProductType.premium,
       ),
     ];
