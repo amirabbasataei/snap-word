@@ -270,44 +270,49 @@ void _showTauntSheet(BuildContext context, {required bool premium}) {
         top: Radius.circular(ZRadius.sheetMax),
       ),
     ),
+    // M3 sheets shrink-wrap their content; force full width.
+    constraints: const BoxConstraints(maxWidth: double.infinity),
     builder:
         (sheetContext) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(ZSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'پیام سریع',
-                  style: ZTypography.cardTitle.copyWith(color: z.ink),
-                ),
-                if (!premium) ...[
-                  const SizedBox(height: ZSpacing.xs),
+          child: SizedBox(
+            width: double.infinity,
+            child: Padding(
+              padding: const EdgeInsets.all(ZSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'ارسال پیام فقط برای اشتراک ویژه فعال است؛ دریافت پیام‌ها برای همه رایگان است.',
-                    style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                    'پیام سریع',
+                    style: ZTypography.cardTitle.copyWith(color: z.ink),
+                  ),
+                  if (!premium) ...[
+                    const SizedBox(height: ZSpacing.xs),
+                    Text(
+                      'ارسال پیام فقط برای اشتراک ویژه فعال است؛ دریافت پیام‌ها برای همه رایگان است.',
+                      style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                    ),
+                  ],
+                  const SizedBox(height: ZSpacing.md),
+                  Wrap(
+                    spacing: ZSpacing.sm,
+                    runSpacing: ZSpacing.sm,
+                    children: [
+                      for (final entry in PremiumCatalog.taunts.entries)
+                        ActionChip(
+                          label: Text(entry.value),
+                          onPressed:
+                              premium
+                                  ? () {
+                                    bloc.add(TauntSent(entry.key));
+                                    Navigator.of(sheetContext).pop();
+                                  }
+                                  : null,
+                        ),
+                    ],
                   ),
                 ],
-                const SizedBox(height: ZSpacing.md),
-                Wrap(
-                  spacing: ZSpacing.sm,
-                  runSpacing: ZSpacing.sm,
-                  children: [
-                    for (final entry in PremiumCatalog.taunts.entries)
-                      ActionChip(
-                        label: Text(entry.value),
-                        onPressed:
-                            premium
-                                ? () {
-                                  bloc.add(TauntSent(entry.key));
-                                  Navigator.of(sheetContext).pop();
-                                }
-                                : null,
-                      ),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),

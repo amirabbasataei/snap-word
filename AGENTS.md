@@ -116,7 +116,7 @@ Server enforces one-use-per-type-per-match. Server rejects second use regardless
 
 ## Premium perks (Phase 22)
 
-Cosmetic/social only — never gameplay advantages. `users.premium_until` is set server-side only (SQL until Bazaar/Myket billing exists; the Flutter purchase is still a mock). Premium players send **preset** taunts in 1v1 (`send_taunt {taunt: id}` → server re-checks the subscription, whitelist `config.TauntIDs`, cooldown/per-match cap; broadcasts `taunt`, or answers `taunt_rejected` to the sender); everyone receives them. Premium avatars (`config.AvatarIDs`, `PATCH /profile/avatar`, `GET /profile/perks`) and a crown badge arrive via `game_start.state.avatars` / `.premium`. Persian text/glyphs live in `client/lib/core/utils/premium_catalog.dart`; a test enforces ID parity with `config.go`. Never accept free-text taunts.
+Cosmetic/social only — never gameplay advantages. `users.premium_until` is set server-side only (granted by hand with `bash scripts/grant_premium.sh` until Bazaar/Myket billing exists; the Flutter purchase is still a mock). Premium players send **preset** taunts in 1v1 (`send_taunt {taunt: id}` → server re-checks the subscription, whitelist `config.TauntIDs`, cooldown/per-match cap; broadcasts `taunt`, or answers `taunt_rejected` to the sender); everyone receives them. Premium avatars (`config.AvatarIDs`, `PATCH /profile/avatar`, `GET /profile/perks`) and a crown badge arrive via `game_start.state.avatars` / `.premium`. Persian text/glyphs live in `client/lib/core/utils/premium_catalog.dart`; a test enforces ID parity with `config.go`. Never accept free-text taunts.
 
 ## Migrations (backend)
 
