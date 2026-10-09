@@ -1,7 +1,7 @@
 name: wordchain
 description: "WordChain — a Shiritori-style word chain mobile game."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: ^3.7.0
