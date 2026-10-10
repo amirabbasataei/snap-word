@@ -43,6 +43,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 | 20 | Progression & Lobby Economy | [ ] Not Started |
 | 21 | Production Readiness | [ ] Not Started |
 | 22 | Premium Perks (taunts, avatars, badge) | [ ] In Progress — backend + client code complete, backend verified live (WS + REST); client UI **not yet verified on-device**; real billing (Bazaar/Myket) not built |
+| 23 | Admin Panel (web, RTL Persian) | [ ] Not Started — plan and per-stage status in **ADMIN_PLAN.md** (stages A1–A7, one per session) |
 
 ---
 
