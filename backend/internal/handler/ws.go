@@ -50,6 +50,17 @@ func (h *WSHandler) ServeWS(c *gin.Context) {
 		return
 	}
 
+	banned, err := h.authSvc.IsBanned(c.Request.Context(), userID)
+	if err != nil {
+		slog.Error("ws: ban check failed", "userID", userID, "error", err)
+		respondError(c, http.StatusInternalServerError, "internal_error", "could not verify the account")
+		return
+	}
+	if banned {
+		respondError(c, http.StatusForbidden, "account_banned", "this account has been suspended")
+		return
+	}
+
 	mode := c.DefaultQuery("mode", "classic")
 	if mode != "classic" {
 		respondError(c, http.StatusBadRequest, "invalid_mode", "mode must be classic")

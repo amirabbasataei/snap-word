@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -33,6 +34,17 @@ func RequireAuth(authSvc *service.AuthService) gin.HandlerFunc {
 		userID, username, err := authSvc.ParseAccessToken(parts[1])
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, errorEnvelope("invalid_token", "token is invalid or expired"))
+			return
+		}
+
+		banned, err := authSvc.IsBanned(c.Request.Context(), userID)
+		if err != nil {
+			slog.Error("ban check failed", "userID", userID, "error", err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, errorEnvelope("internal_error", "could not verify the account"))
+			return
+		}
+		if banned {
+			c.AbortWithStatusJSON(http.StatusForbidden, errorEnvelope("account_banned", "this account has been suspended"))
 			return
 		}
 

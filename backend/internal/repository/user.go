@@ -18,6 +18,7 @@ var (
 	ErrRewardNotFound      = errors.New("referral reward not found or already claimed")
 	ErrInsufficientCoins   = errors.New("insufficient_coins")
 	ErrNotPremium          = errors.New("premium_required")
+	ErrAccountBanned       = errors.New("account_banned")
 )
 
 // User represents a phone-authenticated account. Username and ReferralCode
@@ -37,10 +38,11 @@ type User struct {
 	OTPSentAt       *time.Time
 	PhoneVerifiedAt *time.Time
 	CreatedAt       time.Time
+	BannedAt        *time.Time // non-nil ⇒ the account is banned
 }
 
 const userColumns = `id, phone, username, coins, referral_code, referred_by,
-	otp_code, otp_expires_at, otp_attempts, otp_sent_at, phone_verified_at, created_at`
+	otp_code, otp_expires_at, otp_attempts, otp_sent_at, phone_verified_at, created_at, banned_at`
 
 type UserRepository struct {
 	db *sql.DB
@@ -60,9 +62,10 @@ func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 		otpExpires    sql.NullTime
 		otpSent       sql.NullTime
 		phoneVerified sql.NullTime
+		bannedAt      sql.NullTime
 	)
 	err := row.Scan(&u.ID, &u.Phone, &username, &u.Coins, &referralCode, &referredBy,
-		&otpCode, &otpExpires, &u.OTPAttempts, &otpSent, &phoneVerified, &u.CreatedAt)
+		&otpCode, &otpExpires, &u.OTPAttempts, &otpSent, &phoneVerified, &u.CreatedAt, &bannedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +83,9 @@ func scanUser(row interface{ Scan(...any) error }) (*User, error) {
 	}
 	if phoneVerified.Valid {
 		u.PhoneVerifiedAt = &phoneVerified.Time
+	}
+	if bannedAt.Valid {
+		u.BannedAt = &bannedAt.Time
 	}
 	return &u, nil
 }
@@ -304,6 +310,7 @@ const (
 	RewardDailyLogin = "daily_login"
 	RewardDailyDone  = "daily_done"
 	RewardDailyRank  = "daily_rank"
+	RewardAdminGift  = "admin_gift" // granted from the admin panel
 )
 
 // InboxReward is a claimable prize message; coins are credited only when it
@@ -442,4 +449,39 @@ func (r *UserRepository) SetAvatar(ctx context.Context, userID, avatarID string)
 		return ErrNotPremium
 	}
 	return nil
+}
+
+// IsBanned reports whether the account is banned. An unknown user is not
+// banned (the caller's own lookup decides what a missing user means).
+func (r *UserRepository) IsBanned(ctx context.Context, userID string) (bool, error) {
+	var banned bool
+	err := r.db.QueryRowContext(ctx, `SELECT banned_at IS NOT NULL FROM users WHERE id = $1`, userID).Scan(&banned)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("IsBanned: %w", err)
+	}
+	return banned, nil
+}
+
+// BannedIDs returns the subset of userIDs that are banned.
+func (r *UserRepository) BannedIDs(ctx context.Context, userIDs []string) (map[string]struct{}, error) {
+	out := map[string]struct{}{}
+	if len(userIDs) == 0 {
+		return out, nil
+	}
+	rows, err := r.db.QueryContext(ctx, `SELECT id FROM users WHERE id = ANY($1) AND banned_at IS NOT NULL`, pq.Array(userIDs))
+	if err != nil {
+		return nil, fmt.Errorf("BannedIDs: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("BannedIDs scan: %w", err)
+		}
+		out[id] = struct{}{}
+	}
+	return out, rows.Err()
 }

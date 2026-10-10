@@ -30,6 +30,7 @@ var (
 	ErrReferralNotFound = errors.New("referral_not_found")
 	ErrInvalidUsername  = errors.New("invalid_username")
 	ErrUsernameTaken    = errors.New("username_taken")
+	ErrAccountBanned    = repository.ErrAccountBanned
 )
 
 var usernameRe = regexp.MustCompile(`^[\p{L}\p{N}_]{3,20}$`)
@@ -133,6 +134,9 @@ func (s *AuthService) VerifyOTP(ctx context.Context, rawPhone, code, referralCod
 	}
 	if err != nil {
 		return nil, VerifyResult{}, fmt.Errorf("VerifyOTP: %w", err)
+	}
+	if user.BannedAt != nil {
+		return nil, VerifyResult{}, ErrAccountBanned
 	}
 
 	if user.OTPCode == nil || user.OTPExpiresAt == nil {
@@ -341,6 +345,9 @@ func (s *AuthService) RefreshToken(ctx context.Context, rawToken string) (*Token
 	if err != nil {
 		return nil, ErrInvalidToken
 	}
+	if user.BannedAt != nil {
+		return nil, ErrAccountBanned
+	}
 
 	return s.generateTokenPair(user.ID, user.Username)
 }
@@ -398,6 +405,16 @@ func (s *AuthService) generateTokenPair(userID, username string) (*TokenPair, er
 
 func (s *AuthService) sign(c *claims) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, c).SignedString([]byte(s.cfg.JWTSecret))
+}
+
+// IsBanned reports whether the account behind a (valid) token is banned. It
+// reads the database on every call so a ban takes effect on the very next request.
+func (s *AuthService) IsBanned(ctx context.Context, userID string) (bool, error) {
+	banned, err := s.userRepo.IsBanned(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("IsBanned: %w", err)
+	}
+	return banned, nil
 }
 
 // ParseAccessToken parses and validates an access token, returning (userID, username, error).

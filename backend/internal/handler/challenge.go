@@ -65,6 +65,8 @@ func (h *ChallengeHandler) Create(c *gin.Context) {
 			respondError(c, http.StatusForbidden, "not_friends", "you must be friends to challenge this player")
 		case errors.Is(err, service.ErrInsufficientCoins):
 			respondError(c, http.StatusPaymentRequired, "insufficient_coins", "not enough coins for the entry fee")
+		case errors.Is(err, service.ErrAccountBanned):
+			respondError(c, http.StatusForbidden, "account_banned", "this account has been suspended")
 		default:
 			slog.Error("CreateChallenge failed", "challengerID", challengerID, "error", err)
 			respondError(c, http.StatusInternalServerError, "internal_error", "failed to create challenge")

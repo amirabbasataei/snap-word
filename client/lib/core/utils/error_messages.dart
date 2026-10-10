@@ -27,6 +27,7 @@ const _faByCode = <String, String>{
   'forbidden': 'دسترسی این کار را نداری',
   'invalid_token': 'نشست تو منقضی شده؛ دوباره وارد شو',
   'missing_token': 'نشست تو منقضی شده؛ دوباره وارد شو',
+  'account_banned': 'حساب تو مسدود شده است',
 
   // Auth / OTP / referral / profile.
   'invalid_phone': 'شماره موبایل معتبر نیست',

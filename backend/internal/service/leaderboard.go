@@ -16,6 +16,10 @@ import (
 
 const weeklyLeaderboardKey = "leaderboard:global:weekly"
 
+// bannedFetchMargin is how many extra weekly rows GetTopN reads so that banned
+// players dropped from the board do not leave it short.
+const bannedFetchMargin = 20
+
 // LeaderboardEntry is one row in a leaderboard response.
 type LeaderboardEntry struct {
 	Rank     int     `json:"rank"`
@@ -115,7 +119,9 @@ func (s *LeaderboardService) GetAllTimeRank(ctx context.Context, userID string) 
 
 // GetTopN returns the top n players by weekly score, with usernames resolved from DB.
 func (s *LeaderboardService) GetTopN(ctx context.Context, n int) ([]LeaderboardEntry, error) {
-	members, err := s.rdb.ZRevRangeWithScores(ctx, weeklyLeaderboardKey, 0, int64(n-1)).Result()
+	// Banned players stay in the Redis set (so an unban restores their score)
+	// and are dropped on read; over-fetch so the board can still fill up.
+	members, err := s.rdb.ZRevRangeWithScores(ctx, weeklyLeaderboardKey, 0, int64(n-1+bannedFetchMargin)).Result()
 	if err != nil {
 		return nil, fmt.Errorf("leaderboard.GetTopN: %w", err)
 	}
@@ -126,6 +132,29 @@ func (s *LeaderboardService) GetTopN(ctx context.Context, n int) ([]LeaderboardE
 	userIDs := make([]string, len(members))
 	for i, m := range members {
 		userIDs[i] = m.Member.(string)
+	}
+	banned, err := s.userRepo.BannedIDs(ctx, userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("leaderboard.GetTopN banned: %w", err)
+	}
+	if len(banned) > 0 {
+		kept := members[:0]
+		for _, m := range members {
+			if _, isBanned := banned[m.Member.(string)]; !isBanned {
+				kept = append(kept, m)
+			}
+		}
+		members = kept
+	}
+	if len(members) > n {
+		members = members[:n]
+	}
+	if len(members) == 0 {
+		return []LeaderboardEntry{}, nil
+	}
+	userIDs = userIDs[:0]
+	for _, m := range members {
+		userIDs = append(userIDs, m.Member.(string))
 	}
 
 	usernames, err := s.userRepo.GetUsernames(ctx, userIDs)
@@ -171,8 +200,17 @@ func (s *LeaderboardService) GetFriendsLeaderboard(ctx context.Context, userID s
 		return nil, fmt.Errorf("leaderboard.GetFriendsLeaderboard: %w", err)
 	}
 
-	// Include the requesting user.
-	candidates := append(friendIDs, userID)
+	banned, err := s.userRepo.BannedIDs(ctx, friendIDs)
+	if err != nil {
+		return nil, fmt.Errorf("leaderboard.GetFriendsLeaderboard banned: %w", err)
+	}
+	// Include the requesting user; banned friends are hidden.
+	candidates := []string{userID}
+	for _, id := range friendIDs {
+		if _, isBanned := banned[id]; !isBanned {
+			candidates = append(candidates, id)
+		}
+	}
 
 	type candidate struct {
 		userID string

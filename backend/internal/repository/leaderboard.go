@@ -61,7 +61,7 @@ func (r *LeaderboardRepository) GetAllTimeTop(ctx context.Context, n int, exclud
 		SELECT ps.user_id, COALESCE(u.username, ''), ps.total_score
 		FROM player_stats ps
 		JOIN users u ON u.id = ps.user_id
-		WHERE ps.total_score > 0 AND ps.user_id <> $2
+		WHERE ps.total_score > 0 AND ps.user_id <> $2 AND u.banned_at IS NULL
 		ORDER BY ps.total_score DESC, u.created_at ASC
 		LIMIT $1`
 	rows, err := r.db.QueryContext(ctx, q, n, excludeUserID)
@@ -87,7 +87,8 @@ func (r *LeaderboardRepository) GetAllTimeRank(ctx context.Context, userID, excl
 	const q = `
 		SELECT total_score,
 		       1 + (SELECT COUNT(*) FROM player_stats
-		            WHERE total_score > ps.total_score AND user_id <> $2)
+		            WHERE total_score > ps.total_score AND user_id <> $2
+		              AND user_id NOT IN (SELECT id FROM users WHERE banned_at IS NOT NULL))
 		FROM player_stats ps
 		WHERE ps.user_id = $1 AND ps.total_score > 0`
 	var score, rank int64

@@ -14,6 +14,14 @@ export function toFa(input: string | number): string {
   return String(input).replace(/[0-9]/g, (d) => FA_DIGITS[Number(d)])
 }
 
+/** Inverse of `toFa`, also for Arabic-Indic digits and the «٬» separator — for numbers typed by the operator. */
+export function fromFa(input: string): string {
+  return input
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - '۰'.charCodeAt(0)))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - '٠'.charCodeAt(0)))
+    .replace(/[٬,\s]/g, '')
+}
+
 /** `1240` → `۱٬۲۴۰`; non-integers keep up to `maxFraction` digits after «٫». */
 export function formatNumber(value: number, maxFraction = 0): string {
   if (!Number.isFinite(value)) return '—'

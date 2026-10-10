@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCompact, formatJalaliDate, formatJalaliDateTime, formatNumber, formatPercent, formatRelative, toFa } from './fa'
+import { formatCompact, formatJalaliDate, formatJalaliDateTime, formatNumber, formatPercent, formatRelative, fromFa, toFa } from './fa'
 
 describe('toFa', () => {
   it('converts ASCII digits and leaves the rest alone', () => {
@@ -62,5 +62,16 @@ describe('formatRelative', () => {
     const out = formatRelative('2026-10-10T09:00:00Z', now)
     expect(out).toMatch(/^[^0-9]*[۰-۹]+/u)
     expect(out).toContain('۳')
+  })
+})
+
+describe('fromFa', () => {
+  it('turns Persian and Arabic-Indic digits into ASCII and drops separators', () => {
+    expect(fromFa('۱٬۲۳۴')).toBe('1234')
+    expect(fromFa('٠٩١٢')).toBe('0912')
+    expect(fromFa(' 12,500 ')).toBe('12500')
+  })
+  it('round-trips with toFa', () => {
+    expect(fromFa(toFa(98765))).toBe('98765')
   })
 })

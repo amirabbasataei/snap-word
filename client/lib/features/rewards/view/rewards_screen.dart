@@ -209,6 +209,8 @@ class _FreeCoinsCardState extends State<_FreeCoinsCard> {
         'پاداش چالش روزانه',
         'برای شرکت در چالش دیروز $coins سکه هدیه بگیر.',
       );
+    case 'admin_gift':
+      return ('هدیهٔ زنجیر', 'تیم زنجیر برایت $coins سکه هدیه فرستاده است.');
     case 'daily_login':
       return ('پاداش ورود روزانه', 'برای سر زدن امروز $coins سکه هدیه بگیر.');
     default:

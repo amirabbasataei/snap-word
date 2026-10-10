@@ -55,6 +55,8 @@ func (h *MatchHandler) JoinQueue(c *gin.Context) {
 		switch {
 		case errors.Is(err, service.ErrInsufficientCoins):
 			respondError(c, http.StatusPaymentRequired, "insufficient_coins", "not enough coins for the entry fee")
+		case errors.Is(err, service.ErrAccountBanned):
+			respondError(c, http.StatusForbidden, "account_banned", "this account has been suspended")
 		case errors.Is(err, context.Canceled), err.Error() == "cancelled":
 			c.JSON(http.StatusNoContent, nil)
 		default:

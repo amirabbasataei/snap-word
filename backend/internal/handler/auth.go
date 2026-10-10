@@ -273,6 +273,8 @@ func respondAuthError(c *gin.Context, err error) {
 		respondError(c, http.StatusNotFound, "reward_not_found", "reward not found or already claimed")
 	case errors.Is(err, service.ErrInvalidToken):
 		respondError(c, http.StatusUnauthorized, "invalid_token", "token is invalid or expired")
+	case errors.Is(err, service.ErrAccountBanned):
+		respondError(c, http.StatusForbidden, "account_banned", "this account has been suspended")
 	default:
 		slog.Error("auth error", "error", err)
 		respondError(c, http.StatusInternalServerError, "internal_error", "an unexpected error occurred")
