@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 
 /// Runs in its own isolate when a push arrives while the app is terminated or
@@ -23,6 +24,9 @@ class NotificationService {
 
   /// Pushes received while the app is open (the OS does not display these).
   Stream<RemoteMessage> get foregroundStream => _foregroundController.stream;
+
+  static const _lastToastIdKey = 'last_foreground_push_id';
+  static const _maxToastAge = Duration(minutes: 2);
 
   bool _tokenRefreshWired = false;
 
@@ -112,8 +116,24 @@ class NotificationService {
     }
   }
 
-  void _handleForegroundMessage(RemoteMessage message) {
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
     _log.d('FCM foreground: ${message.notification?.title}');
+    // FCM can hand the same (or a long-queued) push to the app again on a later
+    // launch; showing it as a toast each time looks like a repeating bug.
+    final sent = message.sentTime;
+    if (sent != null && DateTime.now().difference(sent) > _maxToastAge) {
+      return;
+    }
+    final id = message.messageId;
+    if (id != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getString(_lastToastIdKey) == id) return;
+        await prefs.setString(_lastToastIdKey, id);
+      } catch (e) {
+        _log.w('FCM toast dedupe unavailable: $e');
+      }
+    }
     _foregroundController.add(message);
   }
 
