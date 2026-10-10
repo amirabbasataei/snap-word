@@ -21,6 +21,7 @@ var (
 	ErrInvalidTauntText = errors.New("invalid_text")
 	ErrInvalidImage     = errors.New("invalid_image")
 	ErrCatalogNotFound  = repository.ErrCatalogItemNotFound
+	ErrCatalogChanged   = repository.ErrCatalogChanged
 
 	tauntIDRe  = regexp.MustCompile(`^[a-z][a-z0-9_]{1,31}$`)
 	avatarIDRe = regexp.MustCompile(`^[a-z][a-z0-9_]{1,23}$`)
@@ -157,6 +158,20 @@ func (s *CatalogService) SaveTaunt(ctx context.Context, id, text string, sortOrd
 	return nil
 }
 
+// Taunt reads one taunt uncached, for the audit trail's "before" value.
+func (s *CatalogService) Taunt(ctx context.Context, id string) (*repository.Taunt, error) {
+	return s.repo.GetTaunt(ctx, id)
+}
+
+// ReorderTaunts sets the picker order to ids (which must be every taunt once).
+func (s *CatalogService) ReorderTaunts(ctx context.Context, ids []string) error {
+	if err := s.repo.ReorderTaunts(ctx, ids); err != nil {
+		return err
+	}
+	s.invalidate()
+	return nil
+}
+
 func (s *CatalogService) DeleteTaunt(ctx context.Context, id string) error {
 	if err := s.repo.DeleteTaunt(ctx, id); err != nil {
 		return err
@@ -185,10 +200,13 @@ func (s *CatalogService) SaveAvatar(ctx context.Context, id string, data []byte,
 	return nil
 }
 
-func (s *CatalogService) DeleteAvatar(ctx context.Context, id string) error {
-	if err := s.repo.DeleteAvatar(ctx, id); err != nil {
-		return err
+// DeleteAvatar removes an avatar and returns how many users had it picked
+// (their avatar is cleared in the same transaction).
+func (s *CatalogService) DeleteAvatar(ctx context.Context, id string) (int, error) {
+	cleared, err := s.repo.DeleteAvatar(ctx, id)
+	if err != nil {
+		return 0, err
 	}
 	s.invalidate()
-	return nil
+	return cleared, nil
 }

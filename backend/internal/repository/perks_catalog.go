@@ -8,8 +8,13 @@ import (
 	"time"
 )
 
-// ErrCatalogItemNotFound is returned when a taunt or avatar id does not exist.
-var ErrCatalogItemNotFound = errors.New("catalog item not found")
+var (
+	// ErrCatalogItemNotFound is returned when a taunt or avatar id does not exist.
+	ErrCatalogItemNotFound = errors.New("catalog item not found")
+	// ErrCatalogChanged is returned by a reorder whose id list no longer matches
+	// the catalogue (someone added or removed an entry in the meantime).
+	ErrCatalogChanged = errors.New("catalog changed")
+)
 
 type Taunt struct {
 	ID        string
@@ -72,6 +77,64 @@ func (r *CatalogRepository) UpsertTaunt(ctx context.Context, id, text string, so
 	return nil
 }
 
+// GetTaunt reads one taunt straight from the table (no cache); ErrCatalogItemNotFound if absent.
+func (r *CatalogRepository) GetTaunt(ctx context.Context, id string) (*Taunt, error) {
+	var t Taunt
+	err := r.db.QueryRowContext(ctx, `SELECT id, text, sort_order FROM taunts WHERE id = $1`, id).
+		Scan(&t.ID, &t.Text, &t.SortOrder)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrCatalogItemNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GetTaunt: %w", err)
+	}
+	return &t, nil
+}
+
+// ReorderTaunts renumbers sort_order 1..n in the given order. ids must be
+// exactly the current set of taunts, otherwise ErrCatalogChanged (a stale list
+// must not silently drop or resurrect an entry).
+func (r *CatalogRepository) ReorderTaunts(ctx context.Context, ids []string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ReorderTaunts begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM taunts FOR UPDATE`)
+	if err != nil {
+		return fmt.Errorf("ReorderTaunts lock: %w", err)
+	}
+	current := map[string]bool{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return fmt.Errorf("ReorderTaunts scan: %w", err)
+		}
+		current[id] = true
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("ReorderTaunts rows: %w", err)
+	}
+	if len(ids) != len(current) {
+		return ErrCatalogChanged
+	}
+	for _, id := range ids {
+		if !current[id] {
+			return ErrCatalogChanged
+		}
+		delete(current, id) // a duplicate id in the request then fails the next lookup
+	}
+	for i, id := range ids {
+		if _, err := tx.ExecContext(ctx, `UPDATE taunts SET sort_order = $2 WHERE id = $1`, id, i+1); err != nil {
+			return fmt.Errorf("ReorderTaunts update: %w", err)
+		}
+	}
+	return tx.Commit()
+}
+
 func (r *CatalogRepository) DeleteTaunt(ctx context.Context, id string) error {
 	res, err := r.db.ExecContext(ctx, `DELETE FROM taunts WHERE id = $1`, id)
 	if err != nil {
@@ -117,25 +180,31 @@ func (r *CatalogRepository) UpsertAvatar(ctx context.Context, id string, data []
 	return nil
 }
 
-// DeleteAvatar removes an avatar and clears it from every user who had picked it.
-func (r *CatalogRepository) DeleteAvatar(ctx context.Context, id string) error {
+// DeleteAvatar removes an avatar and clears it from every user who had picked
+// it, returning how many users that was.
+func (r *CatalogRepository) DeleteAvatar(ctx context.Context, id string) (int, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("DeleteAvatar begin: %w", err)
+		return 0, fmt.Errorf("DeleteAvatar begin: %w", err)
 	}
 	defer tx.Rollback()
 
 	res, err := tx.ExecContext(ctx, `DELETE FROM avatars WHERE id = $1`, id)
 	if err != nil {
-		return fmt.Errorf("DeleteAvatar: %w", err)
+		return 0, fmt.Errorf("DeleteAvatar: %w", err)
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		return ErrCatalogItemNotFound
+		return 0, ErrCatalogItemNotFound
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE users SET avatar_id = NULL WHERE avatar_id = $1`, id); err != nil {
-		return fmt.Errorf("DeleteAvatar clear users: %w", err)
+	cleared, err := tx.ExecContext(ctx, `UPDATE users SET avatar_id = NULL WHERE avatar_id = $1`, id)
+	if err != nil {
+		return 0, fmt.Errorf("DeleteAvatar clear users: %w", err)
 	}
-	return tx.Commit()
+	n, _ := cleared.RowsAffected()
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("DeleteAvatar commit: %w", err)
+	}
+	return int(n), nil
 }
 
 func (r *CatalogRepository) GetAvatarImage(ctx context.Context, id string) (*AvatarImage, error) {

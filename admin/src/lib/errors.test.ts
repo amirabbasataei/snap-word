@@ -7,6 +7,9 @@ const CODES = [
   // A4 — users & economy
   'user_not_found', 'reason_required', 'invalid_amount', 'invalid_days', 'invalid_username',
   'username_taken', 'insufficient_coins', 'already_banned', 'not_banned',
+  // A5 — content & catalogue
+  'invalid_id', 'invalid_text', 'invalid_image', 'catalog_changed', 'invalid_date',
+  'invalid_letter', 'date_not_editable', 'no_daily_challenge',
 ]
 
 describe('errorMessageFor', () => {

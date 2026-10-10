@@ -13,6 +13,12 @@ const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default:
 const Users = lazy(() => import('@/pages/Users').then((m) => ({ default: m.Users })))
 const UserDetail = lazy(() => import('@/pages/UserDetail').then((m) => ({ default: m.UserDetail })))
 
+const Taunts = lazy(() => import('@/pages/Taunts').then((m) => ({ default: m.Taunts })))
+const Avatars = lazy(() => import('@/pages/Avatars').then((m) => ({ default: m.Avatars })))
+const Daily = lazy(() => import('@/pages/Daily').then((m) => ({ default: m.Daily })))
+const DailyDetail = lazy(() => import('@/pages/DailyDetail').then((m) => ({ default: m.DailyDetail })))
+const Leaderboards = lazy(() => import('@/pages/Leaderboards').then((m) => ({ default: m.Leaderboards })))
+
 // Dev-only: `import.meta.env.DEV` is a build-time constant, so the gallery is dropped from prod bundles.
 const Kit = import.meta.env.DEV ? lazy(() => import('@/pages/Kit').then((m) => ({ default: m.Kit }))) : null
 
@@ -25,6 +31,11 @@ export function App() {
           <Route index element={<Suspense fallback={null}><Dashboard /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={null}><Users /></Suspense>} />
           <Route path="/users/:id" element={<Suspense fallback={null}><UserDetail /></Suspense>} />
+          <Route path="/content/taunts" element={<Suspense fallback={null}><Taunts /></Suspense>} />
+          <Route path="/content/avatars" element={<Suspense fallback={null}><Avatars /></Suspense>} />
+          <Route path="/content/daily" element={<Suspense fallback={null}><Daily /></Suspense>} />
+          <Route path="/content/daily/:date" element={<Suspense fallback={null}><DailyDetail /></Suspense>} />
+          <Route path="/content/leaderboards" element={<Suspense fallback={null}><Leaderboards /></Suspense>} />
           {PLACEHOLDERS.map((p) => (
             <Route key={p.to} path={p.to} element={<Placeholder title={p.title} stage={p.stage} icon={p.icon} />} />
           ))}

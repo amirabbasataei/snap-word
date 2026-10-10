@@ -51,3 +51,29 @@ func PickDailyStartLetter(seed int64) string {
 	r := rand.New(rand.NewSource(seed))
 	return string(pool[r.Intn(len(pool))])
 }
+
+// DailyStartLetters returns the letters (one per element, sorted) that may open
+// a Daily Challenge: those with at least minWordsForDaily dictionary words.
+func DailyStartLetters() []string {
+	pool := dailyStartLetters()
+	out := make([]string, len(pool))
+	for i, r := range pool {
+		out[i] = string(r)
+	}
+	return out
+}
+
+// IsDailyStartLetter reports whether letter (a single rune) is an eligible
+// Daily Challenge start letter.
+func IsDailyStartLetter(letter string) bool {
+	runes := []rune(letter)
+	if len(runes) != 1 {
+		return false
+	}
+	for _, r := range dailyStartLetters() {
+		if r == runes[0] {
+			return true
+		}
+	}
+	return false
+}
