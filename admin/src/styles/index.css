@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@font-face {
+  font-family: 'Estedad';
+  src: url('/fonts/Estedad-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* Tokens → Tailwind utilities (bg-surface, text-muted, border-border, …). */
+@theme inline {
+  --font-sans: 'Estedad', system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-border: var(--border);
+  --color-sidebar: var(--sidebar);
+  --color-active: var(--active);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-on-accent: var(--on-accent);
+  --color-blue: var(--blue);
+  --color-orange: var(--orange);
+  --color-pink: var(--pink);
+  --color-green: var(--green);
+  --color-yellow: var(--yellow);
+  --color-scrim: var(--scrim);
+  --shadow-pop: var(--shadow);
+  --radius-card: 8px;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Persian digits already come from toFa(); keep columns aligned anyway. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* Radix/portal animations kept tiny and respectful of reduced motion. */
+@keyframes fade-in {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.97) }
+  to { opacity: 1; transform: scale(1) }
+}
+@keyframes slide-in-start {
+  from { transform: translateX(100%) }
+  to { transform: translateX(0) }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@layer base {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+}

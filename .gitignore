@@ -40,3 +40,8 @@ client/*.iml
 .DS_Store
 Thumbs.db
 client/tapsell.json
+
+# Admin panel
+admin/node_modules/
+backend/internal/adminui/dist/*
+!backend/internal/adminui/dist/.gitkeep

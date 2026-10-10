@@ -6,6 +6,8 @@
 #   bash scripts/deploy_backend.sh --dry-run   # show what rsync would change
 #   bash scripts/deploy_backend.sh --logs      # also tail the app logs afterwards
 #
+# Builds the admin panel (admin/ → backend/internal/adminui/dist, embedded in
+# the Go binary) first, so the deployed image always carries a fresh panel.
 # Syncs the working tree (committed or not). Server-only files (.env, compose
 # files, secrets, the built binary) are never touched. Migrations run
 # automatically at server startup.
@@ -19,7 +21,7 @@ HEALTH_URL="http://185.110.191.158:8080/health"
 DRY_RUN=false
 TAIL_LOGS=false
 
-usage() { sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,13p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 for a in "$@"; do
   case "$a" in
@@ -32,6 +34,10 @@ done
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+echo "==> Building admin panel (pnpm -C admin build)"
+pnpm -C admin install --frozen-lockfile
+pnpm -C admin build
 
 echo "==> Vetting backend (go build)"
 (cd backend && go build ./... )

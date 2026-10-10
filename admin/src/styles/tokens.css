@@ -1,0 +1,50 @@
+/*
+ * Design tokens — the ONLY file in admin/src allowed to contain hex values
+ * (src/test/lint-rules.test.ts enforces it). Dark is the default; light is
+ * selected with <html data-theme="light">. Components use the Tailwind
+ * utilities generated from these via index.css (bg-surface, text-muted …).
+ */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1215;
+  --surface: #171a1e;
+  --raised: #1d2025;
+  --border: #272b31;
+  --sidebar: #14171a;
+  --active: #2a2e34;
+  --text: #e8eaed;
+  --muted: #8b919a;
+  --on-accent: #ffffff;
+
+  --blue: #0a84ff;
+  --orange: #ff6a2b;
+  --pink: #ff2d55;
+  --green: #19c32c;
+  --yellow: #ffc400;
+
+  --scrim: rgb(0 0 0 / 0.6);
+  --shadow: 0 8px 30px rgb(0 0 0 / 0.45);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --raised: #f0f2f5;
+  --border: #dde2e8;
+  --sidebar: #ffffff;
+  --active: #e7ecf2;
+  --text: #1a1d21;
+  --muted: #646b76;
+  --on-accent: #ffffff;
+
+  --blue: #0a6fe0;
+  --orange: #e8560f;
+  --pink: #e01e47;
+  --green: #12a31f;
+  --yellow: #d49a00;
+
+  --scrim: rgb(20 24 30 / 0.45);
+  --shadow: 0 8px 30px rgb(20 24 30 / 0.14);
+}

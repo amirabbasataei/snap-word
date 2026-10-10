@@ -17,6 +17,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 
+	"wordchain/backend/internal/adminui"
 	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/handler"
 	"wordchain/backend/internal/middleware"
@@ -162,6 +163,12 @@ func main() {
 	operator.DELETE("/taunts/:id", catalogHandler.DeleteTaunt)
 	operator.PUT("/avatars/:id", catalogHandler.PutAvatar)
 	operator.DELETE("/avatars/:id", catalogHandler.DeleteAvatar)
+
+	// Admin panel SPA (embedded build of admin/), served at /admin.
+	adminUI := handler.NewAdminUIHandler(adminui.FS(), func(c *gin.Context) bool {
+		return middleware.AdminEnabled(c.Request.Context(), cfg.AdminAPIKey, adminAuthSvc)
+	})
+	handler.AdminUIRoutes(router, adminUI, cfg.AdminIPAllowlist)
 
 	// Protected routes
 	protected := api.Group("/", middleware.RequireAuth(authSvc))
