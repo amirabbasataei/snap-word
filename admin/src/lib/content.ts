@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
+import { withPrefix } from './base'
 
 // ---- taunts ----
 
@@ -77,7 +78,7 @@ export interface AvatarUsage {
 
 /** `?v=` busts the 1-day browser cache of the public image route after a replace. */
 export function avatarImageUrl(a: Pick<AvatarEntry, 'id' | 'updated_at'>): string {
-  return `/api/v1/avatars/${encodeURIComponent(a.id)}/image?v=${encodeURIComponent(a.updated_at)}`
+  return withPrefix(`/api/v1/avatars/${encodeURIComponent(a.id)}/image?v=${encodeURIComponent(a.updated_at)}`)
 }
 
 export function useAvatars() {

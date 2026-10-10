@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { useBoard, useWeeklyRewards, type BoardEntry } from '@/lib/content'
+import { withPrefix } from '@/lib/base'
 import { messageOf } from '@/lib/errors'
 import { formatJalaliDateTime, formatJalaliDay, formatNumber } from '@/lib/fa'
 
@@ -64,7 +65,7 @@ function BoardView({ kind, limit, onLimit }: { kind: 'weekly' | 'alltime'; limit
         <Link to={`/users/${e.user_id}`} className="flex items-center gap-3 hover:text-blue">
           <Avatar
             name={e.username}
-            src={e.avatar_id ? `/api/v1/avatars/${encodeURIComponent(e.avatar_id)}/image` : undefined}
+            src={e.avatar_id ? withPrefix(`/api/v1/avatars/${encodeURIComponent(e.avatar_id)}/image`) : undefined}
             className="size-9"
           />
           <span className="font-medium">{e.username || '—'}</span>

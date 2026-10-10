@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
+import { withPrefix } from './base'
 
 export type UserFilter = 'all' | 'premium' | 'banned' | 'new'
 export type UserSortKey = 'created' | 'coins' | 'xp' | 'matches' | 'username'
@@ -86,7 +87,7 @@ export interface UserDetail extends UserItem {
 
 export function avatarUrl(u: { avatar_id: string; premium: boolean }): string | undefined {
   // A lapsed subscription hides the avatar in the app, so the panel mirrors that.
-  return u.avatar_id && u.premium ? `/api/v1/avatars/${encodeURIComponent(u.avatar_id)}/image` : undefined
+  return u.avatar_id && u.premium ? withPrefix(`/api/v1/avatars/${encodeURIComponent(u.avatar_id)}/image`) : undefined
 }
 
 function listQuery(p: UserListParams): string {

@@ -11,6 +11,8 @@
 # Syncs the working tree (committed or not). Server-only files (.env, compose
 # files, secrets, the built binary) are never touched. Migrations run
 # automatically at server startup.
+# The panel is built for the public prefix PANEL_PREFIX (default /zanjir, i.e.
+# https://amirabbasataei.ir/zanjir/admin); nginx strips it (scripts/nginx/zanjir.conf).
 # Override the host with WORDCHAIN_HOST (default root@185.110.191.158).
 
 set -euo pipefail
@@ -18,10 +20,11 @@ set -euo pipefail
 HOST="${WORDCHAIN_HOST:-root@185.110.191.158}"
 REMOTE_DIR="/opt/wordchain"
 HEALTH_URL="http://185.110.191.158:8080/health"
+export PANEL_PREFIX="${PANEL_PREFIX-/zanjir}"
 DRY_RUN=false
 TAIL_LOGS=false
 
-usage() { sed -n '2,13p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 for a in "$@"; do
   case "$a" in

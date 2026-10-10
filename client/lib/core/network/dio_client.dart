@@ -8,7 +8,7 @@ class DioClient {
   // http://localhost:8080 (iOS Simulator).
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://185.110.191.158:8080',
+    defaultValue: 'http://amirabbasataei.ir/zanjir',
   );
   static String get _baseUrl => baseUrl;
 
