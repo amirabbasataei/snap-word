@@ -21,7 +21,9 @@ type Config struct {
 	FCMProjectID      string
 	FCMServiceAccount string
 	GameEpochDate     string
-	AdminAPIKey       string // empty disables the /admin routes
+	AdminAPIKey       string        // X-Admin-Key for scripts; the panel itself is enabled by having an admin user
+	AdminSessionTTL   time.Duration // idle timeout of an admin panel session (sliding)
+	AdminIPAllowlist  string        // comma-separated IPs/CIDRs allowed to reach /api/v1/admin; empty = anyone
 
 	KavenegarAPIKey      string
 	KavenegarOTPTemplate string
@@ -45,6 +47,8 @@ func Load() *Config {
 		FCMServiceAccount: getEnv("FCM_SERVICE_ACCOUNT_JSON", ""),
 		GameEpochDate:     getEnv("GAME_EPOCH_DATE", "2025-01-01"),
 		AdminAPIKey:       getEnv("ADMIN_API_KEY", ""),
+		AdminSessionTTL:   parseDuration("ADMIN_SESSION_TTL", AdminSessionIdleTTL),
+		AdminIPAllowlist:  getEnv("ADMIN_IP_ALLOWLIST", ""),
 
 		KavenegarAPIKey:      getEnv("KAVENEGAR_API_KEY", ""),
 		KavenegarOTPTemplate: getEnv("KAVENEGAR_OTP_TEMPLATE", "wordchain-otp"),
@@ -172,6 +176,19 @@ const (
 	TauntMaxPerMatch  = 8         // taunts one player may send in a single match
 	TauntMaxTextRunes = 60        // longest taunt text an operator may add
 	AvatarMaxBytes    = 256 << 10 // largest avatar image an operator may upload
+)
+
+// Admin panel sessions and login throttling (Phase 23). The idle TTL is the
+// ADMIN_SESSION_TTL default; the absolute cap is fixed.
+const (
+	AdminSessionIdleTTL     = 2 * time.Hour
+	AdminSessionAbsoluteTTL = 12 * time.Hour
+	AdminLoginMaxFailsIP    = 5  // failed logins per IP per window
+	AdminLoginMaxFailsUser  = 10 // failed logins per username per window (stops guessing spread over many IPs)
+	AdminLoginWindow        = 15 * time.Minute
+	AdminPasswordMinLength  = 10
+	AdminCookieName         = "zanjir_admin"
+	AdminCSRFHeaderValue    = "zanjir-admin" // required in X-Requested-With on mutating cookie-authenticated requests
 )
 
 // RewardClaimedRetention is how long a claimed reward stays listed on the rewards screen.

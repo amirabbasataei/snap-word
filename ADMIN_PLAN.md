@@ -6,7 +6,7 @@ Read this (and CLAUDE.md) at the start of every admin-panel session. Run one sta
 
 | Stage | Title | Status |
 |---|---|---|
-| A1 | Backend foundation: admin auth, sessions, roles, audit | [ ] Not Started |
+| A1 | Backend foundation: admin auth, sessions, roles, audit | [x] Complete |
 | A2 | Frontend scaffold, theme, shell, login, embedding | [ ] Not Started |
 | A3 | Dashboard (real data only) | [ ] Not Started |
 | A4 | Users & economy (incl. ban) | [ ] Not Started |
@@ -111,4 +111,15 @@ Theme reference image: `~/Downloads/panel.png` (copy it to `admin/design/referen
 
 ## Stage log
 
-_(append per-stage notes here)_
+### A1 — Backend foundation (2026-10-10) — complete
+Built exactly as specified, with these decisions/deviations:
+- **Migration `012_admin`** as planned (`admin_audit_log.admin_id` is `ON DELETE SET NULL`, so deleting an admin keeps their history).
+- **Files:** `repository/admin.go`, `service/admin_auth.go`, `service/admin_audit.go`, `handler/admin_auth.go`, `middleware/admin.go` (rewritten), `cmd/adminctl`, `scripts/admin_user.sh`, `Dockerfile` builds `/adminctl`, config consts in `config.go` (`Admin*`). Routes wired in `cmd/server/main.go`; taunt/avatar PUT/DELETE moved behind `RequireRole(operator)` and now write audit rows.
+- **`RequireAdmin(key, sessions)`** signature changed (adds the session service). Enabled ⇔ key set **or** ≥1 active admin (cached 5s). A request that sends `X-Admin-Key` but is wrong gets `invalid_admin_key` (unchanged); no credentials → `admin_unauthorized`.
+- **Sessions re-validate against the DB each request** (disabled/role changes are immediate) rather than trusting the role stored in Redis. Password change / disable revoke all sessions via the `admin:sessions:<id>` index set (also the basis for A7's sessions page). `adminctl` connects to Redis for that; if Redis is unreachable it prints nothing special and sessions simply expire on their own — acceptable, noted.
+- **Login throttle** counts failures only: per IP 5 and per username 10 per 15 min (plan said 5/15min per IP; the username counter closes IP-rotation guessing, at the cost that anyone can lock a known username for 15 min — A7 can tune).
+- **Added beyond the plan:** `adminctl enable`, `ADMIN_IP_ALLOWLIST` enforcement (`RequireAdminIP`, plan only listed the env var in A1) and an `auth.login_blocked` audit action.
+- **Test deps:** `github.com/alicebob/miniredis/v2 v2.35.0` (tests only) and `golang.org/x/term v0.40.0` (adminctl password prompt). Pinned deliberately: the latest miniredis forces `go 1.26`, which would break the `golang:1.25-alpine` image build.
+- **Verified live** (local Docker, curl): login (cookie flags, last_login), wrong password / unknown user (identical 401), CSRF header required on login + writes, `/me` for session and for key, viewer denied taunt writes (403 `insufficient_role`), owner write + audit row with payload, key fallback still works, logout invalidates the session, `adminctl disable` ends a live session, 6th failed login → 429 + `Retry-After`. `go test ./internal/...` passes. The "404 when nothing configured" case is covered by unit tests only — the local container has `ADMIN_API_KEY` set. Local DB now contains test admins `tester` (owner) and `peeker` (viewer), password `test-pass-12345` — dev only.
+- **Flagged, not fixed:** gin trusts all proxies (existing behaviour) so `ClientIP()` is spoofable via `X-Forwarded-For` unless nginx overwrites it; check `/etc/nginx/conf.d/wordchain.conf` sets `proxy_set_header X-Forwarded-For $remote_addr` before relying on the IP limit/allowlist in A7. Locally every request shows the Docker gateway `172.20.0.1`.
+

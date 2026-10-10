@@ -43,7 +43,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 | 20 | Progression & Lobby Economy | [ ] Not Started |
 | 21 | Production Readiness | [ ] Not Started |
 | 22 | Premium Perks (taunts, avatars, badge) | [ ] In Progress — backend + client code complete, backend verified live (WS + REST); client UI **not yet verified on-device**; real billing (Bazaar/Myket) not built |
-| 23 | Admin Panel (web, RTL Persian) | [ ] Not Started — plan and per-stage status in **ADMIN_PLAN.md** (stages A1–A7, one per session) |
+| 23 | Admin Panel (web, RTL Persian) | [ ] In Progress — A1 (backend auth/sessions/roles/audit) complete; A2–A7 not started. Plan and per-stage status in **ADMIN_PLAN.md** (stages A1–A7, one per session) |
 
 ---
 
@@ -611,6 +611,22 @@ Cosmetic/social only — **never gameplay advantages** (no free power-ups in mul
 
 ---
 
+## 🛠️ Admin Panel (Phase 23)
+
+Web panel (React, RTL Persian, embedded in the Go binary) for operators. Plan, visual system and per-stage status/log: **ADMIN_PLAN.md** (stages A1–A7, one per session). **Stage A1 (backend foundation) is done; there is no frontend yet** (A2).
+
+- **Accounts:** `admin_users` (migration `012_admin`: username, bcrypt hash cost 12, `role` ∈ `owner|operator|viewer`, `totp_secret` (unused until A7), `disabled_at`, `last_login_at`). Entirely separate from player `users` and player JWTs. Password 10–72 chars; username `^[a-z][a-z0-9_.-]{2,31}$`.
+- **Sessions:** server-side in Redis — `admin:sess:<64-hex token>` → `{admin_id, role, created_at}`, idle TTL `ADMIN_SESSION_TTL` (2h, sliding) capped by an absolute 12h (`config.AdminSessionAbsoluteTTL`); `admin:sessions:<admin_id>` is a set of live tokens for revoke-all. Cookie `zanjir_admin`: httpOnly, `SameSite=Strict`, `Path=/`, `Secure` only when the request is TLS/`X-Forwarded-Proto: https` (there is no TLS yet). Every request re-reads the admin row, so disabling an admin or changing their role applies immediately; password change/disable also end all their sessions.
+- **Auth routes:** `POST /api/v1/admin/auth/login` `{username, password}` (public; 404 while no admin exists and no key is set) · `POST /admin/auth/logout` · `GET /admin/auth/me` (`{admin:{id,username,role,last_login_at,via:"session"|"key"}}`). Login failures are deliberately indistinguishable (`401 invalid_credentials`, same bcrypt cost for unknown users). **Throttling:** failed logins counted per IP (5) and per username (10) per 15 min → `429 rate_limited` + `Retry-After`.
+- **Middleware (`middleware/admin.go`):** `RequireAdmin(key, sessions)` accepts the session cookie **or** `X-Admin-Key` (actor `script`, role owner, so `scripts/perks_admin.sh` keeps working). Cookie-authenticated mutating requests (and login) must send `X-Requested-With: zanjir-admin` (`403 csrf_required`); key requests are exempt. `RequireRole(min)` → `403 insufficient_role`; `RequireAdminIP(allowlist)`. Taunt/avatar write routes now require role ≥ operator.
+- **Audit:** `service.AuditService.Record(ctx, actor, action, target, payload)` writes `admin_audit_log` (actor, optional admin_id, action, target, JSONB payload, ip). Currently recorded: `auth.login`, `auth.login_failed`, `auth.login_blocked`, `auth.logout`, `taunt.save|delete`, `avatar.save|delete`. New admin mutations must record an entry.
+- **Error codes** stay English (operator-only, `adminError`); the panel maps them to Persian.
+- **Accounts CLI:** `cmd/adminctl` (built into the image at `/adminctl`): `create-user <username> [role]`, `set-password`, `disable`, `enable`; the password is prompted without echo (or read from stdin when not a TTY), never taken from argv. Prod: `bash scripts/admin_user.sh <username> [role]` (also `--set-password|--disable|--enable <username>`), which SSHes in and runs it via `docker compose exec`. Locally: `docker compose exec app /adminctl create-user <name> owner`.
+- **Prod setup still needed:** deploy (the new image includes `/adminctl`), create the first owner with `scripts/admin_user.sh`, optionally set `ADMIN_SESSION_TTL` / `ADMIN_IP_ALLOWLIST` in `/opt/wordchain/.env` and the server-only compose `environment:`. **Caveats:** over plain HTTP the password and cookie are sniffable; `ClientIP()` trusts all proxies (gin default), so the per-IP limit and the allowlist depend on nginx forwarding a trustworthy `X-Forwarded-For` — the per-username limit holds regardless. A7 adds mandatory TOTP and the audit viewer.
+- **Tests:** `service/admin_auth_test.go` (miniredis + `testutil.FakeAdminStore`: login, lockout, idle/absolute expiry, revocation), `middleware/admin_test.go`, `handler/admin_auth_test.go`.
+
+---
+
 ## 🔋 Power-up Reference
 
 | Power-up | Effect | Solo/AI limit | Multiplayer limit | Guest? |
@@ -760,7 +776,7 @@ flutter test
 ```
 
 - **Production host (`root@185.110.191.158`, Ubuntu, 2 GB RAM, shares the box with the unrelated `hamketab` site):** backend lives in `/opt/wordchain` as its own compose project `wordchain` (own Postgres 16 + Redis 7, no host ports published; `.env` there holds the generated `DB_PASSWORD`/`JWT_SECRET`; `secrets/fcm-service-account.json` is mounted). The app binds `127.0.0.1:18080`; nginx (`/etc/nginx/conf.d/wordchain.conf`) exposes it publicly on **`http://185.110.191.158:8080`** (WebSocket upgrade enabled) — the port-80 hamketab config is untouched. No TLS/domain yet. Redeploy: `bash scripts/deploy_backend.sh` (`--dry-run` to preview, `--logs` to tail afterwards; go build → rsync → compose rebuild → `/health` poll), which wraps `rsync -a --exclude /server --exclude /.env --exclude 'docker-compose*.yml' --exclude '*.md' backend/ root@185.110.191.158:/opt/wordchain/` then `ssh root@… 'cd /opt/wordchain && docker compose up -d --build app'`. **Client:** `DioClient.baseUrl` defaults to that URL (`--dart-define=API_BASE_URL=http://10.0.2.2:8080` for a local backend); Android main manifest allows cleartext + INTERNET until TLS exists. Prod compose file is server-only (differs from the dev `docker-compose.yml`).
-- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels), `010_premium_perks` (adds `users.premium_until` + `users.avatar_id`), `011_perks_catalog` (`taunts` + `avatars` tables; seeds the 9 taunts, avatars are uploaded with `scripts/perks_admin.sh seed`).
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels), `010_premium_perks` (adds `users.premium_until` + `users.avatar_id`), `011_perks_catalog` (`taunts` + `avatars` tables; seeds the 9 taunts, avatars are uploaded with `scripts/perks_admin.sh seed`), `012_admin` (`admin_users` + `admin_audit_log`).
 - **Ads (Tapsell Mediation, Android only):** the app key is a manifest placeholder in `client/android/app/build.gradle.kts`; the zone id is compile-time `--dart-define`s read in `core/services/ad_service.dart` (`AdZones`). Copy `client/tapsell.example.json` to `client/tapsell.json` (gitignored), fill in the rewarded zone id, and pass `--dart-define-from-file=tapsell.json` to `flutter run`/`build`. An empty id silently disables ads. Policy: only player-initiated rewarded ads — no interstitials and no banners (the Tapsell banner is a native overlay that leaked across screens and covered `ZBottomNav`; removed).
 
 ---
@@ -826,7 +842,9 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 | `KAVENEGAR_OTP_TEMPLATE` | no | `wordchain-otp` | Verify Lookup API template name, provisioned in the Kavenegar panel |
 | `OTP_CODE_TTL` | no | `2m` | OTP code expiry |
 | `OTP_RESEND_COOLDOWN` | no | `120s` | Minimum time between OTP sends to the same phone |
-| `ADMIN_API_KEY` | no | (random 32+ chars) | Enables `/api/v1/admin/*` (taunt/avatar catalogue management) via `X-Admin-Key`. Empty = routes return 404 |
+| `ADMIN_API_KEY` | no | (random 32+ chars) | Script access to `/api/v1/admin/*` via `X-Admin-Key` (acts as owner, audit actor `script`). With no key **and** no admin user the routes return 404 |
+| `ADMIN_SESSION_TTL` | no | `2h` | Idle timeout of an admin panel session (sliding; the absolute cap is a fixed 12h) |
+| `ADMIN_IP_ALLOWLIST` | no | `203.0.113.7,10.0.0.0/8` | Comma-separated IPs/CIDRs allowed to reach `/api/v1/admin/*`; others get 404. Empty = unrestricted. Uses gin `ClientIP()`, so it is only as trustworthy as the proxy's forwarding headers |
 
 ---
 

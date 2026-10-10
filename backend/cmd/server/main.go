@@ -110,7 +110,11 @@ func main() {
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 	monetizationHandler := handler.NewMonetizationHandler(monetizationSvc)
 	perksHandler := handler.NewPerksHandler(perksSvc)
-	catalogHandler := handler.NewCatalogHandler(catalogSvc)
+	adminRepo := repository.NewAdminRepository(db)
+	adminAuthSvc := service.NewAdminAuthService(adminRepo, rdb, cfg)
+	auditSvc := service.NewAuditService(adminRepo)
+	catalogHandler := handler.NewCatalogHandler(catalogSvc, auditSvc)
+	adminAuthHandler := handler.NewAdminAuthHandler(adminAuthSvc, auditSvc, cfg.AdminAPIKey)
 	matchHandler := handler.NewMatchHandler(matchSvc)
 	wsHandler := handler.NewWSHandler(hub, authSvc)
 	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
@@ -145,11 +149,19 @@ func main() {
 	// plain image request), operator-only writes.
 	api.GET("/perks/catalog", catalogHandler.Get)
 	api.GET("/avatars/:id/image", catalogHandler.AvatarImage)
-	admin := api.Group("/admin", middleware.RequireAdmin(cfg.AdminAPIKey))
-	admin.PUT("/taunts/:id", catalogHandler.PutTaunt)
-	admin.DELETE("/taunts/:id", catalogHandler.DeleteTaunt)
-	admin.PUT("/avatars/:id", catalogHandler.PutAvatar)
-	admin.DELETE("/avatars/:id", catalogHandler.DeleteAvatar)
+
+	// Admin API (Phase 23). Login is public but 404s until an admin exists or
+	// a key is set; everything else needs a panel session or X-Admin-Key.
+	adminAPI := api.Group("/admin", middleware.RequireAdminIP(cfg.AdminIPAllowlist))
+	adminAPI.POST("/auth/login", middleware.RequireCSRFHeader(), adminAuthHandler.Login)
+	admin := adminAPI.Group("", middleware.RequireAdmin(cfg.AdminAPIKey, adminAuthSvc))
+	admin.POST("/auth/logout", adminAuthHandler.Logout)
+	admin.GET("/auth/me", adminAuthHandler.Me)
+	operator := admin.Group("", middleware.RequireRole(service.AdminRoleOperator))
+	operator.PUT("/taunts/:id", catalogHandler.PutTaunt)
+	operator.DELETE("/taunts/:id", catalogHandler.DeleteTaunt)
+	operator.PUT("/avatars/:id", catalogHandler.PutAvatar)
+	operator.DELETE("/avatars/:id", catalogHandler.DeleteAvatar)
 
 	// Protected routes
 	protected := api.Group("/", middleware.RequireAuth(authSvc))

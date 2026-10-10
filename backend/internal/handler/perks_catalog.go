@@ -10,17 +10,24 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"wordchain/backend/internal/config"
+	"wordchain/backend/internal/middleware"
 	"wordchain/backend/internal/service"
 )
 
 // CatalogHandler serves the premium taunt/avatar catalogues to players and lets
 // operators add and remove entries (admin routes, X-Admin-Key).
 type CatalogHandler struct {
-	svc *service.CatalogService
+	svc   *service.CatalogService
+	audit *service.AuditService
 }
 
-func NewCatalogHandler(svc *service.CatalogService) *CatalogHandler {
-	return &CatalogHandler{svc: svc}
+func NewCatalogHandler(svc *service.CatalogService, audit *service.AuditService) *CatalogHandler {
+	return &CatalogHandler{svc: svc, audit: audit}
+}
+
+// record appends an audit row for a catalogue change that just succeeded.
+func (h *CatalogHandler) record(c *gin.Context, action, targetType, id string, payload any) {
+	h.audit.LogRecord(c.Request.Context(), middleware.AdminActor(c), action, service.AuditTarget{Type: targetType, ID: id}, payload)
 }
 
 // Get handles GET /api/v1/perks/catalog (public, ordered as the picker shows them).
@@ -127,12 +134,20 @@ func (h *CatalogHandler) PutTaunt(c *gin.Context) {
 		return
 	}
 	id := c.Param("id")
-	h.adminResult(c, "save taunt", id, h.svc.SaveTaunt(c.Request.Context(), id, req.Text, req.SortOrder))
+	err := h.svc.SaveTaunt(c.Request.Context(), id, req.Text, req.SortOrder)
+	if err == nil {
+		h.record(c, "taunt.save", "taunt", id, gin.H{"text": req.Text, "sort_order": req.SortOrder})
+	}
+	h.adminResult(c, "save taunt", id, err)
 }
 
 func (h *CatalogHandler) DeleteTaunt(c *gin.Context) {
 	id := c.Param("id")
-	h.adminResult(c, "delete taunt", id, h.svc.DeleteTaunt(c.Request.Context(), id))
+	err := h.svc.DeleteTaunt(c.Request.Context(), id)
+	if err == nil {
+		h.record(c, "taunt.delete", "taunt", id, nil)
+	}
+	h.adminResult(c, "delete taunt", id, err)
 }
 
 // PutAvatar handles PUT /api/v1/admin/avatars/:id as multipart/form-data with
@@ -161,10 +176,18 @@ func (h *CatalogHandler) PutAvatar(c *gin.Context) {
 		return
 	}
 	id := c.Param("id")
-	h.adminResult(c, "save avatar", id, h.svc.SaveAvatar(c.Request.Context(), id, data, order))
+	err = h.svc.SaveAvatar(c.Request.Context(), id, data, order)
+	if err == nil {
+		h.record(c, "avatar.save", "avatar", id, gin.H{"bytes": len(data), "sort_order": order})
+	}
+	h.adminResult(c, "save avatar", id, err)
 }
 
 func (h *CatalogHandler) DeleteAvatar(c *gin.Context) {
 	id := c.Param("id")
-	h.adminResult(c, "delete avatar", id, h.svc.DeleteAvatar(c.Request.Context(), id))
+	err := h.svc.DeleteAvatar(c.Request.Context(), id)
+	if err == nil {
+		h.record(c, "avatar.delete", "avatar", id, nil)
+	}
+	h.adminResult(c, "delete avatar", id, err)
 }
