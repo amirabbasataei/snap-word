@@ -73,6 +73,16 @@ export function formatJalaliDateTime(input: Date | string | number | null | unde
   return toFa(format(iranLocal(d), 'yyyy/MM/dd HH:mm'))
 }
 
+/**
+ * Jalali rendering of an Iran calendar day sent by the API as `YYYY-MM-DD`
+ * (no time zone involved). `pattern` is a date-fns-jalali pattern, default `MM/dd`.
+ */
+export function formatJalaliDay(ymd: string, pattern = 'MM/dd'): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd)
+  if (!m) return '—'
+  return toFa(format(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])), pattern))
+}
+
 /** «۳ ساعت پیش» style relative time. */
 export function formatRelative(input: Date | string | number | null | undefined, now: Date = new Date()): string {
   const d = input == null ? null : parse(input)

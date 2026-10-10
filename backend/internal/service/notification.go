@@ -106,6 +106,9 @@ func (s *NotificationService) SendToAll(ctx context.Context, title, body string)
 	return nil
 }
 
+// Configured reports whether FCM credentials are loaded (sends are no-ops otherwise).
+func (s *NotificationService) Configured() bool { return s.configured() }
+
 func (s *NotificationService) configured() bool {
 	return s.saKey != nil && s.cfg.FCMProjectID != ""
 }

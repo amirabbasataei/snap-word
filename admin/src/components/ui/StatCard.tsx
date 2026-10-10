@@ -13,10 +13,12 @@ interface Props {
   series?: number[]
   /** Period-over-period change as a ratio (0.25 = +25%); omit when unknown. */
   delta?: number
+  /** Small muted line under the value (already Persian-formatted). */
+  caption?: string
 }
 
 /** Reference stat tile: title, big number, coloured icon, 14-day bars, delta. */
-export function StatCard({ title, value, icon: Icon, tone = 'blue', series, delta }: Props) {
+export function StatCard({ title, value, icon: Icon, tone = 'blue', series, delta, caption }: Props) {
   const max = series && series.length ? Math.max(...series, 1) : 1
   return (
     <div className="flex flex-col justify-between overflow-hidden rounded-card border border-border bg-surface">
@@ -24,6 +26,7 @@ export function StatCard({ title, value, icon: Icon, tone = 'blue', series, delt
         <div>
           <p className="text-sm text-muted">{title}</p>
           <p className="tabular mt-1 text-2xl font-semibold text-text">{value}</p>
+          {caption && <p className="tabular mt-0.5 text-xs text-muted">{caption}</p>}
         </div>
         <Icon className={cn('size-6 shrink-0', TONE_TEXT[tone])} aria-hidden />
       </div>

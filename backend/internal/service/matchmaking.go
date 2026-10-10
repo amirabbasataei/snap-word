@@ -18,6 +18,9 @@ import (
 
 const queueKeyPrefix = "queue:"
 
+// queueModes lists the match modes that have a matchmaking queue.
+var queueModes = []string{"classic"}
+
 type queueEntry struct {
 	UserID     string    `json:"user_id"`
 	Difficulty string    `json:"difficulty"`
@@ -136,9 +139,8 @@ func (s *MatchmakingService) Cancel(ctx context.Context, userID, mode string) er
 func (s *MatchmakingService) runBackground() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
-	modes := []string{"classic"}
 	for range ticker.C {
-		for _, mode := range modes {
+		for _, mode := range queueModes {
 			s.processQueue(mode)
 		}
 	}

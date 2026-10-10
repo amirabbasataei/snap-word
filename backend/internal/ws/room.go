@@ -1169,3 +1169,16 @@ func mustMarshal(v outMsg) []byte {
 	b, _ := json.Marshal(v)
 	return b
 }
+
+// snapshot returns the room state and how many human clients are connected.
+func (r *Room) snapshot() (roomState, int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	humans := 0
+	for id, c := range r.clients {
+		if c != nil && id != config.SystemAIUserID {
+			humans++
+		}
+	}
+	return r.state, humans
+}

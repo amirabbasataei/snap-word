@@ -52,7 +52,6 @@ export const NAV: NavGroup[] = [
 
 // Pages that exist only as placeholders until their stage lands.
 export const PLACEHOLDERS: { to: string; title: string; stage: string; icon: LucideIcon }[] = [
-  { to: '/', title: 'داشبورد', stage: 'A3', icon: LayoutDashboard },
   { to: '/users', title: 'کاربران', stage: 'A4', icon: Users },
   { to: '/content/taunts', title: 'تیکه‌ها', stage: 'A5', icon: Smile },
   { to: '/content/avatars', title: 'آواتارها', stage: 'A5', icon: UserRound },
