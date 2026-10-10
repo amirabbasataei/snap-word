@@ -66,14 +66,15 @@ class GameActive extends GameState {
   final int? coinBalance;
 
   // Premium perks (multiplayer): who has a subscription / avatar, as reported
-  // by the server in game_start. `tauntId` is the latest taunt shown in the
-  // match, `tauntFromMe` says whose it is, and `tauntSeq` bumps on every taunt
+  // by the server in game_start. `tauntId`/`tauntText` are the latest taunt
+  // shown in the match (the server sends the text), `tauntFromMe` says whose it is, and `tauntSeq` bumps on every taunt
   // so an identical one re-triggers the bubble.
   final bool myPremium;
   final bool opponentPremium;
   final String? myAvatarId;
   final String? opponentAvatarId;
   final String? tauntId;
+  final String? tauntText;
   final bool tauntFromMe;
   final int tauntSeq;
 
@@ -112,6 +113,7 @@ class GameActive extends GameState {
     this.myAvatarId,
     this.opponentAvatarId,
     this.tauntId,
+    this.tauntText,
     this.tauntFromMe = false,
     this.tauntSeq = 0,
   });
@@ -140,6 +142,7 @@ class GameActive extends GameState {
     String? powerupNotice,
     int? coinBalance,
     String? taunt,
+    String? tauntText,
     bool? tauntFromMe,
   }) {
     return GameActive(
@@ -187,6 +190,7 @@ class GameActive extends GameState {
       myAvatarId: myAvatarId,
       opponentAvatarId: opponentAvatarId,
       tauntId: taunt ?? tauntId,
+      tauntText: tauntText ?? this.tauntText,
       tauntFromMe: tauntFromMe ?? this.tauntFromMe,
       tauntSeq: taunt != null ? tauntSeq + 1 : tauntSeq,
     );

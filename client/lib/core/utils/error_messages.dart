@@ -65,6 +65,7 @@ const _faByCode = <String, String>{
 
   // Friends / challenges.
   'user_not_found': 'کاربری با این نام پیدا نشد',
+  'avatar_not_found': 'آواتار پیدا نشد',
   'self_request': 'نمی‌توانی به خودت درخواست دوستی بدهی',
   'request_exists': 'درخواست دوستی یا دوستی از قبل وجود دارد',
   'request_not_found': 'درخواست دوستی پیدا نشد',

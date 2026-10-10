@@ -22,16 +22,21 @@ GameActive _active() => const GameActive(
   opponentPremium: true,
 );
 
-Widget _host(GameActive s) => zTestApp(
-  Scaffold(body: Stack(children: [TauntBubble(state: s)])),
-);
+Widget _host(GameActive s) =>
+    zTestApp(Scaffold(body: Stack(children: [TauntBubble(state: s)])));
 
 void main() {
   testWidgets('a taunt shows as a bubble then hides after 3 s', (tester) async {
     final base = _active();
     await tester.pumpWidget(_host(base));
     await tester.pumpWidget(
-      _host(base.copyWith(taunt: 'hurry_up', tauntFromMe: false)),
+      _host(
+        base.copyWith(
+          taunt: 'hurry_up',
+          tauntText: 'زود باش!',
+          tauntFromMe: false,
+        ),
+      ),
     );
     await tester.pump(const Duration(milliseconds: 300));
     final opacity = find.byType(AnimatedOpacity);

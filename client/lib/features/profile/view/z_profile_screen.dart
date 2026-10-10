@@ -14,7 +14,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/utils/premium_catalog.dart';
+import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/widgets/avatar_tile.dart';
 import 'package:wordchain/core/widgets/coin_pill.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
@@ -554,6 +554,7 @@ class _AvatarPickerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
+    final catalog = getIt<PerksCatalogService>();
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(ZSpacing.lg),
@@ -566,26 +567,51 @@ class _AvatarPickerSheet extends StatelessWidget {
               style: ZTypography.cardTitle.copyWith(color: z.ink),
             ),
             const SizedBox(height: ZSpacing.md),
-            Wrap(
-              spacing: ZSpacing.md,
-              runSpacing: ZSpacing.md,
-              children: [
-                for (final id in PremiumCatalog.avatarIds)
-                  GestureDetector(
-                    onTap: () => onPick(id),
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: id == selected ? z.ink : Colors.transparent,
-                          width: 2,
+            // Last known list shows at once; the fetch swaps in new entries.
+            FutureBuilder<PerksCatalog>(
+              initialData: catalog.cached,
+              future: catalog.refresh(),
+              builder: (context, snapshot) {
+                final ids = snapshot.data?.avatarIds ?? const [];
+                if (ids.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: ZSpacing.md),
+                    child: Center(
+                      child:
+                          snapshot.connectionState == ConnectionState.done
+                              ? Text(
+                                'آواتاری در دسترس نیست',
+                                style: ZTypography.metaLabel.copyWith(
+                                  color: z.ink40,
+                                ),
+                              )
+                              : const CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                return Wrap(
+                  spacing: ZSpacing.md,
+                  runSpacing: ZSpacing.md,
+                  children: [
+                    for (final id in ids)
+                      GestureDetector(
+                        onTap: () => onPick(id),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color:
+                                  id == selected ? z.ink : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: AvatarTile(name: id, size: 56, avatarId: id),
                         ),
                       ),
-                      child: AvatarTile(name: id, size: 56, avatarId: id),
-                    ),
-                  ),
-              ],
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -615,7 +641,7 @@ class _ProfileHeader extends StatelessWidget {
 
     return Row(
       children: [
-        if (PremiumCatalog.hasAvatar(perks.avatarId))
+        if (perks.avatarId != null && perks.avatarId!.isNotEmpty)
           AvatarTile(name: username, size: 64, avatarId: perks.avatarId)
         else
           LetterTile(

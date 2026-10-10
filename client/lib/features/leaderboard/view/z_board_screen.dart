@@ -8,7 +8,6 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/utils/premium_catalog.dart';
 import 'package:wordchain/core/widgets/avatar_tile.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
@@ -720,7 +719,7 @@ class _BoardAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (PremiumCatalog.hasAvatar(avatarId)) {
+    if (avatarId != null && avatarId!.isNotEmpty) {
       return AvatarTile(name: name, size: size, avatarId: avatarId);
     }
     return LetterTile(

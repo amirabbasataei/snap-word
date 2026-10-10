@@ -21,6 +21,7 @@ type Config struct {
 	FCMProjectID      string
 	FCMServiceAccount string
 	GameEpochDate     string
+	AdminAPIKey       string // empty disables the /admin routes
 
 	KavenegarAPIKey      string
 	KavenegarOTPTemplate string
@@ -43,6 +44,7 @@ func Load() *Config {
 		FCMProjectID:      getEnv("FCM_PROJECT_ID", ""),
 		FCMServiceAccount: getEnv("FCM_SERVICE_ACCOUNT_JSON", ""),
 		GameEpochDate:     getEnv("GAME_EPOCH_DATE", "2025-01-01"),
+		AdminAPIKey:       getEnv("ADMIN_API_KEY", ""),
 
 		KavenegarAPIKey:      getEnv("KAVENEGAR_API_KEY", ""),
 		KavenegarOTPTemplate: getEnv("KAVENEGAR_OTP_TEMPLATE", "wordchain-otp"),
@@ -163,33 +165,14 @@ const (
 )
 
 // Premium perks. Taunts are preset messages only (never free text): the client
-// sends an ID and the server broadcasts it. Keep TauntIDs/AvatarIDs in sync with
-// GameConstants.tauntIds / premiumAvatarIds in the Flutter client.
+// sends an ID and the server broadcasts it. The taunt and avatar catalogues live
+// in the `taunts` / `avatars` tables and are managed via the admin API.
 const (
-	TauntCooldownSec = 5 // minimum gap between one player's taunts
-	TauntMaxPerMatch = 8 // taunts one player may send in a single match
+	TauntCooldownSec  = 5         // minimum gap between one player's taunts
+	TauntMaxPerMatch  = 8         // taunts one player may send in a single match
+	TauntMaxTextRunes = 60        // longest taunt text an operator may add
+	AvatarMaxBytes    = 256 << 10 // largest avatar image an operator may upload
 )
-
-// TauntIDs is the whitelist of sendable taunts (Persian text lives client-side).
-var TauntIDs = map[string]bool{
-	"what_happened": true,
-	"hurry_up":      true,
-	"your_turn":     true,
-	"thinking":      true,
-	"too_easy":      true,
-	"lucky":         true,
-	"nice_one":      true,
-	"good_game":     true,
-	"oops":          true,
-}
-
-// AvatarIDs is the premium avatar catalogue (glyph/colour art lives client-side).
-var AvatarIDs = map[string]bool{
-	"lion": true, "simorgh": true, "falcon": true, "fox": true,
-	"owl": true, "cat": true, "horse": true, "dragon": true,
-	"crown": true, "pen": true, "flame": true, "moon": true,
-	"star": true, "diamond": true, "bolt": true, "rose": true,
-}
 
 // RewardClaimedRetention is how long a claimed reward stays listed on the rewards screen.
 const RewardClaimedRetention = 24 * time.Hour

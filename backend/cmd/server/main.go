@@ -79,7 +79,8 @@ func main() {
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc, repository.NewDailyRepository(db))
 	powerupSvc := service.NewPowerupService(powerupRepo, userRepo)
 	monetizationSvc := service.NewMonetizationService(userRepo)
-	perksSvc := service.NewPerksService(userRepo)
+	catalogSvc := service.NewCatalogService(repository.NewCatalogRepository(db))
+	perksSvc := service.NewPerksService(userRepo, catalogSvc)
 
 	hub := ws.NewHub(ws.RoomDeps{
 		MatchRepo:      matchRepo,
@@ -89,6 +90,7 @@ func main() {
 		XPSvc:          gameSvc,
 		Coins:          userRepo,
 		Perks:          userRepo,
+		Taunts:         catalogSvc,
 	})
 
 	matchSvc := service.NewMatchmakingService(rdb, hub, userRepo)
@@ -108,6 +110,7 @@ func main() {
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 	monetizationHandler := handler.NewMonetizationHandler(monetizationSvc)
 	perksHandler := handler.NewPerksHandler(perksSvc)
+	catalogHandler := handler.NewCatalogHandler(catalogSvc)
 	matchHandler := handler.NewMatchHandler(matchSvc)
 	wsHandler := handler.NewWSHandler(hub, authSvc)
 	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
@@ -137,6 +140,16 @@ func main() {
 	// header-only middleware rejected the handshake before ServeWS's own
 	// query-param check ever ran.
 	api.GET("/ws/game/:roomID", wsHandler.ServeWS)
+
+	// Premium perk catalogues: public reads (the avatar image is loaded by a
+	// plain image request), operator-only writes.
+	api.GET("/perks/catalog", catalogHandler.Get)
+	api.GET("/avatars/:id/image", catalogHandler.AvatarImage)
+	admin := api.Group("/admin", middleware.RequireAdmin(cfg.AdminAPIKey))
+	admin.PUT("/taunts/:id", catalogHandler.PutTaunt)
+	admin.DELETE("/taunts/:id", catalogHandler.DeleteTaunt)
+	admin.PUT("/avatars/:id", catalogHandler.PutAvatar)
+	admin.DELETE("/avatars/:id", catalogHandler.DeleteAvatar)
 
 	// Protected routes
 	protected := api.Group("/", middleware.RequireAuth(authSvc))

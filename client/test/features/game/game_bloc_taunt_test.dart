@@ -118,14 +118,23 @@ void main() {
     'an incoming taunt is recorded with its owner and bumps the seq',
     () async {
       await startGame();
-      ws.emit('taunt', {'player_id': _them, 'taunt': 'hurry_up'});
+      ws.emit('taunt', {
+        'player_id': _them,
+        'taunt': 'hurry_up',
+        'text': 'زود باش!',
+      });
       await _settle();
       var s = bloc.state as GameActive;
       expect(s.tauntId, 'hurry_up');
+      expect(s.tauntText, 'زود باش!');
       expect(s.tauntFromMe, isFalse);
       final firstSeq = s.tauntSeq;
 
-      ws.emit('taunt', {'player_id': _me, 'taunt': 'hurry_up'});
+      ws.emit('taunt', {
+        'player_id': _me,
+        'taunt': 'hurry_up',
+        'text': 'زود باش!',
+      });
       await _settle();
       s = bloc.state as GameActive;
       expect(s.tauntFromMe, isTrue);
@@ -137,17 +146,31 @@ void main() {
     },
   );
 
-  test('an unknown taunt id from the server is ignored', () async {
+  test(
+    'a taunt added after the client fetched its catalogue still shows',
+    () async {
+      await startGame();
+      ws.emit('taunt', {
+        'player_id': _them,
+        'taunt': 'brand_new',
+        'text': 'پیام تازه',
+      });
+      await _settle();
+      expect((bloc.state as GameActive).tauntText, 'پیام تازه');
+    },
+  );
+
+  test('a taunt without text is ignored', () async {
     await startGame();
-    ws.emit('taunt', {'player_id': _them, 'taunt': 'not_in_catalog'});
+    ws.emit('taunt', {'player_id': _them, 'taunt': 'hurry_up'});
     await _settle();
     expect((bloc.state as GameActive).tauntId, isNull);
   });
 
-  test('TauntSent sends only catalogue ids over the socket', () async {
+  test('TauntSent sends the id (the server owns the catalogue)', () async {
     await startGame(premium: [_me]);
     bloc.add(const TauntSent('hurry_up'));
-    bloc.add(const TauntSent('free text insult'));
+    bloc.add(const TauntSent(''));
     await _settle();
     expect(ws.sent, [
       {'type': 'send_taunt', 'taunt': 'hurry_up'},

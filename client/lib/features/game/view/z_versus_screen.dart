@@ -8,7 +8,7 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/utils/premium_catalog.dart';
+import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/widgets/avatar_tile.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
@@ -195,7 +195,7 @@ class _PlayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (PremiumCatalog.hasAvatar(avatarId)) {
+    if (avatarId != null && avatarId!.isNotEmpty) {
       return AvatarTile(name: name, size: 36, avatarId: avatarId);
     }
     return LetterTile(
@@ -262,6 +262,7 @@ class _TauntButton extends StatelessWidget {
 void _showTauntSheet(BuildContext context, {required bool premium}) {
   final z = context.z;
   final bloc = context.read<GameBloc>();
+  final catalog = getIt<PerksCatalogService>();
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: z.surface,
@@ -294,22 +295,48 @@ void _showTauntSheet(BuildContext context, {required bool premium}) {
                     ),
                   ],
                   const SizedBox(height: ZSpacing.md),
-                  Wrap(
-                    spacing: ZSpacing.sm,
-                    runSpacing: ZSpacing.sm,
-                    children: [
-                      for (final entry in PremiumCatalog.taunts.entries)
-                        ActionChip(
-                          label: Text(entry.value),
-                          onPressed:
-                              premium
-                                  ? () {
-                                    bloc.add(TauntSent(entry.key));
-                                    Navigator.of(sheetContext).pop();
-                                  }
-                                  : null,
-                        ),
-                    ],
+                  // Last known list shows at once; the fetch swaps in new entries.
+                  FutureBuilder<PerksCatalog>(
+                    initialData: catalog.cached,
+                    future: catalog.refresh(),
+                    builder: (context, snapshot) {
+                      final taunts = snapshot.data?.taunts ?? const [];
+                      if (taunts.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: ZSpacing.md,
+                          ),
+                          child: Center(
+                            child:
+                                snapshot.connectionState == ConnectionState.done
+                                    ? Text(
+                                      'پیامی در دسترس نیست',
+                                      style: ZTypography.metaLabel.copyWith(
+                                        color: z.ink40,
+                                      ),
+                                    )
+                                    : const CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      return Wrap(
+                        spacing: ZSpacing.sm,
+                        runSpacing: ZSpacing.sm,
+                        children: [
+                          for (final taunt in taunts)
+                            ActionChip(
+                              label: Text(taunt.text),
+                              onPressed:
+                                  premium
+                                      ? () {
+                                        bloc.add(TauntSent(taunt.id));
+                                        Navigator.of(sheetContext).pop();
+                                      }
+                                      : null,
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -360,7 +387,7 @@ class TauntBubbleState extends State<TauntBubble> {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final text = PremiumCatalog.tauntText(widget.state.tauntId ?? '');
+    final text = widget.state.tauntText;
     final mine = widget.state.tauntFromMe;
 
     return Positioned(

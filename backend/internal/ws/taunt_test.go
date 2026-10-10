@@ -20,9 +20,19 @@ func (f fakePerks) GetPerks(_ context.Context, ids []string) (map[string]reposit
 	return out, nil
 }
 
+// fakeTaunts is a fixed taunt catalogue standing in for service.CatalogService.
+type fakeTaunts map[string]string
+
+func (f fakeTaunts) TauntText(_ context.Context, id string) (string, bool) {
+	text, ok := f[id]
+	return text, ok
+}
+
+var testTaunts = fakeTaunts{"hurry_up": "زود باش!", "good_game": "بازی خوبی بود"}
+
 func startedTauntRoom(t *testing.T, perks fakePerks) (*Room, *Client, *Client) {
 	t.Helper()
-	hub := NewHub(RoomDeps{Perks: perks})
+	hub := NewHub(RoomDeps{Perks: perks, Taunts: testTaunts})
 	room := hub.GetOrCreateRoom("taunt-room", "classic")
 	c1, c2 := newTestClient(room, "p1"), newTestClient(room, "p2")
 	if err := room.Join(c1); err != nil {
@@ -51,8 +61,8 @@ func TestTauntPremiumBroadcastsToBoth(t *testing.T) {
 
 	for _, c := range []*Client{c1, c2} {
 		m := findType(drainAll(c), "taunt")
-		if m == nil || m.Taunt != "hurry_up" || m.PlayerID != "p1" {
-			t.Fatalf("expected taunt hurry_up from p1, got %+v", m)
+		if m == nil || m.Taunt != "hurry_up" || m.PlayerID != "p1" || m.Text != "زود باش!" {
+			t.Fatalf("expected taunt hurry_up (with its text) from p1, got %+v", m)
 		}
 	}
 }

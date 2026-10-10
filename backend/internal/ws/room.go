@@ -59,8 +59,10 @@ type outMsg struct {
 	// Payment receipt, sent only to the player who used the power-up.
 	Coins     *int `json:"coins,omitempty"`
 	Remaining *int `json:"remaining,omitempty"`
-	// Preset taunt ID (taunt) — the text is rendered client-side.
+	// Preset taunt ID (taunt) plus its text, so a client with a stale catalogue
+	// can still show a taunt added after it last fetched.
 	Taunt string `json:"taunt,omitempty"`
+	Text  string `json:"text,omitempty"`
 }
 
 type gameStartState struct {
@@ -125,8 +127,15 @@ type RoomDeps struct {
 	StreakSvc      StreakRecorder
 	LeaderboardSvc LeaderboardUpdater
 	XPSvc          XPRecorder
-	Coins          CoinLedger // nil disables entry fees (tests)
-	Perks          PerkLookup // nil disables premium perks (tests)
+	Coins          CoinLedger  // nil disables entry fees (tests)
+	Perks          PerkLookup  // nil disables premium perks (tests)
+	Taunts         TauntLookup // nil disables taunts (tests)
+}
+
+// TauntLookup resolves a taunt id to its Persian text; false means unknown.
+// Implemented by service.CatalogService.
+type TauntLookup interface {
+	TauntText(ctx context.Context, id string) (string, bool)
 }
 
 // PerkLookup resolves premium status and avatars. Implemented by
@@ -555,9 +564,16 @@ func receiptRemaining(rc *PowerupReceipt) *int {
 
 // processTaunt relays a preset taunt to the room. It is a premium perk: the
 // sender's subscription is checked server-side on every send, the ID must be in
-// config.TauntIDs, and sends are cooldown- and count-limited per player.
+// the taunts catalogue, and sends are cooldown- and count-limited per player.
 func (r *Room) processTaunt(client *Client, taunt string) {
-	if !config.TauntIDs[taunt] {
+	var text string
+	known := false
+	if r.deps.Taunts != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		text, known = r.deps.Taunts.TauntText(ctx, taunt)
+		cancel()
+	}
+	if !known {
 		slog.Warn("ws: unknown taunt", "taunt", taunt, "userID", client.userID)
 		return
 	}
@@ -601,7 +617,7 @@ func (r *Room) processTaunt(client *Client, taunt string) {
 	r.tauntLast[client.userID] = now
 	r.tauntCount[client.userID]++
 
-	r.broadcast(mustMarshal(outMsg{Type: "taunt", PlayerID: client.userID, Taunt: taunt}))
+	r.broadcast(mustMarshal(outMsg{Type: "taunt", PlayerID: client.userID, Taunt: taunt, Text: text}))
 }
 
 // perkState returns the premium player IDs and avatar map for game_start.

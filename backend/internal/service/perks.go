@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/repository"
 )
 
@@ -19,10 +18,11 @@ var (
 // granted server-side only (premium_until); no client call can set it.
 type PerksService struct {
 	userRepo *repository.UserRepository
+	catalog  *CatalogService
 }
 
-func NewPerksService(userRepo *repository.UserRepository) *PerksService {
-	return &PerksService{userRepo: userRepo}
+func NewPerksService(userRepo *repository.UserRepository, catalog *CatalogService) *PerksService {
+	return &PerksService{userRepo: userRepo, catalog: catalog}
 }
 
 // PerksStatus is what GET /profile/perks returns.
@@ -48,7 +48,7 @@ func (s *PerksService) Status(ctx context.Context, userID string) (*PerksStatus,
 // SetAvatar validates the avatar against the catalogue and stores it for an
 // active premium user (ErrNotPremium otherwise).
 func (s *PerksService) SetAvatar(ctx context.Context, userID, avatarID string) error {
-	if !config.AvatarIDs[avatarID] {
+	if !s.catalog.AvatarExists(ctx, avatarID) {
 		return ErrInvalidAvatar
 	}
 	return s.userRepo.SetAvatar(ctx, userID, avatarID)

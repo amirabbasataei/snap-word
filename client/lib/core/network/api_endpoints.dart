@@ -21,6 +21,8 @@ abstract final class ApiEndpoints {
   static const String profileUsername = '$_base/profile/username';
   static const String profilePerks = '$_base/profile/perks';
   static const String profileAvatar = '$_base/profile/avatar';
+  static const String perksCatalog = '$_base/perks/catalog';
+  static String avatarImage(String id) => '$_base/avatars/$id/image';
   static const String powerupInventory = '$_base/powerup/inventory';
   static const String powerupUse = '$_base/powerup/use';
   static const String rewardedAdClaim = '$_base/rewarded-ad/claim';

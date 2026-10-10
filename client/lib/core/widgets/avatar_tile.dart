@@ -3,11 +3,13 @@ import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/utils/premium_catalog.dart';
+import 'package:wordchain/core/services/perks_catalog_service.dart';
 
 /// Rounded-square initial avatar (32–64px). The accent is derived from the
-/// name so the same person always gets the same tile colour. A known premium
-/// [avatarId] swaps the initial for that avatar's illustration.
+/// name so the same person always gets the same tile colour. A premium
+/// [avatarId] swaps the initial for that avatar's image, loaded from the
+/// server; the initial stays visible while it loads or if it can't be fetched
+/// (offline, or the avatar was removed from the catalogue).
 class AvatarTile extends StatelessWidget {
   final String name;
   final double size;
@@ -30,16 +32,24 @@ class AvatarTile extends StatelessWidget {
       (z.coral, z.onCoral, z.coralDeep),
     ];
     final trimmed = name.trim();
-    final hasArt = PremiumCatalog.hasAvatar(avatarId);
+    final id = avatarId;
+    final hasArt = id != null && id.isNotEmpty;
     final index =
         hasArt
-            ? PremiumCatalog.avatarIndex(avatarId!) % accents.length
+            ? id.codeUnits.fold<int>(0, (sum, c) => sum + c) % accents.length
             : trimmed.isEmpty
             ? 0
             : trimmed.codeUnitAt(0) % accents.length;
     final (bg, onColor, deep) = accents[index];
     final initial =
         trimmed.isEmpty ? '؟' : trimmed.substring(0, 1).toUpperCase();
+    final initialText = Text(
+      initial,
+      style: ZTypography.cardTitle.copyWith(
+        color: onColor,
+        fontSize: size * 0.4,
+      ),
+    );
     final radius = (size * (ZRadius.tileMax / ZTileSize.heroMax)).clamp(
       ZRadius.tileMin,
       ZRadius.tileMax,
@@ -57,20 +67,21 @@ class AvatarTile extends StatelessWidget {
       ),
       child:
           hasArt
-              ? Image.asset(
-                PremiumCatalog.avatarAsset(avatarId!),
+              ? Image.network(
+                avatarImageUrl(id),
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
+                // Fade-in is skipped on purpose: the initial is the placeholder.
+                frameBuilder:
+                    (context, child, frame, wasSynchronouslyLoaded) =>
+                        frame == null && !wasSynchronouslyLoaded
+                            ? initialText
+                            : child,
+                errorBuilder: (context, error, stackTrace) => initialText,
               )
-              : Text(
-                initial,
-                style: ZTypography.cardTitle.copyWith(
-                  color: onColor,
-                  fontSize: size * 0.4,
-                ),
-              ),
+              : initialText,
     );
   }
 }

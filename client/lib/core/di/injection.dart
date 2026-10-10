@@ -4,6 +4,7 @@ import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/dio_client.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
+import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
@@ -111,6 +112,11 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   // Friends
   getIt.registerLazySingleton<FriendsRepository>(
     () => FriendsRepository(dio: getIt<DioClient>().dio),
+  );
+
+  // Premium taunt / avatar catalogue (server-managed)
+  getIt.registerLazySingleton<PerksCatalogService>(
+    () => PerksCatalogService(dio: getIt<DioClient>().dio, prefs: prefs),
   );
 
   // Profile

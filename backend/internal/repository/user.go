@@ -395,8 +395,10 @@ func (r *UserRepository) GetPerks(ctx context.Context, userIDs []string) (map[st
 	if len(userIDs) == 0 {
 		return result, nil
 	}
-	const q = `SELECT id, COALESCE(avatar_id, '') FROM users
-		WHERE id = ANY($1) AND premium_until IS NOT NULL AND premium_until > now()`
+	// The join drops an avatar that was removed from the catalogue.
+	const q = `SELECT u.id, COALESCE(a.id, '') FROM users u
+		LEFT JOIN avatars a ON a.id = u.avatar_id
+		WHERE u.id = ANY($1) AND u.premium_until IS NOT NULL AND u.premium_until > now()`
 	rows, err := r.db.QueryContext(ctx, q, pq.Array(userIDs))
 	if err != nil {
 		return nil, fmt.Errorf("GetPerks: %w", err)

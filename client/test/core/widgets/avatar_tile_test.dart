@@ -10,20 +10,23 @@ void main() {
     expect(find.text('S'), findsOneWidget);
   });
 
-  testWidgets('a known avatar id replaces the initial with its image', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      zTestApp(const AvatarTile(name: 'sara', avatarId: 'lion')),
-    );
-    expect(find.byType(Image), findsOneWidget);
-    expect(find.text('S'), findsNothing);
-  });
+  testWidgets(
+    'an avatar id loads its image, keeping the initial as placeholder',
+    (tester) async {
+      await tester.pumpWidget(
+        zTestApp(const AvatarTile(name: 'sara', avatarId: 'lion')),
+      );
+      expect(find.byType(Image), findsOneWidget);
+      // Tests have no network, so the image never arrives: the initial shows.
+      expect(find.text('S'), findsOneWidget);
+    },
+  );
 
-  testWidgets('an unknown avatar id falls back to the initial', (tester) async {
+  testWidgets('an empty avatar id is treated as no avatar', (tester) async {
     await tester.pumpWidget(
-      zTestApp(const AvatarTile(name: 'sara', avatarId: 'nope')),
+      zTestApp(const AvatarTile(name: 'sara', avatarId: '')),
     );
+    expect(find.byType(Image), findsNothing);
     expect(find.text('S'), findsOneWidget);
   });
 }

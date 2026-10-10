@@ -11,7 +11,6 @@ import 'package:wordchain/core/services/ai_opponent.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
-import 'package:wordchain/core/utils/premium_catalog.dart';
 import 'package:wordchain/features/game/bloc/game_event.dart';
 import 'package:wordchain/features/game/bloc/game_state.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
@@ -474,9 +473,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   void _onTauntSent(TauntSent event, Emitter<GameState> emit) {
     final active = state;
     if (active is! GameActive || !_isMultiplayer) return;
-    if (!PremiumCatalog.taunts.containsKey(event.tauntId)) return;
-    // The server re-checks the subscription and answers with `taunt` (echoed
-    // to both players) or `taunt_rejected`.
+    if (event.tauntId.isEmpty) return;
+    // The server owns the catalogue: it ignores unknown ids, re-checks the
+    // subscription and answers with `taunt` (echoed to both players) or
+    // `taunt_rejected`.
     _wsService.send({'type': 'send_taunt', 'taunt': event.tauntId});
   }
 
@@ -1016,10 +1016,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final active = state;
     if (active is! GameActive) return;
     final id = data['taunt'] as String? ?? '';
-    if (!PremiumCatalog.taunts.containsKey(id)) return;
+    // The server sends the text with the id, so a taunt added after this
+    // client last fetched the catalogue still shows.
+    final text = data['text'] as String? ?? '';
+    if (id.isEmpty || text.isEmpty) return;
     emit(
       active.copyWith(
         taunt: id,
+        tauntText: text,
         tauntFromMe: (data['player_id'] as String? ?? '') == _myPlayerId,
       ),
     );
