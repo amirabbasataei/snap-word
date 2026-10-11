@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly ArvanCloud IP range refresh
+
+[Timer]
+OnCalendar=Mon *-*-* 02:00:00 UTC
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

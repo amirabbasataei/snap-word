@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly backup restore test (Friday 01:00 UTC, after that night's backup)
+
+[Timer]
+OnCalendar=Fri *-*-* 01:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

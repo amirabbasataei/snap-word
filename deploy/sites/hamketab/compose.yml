@@ -1,0 +1,37 @@
+# /opt/hamketab/compose.yml on the production host — Ham-Ketab API (varaqa.ir).
+# Secrets and APP_IMAGE live in the root-only /opt/hamketab/.env; the SPA is
+# served by host nginx from /opt/hamketab/web. Postgres is the shared infra
+# instance (host "postgres", database/role "hamketab").
+#
+# INTERIM (2026-10-11): runs the build that was already on the server
+# (./legacy = the old /opt/hamketab checkout, mounted read-only) in a stock
+# node image. Once the hamketab repo ships its own image, set APP_IMAGE to it
+# and delete the `working_dir`, `command` and `volumes` lines (and ./legacy).
+# The canonical copy of this file should then move into the hamketab repo.
+name: hamketab
+
+services:
+  api:
+    image: ${APP_IMAGE:?set APP_IMAGE in /opt/hamketab/.env}
+    working_dir: /app/apps/api
+    command: ["node", "dist/main.js"]
+    volumes:
+      - ./legacy:/app:ro
+    env_file: .env
+    ports:
+      - "127.0.0.1:13000:3000"   # nginx is the only public entry; Docker bypasses ufw
+    networks: [infra]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  infra:
+    external: true

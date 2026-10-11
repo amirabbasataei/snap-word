@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# OPTIONAL off-server copy, run after every successful backup with BACKUP_DIR set.
+# Enable: copy to /opt/infra/post-backup.d/offsite.sh, fill in ONE option, chmod +x.
+# Credentials stay on the server (root-only); never commit them.
+set -euo pipefail
+
+# Option A — another machine over SSH (create a dedicated key with ssh-keygen and
+# add it to that machine's authorized_keys, ideally restricted with rrsync):
+#   rsync -a --delete "$BACKUP_DIR/../" backup@HOST:/srv/backups/zanjir-host/daily/
+
+# Option B — S3-compatible object storage (e.g. ArvanCloud Object Storage) with rclone:
+#   apt-get install -y rclone && rclone config   # create a remote named "offsite"
+#   rclone copy "$BACKUP_DIR" "offsite:BUCKET/infra/$(basename "$BACKUP_DIR")"
+#   (set a lifecycle rule on the bucket for retention)

@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly backup of the shared Postgres and site hooks
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/infra/bin/pg-backup
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# Sets up a new site on this host: database + role, /opt/<name> skeleton with a
+# root-only .env and compose.yml, a loopback port, and an nginx site file.
+#
+#   new-site <name> <domain> [<domain>...] [options]
+#     --mode proxy|spa|static   proxy: everything → app (default)
+#                               spa:   /opt/<name>/web static + /api/ → app
+#                               static: files only (no app, no port)
+#     --port N                  loopback port (default: next free from 14000)
+#     --app-port N              port the app listens on inside its container (default 3000)
+#     --postgis                 enable PostGIS in the database
+#     --no-db                   skip database creation
+#     --dry-run                 print what would be done
+#
+# Example: new-site shop shop.ir www.shop.ir --mode spa
+# Afterwards: point DNS at ArvanCloud, ship the image, set APP_IMAGE, docker compose up -d.
+# See docs/server-runbook.md in the word-chain repo.
+set -euo pipefail
+INFRA=/opt/infra
+die() { echo "new-site: $*" >&2; exit 1; }
+usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-1}"; }
+
+name=""; domains=(); mode=proxy; port=""; app_port=3000; postgis=""; db=1; dry=0
+while (($#)); do
+  case "$1" in
+    --mode) mode="$2"; shift 2 ;;
+    --port) port="$2"; shift 2 ;;
+    --app-port) app_port="$2"; shift 2 ;;
+    --postgis) postgis=--postgis; shift ;;
+    --no-db) db=0; shift ;;
+    --dry-run) dry=1; shift ;;
+    -h|--help) usage 0 ;;
+    -*) die "unknown option $1" ;;
+    *) if [[ -z "$name" ]]; then name="$1"; else domains+=("$1"); fi; shift ;;
+  esac
+done
+[[ "$name" =~ ^[a-z][a-z0-9_]{1,30}$ ]] || die "name must match ^[a-z][a-z0-9_]{1,30}\$ (it is also the DB name)"
+((${#domains[@]})) || die "at least one domain is required"
+for d in "${domains[@]}"; do [[ "$d" =~ ^([a-z0-9-]+\.)+[a-z]{2,}$ ]] || die "bad domain: $d"; done
+[[ "$mode" =~ ^(proxy|spa|static)$ ]] || die "--mode must be proxy, spa or static"
+[[ "$app_port" =~ ^[0-9]+$ ]] || die "--app-port must be a number"
+[[ $EUID -eq 0 ]] || die "run as root"
+dir="/opt/$name"
+[[ -e "$dir" ]] && die "$dir already exists"
+[[ -e "/etc/nginx/sites-available/$name" || -e "/etc/nginx/snippets/site-$name.conf" ]] && die "nginx site $name already exists"
+for d in "${domains[@]}"; do
+  grep -rqsw -- "server_name.*$d" /etc/nginx/sites-enabled/ && die "$d is already served by another site"
+done
+[[ "$mode" == static ]] && db=0
+
+touch "$INFRA/ports"
+if [[ "$mode" != static ]]; then
+  if [[ -z "$port" ]]; then
+    port=14000; while grep -q "^$port " "$INFRA/ports" || ss -ltn | grep -q ":$port "; do port=$((port+1)); done
+  fi
+  [[ "$port" =~ ^[0-9]+$ ]] || die "--port must be a number"
+  grep -q "^$port " "$INFRA/ports" && die "port $port is taken: $(grep "^$port " "$INFRA/ports")"
+fi
+
+echo "site:     $name"
+echo "domains:  ${domains[*]}"
+echo "mode:     $mode${port:+, app on 127.0.0.1:$port (container port $app_port)}"
+echo "database: $([[ $db == 1 ]] && echo "$name (role $name)${postgis:+ + PostGIS}" || echo none)"
+((dry)) && exit 0
+
+today="$(date -u +%F)"
+render() { sed -e "s|__NAME__|$name|g" -e "s|__DOMAINS__|${domains[*]}|g" -e "s|__PORT__|$port|g" -e "s|__DATE__|$today|g" "$1"; }
+
+# Database first: it is the step most likely to fail, and nothing else exists yet.
+pw=""
+[[ $db == 1 ]] && pw="$("$INFRA/bin/site-db" create "$name" $postgis)"
+
+install -d -m 755 "$dir"
+[[ "$mode" != proxy ]] && install -d -m 755 "$dir/web" && echo "<!doctype html><title>$name</title><p>$name is set up." > "$dir/web/index.html"
+umask 077
+{
+  echo "# /opt/$name/.env — root-only secrets for $name. Created by new-site on $today."
+  echo "# Never commit this file. Rotate the DB password with: site-db password $name"
+  if [[ "$mode" != static ]]; then
+    echo "APP_IMAGE="
+    echo "APP_PORT=$app_port"
+  fi
+  if [[ $db == 1 ]]; then
+    echo "DATABASE_URL=postgres://$name:$pw@postgres:5432/$name?sslmode=disable"
+    echo "DB_HOST=postgres"; echo "DB_PORT=5432"; echo "DB_NAME=$name"; echo "DB_USER=$name"; echo "DB_PASSWORD=$pw"
+  fi
+} > "$dir/.env"
+chmod 600 "$dir/.env"
+umask 022
+[[ "$mode" != static ]] && render "$INFRA/templates/compose.yml" > "$dir/compose.yml"
+[[ "$mode" != static ]] && echo "$port $name" >> "$INFRA/ports"
+
+render "$INFRA/templates/body-$mode.conf" > "/etc/nginx/snippets/site-$name.conf"
+render "$INFRA/templates/server-http.conf" > "/etc/nginx/sites-available/$name"
+ln -s "/etc/nginx/sites-available/$name" "/etc/nginx/sites-enabled/$name"
+if ! nginx -t -q 2>/dev/null; then
+  nginx -t || true
+  rm -f "/etc/nginx/sites-enabled/$name"
+  die "nginx -t failed; site disabled (files kept: $dir, sites-available/$name, snippets/site-$name.conf)"
+fi
+systemctl reload nginx
+
+cat <<MSG
+
+Done. Next steps:
+  1. ArvanCloud: add the domain(s), switch nameservers, A record → $(curl -fs -m 5 https://api.ipify.org || echo "this server's IP"), proxy ON.
+$( [[ "$mode" != static ]] && cat <<APP
+  2. Ship the app image from your machine:
+       docker build --platform linux/amd64 -t $name:\$(git rev-parse --short HEAD) .
+       docker save $name:<tag> | gzip | ssh root@<host> 'gunzip | docker load'
+  3. On the server: set APP_IMAGE=$name:<tag> (and app settings) in $dir/.env, then
+       cd $dir && docker compose up -d && curl -s 127.0.0.1:$port/
+APP
+)
+$( [[ "$mode" != proxy ]] && echo "  •  Static files go to $dir/web/ (rsync -a --delete dist/ root@<host>:$dir/web/)." )
+  •  nginx: locations in /etc/nginx/snippets/site-$name.conf, server block in sites-available/$name.
+  •  HTTPS (once DNS resolves through ArvanCloud): site-https $name
+  •  Backups: the database is included in the nightly backup automatically.
+MSG

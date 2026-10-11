@@ -1,0 +1,9 @@
+[Unit]
+Description=Restore the newest backup into scratch databases and verify it
+Requires=docker.service
+After=docker.service infra-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/infra/bin/pg-restore-test
+Nice=10

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Manages per-site databases on the shared infra Postgres.
+#
+#   site-db create   <name> [--postgis]  create login role + database <name>; prints the password
+#   site-db password <name>              rotate the role's password; prints it
+#   site-db drop     <name>              drop database and role (asks for confirmation)
+#   site-db list                         databases with owner and size
+#
+# The role owns its database, is not a superuser, and no other role may CONNECT
+# to it. Passwords travel to psql on stdin, never in argv.
+set -euo pipefail
+source "$(dirname "$(readlink -f "$0")")/lib-pg.sh"
+die() { echo "site-db: $*" >&2; exit 1; }
+genpw() { openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32; }
+valid() { [[ "$1" =~ ^[a-z][a-z0-9_]{1,30}$ ]] || die "name must match ^[a-z][a-z0-9_]{1,30}\$"; }
+exists() { [[ "$(psql_su -d postgres -c "select 1 from pg_database where datname='$1'")" == 1 ]]; }
+
+cmd="${1:-}"; name="${2:-}"
+case "$cmd" in
+  create)
+    valid "$name"; exists "$name" && die "database $name already exists"
+    pw="$(genpw)"
+    psql_in -d postgres <<SQL
+\set pw '$pw'
+CREATE ROLE "$name" LOGIN PASSWORD :'pw' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+CREATE DATABASE "$name" OWNER "$name";
+REVOKE ALL ON DATABASE "$name" FROM PUBLIC;
+SQL
+    psql_su -d "$name" -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS pgcrypto;' >/dev/null
+    if [[ "${3:-}" == --postgis ]]; then
+      # PostGIS is not a trusted extension, so the superuser creates it.
+      psql_su -d "$name" -c 'CREATE EXTENSION IF NOT EXISTS postgis;' >/dev/null
+    fi
+    echo "$pw" ;;
+  password)
+    valid "$name"
+    pw="$(genpw)"
+    psql_in -d postgres <<SQL
+\set pw '$pw'
+ALTER ROLE "$name" PASSWORD :'pw';
+SQL
+    echo "$pw" ;;
+  drop)
+    valid "$name"; exists "$name" || die "no database $name"
+    read -r -p "Type the name to drop database AND role '$name': " confirm
+    [[ "$confirm" == "$name" ]] || die "aborted"
+    psql_su -d postgres -c "DROP DATABASE \"$name\" WITH (FORCE);" -c "DROP ROLE \"$name\";" ;;
+  list)
+    psql_su -d postgres -F $'\t' -c "select datname, pg_get_userbyid(datdba), pg_size_pretty(pg_database_size(datname)) from pg_database where not datistemplate order by 1" ;;
+  *) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac

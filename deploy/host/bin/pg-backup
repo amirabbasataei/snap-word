@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Nightly backup of the shared Postgres (run by infra-backup.timer).
+#
+# Writes /var/backups/infra/daily/<UTC stamp>/: globals.sql, <db>.dump (pg_dump -Fc)
+# for every database, plus whatever /opt/infra/backup.d/*.sh hooks add (e.g. Redis).
+# Fridays (end of the Iranian week) are also kept under weekly/. Retention:
+# KEEP_DAILY (7) and KEEP_WEEKLY (4). Then /opt/infra/post-backup.d/*.sh run with
+# BACKUP_DIR set — put an off-server copy there (see offsite.sh.example).
+set -euo pipefail
+ROOT="${BACKUP_ROOT:-/var/backups/infra}"
+KEEP_DAILY="${KEEP_DAILY:-7}"; KEEP_WEEKLY="${KEEP_WEEKLY:-4}"
+source "$(dirname "$(readlink -f "$0")")/lib-pg.sh"
+stamp="$(date -u +%Y-%m-%dT%H%M%SZ)"
+dir="$ROOT/daily/$stamp"; tmp="$dir.partial"
+umask 077
+mkdir -p "$ROOT/daily" "$ROOT/weekly" "$tmp"
+
+docker exec "$PG" pg_dumpall -U postgres --globals-only > "$tmp/globals.sql"
+dbs="$(docker exec "$PG" psql -U postgres -tAc "select datname from pg_database where not datistemplate and datname <> 'postgres' order by 1")"
+for db in $dbs; do
+  table_counts "$db" > "$tmp/$db.counts"   # what pg-restore-test expects back
+  docker exec "$PG" pg_dump -U postgres -Fc "$db" > "$tmp/$db.dump"
+done
+for hook in /opt/infra/backup.d/*.sh; do
+  if [[ -x "$hook" ]]; then BACKUP_DIR="$tmp" "$hook"; fi
+done
+(cd "$tmp" && sha256sum -- * > SHA256SUMS)
+mv "$tmp" "$dir"
+if [[ "$(date -u +%u)" == 5 ]]; then cp -al "$dir" "$ROOT/weekly/$stamp"; fi
+
+# Keep the newest $2 backups in $1 (and drop leftovers of interrupted runs).
+prune() {
+  find "$1" -mindepth 1 -maxdepth 1 -type d -name '*.partial' -exec rm -rf {} +
+  find "$1" -mindepth 1 -maxdepth 1 -type d | sort | head -n "-$2" | xargs -r rm -rf
+}
+prune "$ROOT/daily" "$KEEP_DAILY"
+prune "$ROOT/weekly" "$KEEP_WEEKLY"
+
+for hook in /opt/infra/post-backup.d/*.sh; do
+  if [[ -x "$hook" ]]; then BACKUP_DIR="$dir" "$hook"; fi
+done
+echo "backup ok: $dir ($(du -sh "$dir" | cut -f1); databases: $(echo $dbs))"

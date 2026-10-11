@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly infra backup (00:00 UTC = 03:30 Iran)
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 UTC
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

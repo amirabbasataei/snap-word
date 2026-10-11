@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Issues a Let's Encrypt certificate for a site and enables its HTTPS server.
+#
+#   site-https <name> [--staging] [--dry-run]
+#
+# Domains come from the server_name of /etc/nginx/sites-available/<name>.
+# HTTP-01 via webroot (/var/www/acme, served by snippets/acme.conf), so it works
+# behind ArvanCloud as long as the edge forwards /.well-known/acme-challenge/
+# over plain HTTP (don't enable the edge "HTTPS redirect" before this succeeds).
+# Writes sites-available/<name>-https (never touched by install.sh). Renewal:
+# certbot.timer + a deploy hook that reloads nginx. HTTP is NOT redirected here;
+# turn on ArvanCloud's HTTPS redirect at the edge once HTTPS works end to end.
+# Set CERTBOT_EMAIL to register an expiry-notice address.
+set -euo pipefail
+INFRA=/opt/infra
+die() { echo "site-https: $*" >&2; exit 1; }
+name="${1:-}"; shift || true
+staging=(); dry=0
+for a in "$@"; do case "$a" in --staging) staging=(--test-cert) ;; --dry-run) dry=1 ;; *) die "unknown option $a" ;; esac; done
+[[ "$name" =~ ^[a-z][a-z0-9_]{1,30}$ ]] || { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+site="/etc/nginx/sites-available/$name"
+[[ -f "$site" ]] || die "no $site"
+[[ -f "/etc/nginx/snippets/site-$name.conf" ]] || die "no snippets/site-$name.conf (site predates the new-site layout)"
+read -r -a domains <<<"$(grep -m1 -E '^\s*server_name' "$site" | sed -E 's/^\s*server_name\s+//; s/;.*//')"
+((${#domains[@]})) || die "no server_name in $site"
+echo "domains: ${domains[*]}"
+command -v certbot >/dev/null || { apt-get install -y -qq certbot >/dev/null; }
+mkdir -p /var/www/acme /etc/letsencrypt/renewal-hooks/deploy
+printf '#!/bin/sh\nsystemctl reload nginx\n' > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+args=(certonly --webroot -w /var/www/acme --cert-name "$name" --non-interactive --agree-tos --keep-until-expiring "${staging[@]}")
+if [[ -n "${CERTBOT_EMAIL:-}" ]]; then args+=(-m "$CERTBOT_EMAIL"); else args+=(--register-unsafely-without-email); fi
+for d in "${domains[@]}"; do args+=(-d "$d"); done
+((dry)) && args+=(--dry-run)
+certbot "${args[@]}"
+((dry)) && exit 0
+sed -e "s|__NAME__|$name|g" -e "s|__DOMAINS__|${domains[*]}|g" -e "s|__DATE__|$(date -u +%F)|g" \
+  "$INFRA/templates/server-https.conf" > "$site-https"
+ln -sf "$site-https" "/etc/nginx/sites-enabled/$name-https"
+if nginx -t -q 2>/dev/null; then systemctl reload nginx; echo "HTTPS enabled for ${domains[*]}"
+else nginx -t || true; rm -f "/etc/nginx/sites-enabled/$name-https"; die "nginx -t failed; HTTPS server disabled"; fi

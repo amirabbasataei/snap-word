@@ -1,0 +1,20 @@
+# /opt/__NAME__/compose.yml — created by new-site on __DATE__.
+# Images are built elsewhere and shipped: docker save IMAGE | ssh HOST docker load
+# then set APP_IMAGE in .env and run: docker compose up -d
+name: __NAME__
+
+services:
+  app:
+    image: ${APP_IMAGE:?set APP_IMAGE in /opt/__NAME__/.env}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:__PORT__:${APP_PORT:-3000}"   # loopback only: Docker bypasses ufw
+    networks: [default, infra]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  infra:
+    external: true   # shared Postgres is reachable as host "postgres"

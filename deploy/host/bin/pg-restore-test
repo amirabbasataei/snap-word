@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Restores every dump of a backup into a throwaway database and checks it:
+# FAIL if the set of tables differs from <db>.counts (recorded at backup time),
+# WARN if only row counts differ (rows written while the dump ran).
+# Run weekly by infra-restore-test.timer; exits non-zero on any FAIL.
+#   pg-restore-test [backup dir]   (default: newest /var/backups/infra/daily/*)
+set -euo pipefail
+source "$(dirname "$(readlink -f "$0")")/lib-pg.sh"
+dir="${1:-$(ls -1d /var/backups/infra/daily/*/ | grep -v partial | sort | tail -1)}"
+dir="${dir%/}"
+(cd "$dir" && sha256sum --quiet -c SHA256SUMS) || { echo "FAIL checksum mismatch in $dir" >&2; exit 1; }
+echo "restore test of $dir"
+fail=0
+for f in "$dir"/*.dump; do
+  db="$(basename "$f" .dump)"; t="restoretest_$db"
+  psql_su -d postgres -c "DROP DATABASE IF EXISTS \"$t\";" -c "CREATE DATABASE \"$t\";"
+  # Extensions need the superuser; create the ones the dump uses before restoring.
+  for ext in $(docker exec -i "$PG" pg_restore -l < "$f" | awk '$4=="EXTENSION"{print $6}' | sort -u); do
+    psql_su -d "$t" -c "CREATE EXTENSION IF NOT EXISTS \"$ext\";" >/dev/null
+  done
+  errs=0
+  docker exec -i "$PG" pg_restore -U postgres --no-owner --no-acl -d "$t" < "$f" 2>"/tmp/restore-$db.err" \
+    || errs="$(grep -c '^pg_restore: error' "/tmp/restore-$db.err" || true)"
+  restored="$(table_counts "$t")"
+  psql_su -d postgres -c "DROP DATABASE \"$t\";"
+  expected="$(cat "$dir/$db.counts" 2>/dev/null || true)"
+  if [[ "$restored" == "$expected" ]]; then
+    echo "OK   $db: $(wc -l <<<"$restored") tables, rows match ($errs restore errors)"
+  elif diff -q <(cut -d= -f1 <<<"$restored") <(cut -d= -f1 <<<"$expected") >/dev/null; then
+    echo "WARN $db: same tables, some row counts differ"; diff <(echo "$expected") <(echo "$restored") | head -10
+  else
+    echo "FAIL $db: tables differ from the backup's record"; fail=1
+    diff <(echo "$expected") <(echo "$restored") | head -20; head -5 "/tmp/restore-$db.err"
+  fi
+done
+exit $fail

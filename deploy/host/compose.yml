@@ -1,0 +1,54 @@
+# Shared infrastructure for every site on this host. Installed at /opt/infra.
+#   docker compose -f /opt/infra/compose.yml up -d
+# Sites reach Postgres as host "postgres" on the external network "infra".
+name: infra
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.5   # PostgreSQL 16.9 + PostGIS 3.5
+    container_name: infra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in /opt/infra/.env}
+      POSTGRES_DB: postgres
+    # Sized for a 2 GB host shared with ~3 small apps.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - max_connections=60
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - log_min_duration_statement=1000
+      - -c
+      - log_connections=off
+    shm_size: 256mb
+    ports:
+      - "127.0.0.1:5432:5432" # SSH tunnels only; ufw is bypassed by Docker, so never 0.0.0.0
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [infra]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  pgdata:
+
+networks:
+  infra:
+    name: infra

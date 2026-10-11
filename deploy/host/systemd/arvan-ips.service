@@ -1,0 +1,8 @@
+[Unit]
+Description=Refresh nginx real-IP trust list from ArvanCloud's published ranges
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/infra/bin/arvan-ips-refresh
