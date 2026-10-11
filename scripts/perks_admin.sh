@@ -15,8 +15,8 @@
 #
 # By default the request runs ON the production host over SSH against the app's
 # loopback port, with ADMIN_API_KEY read from /opt/wordchain/.env there — the key
-# never crosses the network. (Add `ADMIN_API_KEY=<key>` to that .env and to the
-# app's `environment:` in the server's compose file, then `docker compose up -d app`.)
+# never crosses the network (ADMIN_API_KEY is set there and wired in
+# deploy/sites/wordchain/compose.yml).
 # Local backend instead:
 #   WORDCHAIN_API=http://localhost:8080 ADMIN_API_KEY=<key> bash scripts/perks_admin.sh list
 # Override the host with WORDCHAIN_HOST (default root@185.110.191.158).
