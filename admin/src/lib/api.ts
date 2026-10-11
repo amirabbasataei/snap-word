@@ -1,7 +1,6 @@
-import { withPrefix } from './base'
 import { ApiError } from './errors'
 
-const BASE = withPrefix('/api/v1/admin')
+const BASE = '/api/v1/admin'
 const CSRF_HEADER = 'X-Requested-With'
 const CSRF_VALUE = 'zanjir-admin'
 
