@@ -32,7 +32,7 @@ Internet ─► ArvanCloud CDN ─► host nginx :80/:443 (only public web entry
 |---|---|---|---|
 | 22 | public | sshd | key-only |
 | 80, 443 | public | nginx | per-site `server_name`; default server drops |
-| 8080 | public | nginx | legacy Zanjir URL for installed apps — remove once migrated |
+| 8080 | closed | (was) legacy Zanjir URL — nginx server removed 2026-10-13 |
 | 5432 | 127.0.0.1 | infra-postgres | tunnel only |
 | 18080 | 127.0.0.1 | wordchain app | |
 | 13000 | 127.0.0.1 | hamketab api | |

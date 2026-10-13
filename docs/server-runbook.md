@@ -29,7 +29,7 @@ CLI on the server (all in `/usr/local/sbin`): `new-site`, `site-https`, `site-db
 |---|---|---|
 | 22 | public | sshd (keys only) |
 | 80, 443 | public | nginx |
-| 8080 | public | nginx → Zanjir (legacy URL of installed apps; drop with `ufw delete allow 8080/tcp` + the :8080 server in `deploy/host/nginx/sites/zanjir.conf` once clients migrated) |
+| 8080 | closed | legacy Zanjir URL — nginx server removed 2026-10-13 (no installed clients); the leftover `ufw allow 8080/tcp` rule can be deleted |
 | 5432 | 127.0.0.1 | infra-postgres (`ssh -L 5432:127.0.0.1:5432 root@185.110.191.158` for a GUI client) |
 | 18080 | 127.0.0.1 | Zanjir app |
 | 13000 | 127.0.0.1 | Ham-Ketab API |
@@ -86,10 +86,11 @@ iptables rules and bypasses ufw.
 - **ArvanCloud edge (panel, per domain):** *HTTPS settings* → enable HTTPS and issue the free
   edge certificate; *Origin/Load balancer settings* → origin protocol **HTTPS** (port 443)
   once the origin cert exists, otherwise HTTP. Only then turn on the edge *HTTP→HTTPS
-  redirect*, and later HSTS. The origin never redirects (it can't tell what the visitor used
-  except via `X-Forwarded-Proto`, which it passes to apps as `$edge_proto`).
-- After HTTPS works end to end, switch the Zanjir client default to `https://` and drop
-  the Android cleartext permission.
+  redirect*, and later HSTS. The Zanjir :80 server redirects to HTTPS itself when `$edge_proto` (from
+  `X-Forwarded-Proto`, else the scheme) is `http` — ACME challenges are exempt, requests the
+  edge forwards for HTTPS visitors are not redirected (verified 2026-10-13, no loop).
+  Other sites still don't redirect.
+- Zanjir client default is `https://`; Android cleartext is allowed only in the debug manifest.
 
 ## Backups
 
@@ -121,7 +122,7 @@ Rotate a DB password: `site-db password <name>` → put it in `/opt/<name>/.env`
 
 ## Security baseline
 
-- ufw: deny incoming except 22, 80, 443, 8080. sshd: keys only, `PermitRootLogin prohibit-password`
+- ufw: deny incoming except 22, 80, 443 (a stale 8080 allow rule may remain; nothing listens). sshd: keys only, `PermitRootLogin prohibit-password`
   (`/etc/ssh/sshd_config.d/00-hardening.conf`).
 - nginx: unknown Host → 444, unknown SNI → handshake rejected; real client IP only from
   ArvanCloud ranges ([official list](https://www.arvancloud.ir/en/ips.txt), refreshed weekly by

@@ -176,4 +176,4 @@ Backend + the four `/content/*` pages built as specified, with these decisions/d
 
 ## Deployment note (2026-10-11)
 
-The `/zanjir` URL prefix (`PANEL_PREFIX`, `lib/base.ts`) was removed: Zanjir now owns `amirabbasataei.ir`, so the panel is served at `/admin/` on the backend's own origin (`http://amirabbasataei.ir/admin/`, legacy `:8080/admin/`). Production deploys build the image locally (`scripts/deploy_backend.sh`); host layout in `docs/server-runbook.md`.
+The `/zanjir` URL prefix (`PANEL_PREFIX`, `lib/base.ts`) was removed: Zanjir now owns `amirabbasataei.ir`, so the panel is served at `/admin/` on the backend's own origin (`https://amirabbasataei.ir/admin/`, legacy `:8080/admin/`). Production deploys build the image locally (`scripts/deploy_backend.sh`); host layout in `docs/server-runbook.md`.
