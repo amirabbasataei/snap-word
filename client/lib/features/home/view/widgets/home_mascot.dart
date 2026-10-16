@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/features/home/view/widgets/chunky.dart';
 import 'package:wordchain/features/home/view/widgets/home_motion.dart';
 
@@ -144,18 +143,6 @@ class HomeMascot extends StatelessWidget {
                   cheek(8),
                   cheek(62),
                   Positioned(left: 30, top: 46, child: _Mouth(mood: mood)),
-                  PositionedDirectional(
-                    end: 7,
-                    bottom: 4,
-                    child: Text(
-                      'ز',
-                      style: ZTypography.button.copyWith(
-                        fontSize: 16,
-                        height: 1,
-                        color: z.onAmber,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
