@@ -284,25 +284,7 @@ class _ChainRow extends StatelessWidget {
     final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ChunkyBox(
-          fill: z.surface,
-          depth: 0,
-          circle: true,
-          highlight: false,
-          borderWidth: ZGame.outlineInner,
-          width: ZGame.gameRowIndex,
-          height: ZGame.gameRowIndex,
-          alignment: Alignment.center,
-          child: Text(
-            toPersianDigits(index + 1),
-            style: TextStyle(
-              color: z.ink,
-              fontWeight: FontWeight.w900,
-              fontSize: 13,
-              height: 1,
-            ),
-          ),
-        ),
+        _IndexPeg(number: index + 1),
         const SizedBox(width: 10),
         Flexible(child: face),
         const SizedBox(width: 10),
@@ -432,43 +414,68 @@ class _NextSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final zs = context.zs;
     return SizedBox(
       height: ZGame.gameRowTileLast,
       child: Center(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CustomPaint(
-              painter: DashedBorderPainter(
-                radius: ZGame.gameRowIndex / 2,
-                color: zs.chain,
-                strokeWidth: ZGame.outlineInner,
-                dashWidth: 5,
-                dashGap: 3,
-              ),
-              child: SizedBox(
-                width: ZGame.gameRowIndex,
-                height: ZGame.gameRowIndex,
-                child: Center(
-                  child: Text(
-                    toPersianDigits(number),
-                    style: TextStyle(
-                      color: z.ink,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            _IndexPeg(number: number, dashed: true),
             const SizedBox(width: 10),
             Flexible(child: ZNextLetterSlot(letter: letter)),
             const SizedBox(width: 10 + ZGame.gamePointsWidth),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The numbered circle at the start of a spine row: solid for a played word,
+/// dashed (the chain colour) for the slot that is still to be filled.
+class _IndexPeg extends StatelessWidget {
+  final int number;
+  final bool dashed;
+
+  const _IndexPeg({required this.number, this.dashed = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    final label = Text(
+      toPersianDigits(number),
+      style: TextStyle(
+        color: z.ink,
+        fontWeight: FontWeight.w900,
+        fontSize: 13,
+        height: 1,
+      ),
+    );
+    if (!dashed) {
+      return ChunkyBox(
+        fill: z.surface,
+        depth: 0,
+        circle: true,
+        highlight: false,
+        borderWidth: ZGame.outlineInner,
+        width: ZGame.gameRowIndex,
+        height: ZGame.gameRowIndex,
+        alignment: Alignment.center,
+        child: label,
+      );
+    }
+    return CustomPaint(
+      painter: DashedBorderPainter(
+        radius: ZGame.gameRowIndex / 2,
+        color: context.zs.chain,
+        strokeWidth: ZGame.outlineInner,
+        dashWidth: 5,
+        dashGap: 3,
+      ),
+      child: SizedBox(
+        width: ZGame.gameRowIndex,
+        height: ZGame.gameRowIndex,
+        child: Center(child: label),
       ),
     );
   }

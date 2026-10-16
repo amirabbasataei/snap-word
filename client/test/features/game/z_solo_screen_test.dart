@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,33 +9,9 @@ import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/game/view/z_solo_screen.dart';
 
+import '../../helpers/contrast.dart';
+import '../../helpers/game_fakes.dart';
 import '../../helpers/z_test_app.dart';
-
-class _FakeAuth extends Fake implements AuthCubit {
-  @override
-  AuthState get state => const AuthGuest();
-
-  @override
-  Stream<AuthState> get stream => const Stream.empty();
-}
-
-/// Records the events the screen adds; the screen reads state from its
-/// constructor, so nothing else is needed.
-class _FakeGame extends Fake implements GameBloc {
-  final events = <GameEvent>[];
-
-  @override
-  void add(GameEvent event) => events.add(event);
-
-  @override
-  GameState get state => const GameInitial();
-
-  @override
-  Stream<GameState> get stream => const Stream.empty();
-
-  @override
-  Future<void> close() async {}
-}
 
 GameActive _state({
   String mode = 'classic',
@@ -85,7 +59,7 @@ Widget _screen(
   Brightness brightness = Brightness.light,
   bool reduceMotion = false,
 }) => BlocProvider<GameBloc>.value(
-  value: _FakeGame(),
+  value: FakeGameBloc(),
   child: zTestApp(
     Builder(
       builder:
@@ -106,23 +80,11 @@ Future<void> _size(WidgetTester tester, double w, double h) async {
   addTearDown(tester.view.reset);
 }
 
-double _lum(Color c) {
-  double ch(double v) =>
-      v <= .03928 ? v / 12.92 : math.pow((v + .055) / 1.055, 2.4).toDouble();
-  return .2126 * ch(c.r) + .7152 * ch(c.g) + .0722 * ch(c.b);
-}
-
-double _contrast(Color a, Color b) {
-  final l1 = _lum(a);
-  final l2 = _lum(b);
-  return (math.max(l1, l2) + .05) / (math.min(l1, l2) + .05);
-}
-
 void main() {
   setUpAll(loadVazirmatn);
 
   setUp(() {
-    GetIt.I.registerSingleton<AuthCubit>(_FakeAuth());
+    GetIt.I.registerSingleton<AuthCubit>(FakeAuthCubit());
   });
   tearDown(() => GetIt.I.reset());
 
@@ -220,7 +182,7 @@ void main() {
       tester,
     ) async {
       await _size(tester, 393, 852);
-      final bloc = _FakeGame();
+      final bloc = FakeGameBloc();
       final s = _state(next: 'س');
       await tester.pumpWidget(
         BlocProvider<GameBloc>.value(
@@ -326,25 +288,31 @@ void main() {
           zs.amberInk,
         ]) {
           expect(
-            _contrast(ink, zs.tile),
+            contrastRatio(ink, zs.tile),
             greaterThanOrEqualTo(4.5),
             reason: '$ink',
           );
         }
-        expect(_contrast(z.ink, zs.tile), greaterThanOrEqualTo(4.5));
+        expect(contrastRatio(z.ink, zs.tile), greaterThanOrEqualTo(4.5));
         // HUD text on surface.
-        expect(_contrast(z.ink, z.surface), greaterThanOrEqualTo(4.5));
-        expect(_contrast(z.ink60, z.surface), greaterThanOrEqualTo(4.5));
-        expect(_contrast(zs.coralInk, z.surface), greaterThanOrEqualTo(4.5));
-        // Points pill, badges, mistake banner, slot label.
+        expect(contrastRatio(z.ink, z.surface), greaterThanOrEqualTo(4.5));
+        expect(contrastRatio(z.ink60, z.surface), greaterThanOrEqualTo(4.5));
         expect(
-          _contrast(z.onInkSurface, z.inkSurface),
+          contrastRatio(zs.coralInk, z.surface),
           greaterThanOrEqualTo(4.5),
         );
-        expect(_contrast(z.onAmber, z.amber), greaterThanOrEqualTo(4.5));
-        expect(_contrast(zs.coralInk, z.tintCoral), greaterThanOrEqualTo(4.5));
+        // Points pill, badges, mistake banner, slot label.
+        expect(
+          contrastRatio(z.onInkSurface, z.inkSurface),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(contrastRatio(z.onAmber, z.amber), greaterThanOrEqualTo(4.5));
+        expect(
+          contrastRatio(zs.coralInk, z.tintCoral),
+          greaterThanOrEqualTo(4.5),
+        );
         // Letter tile (large text, 3:1).
-        expect(_contrast(z.onTeal, z.teal), greaterThanOrEqualTo(3));
+        expect(contrastRatio(z.onTeal, z.teal), greaterThanOrEqualTo(3));
       });
     }
   });

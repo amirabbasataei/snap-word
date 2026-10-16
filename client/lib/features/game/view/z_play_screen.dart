@@ -13,7 +13,6 @@ import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_bubbles.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_scaffold.dart';
-import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 
 const _difficultyLabels = {
   'ai_easy': 'آسان',
@@ -90,50 +89,30 @@ class _Header extends StatelessWidget {
     final level = _difficultyLabels[state.opponentType] ?? '';
     final tier = _difficultyTiers[state.opponentType] ?? 1;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              ZGameBackButton(onTap: () => zShowEndGameDialog(context)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ZVersusPill(
-                  myAvatar:
-                      (size) =>
-                          ZDiscAvatar.me(context, letter: initial, size: size),
-                  myLabel: 'تو',
-                  myScore: state.score,
-                  opponentAvatar:
-                      (size) => ZDiscAvatar.robot(context, size: size),
-                  opponentLabel: level,
-                  opponentScore: state.opponentScore,
-                  myTurn: state.isMyTurn,
-                  myTurnLabel: 'نوبت تو',
-                  opponentTurnLabel: 'نوبت حریف',
-                ),
-              ),
-              const SizedBox(width: 10),
-              ZTimerRing(
-                secondsRemaining: state.turnTimeRemaining,
-                totalSeconds: GameConstants.classicTurnTimerSec,
-                calm: true,
-                paused: !state.isMyTurn,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _LevelChip(level: level, tier: tier),
-              const _BonusChip(),
-            ],
-          ),
-        ],
+    return ZGameHeader(
+      center: ZVersusPill(
+        myAvatar:
+            (size) => ZDiscAvatar.me(context, letter: initial, size: size),
+        myLabel: 'تو',
+        myScore: state.score,
+        opponentAvatar: (size) => ZDiscAvatar.robot(context, size: size),
+        opponentLabel: level,
+        opponentScore: state.opponentScore,
+        myTurn: state.isMyTurn,
+        myTurnLabel: 'نوبت تو',
+        opponentTurnLabel: 'نوبت حریف',
+      ),
+      ring: ZTimerRing(
+        secondsRemaining: state.turnTimeRemaining,
+        totalSeconds: GameConstants.classicTurnTimerSec,
+        calm: true,
+        paused: !state.isMyTurn,
+      ),
+      below: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 6,
+        children: [_LevelChip(level: level, tier: tier), const _BonusChip()],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 
@@ -37,6 +38,44 @@ class ZGameScaffold extends StatelessWidget {
               child: Column(children: [header, Expanded(child: body), footer]),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Top of the active-game screens: the back button (ends the game after a
+/// confirmation), the [center] widget (score pill) and the timer [ring] on one
+/// row, then [below] (chips) 12dp lower.
+class ZGameHeader extends StatelessWidget {
+  final Widget center;
+  final Widget ring;
+  final Widget below;
+
+  const ZGameHeader({
+    super.key,
+    required this.center,
+    required this.ring,
+    required this.below,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ZGameBackButton(onTap: () => zShowEndGameDialog(context)),
+              const SizedBox(width: 10),
+              Expanded(child: center),
+              const SizedBox(width: 10),
+              ring,
+            ],
+          ),
+          const SizedBox(height: 12),
+          below,
         ],
       ),
     );
