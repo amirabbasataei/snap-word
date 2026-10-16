@@ -34,6 +34,9 @@ class ZScene extends ThemeExtension<ZScene> {
   final Color tealInk;
   final Color coralInk;
 
+  /// Amber linking letters (ZSolo chain tiles, canvas turn 7 `--amberInk`).
+  final Color amberInk;
+
   /// Neutral chain link (peg → first word).
   final Color chain;
   final Color glow;
@@ -72,6 +75,7 @@ class ZScene extends ThemeExtension<ZScene> {
     required this.indigoInk,
     required this.tealInk,
     required this.coralInk,
+    required this.amberInk,
     required this.chain,
     required this.glow,
     required this.rays,
@@ -101,6 +105,7 @@ class ZScene extends ThemeExtension<ZScene> {
     indigoInk: Color(0xFF3546B8),
     tealInk: Color(0xFF0E8071),
     coralInk: Color(0xFFC22E22),
+    amberInk: Color(0xFF9A5C06),
     chain: Color(0xFF6B6780),
     glow: Color(0xF2FFECAA),
     rays: Color(0x73F5A524),
@@ -130,6 +135,7 @@ class ZScene extends ThemeExtension<ZScene> {
     indigoInk: Color(0xFF98A3F5),
     tealInk: Color(0xFF4FD3BC),
     coralInk: Color(0xFFFF8A7E),
+    amberInk: Color(0xFFF7B44A),
     chain: Color(0xFF8E8799),
     glow: Color(0x8CF7B44A),
     rays: Color(0x4DF7B44A),
@@ -160,6 +166,7 @@ class ZScene extends ThemeExtension<ZScene> {
     Color? indigoInk,
     Color? tealInk,
     Color? coralInk,
+    Color? amberInk,
     Color? chain,
     Color? glow,
     Color? rays,
@@ -188,6 +195,7 @@ class ZScene extends ThemeExtension<ZScene> {
       indigoInk: indigoInk ?? this.indigoInk,
       tealInk: tealInk ?? this.tealInk,
       coralInk: coralInk ?? this.coralInk,
+      amberInk: amberInk ?? this.amberInk,
       chain: chain ?? this.chain,
       glow: glow ?? this.glow,
       rays: rays ?? this.rays,
@@ -222,6 +230,7 @@ class ZScene extends ThemeExtension<ZScene> {
       indigoInk: c(indigoInk, other.indigoInk),
       tealInk: c(tealInk, other.tealInk),
       coralInk: c(coralInk, other.coralInk),
+      amberInk: c(amberInk, other.amberInk),
       chain: c(chain, other.chain),
       glow: c(glow, other.glow),
       rays: c(rays, other.rays),

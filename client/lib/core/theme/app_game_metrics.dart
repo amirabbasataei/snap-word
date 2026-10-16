@@ -68,6 +68,28 @@ abstract final class ZGame {
   static const dockTileTop = -15.0;
   static const dockBadge = 22.0;
 
+  // ZSolo / game screens (canvas turn 7, `ZSoloA`).
+  static const gameBackButton = 44.0;
+  static const gameScorePillHeight = 50.0;
+  static const gameTimerRing = 60.0;
+  static const gameTimerCore = 42.0;
+  static const gameChipHeight = 36.0;
+  static const gameHeartWidth = 22.0;
+  static const gameHeartHeight = 20.0;
+  static const gameRowTile = 44.0;
+  static const gameRowTileLast = 56.0;
+  static const gameRowIndex = 30.0;
+  static const gamePointsWidth = 44.0;
+  static const gameLinkWidth = 14.0;
+  static const gameLinkHeight = 28.0;
+  static const gameInputHeight = 66.0;
+  static const gameInputRadius = 22.0;
+  static const gameSendWidth = 52.0;
+  static const gameSendHeight = 50.0;
+  static const gamePowerTile = 66.0;
+  static const gamePowerDisc = 32.0;
+  static const gamePowerBadge = 24.0;
+
   /// Smallest label size on the home screen (the canvas has 10px labels).
   static const minLabel = 11.5;
 }

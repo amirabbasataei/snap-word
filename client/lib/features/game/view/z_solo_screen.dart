@@ -2,25 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_chain.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 
-const _accentCycle = [
-  ZAccent.indigo,
-  ZAccent.teal,
-  ZAccent.amber,
-  ZAccent.coral,
-];
-
-/// ZSolo — the true solo (no opponent) active-game screen: vertical spine
-/// chain renderer, stat strip (chain length / personal record / lives),
-
+/// ZSolo — the true solo (no opponent) active-game screen in the "A ·
+/// mascot-led" language (canvas turn 7, `ZSoloA`): calm sky scene, floating
+/// chunky HUD (back, score pill, countdown ring, lives, words/record), the
+/// linked word-tile chain, then the input card and power-ups. Also used by
+/// the Daily Challenge (same screen, different subtitle).
 class ZSoloActiveScreen extends StatefulWidget {
   final GameActive state;
 
@@ -46,25 +44,42 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
         setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
       }
     } catch (_) {
-      // Best-effort — stat strip just shows ۰ until this resolves.
+      // Best-effort — the record chip just shows ۰ until this resolves.
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
     final state = widget.state;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _Header(state: state, recordChainLength: _recordChainLength),
-            Expanded(child: _ChainList(state: state)),
-            _Footer(state: state, recordChainLength: _recordChainLength),
-          ],
-        ),
+      backgroundColor: context.zs.sky3,
+      // The scene stays put behind the keyboard; the content pads itself.
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: HomeSceneBackground(calm: true)),
+          Padding(
+            padding: EdgeInsets.only(bottom: keyboard),
+            child: SafeArea(
+              bottom: keyboard == 0,
+              child: Column(
+                children: [
+                  _Header(state: state, record: _recordChainLength),
+                  Expanded(
+                    child: ZSpineChain(
+                      words: state.wordChain,
+                      scores: state.wordScores,
+                      nextStartLetter: state.nextStartLetter,
+                    ),
+                  ),
+                  _Footer(state: state, keyboardOpen: keyboard > 0),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -72,516 +87,116 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
 
 class _Header extends StatelessWidget {
   final GameActive state;
-  final int recordChainLength;
+  final int record;
 
-  const _Header({required this.state, required this.recordChainLength});
+  const _Header({required this.state, required this.record});
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
     final isDaily = state.mode == 'daily';
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-      ),
-      decoration: BoxDecoration(
-        color: z.surface,
-        border: Border(bottom: BorderSide(color: z.line)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ZBackButton(onTap: () => zShowEndGameDialog(context)),
-              const SizedBox(width: ZSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isDaily ? 'چالش روزانه' : 'تک‌نفره',
-                      style: ZTypography.cardTitle.copyWith(
-                        color: z.ink,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    // Daily is a fixed, once-a-day variant — no mode toggle
-                    // (switching would silently abandon the tracked attempt).
-                    if (isDaily)
-                      Text(
-                        'روزی یک بار · حداکثر ${toPersianDigits(GameConstants.dailyMaxWords)} کلمه',
-                        style: ZTypography.metaLabel.copyWith(
-                          color: z.ink40,
-                          fontSize: 11.5,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    else
-                      Text(
-                        'بی‌وقفه · بدون حریف',
-                        style: ZTypography.metaLabel.copyWith(
-                          color: z.ink40,
-                          fontSize: 11.5,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    toPersianDigits(state.score),
-                    style: ZTypography.cardTitle.copyWith(
-                      color: z.ink,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    'امتیاز',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.ink40,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _StatTile(
-                  value: toPersianDigits(state.wordChain.length),
-                  label: 'طول زنجیر',
-                ),
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: _StatTile(
-                  value: toPersianDigits(recordChainLength),
-                  label: 'رکورد تو',
-                  valueColor: z.teal,
-                ),
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: _LivesTile(
-                  livesRemaining: state.livesRemaining,
-                  maxLives: GameConstants.soloLives,
-                ),
-              ),
-            ],
-          ),
-          ZTimerRow(
-            secondsRemaining: state.turnTimeRemaining,
-            totalSeconds: GameConstants.classicTurnTimerSec,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color? valueColor;
-
-  const _StatTile({required this.value, required this.label, this.valueColor});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: z.paper,
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: z.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: ZTypography.cardTitle.copyWith(
-              color: valueColor ?? z.ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          Text(
-            label,
-            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LivesTile extends StatelessWidget {
-  final int livesRemaining;
-  final int maxLives;
-
-  const _LivesTile({required this.livesRemaining, required this.maxLives});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: z.paper,
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: z.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < maxLives; i++) ...[
-                Container(
-                  width: 9,
-                  height: 12,
-                  margin: EdgeInsetsDirectional.only(
-                    end: i == maxLives - 1 ? 0 : 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: i < livesRemaining ? z.coral : z.wash,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            '${toPersianDigits(livesRemaining)} جان',
-            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The graduated size/opacity ramp for the last N words — matches the
-/// canvas exactly; entries further back than the window render at the
-/// dimmest/smallest step (a sensible fade floor for a long chain).
-const _rampSizes = [26.0, 26.0, 26.0, 26.0, 28.0, 28.0, 30.0, 30.0];
-const _rampFonts = [16.0, 16.0, 16.0, 17.0, 18.0, 18.0, 19.0, 20.0];
-const _rampOpacity = [.4, .45, .5, .58, .68, .78, .88, 1.0];
-
-class _ChainList extends StatefulWidget {
-  final GameActive state;
-
-  const _ChainList({required this.state});
-
-  @override
-  State<_ChainList> createState() => _ChainListState();
-}
-
-class _ChainListState extends State<_ChainList> {
-  final _scrollController = ScrollController();
-
-  @override
-  void didUpdateWidget(_ChainList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.state.wordChain.length != oldWidget.state.wordChain.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = widget.state;
-    final chain = state.wordChain;
-
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-        ZSpacing.screenGutter,
-        0,
-      ),
-      children: [
-        for (var i = 0; i < chain.length; i++) ...[
-          _ChainRow(
-            index: i,
-            word: chain[i],
-            score: i < state.wordScores.length ? state.wordScores[i] : null,
-            distanceFromEnd: chain.length - 1 - i,
-          ),
-          if (i < chain.length - 1) const _ChainGap(),
-        ],
-        if (chain.isNotEmpty) const SizedBox(height: ZSpacing.lg),
-        _NextWordRow(nextStartLetter: state.nextStartLetter),
-        const SizedBox(height: ZSpacing.lg),
-      ],
-    );
-  }
-}
-
-class _ChainGap extends StatelessWidget {
-  const _ChainGap();
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SizedBox(
-      height: 13,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 32,
-            child: Center(
-              child: Container(width: 2, height: 13, color: z.line),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChainRow extends StatelessWidget {
-  final int index;
-  final String word;
-  final int? score;
-  final int distanceFromEnd;
-
-  const _ChainRow({
-    required this.index,
-    required this.word,
-    required this.score,
-    required this.distanceFromEnd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final accent = _accentCycle[index % _accentCycle.length];
-
-    if (distanceFromEnd == 0) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: ZSpacing.md),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 32,
-              child: Center(
-                child: LetterTile(letter: word[0], size: 32, accent: accent),
-              ),
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      word,
-                      style: ZTypography.chainWordActive.copyWith(
-                        color: z.ink,
-                        fontSize: 24,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: ZSpacing.sm),
-                  if (score != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: z.tintTeal,
-                        borderRadius: BorderRadius.circular(ZRadius.chip),
-                      ),
-                      child: Text(
-                        '‎+${toPersianDigits(score!)} · تازه',
-                        style: ZTypography.metaLabel.copyWith(
-                          color: z.teal,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final rampIndex = (_rampSizes.length - 1 - distanceFromEnd).clamp(
-      0,
-      _rampSizes.length - 1,
-    );
-    final size = _rampSizes[rampIndex];
-    final fontSize = _rampFonts[rampIndex];
-    final opacity = _rampOpacity[rampIndex];
+    final compact = MediaQuery.sizeOf(context).width < 350;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: ZSpacing.md),
-      child: Opacity(
-        opacity: opacity,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 32,
-              child: Center(
-                child: LetterTile(letter: word[0], size: size, accent: accent),
-              ),
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      word,
-                      style: ZTypography.chainWordHistory.copyWith(
-                        color: z.ink,
-                        fontSize: fontSize,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ZGameBackButton(onTap: () => zShowEndGameDialog(context)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Center(
+                  child: ZScorePill(
+                    score: state.score,
+                    title: isDaily ? 'چالش روزانه' : 'تک‌نفره',
+                    // Daily is a fixed, once-a-day variant — no mode toggle
+                    // (switching would silently abandon the tracked attempt).
+                    subtitle:
+                        isDaily
+                            ? 'حداکثر ${toPersianDigits(GameConstants.dailyMaxWords)} کلمه'
+                            : '${toPersianDigits(GameConstants.classicTurnTimerSec)} ثانیه',
+                    compact: compact,
                   ),
-                  const SizedBox(width: ZSpacing.sm),
-                  if (score != null)
-                    Text(
-                      '${toPersianDigits(index + 1)} · ‎+${toPersianDigits(score!)}',
-                      style: ZTypography.metaLabel.copyWith(
-                        color: z.ink40,
-                        fontSize: 10.5,
-                      ),
-                    ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 10),
+              ZTimerRing(
+                secondsRemaining: state.turnTimeRemaining,
+                totalSeconds: GameConstants.classicTurnTimerSec,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ZLivesChip(
+                lives: state.livesRemaining,
+                maxLives: GameConstants.soloLives,
+              ),
+              const SizedBox(width: 8),
+              ZWordsChip(words: state.wordChain.length, record: record),
+            ],
+          ),
+        ],
       ),
-    );
-  }
-}
-
-class _NextWordRow extends StatelessWidget {
-  final String? nextStartLetter;
-
-  const _NextWordRow({required this.nextStartLetter});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Row(
-      children: [
-        SizedBox(
-          width: 32,
-          child: Center(
-            child: ZDashedTile(letter: nextStartLetter ?? '؟', size: 34),
-          ),
-        ),
-        const SizedBox(width: ZSpacing.md),
-        Expanded(
-          child: Text(
-            nextStartLetter != null
-                ? 'حالا کلمه‌ای با «$nextStartLetter»'
-                : 'اولین کلمه رو بنویس',
-            style: ZTypography.body.copyWith(
-              color: z.ink40,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
 
 class _Footer extends StatelessWidget {
   final GameActive state;
-  final int recordChainLength;
+  final bool keyboardOpen;
 
-  const _Footer({required this.state, required this.recordChainLength});
+  const _Footer({required this.state, required this.keyboardOpen});
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
+    final zs = context.zs;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-      ),
-      decoration: BoxDecoration(
-        color: z.surface,
-        border: Border(top: BorderSide(color: z.line)),
-      ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14, 0, 14, keyboardOpen ? 8 : 18),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (state.lastMistakeReason != null) ...[
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: ZSpacing.sm),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: z.tintCoral,
-                borderRadius: BorderRadius.circular(ZRadius.tileMax),
-              ),
-              child: Text(
-                'کلمهٔ اشتباه — یک جان از دست دادی!',
-                textAlign: TextAlign.center,
-                style: ZTypography.metaLabel.copyWith(
-                  color: z.coral,
-                  fontWeight: FontWeight.w700,
+          if (state.lastMistakeReason != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: ChunkyBox(
+                fill: z.tintCoral,
+                depth: ZGame.depthSm,
+                radius: 14,
+                highlight: false,
+                borderWidth: ZGame.outlineInner,
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Text(
+                  'کلمهٔ اشتباه — یک جان از دست دادی!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: zs.coralInk,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
-          ],
-          ZPowerupBar(
-            state: state,
-            types: const ['hint', 'extra_time', 'shield'],
-          ),
-          const SizedBox(height: ZSpacing.md),
           ZWordInput(
+            chunky: true,
             startLetter: state.nextStartLetter,
             enabled: state.isMyTurn,
             hintWord: state.hintWord,
             onSubmit:
                 (word) => context.read<GameBloc>().add(WordSubmitted(word)),
+          ),
+          const SizedBox(height: 14),
+          ZPowerupBar(
+            state: state,
+            types: const ['hint', 'extra_time', 'shield'],
+            chunky: true,
           ),
         ],
       ),

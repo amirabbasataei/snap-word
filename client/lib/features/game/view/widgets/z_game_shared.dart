@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:wordchain/core/widgets/z_icon.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_power.dart';
+import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
@@ -298,7 +303,16 @@ class ZPowerupBar extends StatelessWidget {
   final GameActive state;
   final List<String> types;
 
-  const ZPowerupBar({super.key, required this.state, required this.types});
+  /// Opt-in "A · mascot-led" look (chunky tiles). Default = legacy tiles, so
+  /// ZPlay / ZVersus are unchanged until they are restyled.
+  final bool chunky;
+
+  const ZPowerupBar({
+    super.key,
+    required this.state,
+    required this.types,
+    this.chunky = false,
+  });
 
   static const _labels = {
     'hint': 'راهنما',
@@ -357,6 +371,27 @@ class ZPowerupBar extends StatelessWidget {
     // solo / vs-AI keep it tappable to offer the rewarded ad.
     if (cantAfford && state.isMultiplayer) enabled = false;
 
+    void onTap() {
+      if (cantAfford) {
+        _showNeedCoinsSheet(context, type, cost - coins);
+      } else {
+        context.read<GameBloc>().add(PowerupRequested(type));
+      }
+    }
+
+    if (chunky) {
+      return ZChunkyPowerupTile(
+        type: type,
+        count: owned,
+        label: _labels[type]!,
+        enabled: enabled,
+        dimmed: cantAfford,
+        priceLabel:
+            !isGuest && owned == 0 ? '${toPersianDigits(cost)} سکه' : null,
+        onTap: onTap,
+      );
+    }
+
     return ZPowerupTile(
       icon: _icon(context, type),
       count: owned,
@@ -365,13 +400,7 @@ class ZPowerupBar extends StatelessWidget {
       dimmed: cantAfford,
       priceLabel:
           !isGuest && owned == 0 ? '${toPersianDigits(cost)} سکه' : null,
-      onTap: () {
-        if (cantAfford) {
-          _showNeedCoinsSheet(context, type, cost - coins);
-        } else {
-          context.read<GameBloc>().add(PowerupRequested(type));
-        }
-      },
+      onTap: onTap,
     );
   }
 
@@ -536,6 +565,11 @@ class ZWordInput extends StatefulWidget {
   final bool isOpponentThinking;
   final String opponentLabel;
 
+  /// Opt-in "A · mascot-led" look: one chunky card with the required-letter
+  /// tile, the field and a teal send button. Typing is unchanged (the whole
+  /// word is entered; the tile is only a cue).
+  final bool chunky;
+
   const ZWordInput({
     super.key,
     this.startLetter,
@@ -544,6 +578,7 @@ class ZWordInput extends StatefulWidget {
     required this.onSubmit,
     this.isOpponentThinking = false,
     this.opponentLabel = 'حریف',
+    this.chunky = false,
   });
 
   @override
@@ -615,6 +650,8 @@ class _ZWordInputState extends State<ZWordInput> {
       );
     }
 
+    if (widget.chunky) return _buildChunky(context);
+
     return Row(
       children: [
         Expanded(
@@ -681,6 +718,104 @@ class _ZWordInputState extends State<ZWordInput> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildChunky(BuildContext context) {
+    final z = context.z;
+    final letter = widget.startLetter;
+    final ink = svgHex(widget.enabled ? z.onTeal : z.ink40);
+
+    return ChunkyBox(
+      fill: z.surface,
+      depth: ZGame.depthMd - 1,
+      radius: ZGame.gameInputRadius,
+      highlight: false,
+      height: ZGame.gameInputHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          if (letter != null) ...[
+            ChunkyBox(
+              fill: z.teal,
+              deep: z.tealDeep,
+              depth: ZGame.depthSm,
+              radius: 13,
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              child: Text(
+                letter,
+                style: TextStyle(
+                  color: z.onTeal,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 26,
+                  height: 1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              enabled: widget.enabled,
+              // Keyboard word suggestions would hand the player free answers.
+              autocorrect: false,
+              enableSuggestions: false,
+              enableIMEPersonalizedLearning: false,
+              textAlign: TextAlign.start,
+              textInputAction: TextInputAction.send,
+              cursorColor: z.teal,
+              cursorWidth: 3,
+              style: TextStyle(
+                color: z.ink,
+                fontWeight: FontWeight.w900,
+                fontSize: 26,
+                height: 1.3,
+              ),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                filled: false,
+                isCollapsed: true,
+                hintText:
+                    letter != null
+                        ? 'کلمه‌ای با «$letter»…'
+                        : 'اولین کلمه رو بنویس…',
+                hintStyle: TextStyle(
+                  color: z.ink60,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+          ),
+          const SizedBox(width: 10),
+          ChunkyPressable(
+            depth: ZGame.depthMd - 1,
+            onTap: widget.enabled ? _submit : null,
+            semanticLabel: 'بفرست',
+            builder:
+                (context, depth, _) => ChunkyBox(
+                  fill: widget.enabled ? z.teal : z.wash,
+                  deep: widget.enabled ? z.tealDeep : null,
+                  depth: widget.enabled ? depth : 0,
+                  radius: 16,
+                  highlight: widget.enabled,
+                  width: ZGame.gameSendWidth,
+                  height: ZGame.gameSendHeight,
+                  alignment: Alignment.center,
+                  child: SvgPicture.string(
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="$ink" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+                    width: 24,
+                    height: 24,
+                  ),
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

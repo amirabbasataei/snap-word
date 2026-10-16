@@ -8,8 +8,14 @@ import 'package:wordchain/features/home/view/widgets/home_motion.dart';
 /// letters, twinkling sparkles and an edge vignette. Positions are authored on
 /// the canvas' 396×812 frame and scaled to the real screen. Only the letters
 /// and sparkles move; everything else is static (and repaint-isolated).
+///
+/// [calm] is the quieter variant used behind game screens (canvas
+/// `<ZScene calm>`): no rings or sparkles, two softer blobs and four letters
+/// that only drift a few pixels.
 class HomeSceneBackground extends StatelessWidget {
-  const HomeSceneBackground({super.key});
+  final bool calm;
+
+  const HomeSceneBackground({super.key, this.calm = false});
 
   static const _designW = 396.0;
   static const _designH = 812.0;
@@ -52,11 +58,16 @@ class HomeSceneBackground extends StatelessWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    circle(-90, 420, 300, zs.blobIndigo),
-                    circle(396 + 110 - 280, 90, 280, zs.blobTeal),
-                    circle(8, 110, 380, zs.ring),
-                    circle(68, 170, 260, zs.ring),
-                    circle(128, 230, 140, zs.ring),
+                    if (calm) ...[
+                      circle(-90, 440, 300, zs.blobIndigo),
+                      circle(396 + 110 - 280, 70, 280, zs.blobTeal),
+                    ] else ...[
+                      circle(-90, 420, 300, zs.blobIndigo),
+                      circle(396 + 110 - 280, 90, 280, zs.blobTeal),
+                      circle(8, 110, 380, zs.ring),
+                      circle(68, 170, 260, zs.ring),
+                      circle(128, 230, 140, zs.ring),
+                    ],
                   ],
                 ),
               ),
@@ -67,105 +78,116 @@ class HomeSceneBackground extends StatelessWidget {
                       (context, ms, _) => Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          _letter(
-                            context,
-                            'م',
-                            x(24),
-                            y(96),
-                            16,
-                            ms,
-                            7200,
-                            0,
-                            alpha: .5,
-                          ),
-                          _letter(
-                            context,
-                            'ش',
-                            x(300),
-                            y(150),
-                            18,
-                            ms,
-                            8000,
-                            900,
-                            alpha: .5,
-                          ),
-                          _letter(
-                            context,
-                            'ل',
-                            x(200),
-                            y(470),
-                            15,
-                            ms,
-                            6800,
-                            300,
-                            alpha: .5,
-                          ),
-                          _letter(
-                            context,
-                            'ت',
-                            x(350),
-                            y(420),
-                            30,
-                            ms,
-                            5600,
-                            600,
-                            alpha: .8,
-                            rotation: 14,
-                          ),
-                          _letter(
-                            context,
-                            'د',
-                            x(10),
-                            y(300),
-                            28,
-                            ms,
-                            5200,
-                            1200,
-                            alpha: .8,
-                            rotation: -12,
-                          ),
-                          _letter(
-                            context,
-                            'ژ',
-                            x(-14),
-                            y(520),
-                            64,
-                            ms,
-                            4200,
-                            0,
-                            outlined: true,
-                            rotation: -16,
-                          ),
-                          _letter(
-                            context,
-                            'ق',
-                            x(338),
-                            y(250),
-                            54,
-                            ms,
-                            4600,
-                            700,
-                            outlined: true,
-                            rotation: 12,
-                          ),
-                          _sparkle(x(60), y(200), 16, context.z.amber, ms, 0),
-                          _sparkle(x(300), y(118), 12, context.z.teal, ms, 600),
-                          _sparkle(
-                            x(250),
-                            y(470),
-                            14,
-                            context.z.coral,
-                            ms,
-                            1200,
-                          ),
-                          _sparkle(
-                            x(110),
-                            y(440),
-                            11,
-                            context.z.indigo,
-                            ms,
-                            300,
-                          ),
+                          if (calm)
+                            ..._calmLetters(context, ms, x, y)
+                          else ...[
+                            _letter(
+                              context,
+                              'م',
+                              x(24),
+                              y(96),
+                              16,
+                              ms,
+                              7200,
+                              0,
+                              alpha: .5,
+                            ),
+                            _letter(
+                              context,
+                              'ش',
+                              x(300),
+                              y(150),
+                              18,
+                              ms,
+                              8000,
+                              900,
+                              alpha: .5,
+                            ),
+                            _letter(
+                              context,
+                              'ل',
+                              x(200),
+                              y(470),
+                              15,
+                              ms,
+                              6800,
+                              300,
+                              alpha: .5,
+                            ),
+                            _letter(
+                              context,
+                              'ت',
+                              x(350),
+                              y(420),
+                              30,
+                              ms,
+                              5600,
+                              600,
+                              alpha: .8,
+                              rotation: 14,
+                            ),
+                            _letter(
+                              context,
+                              'د',
+                              x(10),
+                              y(300),
+                              28,
+                              ms,
+                              5200,
+                              1200,
+                              alpha: .8,
+                              rotation: -12,
+                            ),
+                            _letter(
+                              context,
+                              'ژ',
+                              x(-14),
+                              y(520),
+                              64,
+                              ms,
+                              4200,
+                              0,
+                              outlined: true,
+                              rotation: -16,
+                            ),
+                            _letter(
+                              context,
+                              'ق',
+                              x(338),
+                              y(250),
+                              54,
+                              ms,
+                              4600,
+                              700,
+                              outlined: true,
+                              rotation: 12,
+                            ),
+                            _sparkle(x(60), y(200), 16, context.z.amber, ms, 0),
+                            _sparkle(
+                              x(300),
+                              y(118),
+                              12,
+                              context.z.teal,
+                              ms,
+                              600,
+                            ),
+                            _sparkle(
+                              x(250),
+                              y(470),
+                              14,
+                              context.z.coral,
+                              ms,
+                              1200,
+                            ),
+                            _sparkle(
+                              x(110),
+                              y(440),
+                              11,
+                              context.z.indigo,
+                              ms,
+                              300,
+                            ),
+                          ],
                         ],
                       ),
                 ),
@@ -182,6 +204,71 @@ class HomeSceneBackground extends StatelessWidget {
     );
   }
 
+  /// Canvas `data-a="drift"`: ±6px over 9s, four letters at fixed spots.
+  List<Widget> _calmLetters(
+    BuildContext context,
+    double ms,
+    double Function(double) x,
+    double Function(double) y,
+  ) {
+    return [
+      _letter(
+        context,
+        'د',
+        x(14),
+        y(150),
+        22,
+        ms,
+        9000,
+        0,
+        alpha: .45,
+        rotation: -12,
+        travel: 6,
+      ),
+      _letter(
+        context,
+        'ت',
+        x(356),
+        y(330),
+        24,
+        ms,
+        9000,
+        1500,
+        alpha: .45,
+        rotation: 14,
+        travel: 6,
+      ),
+      _letter(
+        context,
+        'ژ',
+        x(-18),
+        y(600),
+        60,
+        ms,
+        9000,
+        800,
+        outlined: true,
+        alpha: .6,
+        rotation: -16,
+        travel: 6,
+      ),
+      _letter(
+        context,
+        'ق',
+        x(350),
+        y(90),
+        48,
+        ms,
+        9000,
+        2400,
+        outlined: true,
+        alpha: .6,
+        rotation: 12,
+        travel: 6,
+      ),
+    ];
+  }
+
   Widget _letter(
     BuildContext context,
     String ch,
@@ -194,9 +281,10 @@ class HomeSceneBackground extends StatelessWidget {
     double alpha = 1,
     double rotation = 0,
     bool outlined = false,
+    double travel = 12,
   }) {
     final zs = context.zs;
-    final dy = -12 * HomeLoop.pingPong(ms, period, delayMs: delay);
+    final dy = -travel * HomeLoop.pingPong(ms, period, delayMs: delay);
     final style =
         outlined
             ? ZTypography.display.copyWith(
@@ -219,7 +307,10 @@ class HomeSceneBackground extends StatelessWidget {
       top: top + dy,
       child: Transform.rotate(
         angle: HomeLoop.deg(rotation),
-        child: Text(ch, style: style, textDirection: TextDirection.rtl),
+        child: Opacity(
+          opacity: outlined ? alpha : 1,
+          child: Text(ch, style: style, textDirection: TextDirection.rtl),
+        ),
       ),
     );
   }
