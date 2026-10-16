@@ -4,6 +4,7 @@ import 'package:wordchain/core/widgets/chunky_pressable.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_power.dart';
 import 'package:wordchain/core/widgets/motion.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -919,26 +920,18 @@ class _LongWordCue extends StatelessWidget {
             duration: duration,
             child: Semantics(
               label: label,
-              child: ChunkyBox(
+              child: ZChunkPill(
                 fill: z.amber,
-                depth: 0,
-                radius: 999,
-                highlight: false,
-                borderWidth: ZGame.outlineInner,
                 height: 26,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
-                // Not `alignment:` — that would stretch the tag across the card.
-                child: Center(
-                  widthFactor: 1,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: z.onAmber,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                      height: 1,
-                    ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: z.onAmber,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    height: 1,
                   ),
                 ),
               ),

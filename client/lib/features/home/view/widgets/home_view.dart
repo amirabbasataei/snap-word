@@ -3,7 +3,7 @@ import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/widgets/chunky_pressable.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
 import 'package:wordchain/features/home/view/widgets/home_hero.dart';
 import 'package:wordchain/features/home/view/widgets/home_hud.dart';
@@ -262,14 +262,13 @@ class _ResumeChip extends StatelessWidget {
         onTap: onTap,
         semanticLabel: label,
         builder:
-            (context, depth, pressed) => ChunkyBox(
+            (context, depth, pressed) => ZChunkPill(
               fill: z.surface,
               depth: depth,
-              radius: 999,
+              borderWidth: ZGame.outline,
               height: 40,
-              highlight: false,
               padding: const EdgeInsets.symmetric(horizontal: 18),
-              alignment: Alignment.center,
+              expand: true,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

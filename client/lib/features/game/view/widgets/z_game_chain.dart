@@ -5,6 +5,7 @@ import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/core/widgets/dashed_tile.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_scroll.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
@@ -108,12 +109,8 @@ class _EarlierChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final ink = svgHex(z.ink);
-    return ChunkyBox(
+    return ZChunkPill(
       fill: z.surface,
-      depth: 0,
-      radius: 999,
-      highlight: false,
-      borderWidth: ZGame.outlineInner,
       height: 28,
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
       child: Row(

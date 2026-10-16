@@ -8,6 +8,7 @@ import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/core/widgets/motion.dart';
 
 /// The chunky HUD pieces of the "A · mascot-led" game screens (canvas turn 7,
@@ -290,11 +291,10 @@ class ZLivesChip extends StatelessWidget {
     return Semantics(
       label: '${toPersianDigits(lives)} جان',
       excludeSemantics: true,
-      child: ChunkyBox(
+      child: ZChunkPill(
         fill: z.surface,
         depth: ZGame.depthSm,
-        radius: 999,
-        highlight: false,
+        borderWidth: ZGame.outline,
         height: ZGame.gameChipHeight,
         padding: const EdgeInsetsDirectional.symmetric(horizontal: 10),
         child: Row(
@@ -325,11 +325,10 @@ class ZWordsChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    return ChunkyBox(
+    return ZChunkPill(
       fill: z.surface,
       depth: ZGame.depthSm,
-      radius: 999,
-      highlight: false,
+      borderWidth: ZGame.outline,
       height: ZGame.gameChipHeight,
       padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
       child: Row(

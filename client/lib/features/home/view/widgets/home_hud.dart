@@ -8,6 +8,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/features/home/view/widgets/home_icons.dart';
 
 TextStyle _hudText(BuildContext context) => ZTypography.button.copyWith(
@@ -179,11 +180,10 @@ class _CoinPill extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                ChunkyBox(
+                ZChunkPill(
                   fill: z.surface,
-                  highlight: false,
                   depth: ZGame.depthSm,
-                  radius: 999,
+                  borderWidth: ZGame.outline,
                   height: ZGame.hudPill,
                   // 3 stroke + 4 padding + the coin's 16px of in-flow width.
                   padding: const EdgeInsetsDirectional.only(start: 20, end: 4),
@@ -260,11 +260,10 @@ class _StreakPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: 'رکورد روزهای پیاپی ${toPersianDigits(streak)}',
-      child: ChunkyBox(
+      child: ZChunkPill(
         fill: context.z.surface,
-        highlight: false,
         depth: ZGame.depthSm,
-        radius: 999,
+        borderWidth: ZGame.outline,
         height: ZGame.hudPill,
         padding: const EdgeInsetsDirectional.only(start: 10, end: 12),
         child: Row(

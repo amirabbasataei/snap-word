@@ -3,6 +3,7 @@ import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/core/widgets/z_disc_avatar.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_chain.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_scroll.dart';
@@ -101,25 +102,17 @@ class _StartChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    return ChunkyBox(
+    return ZChunkPill(
       fill: z.surface,
-      depth: 0,
-      radius: 999,
-      highlight: false,
-      borderWidth: ZGame.outlineInner,
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      // Not `alignment:` — that would stretch the chip across the chain.
-      child: Center(
-        widthFactor: 1,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: z.ink,
-            fontWeight: FontWeight.w800,
-            fontSize: 12,
-            height: 1,
-          ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: z.ink,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+          height: 1,
         ),
       ),
     );

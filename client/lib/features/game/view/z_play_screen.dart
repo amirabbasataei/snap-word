@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/avatar_initial.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/core/widgets/z_disc_avatar.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
@@ -133,12 +132,8 @@ class _LevelChip extends StatelessWidget {
       label:
           'حریف هوشمند · $level، سطح ${toPersianDigits(tier)} از ${toPersianDigits(3)}',
       excludeSemantics: true,
-      child: ChunkyBox(
+      child: ZChunkPill(
         fill: z.surface,
-        depth: 0,
-        radius: 999,
-        highlight: false,
-        borderWidth: ZGame.outlineInner,
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
@@ -179,25 +174,17 @@ class _BonusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    return ChunkyBox(
+    return ZChunkPill(
       fill: z.amber,
-      depth: 0,
-      radius: 999,
-      highlight: false,
-      borderWidth: ZGame.outlineInner,
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      // Not `alignment:` — that would stretch the chip across the Wrap.
-      child: Center(
-        widthFactor: 1,
-        child: Text(
-          '${toPersianDigits(GameConstants.longWordBonusMinLength)} حرف به بالا = دوبرابر',
-          style: TextStyle(
-            color: z.onAmber,
-            fontWeight: FontWeight.w900,
-            fontSize: 12.5,
-            height: 1,
-          ),
+      child: Text(
+        '${toPersianDigits(GameConstants.longWordBonusMinLength)} حرف به بالا = دوبرابر',
+        style: TextStyle(
+          color: z.onAmber,
+          fontWeight: FontWeight.w900,
+          fontSize: 12.5,
+          height: 1,
         ),
       ),
     );

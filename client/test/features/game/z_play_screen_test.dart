@@ -384,6 +384,20 @@ void goldens() {
     });
   }
 
+  testWidgets('golden long-word tag light (8 letters typed)', (tester) async {
+    await _size(tester, 393, 852);
+    await tester.pumpWidget(
+      _GoldenHost(_screen(_state(words: 3, next: 'ک'), reduceMotion: true)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.enterText(find.byType(TextField), 'سرگرمیها');
+    await tester.pump(const Duration(milliseconds: 100));
+    await expectLater(
+      find.byKey(const Key('golden')),
+      matchesGoldenFile('goldens/z_play_long_word_light.png'),
+    );
+  });
+
   testWidgets('golden opponent thinking dark', (tester) async {
     await _size(tester, 393, 852);
     final s = _state(
