@@ -8,7 +8,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/iran_time.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/features/home/view/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/home/view/widgets/home_icons.dart';
 
 /// Amber ribbon with the day's Jalali date and a live countdown to the next

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/features/home/view/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
 
 /// The home scene's inline glyphs, ported 1:1 from the canvas SVGs and
 /// re-coloured from the theme tokens (they are filled/stroked in the object

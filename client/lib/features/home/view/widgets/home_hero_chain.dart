@@ -6,7 +6,7 @@ import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/features/home/view/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/home/view/widgets/home_mascot.dart';
 import 'package:wordchain/features/home/view/widgets/home_motion.dart';
 

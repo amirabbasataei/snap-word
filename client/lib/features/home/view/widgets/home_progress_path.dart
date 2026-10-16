@@ -4,7 +4,7 @@ import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/features/home/view/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/home/view/widgets/home_icons.dart';
 
 /// Level progress: current level badge → XP bar → next level → reward

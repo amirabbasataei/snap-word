@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/features/home/view/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
 import 'package:wordchain/features/home/view/widgets/home_hero.dart';
 import 'package:wordchain/features/home/view/widgets/home_hud.dart';
