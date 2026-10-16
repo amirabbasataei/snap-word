@@ -154,13 +154,21 @@ class _MainShell extends StatelessWidget {
     return Scaffold(
       backgroundColor: context.z.paper,
       body: shell,
-      bottomNavigationBar: ZBottomNav(
-        currentIndex: shell.currentIndex,
-        onTap: (index) {
-          shell.goBranch(index, initialLocation: index == shell.currentIndex);
-          getIt<TabRefreshBus>().notify(index);
-        },
-      ),
+      // ZHome v2 draws its own raised-tile nav inside the scene; the shared
+      // bar serves the other three tabs.
+      bottomNavigationBar:
+          shell.currentIndex == MainTab.home
+              ? null
+              : ZBottomNav(
+                currentIndex: shell.currentIndex,
+                onTap: (index) {
+                  shell.goBranch(
+                    index,
+                    initialLocation: index == shell.currentIndex,
+                  );
+                  getIt<TabRefreshBus>().notify(index);
+                },
+              ),
     );
   }
 }

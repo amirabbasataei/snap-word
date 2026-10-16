@@ -353,3 +353,34 @@ Both prior open items are settled (see §1 Decisions and the header note above):
 - **Entry fee replaces the wager picker** — fixed 20 coins per human player, winner takes the 40-coin pot, draw refunds both, free vs the AI fallback. Server pre-checks balance on queue join and challenge create/accept (`402 insufficient_coins`); the authoritative charge happens at match start. WS additions: `game_start.state.entry_fee`, `game_over.payout`, `match_cancelled { reason: "insufficient_coins", player_id }`. Client: `GameBloc.onCoinsChanged` keeps `AuthCubit` in sync; `GameOver.entryFee/coinsNet` feed a «سکه» line on ZOver. Unstarted rooms now free a leaving player's seat so nobody is charged alongside an absent player.
 - **Room-code invite removed** (was built the same day, then removed by product decision): no `POST /rooms`, `/rooms/join`, hub code map, or lobby UI. Friend challenges are the only way to play a specific friend.
 - **Known gap:** when a challenged friend can't afford the fee on accept, the client shows its generic error message (the server returns `402 insufficient_coins`).
+
+---
+
+## ZHome v2 — mascot-led home (2026-10-16) — code complete; light + dark verified on the iOS simulator
+
+**Source:** canvas turn 6 (`Zanjir.dc.html` frames **6a light / 6b dark**, "A · mascot-led"), component `ZHome3A.dc.html`. Variant B (`ZHome4`, world-led), `ZHome3` and the old 5a `ZHome2` are ignored. ZHome (v1, Stage 2) is fully replaced.
+
+**Code (ZHome only):** `features/home/view/home_screen.dart` is now just the loader (stats / daily / level fetch, navigation, difficulty sheet); everything visual lives in `features/home/view/widgets/`:
+`home_view.dart` (layout + `HomeViewData`), `home_scene_background.dart`, `home_hud.dart`, `home_logo.dart`, `home_hero.dart`, **`home_hero_chain.dart`** (self-contained: `words` + `mascotMood` + `animate`), **`home_mascot.dart`** (self-contained: `mood` + `animate`, exposes `size` / `gripPoint` — a Rive artboard can replace both without touching ZHome), `home_daily_ribbon.dart`, `home_chest.dart`, `home_progress_path.dart`, `home_buttons.dart`, `home_nav.dart`, `home_icons.dart` (token-coloured inline SVGs), `home_motion.dart` (`HomeClock` ticker + loop curves; reduced-motion aware), `chunky.dart` (`ChunkyBox` — outline + hi highlight + solid depth edge).
+The hero is authored on a 396×352 canvas and scaled to the screen (0.8–1.1×); the page scrolls on very short phones.
+
+**New tokens (added, nothing overwritten):** `core/theme/app_scene_tokens.dart` → `ZScene` ThemeExtension (`context.zs`): `outline, hi, sky1-3, blobIndigo, blobTeal, ring, particle, particleNear, vignette, tile, tileDeep, indigoInk, tealInk, coralInk, chain, glow, rays, track`, light + dark values from frames 6a/6b. `core/theme/app_game_metrics.dart` → `ZGame` (outline 3/2.5, depth 3/5/6/8, pressed edge 2, HUD 36/48/44, Play 76·r26, online 58·r22, logo 60·stroke 7·shadow 6, hero canvas, nav tile 60×48 lift 30, min label 11.5) and `ZGameMotion` (all loop periods). `AppTheme._build` registers `ZScene`.
+
+**Design issues fixed rather than copied:** XP label is rendered LTR as current / target («۳۲۰ / ۵۰۰»; the canvas's RTL layout flipped it) and its text switches ink/onAmber over the empty/filled part of the bar (ink on amber was ~1.7:1 in dark); the ribbon's date chip uses `ink` on `surface` (canvas used `onAmber` — invisible in dark); all labels ≥ 11.5sp (canvas had 10px); settings button 44dp (canvas 40), whole coin pill is a 44dp tap target; milestone numbers, countdown and nav labels meet contrast in both themes.
+
+**Real data:** coins (`AuthCubit`), streak (`StatsDao`), level/XP (`ProfileRepository.fetchStats` → `level`, `xpInLevel`, `xpForNext`; guests show level ۱ / ۰ of ۱٬۰۰۰), chest state + red dot + tag (`RewardsCubit.unclaimedCount > 0`; chest → `/rewards`), friends-tab badge (`MessagesCubit.count` = pending requests + challenges), ribbon date (Jalali, Iran time) + live countdown (`untilIranMidnight`, ticks every second), ribbon dot (daily not yet played), play → solo classic, «حریف هوشمند» → difficulty sheet, «رویارویی آنلاین» → lobby / login, ribbon → `/daily`.
+
+**Placeholders / follow-ups (not real data):**
+- «۳٬۴۰۱ نفر آنلاین» — no endpoint reports players online. Shown **in debug builds only** (`kDebugMode` in `home_screen.dart`, marked `PLACEHOLDER`); release shows the real line «با بازیکنان دیگر به رقابت بپرداز». Needs a backend count.
+- Hero word chain (سیب → باران → نمک → کتاب → برف) is a static decorative sample (valid chain, all in `fa.txt`, unit-tested).
+- Milestones ۱۳/۱۴/۱۵ are derived (`level + 1…3`); the chest/crown have no reward behind them yet. Level rewards need backend work.
+- The two decorative avatar chips on the online button («م», «س») are not real players.
+- Mascot moods `cheer` / `sad` exist but nothing sets them yet (always `idle`).
+- Rive: `HomeHeroChain` + `HomeMascot` are the swap points ("home_hang" artboard in the canvas notes).
+
+**Deliberate deviations from the canvas (flag for review):**
+- **Nav:** the canvas draws the raised-tile nav inside ZHome. `HomeNav` is that bar; `_MainShell` (`core/router/app_router.dart`, one condition) hides the shared `ZBottomNav` while the home tab is selected, so the other three tabs still use the old flat bar. Decision needed: promote the raised nav to all four tabs.
+- **Removed from Home** (no slot in the canvas): the inbox (✉) and rewards (🎁) icons, the weekly-rank teaser, the streak-week card, the guest register banner. Rewards stay reachable via the chest; pending requests/challenges via the Friends tab (which already lists them) — `/messages` still exists but has no entry point from Home. The «ادامهٔ بازی» resume pill was kept (shown only while a solo/AI match is active) because losing it would orphan interrupted games.
+- ZProfile's XP label has the same RTL number-flip (`'$a / $b'` in an RTL row) — not touched (out of scope).
+
+**Verification:** `flutter analyze` clean; `flutter test` — new `test/features/home/home_view_test.dart` (chain validity + dictionary, formatting, no overflow at 320×568 / 360×640 / 393×852 / 430×932 in both themes, Play press/release, nav indices, chest tag, reduced-motion = no scheduled frames). Simulator run, light + dark, compared to the canvas frames — see the session report for the screenshot diff notes.

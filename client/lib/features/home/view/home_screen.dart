@@ -1,30 +1,24 @@
 import 'dart:async';
-import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/utils/tab_refresh.dart';
-import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/utils/iran_time.dart';
-import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/coin_pill.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
-import 'package:wordchain/core/widgets/tint_chip.dart';
-import 'package:wordchain/core/widgets/z_icon.dart';
-import 'package:wordchain/core/widgets/streak_strip.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/home/view/widgets/home_view.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
+import 'package:wordchain/features/profile/data/profile_repository.dart';
 import 'package:wordchain/features/rewards/cubit/rewards_cubit.dart';
-import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,7 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _coins = 0;
   DailyChallenge? _daily;
-  int? _weeklyRank;
+  int _level = 1;
+  int _xpInLevel = 0;
+  int _xpForNext = 1000;
 
   StreamSubscription<AuthState>? _authSub;
   StreamSubscription<int>? _tabSub;
@@ -87,12 +83,15 @@ class _HomeScreenState extends State<HomeScreen> {
       getIt<RewardsCubit>().refresh();
       getIt<MessagesCubit>().refresh();
       _fetchDailyChallenge();
-      _fetchWeeklyRank();
+      _fetchLevel();
     } else if (mounted) {
       setState(() {
         _coins = 0;
         _daily = null;
-        _weeklyRank = null;
+        // Guests have no server-side XP: show the level-1 default.
+        _level = 1;
+        _xpInLevel = 0;
+        _xpForNext = 1000;
       });
       getIt<RewardsCubit>().refresh(); // clears it for guests
       getIt<MessagesCubit>().refresh();
@@ -121,22 +120,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _fetchWeeklyRank() async {
+  Future<void> _fetchLevel() async {
     try {
-      final result = await getIt<LeaderboardRepository>().fetchGlobal();
-      if (mounted && result.playerRank > 0) {
-        setState(() => _weeklyRank = result.playerRank);
+      final stats = await getIt<ProfileRepository>().fetchStats();
+      if (mounted) {
+        setState(() {
+          _level = stats.level;
+          _xpInLevel = stats.xpInLevel;
+          _xpForNext = stats.xpForNext;
+        });
       }
     } catch (_) {
-      // Best-effort — teaser row stays hidden without a rank.
+      // Best-effort — keeps the last known level.
     }
   }
 
   bool get _isAuthenticated => getIt<AuthCubit>().state is AuthAuthenticated;
-
-  int get _hoursUntilNextDaily {
-    return untilIranMidnight().inHours;
-  }
 
   void _startSolo(BuildContext context) {
     context.push(
@@ -209,754 +208,76 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openRoute(BuildContext context, String route) {
+    context.push(_isAuthenticated ? route : '/login?return=$route');
+  }
+
+  void _resume(BuildContext context) {
+    final match = _activeMatch;
+    if (match == null) return;
+    context.push(
+      '/game',
+      extra: GameRouteArgs(
+        mode: match.mode,
+        opponentType: match.opponentType,
+        resumeMatchId: match.id,
+      ),
+    );
+  }
+
+  void _selectTab(BuildContext context, int index) {
+    getIt<TabRefreshBus>().notify(index);
+    switch (index) {
+      case MainTab.board:
+        context.go('/leaderboard');
+      case MainTab.friends:
+        context.go('/friends');
+      case MainTab.profile:
+        context.go('/profile');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final dailyStreak = _stats?.dailyStreak ?? 0;
 
     return Scaffold(
       backgroundColor: z.paper,
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            ZSpacing.screenGutter,
-            ZSpacing.lg,
-            ZSpacing.screenGutter,
-            ZSpacing.xl,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _TopBar(coins: _coins),
-              const SizedBox(height: ZSpacing.xxl),
-              const _Wordmark(),
-              const SizedBox(height: ZSpacing.xxl),
-              if (_checked && dailyStreak > 0) ...[
-                _StreakCard(
-                  streakCount: dailyStreak,
-                  bestStreak: _stats?.longestDailyStreak ?? 0,
-                  lastPlayedDate: _stats?.lastPlayedDate,
-                ),
-                const SizedBox(height: ZSpacing.md),
-              ],
-              _ModeGrid(
-                showDaily: _isAuthenticated,
-                daily: _daily,
-                hoursUntilNextDaily: _hoursUntilNextDaily,
-                onDaily: () => context.push('/daily'),
-                onSolo: () => _startSolo(context),
-                onVsAi: () => _startVsAi(context),
-                onOnline: () => _startOnline(context),
-              ),
-              const SizedBox(height: ZSpacing.md),
-              if (_isAuthenticated)
-                _WeeklyRankTeaser(
-                  rank: _weeklyRank,
-                  onTap: () => context.go('/leaderboard'),
-                ),
-              if (_checked && _activeMatch != null) ...[
-                const SizedBox(height: ZSpacing.md),
-                _ResumeCard(
-                  match: _activeMatch!,
-                  onTap: () {
-                    final match = _activeMatch!;
-                    context.push(
-                      '/game',
-                      extra: GameRouteArgs(
-                        mode: match.mode,
-                        opponentType: match.opponentType,
-                        resumeMatchId: match.id,
-                      ),
-                    );
-                  },
-                ),
-              ],
-              if (_checked && !_isAuthenticated) ...[
-                const SizedBox(height: ZSpacing.md),
-                _GuestBanner(onTap: () => context.push('/login')),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Top bar — coin pill + settings, messages and rewards icons
-// ---------------------------------------------------------------------------
-
-class _TopBar extends StatelessWidget {
-  final int coins;
-
-  const _TopBar({required this.coins});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        CoinPill(amount: coins),
-        const Spacer(),
-        // Settings (incl. the حالت شب switch) live in ZProfile.
-        _IconSquare(icon: 'settings', onTap: () => context.go('/profile')),
-        const SizedBox(width: ZSpacing.sm),
-        BlocBuilder<MessagesCubit, MessagesState>(
-          bloc: getIt<MessagesCubit>(),
-          builder:
-              (context, messages) => _IconSquare(
-                icon: 'mail',
-                badgeCount: messages.count,
-                onTap:
-                    () => context.push(
-                      getIt<AuthCubit>().state is AuthAuthenticated
-                          ? '/messages'
-                          : '/login?return=/messages',
+      body: BlocBuilder<RewardsCubit, RewardsState>(
+        bloc: getIt<RewardsCubit>(),
+        builder:
+            (context, rewards) => BlocBuilder<MessagesCubit, MessagesState>(
+              bloc: getIt<MessagesCubit>(),
+              builder:
+                  (context, messages) => HomeView(
+                    data: HomeViewData(
+                      coins: _coins,
+                      streak: _stats?.dailyStreak ?? 0,
+                      level: _level,
+                      xpInLevel: _xpInLevel,
+                      xpForNext: _xpForNext,
+                      unclaimedRewards: rewards.unclaimedCount,
+                      friendsBadge: messages.count,
+                      dailyAttempted: _daily?.hasAttempted ?? false,
+                      hasActiveMatch: _checked && _activeMatch != null,
+                      // PLACEHOLDER: no endpoint reports players online. The
+                      // design's «۳٬۴۰۱» is shown in debug builds only so the
+                      // layout can be checked; release shows a real subtitle.
+                      onlineCount: kDebugMode ? 3401 : null,
                     ),
-              ),
-        ),
-        const SizedBox(width: ZSpacing.sm),
-        BlocBuilder<RewardsCubit, RewardsState>(
-          bloc: getIt<RewardsCubit>(),
-          builder:
-              (context, rewards) => _IconSquare(
-                icon: 'gift',
-                badgeCount: rewards.unclaimedCount,
-                onTap:
-                    () => context.push(
-                      getIt<AuthCubit>().state is AuthAuthenticated
-                          ? '/rewards'
-                          : '/login?return=/rewards',
-                    ),
-              ),
-        ),
-      ],
-    );
-  }
-}
-
-class _IconSquare extends StatelessWidget {
-  final String icon;
-  final VoidCallback? onTap;
-  final int badgeCount;
-
-  const _IconSquare({required this.icon, this.onTap, this.badgeCount = 0});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: z.surface,
-              border: Border.all(color: z.line),
-              borderRadius: BorderRadius.circular(ZRadius.tileMax),
-            ),
-            child: ZIcon(
-              icon,
-              size: 18,
-              color: badgeCount > 0 ? z.ink : z.ink40,
-            ),
-          ),
-          if (badgeCount > 0)
-            PositionedDirectional(
-              top: -5,
-              end: -5,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: z.coral,
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: z.paper, width: 2),
-                ),
-                child: Text(
-                  toPersianDigits(badgeCount),
-                  style: ZTypography.metaLabel.copyWith(
-                    color: z.onCoral,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
+                    onPlay: () => _startSolo(context),
+                    onAi: () => _startVsAi(context),
+                    onOnline: () => _startOnline(context),
+                    onDaily: () => context.push('/daily'),
+                    onChest: () => _openRoute(context, '/rewards'),
+                    // Coin purchase lives in ZProfile's buy sheet.
+                    onCoins: () => context.go('/profile'),
+                    onSettings: () => context.go('/profile'),
+                    onLevel: () => context.go('/profile'),
+                    onResume: () => _resume(context),
+                    onTab: (i) => _selectTab(context, i),
                   ),
-                ),
-              ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Wordmark — 5 rotated letter tiles
-// ---------------------------------------------------------------------------
-
-class _Wordmark extends StatelessWidget {
-  const _Wordmark();
-
-  static double _deg(double degrees) => degrees * math.pi / 180;
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    const letters = [
-      ('ز', ZAccent.indigo, -5.0),
-      ('ن', ZAccent.teal, 2.0),
-      ('ج', ZAccent.amber, -2.0),
-      ('ی', ZAccent.coral, 4.0),
-      ('ر', ZAccent.indigo, -3.0),
-    ];
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Row(
-          children: [
-            for (final entry in letters) ...[
-              LetterTile(
-                letter: entry.$1,
-                accent: entry.$2,
-                size: 38,
-                height: 48,
-                radius: ZRadius.tileMax,
-                fontSize: 24,
-                rotation: _deg(entry.$3),
-              ),
-              if (entry != letters.last) const SizedBox(width: 5),
-            ],
-          ],
-        ),
-        const SizedBox(width: ZSpacing.md),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 3),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'زنجیر',
-                style: TextStyle(
-                  fontFamily: 'Vazirmatn',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 26,
-                  height: 1.1,
-                  letterSpacing: -0.5,
-                  color: z.ink,
-                ),
-              ),
-              Text(
-                'حرف آخر، حرف اول!',
-                style: ZTypography.metaLabel.copyWith(
-                  color: z.ink60,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Streak card
-// ---------------------------------------------------------------------------
-
-class _StreakCard extends StatelessWidget {
-  final int streakCount;
-  final int bestStreak;
-  final DateTime? lastPlayedDate;
-
-  const _StreakCard({
-    required this.streakCount,
-    required this.bestStreak,
-    required this.lastPlayedDate,
-  });
-
-  bool get _playedToday {
-    if (lastPlayedDate == null) return false;
-    final now = DateTime.now();
-    return lastPlayedDate!.year == now.year &&
-        lastPlayedDate!.month == now.month &&
-        lastPlayedDate!.day == now.day;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SolidCard(
-      elevated: false,
-      radius: ZRadius.cardMax,
-      // 16px horizontal / 14px vertical — the design's card padding here
-      // doesn't land on a named ZSpacing step.
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: ZSpacing.lg,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Text(
-                '${formatPersianNumber(streakCount)} روز پیاپی',
-                style: ZTypography.cardTitle.copyWith(color: z.ink),
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              if (!_playedToday)
-                const TintChip(label: 'امروز هم بزن!', tint: ZTint.coral),
-              const Spacer(),
-              Text(
-                'رکورد: ${formatPersianNumber(bestStreak)}',
-                style: ZTypography.metaLabel.copyWith(color: z.ink40),
-              ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.md),
-          StreakStrip(streakCount: streakCount, lastPlayedDate: lastPlayedDate),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Mode grid — daily hero (indigo) + solo / vs-ai + online
-// ---------------------------------------------------------------------------
-
-class _ModeGrid extends StatelessWidget {
-  final bool showDaily;
-  final DailyChallenge? daily;
-  final int hoursUntilNextDaily;
-  final VoidCallback onDaily;
-  final VoidCallback onSolo;
-  final VoidCallback onVsAi;
-  final VoidCallback onOnline;
-
-  const _ModeGrid({
-    required this.showDaily,
-    required this.daily,
-    required this.hoursUntilNextDaily,
-    required this.onDaily,
-    required this.onSolo,
-    required this.onVsAi,
-    required this.onOnline,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showDaily) ...[
-          _DailyHero(
-            daily: daily,
-            hoursLeft: hoursUntilNextDaily,
-            onTap: onDaily,
-          ),
-          const SizedBox(height: ZSpacing.md),
-        ],
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _ModeCard(
-                  icon: 'target',
-                  accent: ZAccent.teal,
-                  title: 'تک‌نفره',
-                  subtitle: 'بی‌وقفه تا آخرین کلمه',
-                  onTap: onSolo,
-                ),
-              ),
-              const SizedBox(width: ZSpacing.md),
-              Expanded(
-                child: _ModeCard(
-                  icon: 'bot',
-                  accent: ZAccent.amber,
-                  title: 'حریف هوشمند',
-                  subtitle: 'سه سطح؛ آخری بی‌رحم است',
-                  onTap: onVsAi,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: ZSpacing.md),
-        _OnlineCard(onTap: onOnline),
-      ],
-    );
-  }
-}
-
-class _DailyHero extends StatelessWidget {
-  final DailyChallenge? daily;
-  final int hoursLeft;
-  final VoidCallback onTap;
-
-  const _DailyHero({
-    required this.daily,
-    required this.hoursLeft,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final letter = daily?.startLetter.toUpperCase();
-    final subtitle =
-        daily == null
-            ? '${formatPersianNumber(hoursLeft)} ساعت مانده'
-            : '${formatPersianNumber(hoursLeft)} ساعت مانده · رکورد امروز ${formatPersianNumber(daily!.todaysBest)}';
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: ZSpacing.xl,
-          vertical: ZSpacing.xxl,
-        ),
-        decoration: BoxDecoration(
-          color: z.indigo,
-          borderRadius: BorderRadius.circular(ZRadius.cardMax),
-          boxShadow: ZElevation.solidEdge(
-            z.indigoDeep,
-            depth: ZElevation.tileDepth,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'چالش روزانه',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.onIndigoSoft,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'زنجیر امروز',
-                    style: ZTypography.screenTitle.copyWith(
-                      color: z.onIndigo,
-                      fontSize: 21,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: ZTypography.body.copyWith(
-                      color: z.onIndigoSoft,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Container(
-              width: 60,
-              height: 66,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: z.surface,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: ZElevation.solidEdge(
-                  z.line,
-                  depth: ZElevation.tileDepth,
-                ),
-              ),
-              child: Text(
-                letter ?? '؟',
-                style: ZTypography.display.copyWith(
-                  color: z.indigo,
-                  fontSize: 34,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ModeCard extends StatelessWidget {
-  final String icon;
-  final ZAccent accent;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ModeCard({
-    required this.icon,
-    required this.accent,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: SolidCard(
-        radius: ZRadius.cardMax,
-        padding: const EdgeInsets.all(ZSpacing.lg + 1),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LetterTile(icon: icon, accent: accent, size: ZTileSize.prompt),
-            const SizedBox(height: ZSpacing.md),
-            Text(title, style: ZTypography.cardTitle.copyWith(color: z.ink)),
-            Text(
-              subtitle,
-              style: ZTypography.body.copyWith(color: z.ink60, fontSize: 11.5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OnlineCard extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _OnlineCard({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: SolidCard(
-        radius: ZRadius.cardMax,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: ZSpacing.lg,
-        ),
-        child: Row(
-          children: [
-            const LetterTile(
-              icon: 'swords',
-              accent: ZAccent.coral,
-              size: ZTileSize.prompt,
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'رویارویی آنلاین',
-                    style: ZTypography.cardTitle.copyWith(color: z.ink),
-                  ),
-                  Text(
-                    'با بازیکنان دیگر به رقابت بپرداز',
-                    style: ZTypography.body.copyWith(
-                      color: z.ink60,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            TintChip(label: 'شروع', tint: ZTint.coral),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Weekly rank teaser
-// ---------------------------------------------------------------------------
-
-class _WeeklyRankTeaser extends StatelessWidget {
-  final int? rank;
-  final VoidCallback onTap;
-
-  const _WeeklyRankTeaser({required this.rank, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final subtitle =
-        rank == null
-            ? 'برای دیدن رتبه‌ات یک بازی آنلاین انجام بده'
-            : rank! <= 10
-            ? 'تو نفر ${formatPersianNumber(rank!)}اُمی؛ در ده‌تای اول!'
-            : 'تو نفر ${formatPersianNumber(rank!)}اُمی؛ ${formatPersianNumber(rank! - 10)} پله تا ده‌تای اول';
-
-    return GestureDetector(
-      onTap: onTap,
-      child: SolidCard(
-        radius: ZRadius.cardMax,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: ZSpacing.md + 1,
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              // 3 dots × 28px, each offset 19px → 2×19 + 28 = 66.
-              width: 66,
-              height: 28,
-              child: Stack(
-                children: [
-                  _RankDot(color: z.indigo, offset: 0),
-                  _RankDot(color: z.teal, offset: 1, border: z.surface),
-                  _RankDot(color: z.amber, offset: 2, border: z.surface),
-                ],
-              ),
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'جدول هفته',
-                    style: ZTypography.cardTitle.copyWith(
-                      color: z.ink,
-                      fontSize: 13.5,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: ZTypography.body.copyWith(
-                      color: z.ink60,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: z.ink60, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RankDot extends StatelessWidget {
-  final Color color;
-  final int offset;
-  final Color? border;
-
-  const _RankDot({required this.color, required this.offset, this.border});
-
-  @override
-  Widget build(BuildContext context) {
-    return PositionedDirectional(
-      start: offset * 19.0,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: border != null ? Border.all(color: border!, width: 2) : null,
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Resume card
-// ---------------------------------------------------------------------------
-
-class _ResumeCard extends StatelessWidget {
-  final LocalMatche match;
-  final VoidCallback onTap;
-
-  const _ResumeCard({required this.match, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: SolidCard(
-        radius: ZRadius.cardMax,
-        color: z.tintIndigo,
-        padding: const EdgeInsets.all(ZSpacing.lg),
-        child: Row(
-          children: [
-            Icon(Icons.play_circle_fill, color: z.indigo, size: 28),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ادامهٔ بازی',
-                    style: ZTypography.cardTitle.copyWith(color: z.ink),
-                  ),
-                  Text(
-                    'کلاسیک · ${match.opponentType == 'solo' ? 'تک‌نفره' : 'حریف هوشمند'}',
-                    style: ZTypography.body.copyWith(
-                      color: z.ink60,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: z.indigo),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Guest upsell banner
-// ---------------------------------------------------------------------------
-
-class _GuestBanner extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _GuestBanner({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: SolidCard(
-        radius: ZRadius.cardMax,
-        padding: const EdgeInsets.all(ZSpacing.lg),
-        child: Row(
-          children: [
-            Icon(Icons.lock_outline, color: z.ink60, size: 20),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Text(
-                'رایگان ثبت‌نام کن تا پیشرفتت ذخیره شود و به رویارویی آنلاین و جدول امتیازات دسترسی پیدا کنی.',
-                style: ZTypography.body.copyWith(color: z.ink60),
-              ),
-            ),
-            const SizedBox(width: ZSpacing.sm),
-            Icon(Icons.chevron_right, color: z.ink60),
-          ],
-        ),
       ),
     );
   }

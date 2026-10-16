@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 
@@ -13,7 +14,7 @@ abstract final class AppTheme {
     useMaterial3: true,
     brightness: brightness,
     fontFamily: 'Vazirmatn',
-    extensions: [z],
+    extensions: [z, brightness == Brightness.dark ? ZScene.dark : ZScene.light],
     scaffoldBackgroundColor: z.paper,
     colorScheme: ColorScheme(
       brightness: brightness,
