@@ -3,12 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/widgets/chunky_pressable.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
-import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 
 /// The chunky HUD pieces of the "A · mascot-led" game screens (canvas turn 7,
 /// `ZSoloA`): back button, score pill, countdown ring, lives and words chips.

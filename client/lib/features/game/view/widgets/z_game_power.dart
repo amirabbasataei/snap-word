@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/widgets/chunky_pressable.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/z_icon.dart';
-import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
 
 /// Chunky power-up tile of the "A · mascot-led" game screens (canvas
 /// `ZSoloA`): a raised surface tile, a coloured icon disc, the label, and a

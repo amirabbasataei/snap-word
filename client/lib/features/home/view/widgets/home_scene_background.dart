@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 
 /// Sky gradient with depth: soft colour blobs, concentric rings, drifting
 /// letters, twinkling sparkles and an edge vignette. Positions are authored on

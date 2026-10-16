@@ -6,7 +6,7 @@ import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 
 /// Reward chest. When [ready] (there are unclaimed rewards) it glows, throws

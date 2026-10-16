@@ -3,7 +3,7 @@ import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 
 /// What the mascot is feeling. Drives the face and the arm; the swing and
 /// blink loops are the same in every mood.

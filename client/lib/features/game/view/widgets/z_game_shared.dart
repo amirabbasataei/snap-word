@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:wordchain/core/widgets/z_icon.dart';
+import 'package:wordchain/core/widgets/chunky_pressable.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_power.dart';
-import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';

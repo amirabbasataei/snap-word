@@ -8,7 +8,7 @@ import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/dashed_tile.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_scroll.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 
 /// The vertical word chain of the "A · mascot-led" solo screen (canvas turn 7,
 /// `ZSoloA`): chunky word tiles that grow towards the newest word, linked by

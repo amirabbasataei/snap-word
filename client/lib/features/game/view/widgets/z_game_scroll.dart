@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 
 /// Bottom-anchored, scrollable body of a game chain (ZSolo's spine, ZPlay's
 /// bubbles): the newest item sits just above the input, older ones stay

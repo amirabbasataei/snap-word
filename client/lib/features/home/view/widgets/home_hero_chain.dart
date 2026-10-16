@@ -8,7 +8,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/home/view/widgets/home_mascot.dart';
-import 'package:wordchain/features/home/view/widgets/home_motion.dart';
+import 'package:wordchain/core/widgets/motion.dart';
 
 /// The hero: a chain of word tiles hanging from a peg, the mascot gripping it
 /// in the middle, and the next word dropping in at the far end.
