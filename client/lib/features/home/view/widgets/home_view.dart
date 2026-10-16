@@ -8,7 +8,6 @@ import 'package:wordchain/features/home/view/widgets/home_hero.dart';
 import 'package:wordchain/features/home/view/widgets/home_hud.dart';
 import 'package:wordchain/features/home/view/widgets/home_logo.dart';
 import 'package:wordchain/features/home/view/widgets/home_motion.dart';
-import 'package:wordchain/features/home/view/widgets/home_nav.dart';
 import 'package:wordchain/features/home/view/widgets/home_progress_path.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 
@@ -25,8 +24,6 @@ class HomeViewData {
   /// Unclaimed rewards waiting in the inbox (drives the chest).
   final int unclaimedRewards;
 
-  /// Pending friend requests + challenges (friends tab badge).
-  final int friendsBadge;
   final bool dailyAttempted;
   final bool hasActiveMatch;
 
@@ -41,7 +38,6 @@ class HomeViewData {
     this.xpInLevel = 0,
     this.xpForNext = 1000,
     this.unclaimedRewards = 0,
-    this.friendsBadge = 0,
     this.dailyAttempted = false,
     this.hasActiveMatch = false,
     this.onlineCount,
@@ -59,7 +55,6 @@ class HomeView extends StatelessWidget {
   final VoidCallback onSettings;
   final VoidCallback onLevel;
   final VoidCallback onResume;
-  final ValueChanged<int> onTab;
 
   const HomeView({
     super.key,
@@ -73,7 +68,6 @@ class HomeView extends StatelessWidget {
     required this.onSettings,
     required this.onLevel,
     required this.onResume,
-    required this.onTab,
   });
 
   /// A valid chain: each word starts with the previous word's last letter.
@@ -101,125 +95,146 @@ class HomeView extends StatelessWidget {
         Column(
           children: [
             Expanded(
-              child: SafeArea(
-                bottom: false,
-                child: LayoutBuilder(
-                  builder: (context, c) {
-                    final fixed =
-                        _hudBlock +
-                        _logoBlock +
-                        _progressBlock +
-                        _playBlock +
-                        _onlineBlock +
-                        (data.hasActiveMatch ? _resumeBlock : 0);
-                    final byWidth = c.maxWidth / ZGame.heroWidth;
-                    final byHeight = (c.maxHeight - fixed) / ZGame.heroHeight;
-                    final scale =
-                        byWidth
-                            .clamp(0.0, _maxHeroScale)
-                            .clamp(
-                              0.0,
-                              byHeight.clamp(_minHeroScale, _maxHeroScale),
-                            )
-                            .toDouble();
-                    final heroH = ZGame.heroHeight * scale;
-                    final extra = (c.maxHeight - fixed - heroH).clamp(
-                      0.0,
-                      double.infinity,
-                    );
+              // The shell's floating dock overlays the bottom of this screen
+              // (`extendBody`); its height arrives as bottom padding.
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom,
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: LayoutBuilder(
+                    builder: (context, c) {
+                      final fixed =
+                          _hudBlock +
+                          _logoBlock +
+                          _progressBlock +
+                          _playBlock +
+                          _onlineBlock +
+                          (data.hasActiveMatch ? _resumeBlock : 0);
+                      final byWidth = c.maxWidth / ZGame.heroWidth;
+                      final byHeight = (c.maxHeight - fixed) / ZGame.heroHeight;
+                      final scale =
+                          byWidth
+                              .clamp(0.0, _maxHeroScale)
+                              .clamp(
+                                0.0,
+                                byHeight.clamp(_minHeroScale, _maxHeroScale),
+                              )
+                              .toDouble();
+                      final heroH = ZGame.heroHeight * scale;
+                      final extra = (c.maxHeight - fixed - heroH).clamp(
+                        0.0,
+                        double.infinity,
+                      );
 
-                    return SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: c.maxHeight),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 10),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                              ),
-                              child: HomeHud(
-                                level: data.level,
-                                levelProgress:
-                                    data.xpForNext <= 0
-                                        ? 0
-                                        : data.xpInLevel / data.xpForNext,
-                                coins: data.coins,
-                                streak: data.streak,
-                                onLevelTap: onLevel,
-                                onCoinsTap: onCoins,
-                                onSettingsTap: onSettings,
-                              ),
-                            ),
-                            SizedBox(height: 4 + extra * .15),
-                            const HomeLogo(),
-                            SizedBox(height: extra * .15),
-                            SizedBox(
-                              width: ZGame.heroWidth * scale,
-                              height: heroH,
-                              child: FittedBox(
-                                fit: BoxFit.contain,
-                                child: HomeHero(
-                                  words: heroWords,
-                                  animate: animate,
-                                  chestReady: data.unclaimedRewards > 0,
-                                  dailyDot: !data.dailyAttempted,
-                                  onDaily: onDaily,
-                                  onChest: onChest,
-                                  onAi: onAi,
+                      return SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: c.maxHeight),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 10),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
+                                child: HomeHud(
+                                  level: data.level,
+                                  levelProgress:
+                                      data.xpForNext <= 0
+                                          ? 0
+                                          : data.xpInLevel / data.xpForNext,
+                                  coins: data.coins,
+                                  streak: data.streak,
+                                  onLevelTap: onLevel,
+                                  onCoinsTap: onCoins,
+                                  onSettingsTap: onSettings,
                                 ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-                              child: HomeProgressPath(
-                                level: data.level,
-                                xpInLevel: data.xpInLevel,
-                                xpForNext: data.xpForNext,
-                                onTap: onLevel,
+                              SizedBox(height: 4 + extra * .15),
+                              const HomeLogo(),
+                              SizedBox(height: extra * .15),
+                              SizedBox(
+                                width: ZGame.heroWidth * scale,
+                                height: heroH,
+                                child: FittedBox(
+                                  fit: BoxFit.contain,
+                                  child: HomeHero(
+                                    words: heroWords,
+                                    animate: animate,
+                                    chestReady: data.unclaimedRewards > 0,
+                                    dailyDot: !data.dailyAttempted,
+                                    onDaily: onDaily,
+                                    onChest: onChest,
+                                    onAi: onAi,
+                                  ),
+                                ),
                               ),
-                            ),
-                            SizedBox(height: extra * .3),
-                            if (data.hasActiveMatch)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  6,
+                                  16,
+                                  0,
+                                ),
+                                child: HomeProgressPath(
+                                  level: data.level,
+                                  xpInLevel: data.xpInLevel,
+                                  xpForNext: data.xpForNext,
+                                  onTap: onLevel,
+                                ),
+                              ),
+                              SizedBox(height: extra * .3),
+                              if (data.hasActiveMatch)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    18,
+                                    0,
+                                    18,
+                                    0,
+                                  ),
+                                  child: _ResumeChip(onTap: onResume),
+                                ),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(
                                   18,
-                                  0,
+                                  14,
                                   18,
                                   0,
                                 ),
-                                child: _ResumeChip(onTap: onResume),
+                                child: HomePlayButton(
+                                  onTap: onPlay,
+                                  animate: animate,
+                                ),
                               ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-                              child: HomePlayButton(
-                                onTap: onPlay,
-                                animate: animate,
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  40,
+                                  18,
+                                  40,
+                                  0,
+                                ),
+                                child: HomeOnlineButton(
+                                  onTap: onOnline,
+                                  subtitle:
+                                      data.onlineCount == null
+                                          ? onlineFallback
+                                          : HomeOnlineButton.onlineCountLabel(
+                                            data.onlineCount!,
+                                          ),
+                                ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(40, 18, 40, 0),
-                              child: HomeOnlineButton(
-                                onTap: onOnline,
-                                subtitle:
-                                    data.onlineCount == null
-                                        ? onlineFallback
-                                        : HomeOnlineButton.onlineCountLabel(
-                                          data.onlineCount!,
-                                        ),
-                              ),
-                            ),
-                            SizedBox(height: extra * .4 + 4),
-                          ],
+                              SizedBox(height: extra * .4 + 4),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-            HomeNav(friendsBadge: data.friendsBadge, onSelect: onTab),
           ],
         ),
       ],

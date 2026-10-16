@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -12,6 +13,7 @@ import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
 import 'package:wordchain/features/daily/view/daily_screen.dart';
 import 'package:wordchain/features/daily/view/daily_board_screen.dart';
 import 'package:wordchain/features/friends/view/z_friends_screen.dart';
+import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/messages/view/messages_screen.dart';
 import 'package:wordchain/features/rewards/view/rewards_screen.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
@@ -153,22 +155,27 @@ class _MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.z.paper,
+      // Home paints its own sky scene to the screen edge, so the floating
+      // dock sits over it (HomeView pads for the dock via MediaQuery). The
+      // other tabs end above the dock.
+      extendBody: shell.currentIndex == MainTab.home,
       body: shell,
-      // ZHome v2 draws its own raised-tile nav inside the scene; the shared
-      // bar serves the other three tabs.
-      bottomNavigationBar:
-          shell.currentIndex == MainTab.home
-              ? null
-              : ZBottomNav(
-                currentIndex: shell.currentIndex,
-                onTap: (index) {
-                  shell.goBranch(
-                    index,
-                    initialLocation: index == shell.currentIndex,
-                  );
-                  getIt<TabRefreshBus>().notify(index);
-                },
-              ),
+      bottomNavigationBar: BlocBuilder<MessagesCubit, MessagesState>(
+        bloc: getIt<MessagesCubit>(),
+        buildWhen: (a, b) => a.count != b.count,
+        builder:
+            (context, messages) => ZBottomNav(
+              currentIndex: shell.currentIndex,
+              friendsBadge: messages.count,
+              onTap: (index) {
+                shell.goBranch(
+                  index,
+                  initialLocation: index == shell.currentIndex,
+                );
+                getIt<TabRefreshBus>().notify(index);
+              },
+            ),
+      ),
     );
   }
 }

@@ -379,8 +379,35 @@ The hero is authored on a 396×352 canvas and scaled to the screen (0.8–1.1×)
 - Rive: `HomeHeroChain` + `HomeMascot` are the swap points ("home_hang" artboard in the canvas notes).
 
 **Deliberate deviations from the canvas (flag for review):**
-- **Nav:** the canvas draws the raised-tile nav inside ZHome. `HomeNav` is that bar; `_MainShell` (`core/router/app_router.dart`, one condition) hides the shared `ZBottomNav` while the home tab is selected, so the other three tabs still use the old flat bar. Decision needed: promote the raised nav to all four tabs.
+- **Nav:** resolved by the dock below — one shared bar on all four tabs (the earlier split of `HomeNav` on Home + flat `ZBottomNav` elsewhere is gone).
 - **Removed from Home** (no slot in the canvas): the inbox (✉) and rewards (🎁) icons, the weekly-rank teaser, the streak-week card, the guest register banner. Rewards stay reachable via the chest; pending requests/challenges via the Friends tab (which already lists them) — `/messages` still exists but has no entry point from Home. The «ادامهٔ بازی» resume pill was kept (shown only while a solo/AI match is active) because losing it would orphan interrupted games.
 - ZProfile's XP label has the same RTL number-flip (`'$a / $b'` in an RTL row) — not touched (out of scope).
 
 **Verification:** `flutter analyze` clean; `flutter test` — new `test/features/home/home_view_test.dart` (chain validity + dictionary, formatting, no overflow at 320×568 / 360×640 / 393×852 / 430×932 in both themes, Play press/release, nav indices, chest tag, reduced-motion = no scheduled frames). Simulator run, light + dark, compared to the canvas frames — see the session report for the screenshot diff notes.
+
+---
+
+## Bottom dock — all four tabs (2026-10-16) — code complete; light + dark verified on the iOS simulator
+
+**Source:** canvas turn 7, component `ZNav.dc.html` (light/dark token values from the 7aL/7aD rows and the 7p/7q component sheets). A floating rounded panel (3px outline, r24, solid 5px depth edge + outline ring) in the `--dock` plum (a dark slab in both themes), filled colourful glyphs, the selected tab a raised chunky tile in its own accent (home indigo · board amber · friends coral · me teal). Labels 14sp / 900.
+
+**Code:** `core/widgets/z_bottom_nav.dart` (`ZBottomNav`, now the dock; `friendsBadge` param). `_MainShell` (`core/router/app_router.dart`) shows it on every tab, feeds the badge from `MessagesCubit.count`, and sets `extendBody` on the home tab so Home's sky scene runs under the floating dock. `HomeView` pads its content by `MediaQuery.paddingOf(context).bottom` (the dock height under `extendBody`). **Removed:** `home_nav.dart` (`HomeNav`), `HomeView.onTab`/`friendsBadge`, `HomeScreen._selectTab` and the now-pointless `MessagesCubit` builder in `HomeScreen`, the four nav glyphs of `HomeGlyph`. Tab behaviour unchanged (indices = `MainTab`, `goBranch` + `TabRefreshBus.notify`, re-tap = initial location).
+Glyphs are the canvas SVG paths drawn with the existing `flutter_svg` (token-coloured inline SVG, same approach as `home_icons.dart`) — no new package, no CustomPainter needed.
+
+**New tokens (added, nothing overwritten):** `ZScene` (`context.zs`): `dock`, `dockDeep`, `dockSheen`, `onDock`, `onDock60`, `onCoralSm` (light + dark). `ZGame`: `dockRadius 24, dockMarginH 12, dockMarginBottom 14, dockPaddingTop/H/Bottom 8/4/8, dockDepth 5, dockTabHeight 58, dockGlyph 32, dockGlyphSelected 30, dockGlyphTop 4, dockLabelHeight 18, dockLabelSize 14, dockTileWidth 62, dockTileHeight 50, dockTileRadius 17, dockTileTop -15, dockBadge 22`. (`ZGame.navTile*`/`navLift` from the old HomeNav are now unused — left in place.)
+
+**Decisions / deviations:**
+- **Floating margin on Home:** `extendBody` + bottom padding, so the scene continues behind the dock (verified: no paper-coloured strip, nothing hidden). The other tabs end above the dock; the strip under it is `paper`.
+- On notched phones the bottom margin is `max(14, safeBottom − 12)` so the dock clears the home indicator.
+- The raised tile pokes ~4px above the panel (canvas geometry: `margin-top:-30` in a flex-end box), so the dock reserves 4px above itself; no content is covered. Every tab was checked scrolled to its end (Profile's last row, «خروج از حساب», sits fully above the dock).
+- The badge hides on the selected friends tile (as drawn in the canvas); capped at «۹۹+».
+- Label colours on the dock meet contrast in both themes (`onDock60` on `dock` ≈ 8:1); selection is also carried by the raised tile + label weight/colour, not hue alone. Tap cells are 58dp tall; text scale is clamped to 1.2 inside the dock.
+- Pressed: glyph dips 2px, a selected tile loses 3px of depth edge and sinks 3px (90ms, `ZGameMotion.press`); selection animates glyph/tile up over 200ms. Reduced motion → instant.
+
+**Bugs caught by tests, not by the device run:** the badge `Container(alignment:)` expanded to fill the whole tab (the account on the simulator had no pending requests, so only the golden showed it).
+
+**Tests:** new `test/core/widgets/z_bottom_nav_test.dart` (tab indices, RTL order, badge + cap, semantics, press, 44dp, no overflow 320/360/430 in both themes) and `z_bottom_nav_golden_test.dart` (light/dark × home/friends selected, with badge); `home_view_test.dart` now lays Home out with ~100dp dock padding at 320×568…430×932 and no longer tests the (removed) in-view nav. `shared_widgets_*` goldens regenerated — they were already failing on a clean checkout (1.05% diff, see CLAUDE.md) and the gallery's bottom nav changed.
+
+**Follow-ups:** `ChunkyBox` (features/home) duplicates the dock's tile recipe — hoist it to `core/widgets` and reuse. The badge is only refreshed where `MessagesCubit.refresh()` is called (Home init/resume, Messages screen) — it can be stale after a request is handled on the Friends tab. A live check of the badge with real pending requests is still outstanding (verified via golden + widget tests only).
+
+**Home gear button (follow-up, 2026-10-16):** the top-left button on Home used to `context.go('/profile')` (ZHome v2 placeholder); it is now the quick light/dark switch — `ThemeCubit.toggle(Theme.of(context).brightness)`, same cubit/persistence as ZProfile's حالت شب row (`home_screen.dart`; semantics label reuses that row's string). The glyph is unchanged (gear/sun). Covered by `test/core/theme/theme_cubit_test.dart`; on the simulator one tap flipped dark → light and stayed on Home (further top-of-screen taps from the click tool were flaky, so the light → dark direction is verified by the unit test only).

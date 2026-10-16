@@ -289,7 +289,7 @@ class _SettingsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'تنظیمات',
+      label: 'حالت شب',
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,

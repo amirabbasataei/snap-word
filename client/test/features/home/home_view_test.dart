@@ -14,7 +14,6 @@ import '../../helpers/z_test_app.dart';
 Widget _home({
   HomeViewData data = const HomeViewData(),
   VoidCallback? onPlay,
-  ValueChanged<int>? onTab,
   bool reduceMotion = false,
   Brightness brightness = Brightness.light,
 }) {
@@ -23,9 +22,12 @@ Widget _home({
     Builder(
       builder:
           (context) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(disableAnimations: reduceMotion),
+            // The shell's floating dock reaches HomeView as bottom padding
+            // (`extendBody`), ~100dp on top of the home-indicator inset.
+            data: MediaQuery.of(context).copyWith(
+              disableAnimations: reduceMotion,
+              padding: const EdgeInsets.only(bottom: 100),
+            ),
             child: HomeView(
               data: data,
               onPlay: onPlay ?? noop,
@@ -37,7 +39,6 @@ Widget _home({
               onSettings: noop,
               onLevel: noop,
               onResume: noop,
-              onTab: onTab ?? (_) {},
             ),
           ),
     ),
@@ -132,7 +133,6 @@ void main() {
                 xpInLevel: 320,
                 xpForNext: 500,
                 unclaimedRewards: 2,
-                friendsBadge: 2,
                 hasActiveMatch: true,
                 onlineCount: 3401,
               ),
@@ -172,20 +172,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       expect(played, 1);
       expect(tester.getTopLeft(play).dy, closeTo(restY, 1.5));
-    });
-
-    testWidgets('nav reports tab indices', (tester) async {
-      await _setSize(tester, 393, 852);
-      final tapped = <int>[];
-      await tester.pumpWidget(
-        _home(onTab: tapped.add, data: const HomeViewData(friendsBadge: 2)),
-      );
-      await tester.tap(find.text('جدول'));
-      await tester.tap(find.text('دوستان'));
-      await tester.tap(find.text('من'));
-      await tester.tap(find.text('خانه'));
-      expect(tapped, [1, 2, 3, 0]);
-      expect(find.text('۲'), findsWidgets); // friends badge
     });
 
     testWidgets('chest tag only when rewards are waiting', (tester) async {

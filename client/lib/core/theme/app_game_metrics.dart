@@ -44,6 +44,30 @@ abstract final class ZGame {
   static const navTileHeight = 48.0;
   static const navLift = 30.0;
 
+  // Bottom dock (canvas `ZNav`). Panel: 3px outline, r24, 5px depth edge.
+  static const dockRadius = 24.0;
+  static const dockMarginH = 12.0;
+  static const dockMarginBottom = 14.0;
+  static const dockPaddingTop = 8.0;
+  static const dockPaddingH = 4.0;
+  static const dockPaddingBottom = 8.0;
+  static const dockDepth = 5.0;
+
+  /// Each tab's box (the raised tile pokes out of the top of it).
+  static const dockTabHeight = 58.0;
+  static const dockGlyph = 32.0;
+  static const dockGlyphSelected = 30.0;
+  static const dockGlyphTop = 4.0;
+  static const dockLabelHeight = 18.0;
+  static const dockLabelSize = 14.0;
+  static const dockTileWidth = 62.0;
+  static const dockTileHeight = 50.0;
+  static const dockTileRadius = 17.0;
+
+  /// Tile top relative to the tab box (flex-end layout, `margin-top:-30`).
+  static const dockTileTop = -15.0;
+  static const dockBadge = 22.0;
+
   /// Smallest label size on the home screen (the canvas has 10px labels).
   static const minLabel = 11.5;
 }

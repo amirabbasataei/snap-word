@@ -9,6 +9,7 @@ import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/core/widgets/solid_card.dart';
@@ -225,18 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _selectTab(BuildContext context, int index) {
-    getIt<TabRefreshBus>().notify(index);
-    switch (index) {
-      case MainTab.board:
-        context.go('/leaderboard');
-      case MainTab.friends:
-        context.go('/friends');
-      case MainTab.profile:
-        context.go('/profile');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final z = context.z;
@@ -246,37 +235,35 @@ class _HomeScreenState extends State<HomeScreen> {
       body: BlocBuilder<RewardsCubit, RewardsState>(
         bloc: getIt<RewardsCubit>(),
         builder:
-            (context, rewards) => BlocBuilder<MessagesCubit, MessagesState>(
-              bloc: getIt<MessagesCubit>(),
-              builder:
-                  (context, messages) => HomeView(
-                    data: HomeViewData(
-                      coins: _coins,
-                      streak: _stats?.dailyStreak ?? 0,
-                      level: _level,
-                      xpInLevel: _xpInLevel,
-                      xpForNext: _xpForNext,
-                      unclaimedRewards: rewards.unclaimedCount,
-                      friendsBadge: messages.count,
-                      dailyAttempted: _daily?.hasAttempted ?? false,
-                      hasActiveMatch: _checked && _activeMatch != null,
-                      // PLACEHOLDER: no endpoint reports players online. The
-                      // design's «۳٬۴۰۱» is shown in debug builds only so the
-                      // layout can be checked; release shows a real subtitle.
-                      onlineCount: kDebugMode ? 3401 : null,
-                    ),
-                    onPlay: () => _startSolo(context),
-                    onAi: () => _startVsAi(context),
-                    onOnline: () => _startOnline(context),
-                    onDaily: () => context.push('/daily'),
-                    onChest: () => _openRoute(context, '/rewards'),
-                    // Coin purchase lives in ZProfile's buy sheet.
-                    onCoins: () => context.go('/profile'),
-                    onSettings: () => context.go('/profile'),
-                    onLevel: () => context.go('/profile'),
-                    onResume: () => _resume(context),
-                    onTab: (i) => _selectTab(context, i),
-                  ),
+            (context, rewards) => HomeView(
+              data: HomeViewData(
+                coins: _coins,
+                streak: _stats?.dailyStreak ?? 0,
+                level: _level,
+                xpInLevel: _xpInLevel,
+                xpForNext: _xpForNext,
+                unclaimedRewards: rewards.unclaimedCount,
+                dailyAttempted: _daily?.hasAttempted ?? false,
+                hasActiveMatch: _checked && _activeMatch != null,
+                // PLACEHOLDER: no endpoint reports players online. The
+                // design's «۳٬۴۰۱» is shown in debug builds only so the
+                // layout can be checked; release shows a real subtitle.
+                onlineCount: kDebugMode ? 3401 : null,
+              ),
+              onPlay: () => _startSolo(context),
+              onAi: () => _startVsAi(context),
+              onOnline: () => _startOnline(context),
+              onDaily: () => context.push('/daily'),
+              onChest: () => _openRoute(context, '/rewards'),
+              // Coin purchase lives in ZProfile's buy sheet.
+              onCoins: () => context.go('/profile'),
+              // The gear is the quick light/dark switch (same ThemeCubit as
+              // ZProfile's حالت شب row).
+              onSettings:
+                  () =>
+                      getIt<ThemeCubit>().toggle(Theme.of(context).brightness),
+              onLevel: () => context.go('/profile'),
+              onResume: () => _resume(context),
             ),
       ),
     );

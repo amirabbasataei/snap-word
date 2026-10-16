@@ -7,19 +7,7 @@ import 'package:wordchain/features/home/view/widgets/chunky.dart';
 /// The home scene's inline glyphs, ported 1:1 from the canvas SVGs and
 /// re-coloured from the theme tokens (they are filled/stroked in the object
 /// palette, so they can't go through the monochrome `ZIcon`).
-enum HomeGlyph {
-  flame,
-  gear,
-  robot,
-  chest,
-  crown,
-  play,
-  home,
-  podium,
-  friends,
-  user,
-  clock,
-}
+enum HomeGlyph { flame, gear, robot, chest, crown, play, clock }
 
 class HomeSvg extends StatelessWidget {
   final HomeGlyph glyph;
@@ -55,14 +43,6 @@ class HomeSvg extends StatelessWidget {
         '<svg viewBox="0 0 22 18"><path d="M2 15L1 4l5.5 4L11 1l4.5 7L21 4l-1 11z" fill="${svgHex(z.surface)}" stroke="$o" stroke-width="2.4" stroke-linejoin="round"/></svg>',
       HomeGlyph.play =>
         '<svg viewBox="0 0 20 22"><path d="M16 3L4 11l12 8z" fill="${svgHex(z.teal)}" stroke="$o" stroke-width="2.6" stroke-linejoin="round"/></svg>',
-      HomeGlyph.home =>
-        '<svg viewBox="0 0 24 24" fill="${svgHex(z.onIndigo)}" stroke="$o" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
-      HomeGlyph.podium =>
-        '<svg viewBox="0 0 24 24" fill="none" stroke="$c" stroke-width="2.6" stroke-linejoin="round"><path d="M9 21V9h6v12M3 21v-7h6M15 21v-9h6v9M2 21h20"/></svg>',
-      HomeGlyph.friends =>
-        '<svg viewBox="0 0 24 24" fill="none" stroke="$c" stroke-width="2.6" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M17.5 14.2c2.4.4 4 2.4 4 5"/></svg>',
-      HomeGlyph.user =>
-        '<svg viewBox="0 0 24 24" fill="none" stroke="$c" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>',
       HomeGlyph.clock =>
         '<svg viewBox="0 0 12 12" fill="none" stroke="$c" stroke-width="2"><circle cx="6" cy="6.5" r="4.5"/><path d="M6 4v2.6l1.6 1"/></svg>',
     };

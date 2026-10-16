@@ -42,6 +42,19 @@ class ZScene extends ThemeExtension<ZScene> {
   /// Unfilled progress-path connector.
   final Color track;
 
+  /// Bottom dock (canvas turn 7, `ZNav`): panel fill, its solid depth edge,
+  /// and the label colours on it. The dock is a dark plum slab in both themes.
+  final Color dock;
+  final Color dockDeep;
+
+  /// White 10% sheen over the dock's top half.
+  final Color dockSheen;
+  final Color onDock;
+  final Color onDock60;
+
+  /// Text on a small coral chip (nav badge) — `--onCoralSm`.
+  final Color onCoralSm;
+
   const ZScene({
     required this.outline,
     required this.hi,
@@ -63,6 +76,12 @@ class ZScene extends ThemeExtension<ZScene> {
     required this.glow,
     required this.rays,
     required this.track,
+    required this.dock,
+    required this.dockDeep,
+    required this.dockSheen,
+    required this.onDock,
+    required this.onDock60,
+    required this.onCoralSm,
   });
 
   static const light = ZScene(
@@ -86,6 +105,12 @@ class ZScene extends ThemeExtension<ZScene> {
     glow: Color(0xF2FFECAA),
     rays: Color(0x73F5A524),
     track: Color(0x2E1E1B2E),
+    dock: Color(0xFF2F2846),
+    dockDeep: Color(0xFF1F1A30),
+    dockSheen: Color(0x1AFFFFFF),
+    onDock: Color(0xFFFFFFFF),
+    onDock60: Color(0xFFCFC6E0),
+    onCoralSm: Color(0xFF3A0B06),
   );
 
   static const dark = ZScene(
@@ -109,6 +134,12 @@ class ZScene extends ThemeExtension<ZScene> {
     glow: Color(0x8CF7B44A),
     rays: Color(0x4DF7B44A),
     track: Color(0x33F2EDE3),
+    dock: Color(0xFF3A2B4D),
+    dockDeep: Color(0xFF241A31),
+    dockSheen: Color(0x1AFFFFFF),
+    onDock: Color(0xFFF2EDE3),
+    onDock60: Color(0xFFC5B9D4),
+    onCoralSm: Color(0xFF2C0E09),
   );
 
   @override
@@ -133,6 +164,12 @@ class ZScene extends ThemeExtension<ZScene> {
     Color? glow,
     Color? rays,
     Color? track,
+    Color? dock,
+    Color? dockDeep,
+    Color? dockSheen,
+    Color? onDock,
+    Color? onDock60,
+    Color? onCoralSm,
   }) {
     return ZScene(
       outline: outline ?? this.outline,
@@ -155,6 +192,12 @@ class ZScene extends ThemeExtension<ZScene> {
       glow: glow ?? this.glow,
       rays: rays ?? this.rays,
       track: track ?? this.track,
+      dock: dock ?? this.dock,
+      dockDeep: dockDeep ?? this.dockDeep,
+      dockSheen: dockSheen ?? this.dockSheen,
+      onDock: onDock ?? this.onDock,
+      onDock60: onDock60 ?? this.onDock60,
+      onCoralSm: onCoralSm ?? this.onCoralSm,
     );
   }
 
@@ -183,6 +226,12 @@ class ZScene extends ThemeExtension<ZScene> {
       glow: c(glow, other.glow),
       rays: c(rays, other.rays),
       track: c(track, other.track),
+      dock: c(dock, other.dock),
+      dockDeep: c(dockDeep, other.dockDeep),
+      dockSheen: c(dockSheen, other.dockSheen),
+      onDock: c(onDock, other.onDock),
+      onDock60: c(onDock60, other.onDock60),
+      onCoralSm: c(onCoralSm, other.onCoralSm),
     );
   }
 }
