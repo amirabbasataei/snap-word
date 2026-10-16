@@ -438,3 +438,42 @@ Glyphs are the canvas SVG paths drawn with the existing `flutter_svg` (token-col
 **Tests:** new `test/features/game/z_solo_screen_test.dart` (states: empty / mid-game / long chain / daily / lives / mistake / power-ups / send dispatches `WordSubmitted` / back dialog; reduced motion schedules nothing; no overflow 320×568, 360×640, 393×852, 430×932 × light/dark with and without a long chain, plus 375×667 with a 260 dp keyboard; contrast table) and 3 goldens in `test/features/game/goldens/` (mid-game light/dark, daily light). `flutter analyze` clean; `flutter test` 108 pass (the previously failing shared-widgets goldens pass on this checkout).
 
 **Simulator (iPhone 17 Pro, light + dark):** solo play end to end — empty chain, first word, 4-word and 8-word chains, a lost life + banner, game over → ZOver, the real Persian keyboard with the layout above it (chip hidden), hint → send, timer urgency. Not seen live: **Daily Challenge** (today's attempt was already used on the test account and a retry spends 25 real coins on production — covered by the widget test + golden instead), the guest variant (the simulator was signed in), a resumed game (initial rows don't drop in), 320×568 on a device. Note: the simulator talks to **production**; the hint runs spent coins (10 per use; Home showed 665 → 645 at its last refresh, so the real spend is likely higher) and the solo games synced matches/XP to the signed-in account.
+
+---
+
+## ZPlay — "A · mascot-led" restyle (2026-10-16) — code complete; light verified on the iOS simulator (partial), dark + full flow NOT verified live
+
+**Source:** canvas turn 7, `ZPlayA.dc.html` (one 396×812 frame, tokens switch light/dark), shared pieces from `ZSoloA` / `ZScene`. Pushed outside the shell → no dock. Used only for **vs-AI** (`opponentType` `ai_*`); solo/daily stay on ZSolo, 1v1 on ZVersus.
+
+**Code:** `features/game/view/z_play_screen.dart` (layout only: header + level/bonus chips + mapping of the shared chain to bubbles). New reusable pieces:
+- `core/widgets/z_disc_avatar.dart` (`ZDiscAvatar.me` / `.robot`), `core/utils/avatar_initial.dart` (`avatarInitial(name)` — first letter, «ت» for guests / non-letters).
+- `features/game/view/widgets/`: `z_game_bubbles.dart` (`ZBubbleChain`, `ZBubbleEntry`), `z_game_scaffold.dart` (`ZGameScaffold` = sky scene + keyboard padding, `ZGameFooter` = input + power-ups), `z_game_scroll.dart` (`ZChainScroller`: bottom-anchored scroller with fade + auto-follow, now also used by `ZSpineChain`), `z_game_word.dart` (`ZChainHue`/`zChainWordSpan` shared-letter colours, `ZPointsPill`, `ZDropIn`; extracted from `z_game_chain.dart`), `ZVersusPill` + `ZTimerRing(calm/paused)` in `z_game_hud.dart`, `ZNextLetterSlot` (extracted from the spine's `_NextSlot`).
+- Opt-in extensions of existing widgets (legacy look is the default): `ChunkyBox.borderRadius`, `ZWordInput(chunky: true)` now has a chunky «در حال فکر کردن…» state and `longWordMinLength` (the «۷ حرف · دوبرابر» tag).
+- ZSpineChain (ZSolo) was refactored onto the shared scroller/hue/slot pieces — ZSolo's three goldens still match pixel-for-pixel.
+
+**Convention for head-to-head screens (ZVersus must follow):** *me* on the **start** side (right in RTL) with the indigo disc, the opponent on the **end** side with the robot disc; the flat bubble corner sits next to the disc; dashed next-word slot on the side of whoever is to move. (The pre-restyle ZPlay had you on the end side.)
+
+**New tokens/metrics (added only):** `ZGame.gameVersusPillHeight 56, gameDisc 36, gameDiscSmall 28, gameBubbleAvatar 34, gameBubble 48, gameBubbleLast 54, gameBubbleTail 6`. No new colours — everything is existing `ZColors`/`ZScene`.
+
+**Real data:** your score (`state.score`), opponent score (`opponentScore`, accumulated by the bloc for the AI), whose turn, timer, level + dots (`opponentType`), chain + owners (`wordOwners`), your points per word (looked up by move count — `wordScores` only holds the player's words), power-up counts/prices (unchanged logic), long-word rule (`GameConstants.longWordBonusMinLength` ×2). Avatar initial from `AuthCubit` username.
+
+**Deviations from the canvas (flagged):**
+- Opponent name: canvas «هوشیار» → real levels آسان / متوسط / سخت with 1/2/3 dots (approved).
+- **Pill avatars step down with width** (36 → 28 → none): the pill's flex layout only fits at the canvas's 396 dp; «نوبت حریف» is wider than the canvas's «نوبت تو». On a 393–402 dp phone the header discs are the 28 dp size (measured by `TextPainter`; stable across turns — it measures the longer label). The in-chain discs are unaffected.
+- «۷ حرف · دوبرابر» **floats over the input card** (top-end) instead of sitting inline — inline squeezes the field to ~48 dp on 320 dp phones. Visible only while the typed word has ≥ 7 characters (`word.length`, same rule as `GameBloc._calculateScore`).
+- Canvas has no «opponent thinking» state and no empty-chain state: added (chunky card with spinner — a static text with reduced motion; «حالا با «ا»» dashed slot / «اولین کلمه رو بنویس» on an empty chain; the ring is dimmed while the AI plays because the clock is not running).
+- Timer ring: teal wedge + ink number (canvas) while calm, switches to the solo ring's coral + pulse at ≤ 5 s.
+- Older bubbles all share one size (canvas) — the legacy size ramp is gone.
+
+**Defects fixed rather than copied:** labels 10.5/11 sp → ≥ 12 sp; 34 dp back button → 44 dp; physical-side tail/badge → directional (`BorderRadiusDirectional`, `PositionedDirectional`); points pill forced LTR; scores that don't fit scale down instead of overflowing (99 999 tested); semantics on discs-less pill, bubbles, level chip (`سطح N از ۳`), ring; reduced motion = no scheduled frames (no spinner/pulse/drop-in); contrast of every pairing asserted ≥ 4.5:1 (indigo initial on disc 3:1 large text).
+
+**Follow-ups (not built):**
+- **The soft keyboard is dismissed on every AI turn** (pre-existing: `ZWordInput` swaps the `TextField` for the thinking card, so focus is lost and the player must tap the field again). The chunky variant has the same behaviour; fix = keep the field mounted/disabled or re-request focus when `isMyTurn` flips back.
+- Pre-filled start letter (same as ZSolo), opponent typing indicator, Rive mascot for the AI disc.
+- ZVersus should adopt `ZBubbleChain` / `ZVersusPill` / `ZGameScaffold` (convention above).
+- `zShowEndGameDialog` is still the legacy dialog.
+
+**Tests:** new `test/features/game/z_play_screen_test.dart` — `avatarInitial` unit test; states (empty, signed-in initial vs guest «ت», mid-game with my-only points + both scores, level dots 1/3, opponent thinking, power-ups, send dispatches `WordSubmitted`, long-word tag from 7 letters, back dialog); reduced motion (nothing schedules frames, no spinner); no overflow at 320×568 / 360×640 / 393×852 / 430×932 × light/dark (empty, 10-word chain with 99 999 scores, opponent thinking) + 375×667 with a 260 dp keyboard and the tag; contrast table; goldens `z_play_mid_light/dark`, `z_play_thinking_dark`. `flutter analyze` clean; `flutter test` 134 pass (ZSolo goldens unchanged).
+
+**Simulator (iPhone 17 Pro, light):** seen live — empty chain (your turn), the header pill with 28 dp discs, level chip + bonus chip, input card with price badges on the power-ups, ring running teal and switching to coral at ≤ 5 s, real play: «نام» scored 49, the AI answered «منور» for 64 (pill + result screen agreed), the continue/game-over screens after a timeout. **Not seen live:** dark mode, the bubble chain on a phone (only in the goldens — a pasted/typed word flow was too slow to automate), the 7-letter tag, the opponent-thinking card, hard/medium levels, 320 dp, soft-keyboard-open layout (golden/test only), guest variant (simulator is signed in as `amirabbas`).
+**Production side effects:** the debug app talks to production — several short vs-AI games (0–2 words, mostly timeouts/losses) were finished and synced to the account (matches/XP), no hints or continues were bought (coins stayed ۴۶۰).

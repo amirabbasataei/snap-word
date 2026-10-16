@@ -6,6 +6,8 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/dashed_tile.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_scroll.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
 import 'package:wordchain/features/home/view/widgets/home_motion.dart';
 
 /// The vertical word chain of the "A · mascot-led" solo screen (canvas turn 7,
@@ -15,33 +17,6 @@ import 'package:wordchain/features/home/view/widgets/home_motion.dart';
 /// Bottom-anchored and scrollable: the newest word sits just above the input,
 /// older words stay reachable by scrolling up, and a new word scrolls back
 /// down.
-
-/// Accent cycle for the shared letters. Word `i` starts in `_cycle[i % 4]` and
-/// ends in the next colour (which the following word starts with); the
-/// phase matches the canvas (word 4 amber → coral).
-enum _Hue { coral, teal, indigo, amber }
-
-_Hue _hueAt(int index) => _Hue.values[index % _Hue.values.length];
-
-Color _fill(BuildContext context, _Hue h) {
-  final z = context.z;
-  return switch (h) {
-    _Hue.coral => z.coral,
-    _Hue.teal => z.teal,
-    _Hue.indigo => z.indigo,
-    _Hue.amber => z.amber,
-  };
-}
-
-Color _ink(BuildContext context, _Hue h) {
-  final zs = context.zs;
-  return switch (h) {
-    _Hue.coral => zs.coralInk,
-    _Hue.teal => zs.tealInk,
-    _Hue.indigo => zs.indigoInk,
-    _Hue.amber => zs.amberInk,
-  };
-}
 
 /// Words from the end that get the canvas's size ramp; earlier ones use the
 /// smallest step.
@@ -75,47 +50,8 @@ class ZSpineChain extends StatefulWidget {
 }
 
 class _ZSpineChainState extends State<ZSpineChain> {
-  final _controller = ScrollController();
-
   /// Words present when the screen opened (a resumed game) don't drop in.
   late final int _initialLength = widget.words.length;
-
-  /// Scrolled to the newest word (offset 0 — the list is reversed).
-  bool _atBottom = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(() {
-      final at = !_controller.hasClients || _controller.offset < 24;
-      if (at != _atBottom) setState(() => _atBottom = at);
-    });
-  }
-
-  @override
-  void didUpdateWidget(ZSpineChain old) {
-    super.didUpdateWidget(old);
-    if (widget.words.length != old.words.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_controller.hasClients) return;
-        if (homeReducedMotion(context)) {
-          _controller.jumpTo(0);
-        } else {
-          _controller.animateTo(
-            0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,98 +60,40 @@ class _ZSpineChainState extends State<ZSpineChain> {
     final earlier =
         words.length > _rampFonts.length ? words.length - _rampFonts.length : 0;
 
-    return LayoutBuilder(
-      builder: (context, c) {
-        final scroll = SingleChildScrollView(
-          controller: _controller,
-          reverse: true,
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: c.maxHeight - 22),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _Links(
-                    heights: [
-                      for (var i = 0; i < words.length; i++)
-                        _rowHeight(i == lastIndex),
-                      ZGame.gameRowTileLast, // the "next word" slot
-                    ],
-                    hues: [
-                      for (var i = 0; i < words.length; i++) _hueAt(i + 1),
-                    ],
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (var i = 0; i < words.length; i++) ...[
-                          _ChainRow(
-                            key: ValueKey(i),
-                            index: i,
-                            word: words[i],
-                            points:
-                                i < widget.scores.length
-                                    ? widget.scores[i]
-                                    : null,
-                            isLast: i == lastIndex,
-                            fontSize:
-                                _rampFonts[(_rampFonts.length -
-                                        1 -
-                                        (lastIndex - i))
-                                    .clamp(0, _rampFonts.length - 1)],
-                            animateIn: i >= _initialLength,
-                          ),
-                          const SizedBox(height: _rowGap),
-                        ],
-                        _NextSlot(
-                          number: words.length + 1,
-                          letter: widget.nextStartLetter,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        // Words scrolling out under the HUD fade instead of being cut off.
-        final mask = context.z.ink;
-        final faded = ShaderMask(
-          blendMode: BlendMode.dstIn,
-          shaderCallback:
-              (rect) => LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                // dstIn mask: only the alpha channel matters.
-                colors: [mask.withValues(alpha: 0), mask],
-                stops: [0, (28 / rect.height).clamp(0.0, 1.0)],
-              ).createShader(rect),
-          child: scroll,
-        );
-        // No room for the hint over the rows when the keyboard is up.
-        if (earlier == 0 || c.maxHeight < 300) return faded;
-        // Pinned hint that older words wait above; gone once the player has
-        // scrolled up to look at them.
-        return Stack(
+    return ZChainScroller(
+      itemCount: words.length,
+      // Pinned hint that older words wait above; gone once the player has
+      // scrolled up to look at them.
+      overlay: earlier == 0 ? null : (_, _) => _EarlierChip(count: earlier),
+      child: _Links(
+        heights: [
+          for (var i = 0; i < words.length; i++) _rowHeight(i == lastIndex),
+          ZGame.gameRowTileLast, // the "next word" slot
+        ],
+        hues: [for (var i = 0; i < words.length; i++) zChainHueAt(i + 1)],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Positioned.fill(child: faded),
-            PositionedDirectional(
-              top: 8,
-              start: 0,
-              end: 0,
-              child: IgnorePointer(
-                child: AnimatedOpacity(
-                  opacity: _atBottom ? 1 : 0,
-                  duration: const Duration(milliseconds: 160),
-                  child: Center(child: _EarlierChip(count: earlier)),
-                ),
+            for (var i = 0; i < words.length; i++) ...[
+              _ChainRow(
+                key: ValueKey(i),
+                index: i,
+                word: words[i],
+                points: i < widget.scores.length ? widget.scores[i] : null,
+                isLast: i == lastIndex,
+                fontSize:
+                    _rampFonts[(_rampFonts.length - 1 - (lastIndex - i)).clamp(
+                      0,
+                      _rampFonts.length - 1,
+                    )],
+                animateIn: i >= _initialLength,
               ),
-            ),
+              const SizedBox(height: _rowGap),
+            ],
+            _NextSlot(number: words.length + 1, letter: widget.nextStartLetter),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -266,7 +144,7 @@ class _EarlierChip extends StatelessWidget {
 /// known without measuring.
 class _Links extends StatelessWidget {
   final List<double> heights;
-  final List<_Hue> hues;
+  final List<ZChainHue> hues;
   final Widget child;
 
   const _Links({
@@ -281,7 +159,7 @@ class _Links extends StatelessWidget {
     return CustomPaint(
       painter: _LinksPainter(
         heights: heights,
-        colors: [for (final h in hues) _fill(context, h)],
+        colors: [for (final h in hues) zChainHueFill(context, h)],
         outline: zs.outline,
       ),
       child: child,
@@ -368,14 +246,6 @@ class _ChainRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final zs = context.zs;
-    final first = _hueAt(index);
-    final lastHue = _hueAt(index + 1);
-    final chars = word.runes.toList();
-    String s(Iterable<int> r) => String.fromCharCodes(r);
-    final head = s(chars.take(1));
-    final tail = chars.length > 1 ? s(chars.skip(chars.length - 1)) : '';
-    final mid = chars.length > 2 ? s(chars.skip(1).take(chars.length - 2)) : '';
-
     final height = _rowHeight(isLast);
     final face = Semantics(
       label: word,
@@ -395,24 +265,12 @@ class _ChainRow extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text.rich(
-                TextSpan(
-                  style: TextStyle(
-                    color: z.ink,
-                    fontWeight: FontWeight.w900,
-                    fontSize: fontSize,
-                    height: 1,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: head,
-                      style: TextStyle(color: _ink(context, first)),
-                    ),
-                    TextSpan(text: mid),
-                    TextSpan(
-                      text: tail,
-                      style: TextStyle(color: _ink(context, lastHue)),
-                    ),
-                  ],
+                zChainWordSpan(
+                  context,
+                  word: word,
+                  index: index,
+                  fontSize: fontSize,
+                  color: z.ink,
                 ),
                 maxLines: 1,
                 softWrap: false,
@@ -450,117 +308,42 @@ class _ChainRow extends StatelessWidget {
         const SizedBox(width: 10),
         SizedBox(
           width: ZGame.gamePointsWidth,
-          child: points == null ? null : _PointsPill(points: points!),
+          child:
+              points == null
+                  ? null
+                  : Center(
+                    child: ZPointsPill(
+                      points: points!,
+                      width: ZGame.gamePointsWidth,
+                    ),
+                  ),
         ),
       ],
     );
 
     return SizedBox(
       height: height,
-      child: Center(child: _DropIn(animate: animateIn, child: row)),
+      child: Center(child: ZDropIn(animate: animateIn, child: row)),
     );
   }
 }
 
-class _PointsPill extends StatelessWidget {
-  final int points;
-
-  const _PointsPill({required this.points});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Center(
-      child: Container(
-        height: 22,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: z.inkSurface,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Directionality(
-          textDirection: TextDirection.ltr,
-          child: Text(
-            '+${toPersianDigits(points)}',
-            style: TextStyle(
-              color: z.onInkSurface,
-              fontWeight: FontWeight.w900,
-              fontSize: 12.5,
-              height: 1,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Canvas `dropin`: the newest word falls in with a springy overshoot.
-class _DropIn extends StatefulWidget {
-  final bool animate;
-  final Widget child;
-
-  const _DropIn({required this.animate, required this.child});
-
-  @override
-  State<_DropIn> createState() => _DropInState();
-}
-
-class _DropInState extends State<_DropIn> with SingleTickerProviderStateMixin {
-  AnimationController? _c;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_c == null && widget.animate && !homeReducedMotion(context)) {
-      _c = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 520),
-      )..forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _c?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = _c;
-    if (c == null) return widget.child;
-    final curve = CurvedAnimation(
-      parent: c,
-      curve: const Cubic(.34, 1.56, .64, 1),
-    );
-    return AnimatedBuilder(
-      animation: c,
-      child: widget.child,
-      builder:
-          (context, child) => Opacity(
-            opacity: c.value.clamp(0.0, 1.0),
-            child: Transform.translate(
-              offset: Offset(0, -48 * (1 - curve.value)),
-              child: child,
-            ),
-          ),
-    );
-  }
-}
-
-/// The dashed «حالا با «ا»» slot that closes the chain.
-class _NextSlot extends StatelessWidget {
-  final int number;
+/// The pulsing dashed «حالا با «ا»» pill that marks where the next word goes
+/// (the dashed counterpart of a word tile; also used by the bubble chain).
+class ZNextLetterSlot extends StatelessWidget {
+  /// Letter the next word must start with; null before the first word.
   final String? letter;
 
-  const _NextSlot({required this.number, required this.letter});
+  const ZNextLetterSlot({super.key, required this.letter});
+
+  static String labelFor(String? letter) =>
+      letter != null ? 'حالا با «$letter»' : 'اولین کلمه رو بنویس';
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     final zs = context.zs;
-    final label = letter != null ? 'حالا با «$letter»' : 'اولین کلمه رو بنویس';
+    final label = labelFor(letter);
 
     Widget slot(double ms) {
       final k = HomeLoop.pingPong(ms, 900);
@@ -629,7 +412,28 @@ class _NextSlot extends StatelessWidget {
       );
     }
 
-    final animate = !homeReducedMotion(context);
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: HomeClock(
+        enabled: !homeReducedMotion(context),
+        builder: (context, ms, _) => slot(ms),
+      ),
+    );
+  }
+}
+
+/// The numbered row that closes the spine: dashed index peg + the slot.
+class _NextSlot extends StatelessWidget {
+  final int number;
+  final String? letter;
+
+  const _NextSlot({required this.number, required this.letter});
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    final zs = context.zs;
     return SizedBox(
       height: ZGame.gameRowTileLast,
       child: Center(
@@ -661,16 +465,7 @@ class _NextSlot extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Flexible(
-              child: Semantics(
-                label: label,
-                excludeSemantics: true,
-                child: HomeClock(
-                  enabled: animate,
-                  builder: (context, ms, _) => slot(ms),
-                ),
-              ),
-            ),
+            Flexible(child: ZNextLetterSlot(letter: letter)),
             const SizedBox(width: 10 + ZGame.gamePointsWidth),
           ],
         ),

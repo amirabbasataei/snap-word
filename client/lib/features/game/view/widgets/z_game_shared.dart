@@ -5,6 +5,7 @@ import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_power.dart';
 import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
+import 'package:wordchain/features/home/view/widgets/home_motion.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
@@ -570,6 +571,11 @@ class ZWordInput extends StatefulWidget {
   /// word is entered; the tile is only a cue).
   final bool chunky;
 
+  /// Chunky only: once the typed word has at least this many letters, an
+  /// amber «۷ حرف · دوبرابر» tag floats over the card — the scoring rule
+  /// (`GameConstants.longWordBonus*`) made visible while typing. Null = no tag.
+  final int? longWordMinLength;
+
   const ZWordInput({
     super.key,
     this.startLetter,
@@ -579,6 +585,7 @@ class ZWordInput extends StatefulWidget {
     this.isOpponentThinking = false,
     this.opponentLabel = 'حریف',
     this.chunky = false,
+    this.longWordMinLength,
   });
 
   @override
@@ -620,6 +627,7 @@ class _ZWordInputState extends State<ZWordInput> {
     final z = context.z;
 
     if (widget.isOpponentThinking) {
+      if (widget.chunky) return _buildChunkyThinking(context);
       return Container(
         width: double.infinity,
         height: 52,
@@ -721,7 +729,70 @@ class _ZWordInputState extends State<ZWordInput> {
     );
   }
 
+  /// Chunky stand-in for the card while the opponent plays (the clock is off).
+  Widget _buildChunkyThinking(BuildContext context) {
+    final z = context.z;
+    return ChunkyBox(
+      fill: z.surface,
+      depth: ZGame.depthMd - 1,
+      radius: ZGame.gameInputRadius,
+      highlight: false,
+      height: ZGame.gameInputHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // A spinner would keep scheduling frames under reduced motion.
+          if (!homeReducedMotion(context)) ...[
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 3, color: z.ink60),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Flexible(
+            child: Text(
+              '${widget.opponentLabel} در حال فکر کردن…',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: z.ink,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildChunky(BuildContext context) {
+    final card = _buildChunkyCard(context);
+    final min = widget.longWordMinLength;
+    if (min == null) return card;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        card,
+        PositionedDirectional(
+          top: -14,
+          end: 14,
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _controller,
+            builder:
+                (context, value, _) => _LongWordCue(
+                  visible: value.text.trim().length >= min,
+                  minLength: min,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChunkyCard(BuildContext context) {
     final z = context.z;
     final letter = widget.startLetter;
     final ink = svgHex(widget.enabled ? z.onTeal : z.ink40);
@@ -815,6 +886,65 @@ class _ZWordInputState extends State<ZWordInput> {
                 ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Canvas `pop` tag over the input card: scales/fades in while the typed word
+/// is long enough for the double-score bonus.
+class _LongWordCue extends StatelessWidget {
+  final bool visible;
+  final int minLength;
+
+  const _LongWordCue({required this.visible, required this.minLength});
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    final label = '${toPersianDigits(minLength)} حرف · دوبرابر';
+    final duration =
+        homeReducedMotion(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 160);
+    return IgnorePointer(
+      child: ExcludeSemantics(
+        excluding: !visible,
+        child: AnimatedScale(
+          scale: visible ? 1 : .7,
+          duration: duration,
+          curve: Curves.easeOutBack,
+          child: AnimatedOpacity(
+            opacity: visible ? 1 : 0,
+            duration: duration,
+            child: Semantics(
+              label: label,
+              child: ChunkyBox(
+                fill: z.amber,
+                depth: 0,
+                radius: 999,
+                highlight: false,
+                borderWidth: ZGame.outlineInner,
+                height: 26,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                // Not `alignment:` — that would stretch the tag across the card.
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: z.onAmber,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

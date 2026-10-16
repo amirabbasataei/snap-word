@@ -15,6 +15,9 @@ class ChunkyBox extends StatelessWidget {
   final Color? deep;
   final double depth;
   final double radius;
+
+  /// Per-corner radii (e.g. a chat bubble's tail corner); overrides [radius].
+  final BorderRadiusGeometry? borderRadius;
   final bool circle;
   final double borderWidth;
   final bool highlight;
@@ -30,6 +33,7 @@ class ChunkyBox extends StatelessWidget {
     this.deep,
     this.depth = ZGame.depthMd,
     this.radius = 12,
+    this.borderRadius,
     this.circle = false,
     this.borderWidth = ZGame.outline,
     this.highlight = true,
@@ -64,7 +68,8 @@ class ChunkyBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: fill,
         shape: circle ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: circle ? null : BorderRadius.circular(radius),
+        borderRadius:
+            circle ? null : (borderRadius ?? BorderRadius.circular(radius)),
         border: Border.all(color: zs.outline, width: borderWidth),
         // A BoxDecoration gradient *replaces* the colour, so the highlight is
         // pre-blended onto the fill to stay opaque (the depth edge sits under).

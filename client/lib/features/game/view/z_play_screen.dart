@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wordchain/core/theme/app_elevation.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/utils/avatar_initial.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/z_disc_avatar.dart';
+import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_bubbles.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_scaffold.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
-
-const _accentCycle = [
-  ZAccent.indigo,
-  ZAccent.teal,
-  ZAccent.amber,
-  ZAccent.coral,
-];
 
 const _difficultyLabels = {
   'ai_easy': 'آسان',
@@ -25,116 +23,115 @@ const _difficultyLabels = {
 
 const _difficultyTiers = {'ai_easy': 1, 'ai_medium': 2, 'ai_hard': 3};
 
-/// ZPlay — vs-AI active-game screen: chat-bubble chain renderer (opponent
-/// on the "start" side, you inverted on the "end" side), no lives (design
-/// only shows lives for true solo — see REDESIGN_PLAN.md §1).
-class ZPlayActiveScreen extends StatefulWidget {
+/// ZPlay — the vs-AI active-game screen in the "A · mascot-led" language
+/// (canvas turn 7, `ZPlayA`): calm sky scene, a head-to-head score pill with
+/// the turn chip, the countdown ring, the level/bonus chips, the shared chain
+/// as chunky chat bubbles (you on the start side, the opponent on the end
+/// side), then the input card and power-ups. No lives in this mode.
+class ZPlayActiveScreen extends StatelessWidget {
   final GameActive state;
 
   const ZPlayActiveScreen({super.key, required this.state});
 
   @override
-  State<ZPlayActiveScreen> createState() => _ZPlayActiveScreenState();
-}
-
-class _ZPlayActiveScreenState extends State<ZPlayActiveScreen> {
-  @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final state = widget.state;
+    final auth = getIt<AuthCubit>().state;
+    final initial = avatarInitial(
+      auth is AuthAuthenticated ? auth.username : null,
+    );
 
-    return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _Header(state: state),
-            Expanded(child: _BubbleChain(state: state)),
-            _Footer(state: state),
-          ],
-        ),
+    return ZGameScaffold(
+      header: _Header(state: state, initial: initial),
+      body: ZBubbleChain(
+        entries: _entries(state),
+        nextStartLetter: state.nextStartLetter,
+        myTurn: state.isMyTurn,
+        myInitial: initial,
+      ),
+      footer: ZGameFooter(
+        state: state,
+        opponentLabel: 'حریف هوشمند',
+        longWordMinLength: GameConstants.longWordBonusMinLength,
       ),
     );
   }
+}
+
+/// Maps the shared chain to bubbles. `wordScores` only ever accumulates the
+/// player's own words (see `GameBloc._onWordSubmitted`) — it isn't parallel to
+/// `wordChain` once the AI's interspersed words are counted, so a "mine"
+/// bubble looks its score up by move count, not by chain index.
+List<ZBubbleEntry> _entries(GameActive state) {
+  final entries = <ZBubbleEntry>[];
+  var myMove = 0;
+  for (var i = 0; i < state.wordChain.length; i++) {
+    final mine =
+        i >= state.wordOwners.length || state.wordOwners[i] == 'player';
+    int? points;
+    if (mine && myMove < state.wordScores.length) {
+      points = state.wordScores[myMove];
+    }
+    if (mine) myMove++;
+    entries.add(
+      ZBubbleEntry(word: state.wordChain[i], mine: mine, points: points),
+    );
+  }
+  return entries;
 }
 
 class _Header extends StatelessWidget {
   final GameActive state;
+  final String initial;
 
-  const _Header({required this.state});
+  const _Header({required this.state, required this.initial});
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final difficulty = _difficultyLabels[state.opponentType] ?? '';
+    final level = _difficultyLabels[state.opponentType] ?? '';
     final tier = _difficultyTiers[state.opponentType] ?? 1;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-      ),
-      decoration: BoxDecoration(
-        color: z.surface,
-        border: Border(bottom: BorderSide(color: z.line)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
       child: Column(
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ZBackButton(onTap: () => zShowEndGameDialog(context)),
-              const SizedBox(width: ZSpacing.md),
+              ZGameBackButton(onTap: () => zShowEndGameDialog(context)),
+              const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'حریف هوشمند · $difficulty',
-                      style: ZTypography.cardTitle.copyWith(
-                        color: z.ink,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'سطح ${toPersianDigits(tier)} از ۳ · ${state.isMyTurn ? 'نوبت تو' : 'نوبت حریف'}',
-                      style: ZTypography.metaLabel.copyWith(
-                        color: z.ink40,
-                        fontSize: 11.5,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: ZVersusPill(
+                  myAvatar:
+                      (size) =>
+                          ZDiscAvatar.me(context, letter: initial, size: size),
+                  myLabel: 'تو',
+                  myScore: state.score,
+                  opponentAvatar:
+                      (size) => ZDiscAvatar.robot(context, size: size),
+                  opponentLabel: level,
+                  opponentScore: state.opponentScore,
+                  myTurn: state.isMyTurn,
+                  myTurnLabel: 'نوبت تو',
+                  opponentTurnLabel: 'نوبت حریف',
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    toPersianDigits(state.score),
-                    style: ZTypography.cardTitle.copyWith(
-                      color: z.ink,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    'امتیاز',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.ink40,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 10),
+              ZTimerRing(
+                secondsRemaining: state.turnTimeRemaining,
+                totalSeconds: GameConstants.classicTurnTimerSec,
+                calm: true,
+                paused: !state.isMyTurn,
               ),
             ],
           ),
-          ZTimerRow(
-            secondsRemaining: state.turnTimeRemaining,
-            totalSeconds: GameConstants.classicTurnTimerSec,
+          const SizedBox(height: 12),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _LevelChip(level: level, tier: tier),
+              const _BonusChip(),
+            ],
           ),
         ],
       ),
@@ -142,260 +139,53 @@ class _Header extends StatelessWidget {
   }
 }
 
-const _bubbleSizes = [26.0, 26.0, 28.0, 30.0, 32.0];
-const _bubbleFonts = [17.0, 17.0, 19.0, 21.0, 22.0];
-const _bubbleOpacity = [.5, .72, .85];
+/// «حریف هوشمند · آسان ●○○» — the opponent's level with a 1–3 dot gauge.
+class _LevelChip extends StatelessWidget {
+  final String level;
+  final int tier;
 
-class _BubbleChain extends StatefulWidget {
-  final GameActive state;
-
-  const _BubbleChain({required this.state});
-
-  @override
-  State<_BubbleChain> createState() => _BubbleChainState();
-}
-
-class _BubbleChainState extends State<_BubbleChain> {
-  final _scrollController = ScrollController();
-
-  @override
-  void didUpdateWidget(_BubbleChain oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.state.wordChain.length != oldWidget.state.wordChain.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  const _LevelChip({required this.level, required this.tier});
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final state = widget.state;
-    final chain = state.wordChain;
-    final difficulty = _difficultyLabels[state.opponentType] ?? 'حریف';
-
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-        ZSpacing.screenGutter,
-        0,
-      ),
-      children: [
-        if (chain.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: ZSpacing.lg),
-            child: Row(
-              children: [
-                Expanded(child: Divider(color: z.line)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: ZSpacing.sm),
-                  child: Text(
-                    'شروع زنجیر',
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.ink40,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                ),
-                Expanded(child: Divider(color: z.line)),
-              ],
-            ),
-          ),
-        for (var i = 0, myMoveIndex = 0; i < chain.length; i++) ...[
-          _BubbleRow(
-            word: chain[i],
-            // wordScores only ever accumulates the player's own words (see
-            // GameBloc._onWordSubmitted) — it isn't parallel to wordChain
-            // once the AI's interspersed words are counted, so a "mine"
-            // bubble must look up its score by move count, not by i.
-            score:
-                (i >= state.wordOwners.length ||
-                        state.wordOwners[i] == 'player')
-                    ? (myMoveIndex < state.wordScores.length
-                        ? state.wordScores[myMoveIndex++]
-                        : null)
-                    : null,
-            isMine:
-                i >= state.wordOwners.length || state.wordOwners[i] == 'player',
-            distanceFromEnd: chain.length - 1 - i,
-            accent: _accentCycle[i % _accentCycle.length],
-            opponentLabel: difficulty,
-          ),
-          const SizedBox(height: ZSpacing.sm),
-        ],
-        _PlaceholderBubble(
-          nextStartLetter: state.nextStartLetter,
-          isMyTurn: state.isMyTurn,
-        ),
-        const SizedBox(height: ZSpacing.lg),
-      ],
-    );
-  }
-}
-
-class _BubbleRow extends StatelessWidget {
-  final String word;
-  final int? score;
-  final bool isMine;
-  final int distanceFromEnd;
-  final ZAccent accent;
-  final String opponentLabel;
-
-  const _BubbleRow({
-    required this.word,
-    required this.score,
-    required this.isMine,
-    required this.distanceFromEnd,
-    required this.accent,
-    required this.opponentLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final embossed = distanceFromEnd <= 1;
-    final rampIndex = (_bubbleSizes.length - 1 - distanceFromEnd).clamp(
-      0,
-      _bubbleSizes.length - 1,
-    );
-    final tileSize = _bubbleSizes[rampIndex];
-    final fontSize = _bubbleFonts[rampIndex];
-    final opacity =
-        embossed
-            ? 1.0
-            : _bubbleOpacity[distanceFromEnd.clamp(
-              0,
-              _bubbleOpacity.length - 1,
-            )];
-
-    final tile = LetterTile(letter: word[0], size: tileSize, accent: accent);
-    final wordText = Text(
-      word,
-      style: ZTypography.chainWordHistory.copyWith(
-        color: isMine ? z.onInkSurface : z.ink,
-        fontSize: fontSize,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-
-    final bubble = Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: embossed ? 14 : 12,
-        vertical: embossed ? 10 : 9,
-      ),
-      decoration: BoxDecoration(
-        color: isMine ? z.inkSurface : z.surface,
-        borderRadius: BorderRadius.circular(embossed ? 18 : 16),
-        border: isMine ? null : Border.all(color: z.line),
-        boxShadow:
-            embossed
-                ? ZElevation.solidEdge(
-                  isMine ? z.inkSurfaceDeep : z.line,
-                  depth: ZElevation.cardDepth,
-                )
-                : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children:
-            isMine
-                ? [
-                  tile,
-                  const SizedBox(width: ZSpacing.sm),
-                  wordText,
-                  if (embossed) ...[
-                    const SizedBox(width: ZSpacing.sm),
-                    Text(
-                      score != null
-                          ? 'تو · ‎+${toPersianDigits(score!)}'
-                          : 'تو',
-                      style: ZTypography.metaLabel.copyWith(
-                        color: z.onInkSurfaceSoft,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ]
-                : [
-                  Text(
-                    opponentLabel,
-                    style: ZTypography.metaLabel.copyWith(
-                      color: z.ink40,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                  const SizedBox(width: ZSpacing.sm),
-                  wordText,
-                  const SizedBox(width: ZSpacing.sm),
-                  tile,
-                ],
-      ),
-    );
-
-    return Opacity(
-      opacity: opacity,
-      child: Align(
-        alignment:
-            isMine
-                ? AlignmentDirectional.centerEnd
-                : AlignmentDirectional.centerStart,
-        child: bubble,
-      ),
-    );
-  }
-}
-
-class _PlaceholderBubble extends StatelessWidget {
-  final String? nextStartLetter;
-  final bool isMyTurn;
-
-  const _PlaceholderBubble({
-    required this.nextStartLetter,
-    required this.isMyTurn,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Align(
-      alignment:
-          isMyTurn
-              ? AlignmentDirectional.centerEnd
-              : AlignmentDirectional.centerStart,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: z.surface,
-          borderRadius: BorderRadius.circular(18),
-        ),
+    final zs = context.zs;
+    return Semantics(
+      label:
+          'حریف هوشمند · $level، سطح ${toPersianDigits(tier)} از ${toPersianDigits(3)}',
+      excludeSemantics: true,
+      child: ChunkyBox(
+        fill: z.surface,
+        depth: 0,
+        radius: 999,
+        highlight: false,
+        borderWidth: ZGame.outlineInner,
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'کلمه‌ای با',
-              style: ZTypography.body.copyWith(
-                color: z.ink40,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
+              'حریف هوشمند · $level',
+              style: TextStyle(
+                color: z.ink,
+                fontWeight: FontWeight.w900,
+                fontSize: 12.5,
               ),
             ),
-            const SizedBox(width: ZSpacing.sm),
-            ZDashedTile(letter: nextStartLetter ?? '؟', size: 34),
+            const SizedBox(width: 6),
+            for (var i = 1; i <= 3; i++) ...[
+              if (i > 1) const SizedBox(width: 3),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: i <= tier ? z.amber : z.wash,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: zs.outline, width: 1.5),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -403,43 +193,33 @@ class _PlaceholderBubble extends StatelessWidget {
   }
 }
 
-class _Footer extends StatelessWidget {
-  final GameActive state;
-
-  const _Footer({required this.state});
+/// «۷ حرف به بالا = دوبرابر» — the long-word bonus rule of vs-AI/solo play.
+class _BonusChip extends StatelessWidget {
+  const _BonusChip();
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-      ),
-      decoration: BoxDecoration(
-        color: z.surface,
-        border: Border(top: BorderSide(color: z.line)),
-      ),
-      child: Column(
-        children: [
-          ZPowerupBar(
-            state: state,
-            types: const ['hint', 'extra_time', 'shield'],
+    return ChunkyBox(
+      fill: z.amber,
+      depth: 0,
+      radius: 999,
+      highlight: false,
+      borderWidth: ZGame.outlineInner,
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      // Not `alignment:` — that would stretch the chip across the Wrap.
+      child: Center(
+        widthFactor: 1,
+        child: Text(
+          '${toPersianDigits(GameConstants.longWordBonusMinLength)} حرف به بالا = دوبرابر',
+          style: TextStyle(
+            color: z.onAmber,
+            fontWeight: FontWeight.w900,
+            fontSize: 12.5,
+            height: 1,
           ),
-          const SizedBox(height: ZSpacing.md),
-          ZWordInput(
-            startLetter: state.nextStartLetter,
-            enabled: state.isMyTurn,
-            hintWord: state.hintWord,
-            isOpponentThinking: !state.isMyTurn,
-            opponentLabel: _difficultyLabels[state.opponentType] ?? 'حریف',
-            onSubmit:
-                (word) => context.read<GameBloc>().add(WordSubmitted(word)),
-          ),
-        ],
+        ),
       ),
     );
   }

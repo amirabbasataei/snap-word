@@ -153,16 +153,24 @@ class ZScorePill extends StatelessWidget {
 /// Circular turn timer: a coral wedge for the time left on a `wash` disc, the
 /// remaining seconds in a surface core. Pulses (canvas `urgent`) once
 /// [urgentAt] seconds or fewer remain, unless motion is reduced.
+///
+/// With [calm] (ZPlay) the wedge is teal and the number plain ink until the
+/// urgent window, when it switches to the coral of the solo ring. [paused]
+/// dims the ring (the AI's turn: the clock is not running).
 class ZTimerRing extends StatelessWidget {
   final int secondsRemaining;
   final int totalSeconds;
   final int urgentAt;
+  final bool calm;
+  final bool paused;
 
   const ZTimerRing({
     super.key,
     required this.secondsRemaining,
     required this.totalSeconds,
     this.urgentAt = 5,
+    this.calm = false,
+    this.paused = false,
   });
 
   /// Canvas `urgent`: a 1 → 1.12 → 1 beat per second.
@@ -181,7 +189,10 @@ class ZTimerRing extends StatelessWidget {
         totalSeconds <= 0
             ? 0.0
             : (secondsRemaining / totalSeconds).clamp(0.0, 1.0);
-    final urgent = secondsRemaining <= urgentAt && !homeReducedMotion(context);
+    final inUrgentWindow = secondsRemaining <= urgentAt && !paused;
+    final urgent = inUrgentWindow && !homeReducedMotion(context);
+    final wedge = calm && !inUrgentWindow ? z.teal : z.coral;
+    final numberColor = calm && !inUrgentWindow ? z.ink : zs.coralInk;
 
     Widget ring(double scale) => Transform.scale(
       scale: scale,
@@ -193,7 +204,7 @@ class ZTimerRing extends StatelessWidget {
         width: ZGame.gameTimerRing,
         height: ZGame.gameTimerRing,
         child: CustomPaint(
-          painter: _WedgePainter(fraction: fraction, color: z.coral),
+          painter: _WedgePainter(fraction: fraction, color: wedge),
           child: Center(
             child: Container(
               width: ZGame.gameTimerCore,
@@ -210,7 +221,7 @@ class ZTimerRing extends StatelessWidget {
               child: Text(
                 toPersianDigits(secondsRemaining.toString().padLeft(2, '0')),
                 style: TextStyle(
-                  color: zs.coralInk,
+                  color: numberColor,
                   fontWeight: FontWeight.w900,
                   fontSize: 21,
                   height: 1,
@@ -222,16 +233,18 @@ class ZTimerRing extends StatelessWidget {
       ),
     );
 
+    final face =
+        urgent
+            ? HomeClock(
+              enabled: true,
+              builder: (context, ms, _) => ring(pulseScale(ms)),
+            )
+            : ring(1);
     return Semantics(
       label: '${toPersianDigits(secondsRemaining)} ثانیه',
       excludeSemantics: true,
-      child:
-          urgent
-              ? HomeClock(
-                enabled: true,
-                builder: (context, ms, _) => ring(pulseScale(ms)),
-              )
-              : ring(1),
+      // Wrapped only while paused: an Opacity(1) layer changes edge pixels.
+      child: paused ? Opacity(opacity: .55, child: ring(1)) : face,
     );
   }
 }
@@ -341,6 +354,193 @@ class ZWordsChip extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Head-to-head score pill of ZPlay (canvas `ZPlayA`): your disc and score on
+/// the start side, the opponent's on the end side, and a chip in the middle
+/// saying whose turn it is.
+///
+/// The canvas is drawn at 396dp; on narrower phones the pill measures its
+/// content and steps down — full discs, then small ones, then none — so the
+/// turn chip is never squeezed below legibility. The step depends on the
+/// longer of the two turn labels and the current scores, not on whose turn it
+/// is, so the layout doesn't jump when the turn changes.
+class ZVersusPill extends StatelessWidget {
+  /// Builds a disc of the given size (so the pill can pick the size).
+  final Widget Function(double size) myAvatar;
+  final String myLabel;
+  final int myScore;
+  final Widget Function(double size) opponentAvatar;
+  final String opponentLabel;
+  final int opponentScore;
+  final bool myTurn;
+  final String myTurnLabel;
+  final String opponentTurnLabel;
+
+  const ZVersusPill({
+    super.key,
+    required this.myAvatar,
+    required this.myLabel,
+    required this.myScore,
+    required this.opponentAvatar,
+    required this.opponentLabel,
+    required this.opponentScore,
+    required this.myTurn,
+    required this.myTurnLabel,
+    required this.opponentTurnLabel,
+  });
+
+  static const _maxSide = 64.0;
+  static const _chipPad = 8.0;
+  static const _scoreStyle = TextStyle(
+    fontWeight: FontWeight.w900,
+    fontSize: 20,
+    height: 1,
+  );
+  static const _labelStyle = TextStyle(
+    fontWeight: FontWeight.w800,
+    fontSize: 12,
+    height: 1.3,
+  );
+  static const _chipStyle = TextStyle(
+    fontWeight: FontWeight.w900,
+    fontSize: 12,
+    height: 1,
+  );
+
+  double _textWidth(BuildContext context, String text, TextStyle style) {
+    final painter = TextPainter(
+      // Inherit the theme font (Vazirmatn) so the measure matches the render.
+      text: TextSpan(
+        text: text,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      textDirection: TextDirection.rtl,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    return painter.width;
+  }
+
+  double _sideWidth(BuildContext context, int score, String label) =>
+      math
+          .max(
+            _textWidth(context, toPersianDigits(score), _scoreStyle),
+            _textWidth(context, label, _labelStyle),
+          )
+          .clamp(0, _maxSide)
+          .toDouble();
+
+  Widget _side(
+    BuildContext context,
+    int score,
+    String label,
+    CrossAxisAlignment align,
+  ) {
+    final z = context.z;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: align,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _maxSide),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              toPersianDigits(score),
+              style: _scoreStyle.copyWith(color: z.ink),
+            ),
+          ),
+        ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _maxSide),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _labelStyle.copyWith(color: z.ink),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    final turnLabel = myTurn ? myTurnLabel : opponentTurnLabel;
+    final chip = Container(
+      height: 22,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: _chipPad),
+      decoration: BoxDecoration(
+        color: myTurn ? z.inkSurface : z.wash,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        turnLabel,
+        maxLines: 1,
+        softWrap: false,
+        style: _chipStyle.copyWith(color: myTurn ? z.onInkSurface : z.ink),
+      ),
+    );
+    return LayoutBuilder(
+      builder: (context, c) {
+        // padding 2×8 + outline 2×3, then the sides and the widest chip.
+        final base =
+            22 +
+            _sideWidth(context, myScore, myLabel) +
+            _sideWidth(context, opponentScore, opponentLabel) +
+            math.max(
+              _textWidth(context, myTurnLabel, _chipStyle),
+              _textWidth(context, opponentTurnLabel, _chipStyle),
+            ) +
+            2 * _chipPad +
+            4;
+        // Avatar + its 8dp gap, on both sides.
+        final discSize =
+            base + 2 * (ZGame.gameDisc + 8) <= c.maxWidth
+                ? ZGame.gameDisc
+                : base + 2 * (ZGame.gameDiscSmall + 6) <= c.maxWidth
+                ? ZGame.gameDiscSmall
+                : null;
+        final gap = discSize == ZGame.gameDisc ? 8.0 : 6.0;
+        return ChunkyBox(
+          fill: z.surface,
+          depth: ZGame.depthMd - 1,
+          radius: 18,
+          highlight: false,
+          height: ZGame.gameVersusPillHeight,
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              if (discSize != null) ...[
+                myAvatar(discSize),
+                SizedBox(width: gap),
+              ],
+              _side(context, myScore, myLabel, CrossAxisAlignment.start),
+              Expanded(
+                child: Center(
+                  child: FittedBox(fit: BoxFit.scaleDown, child: chip),
+                ),
+              ),
+              _side(
+                context,
+                opponentScore,
+                opponentLabel,
+                CrossAxisAlignment.end,
+              ),
+              if (discSize != null) ...[
+                SizedBox(width: gap),
+                opponentAvatar(discSize),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -90,6 +90,17 @@ abstract final class ZGame {
   static const gamePowerDisc = 32.0;
   static const gamePowerBadge = 24.0;
 
+  // ZPlay (canvas turn 7, `ZPlayA`).
+  static const gameVersusPillHeight = 56.0;
+  static const gameDisc = 36.0;
+
+  /// Narrow-phone step of [gameDisc] (see `ZVersusPill`).
+  static const gameDiscSmall = 28.0;
+  static const gameBubbleAvatar = 34.0;
+  static const gameBubble = 48.0;
+  static const gameBubbleLast = 54.0;
+  static const gameBubbleTail = 6.0;
+
   /// Smallest label size on the home screen (the canvas has 10px labels).
   static const minLabel = 11.5;
 }
