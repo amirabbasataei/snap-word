@@ -58,6 +58,9 @@ class ZScene extends ThemeExtension<ZScene> {
   /// Text on a small coral chip (nav badge) — `--onCoralSm`.
   final Color onCoralSm;
 
+  /// Flat (no blur) backdrop behind dialogs and sheets — `--scrim`.
+  final Color scrim;
+
   const ZScene({
     required this.outline,
     required this.hi,
@@ -86,6 +89,7 @@ class ZScene extends ThemeExtension<ZScene> {
     required this.onDock,
     required this.onDock60,
     required this.onCoralSm,
+    required this.scrim,
   });
 
   static const light = ZScene(
@@ -116,6 +120,7 @@ class ZScene extends ThemeExtension<ZScene> {
     onDock: Color(0xFFFFFFFF),
     onDock60: Color(0xFFCFC6E0),
     onCoralSm: Color(0xFF3A0B06),
+    scrim: Color(0x731E1B2E),
   );
 
   static const dark = ZScene(
@@ -146,6 +151,7 @@ class ZScene extends ThemeExtension<ZScene> {
     onDock: Color(0xFFF2EDE3),
     onDock60: Color(0xFFC5B9D4),
     onCoralSm: Color(0xFF2C0E09),
+    scrim: Color(0x9908060C),
   );
 
   @override
@@ -177,6 +183,7 @@ class ZScene extends ThemeExtension<ZScene> {
     Color? onDock,
     Color? onDock60,
     Color? onCoralSm,
+    Color? scrim,
   }) {
     return ZScene(
       outline: outline ?? this.outline,
@@ -206,6 +213,7 @@ class ZScene extends ThemeExtension<ZScene> {
       onDock: onDock ?? this.onDock,
       onDock60: onDock60 ?? this.onDock60,
       onCoralSm: onCoralSm ?? this.onCoralSm,
+      scrim: scrim ?? this.scrim,
     );
   }
 
@@ -241,6 +249,7 @@ class ZScene extends ThemeExtension<ZScene> {
       onDock: c(onDock, other.onDock),
       onDock60: c(onDock60, other.onDock60),
       onCoralSm: c(onCoralSm, other.onCoralSm),
+      scrim: c(scrim, other.scrim),
     );
   }
 }

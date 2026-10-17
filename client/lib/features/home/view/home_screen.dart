@@ -6,16 +6,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/home/view/widgets/home_level_dialog.dart';
 import 'package:wordchain/features/home/view/widgets/home_view.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
@@ -145,8 +142,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _startVsAi(BuildContext context) {
-    _showDifficultySheet(context);
+  Future<void> _startVsAi(BuildContext context) async {
+    final opponentType = await showAiLevelDialog(context);
+    if (opponentType == null || !context.mounted) return;
+    context.push(
+      '/game',
+      extra: GameRouteArgs(mode: 'classic', opponentType: opponentType),
+    );
   }
 
   void _startOnline(BuildContext context) {
@@ -155,58 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       context.push('/lobby');
     }
-  }
-
-  void _showDifficultySheet(BuildContext context) {
-    final z = context.z;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: z.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(ZRadius.sheetMax),
-        ),
-      ),
-      builder:
-          (ctx) => SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(ZSpacing.xl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'حریف هوشمند — انتخاب سطح',
-                    style: ZTypography.screenTitle.copyWith(color: z.ink),
-                  ),
-                  const SizedBox(height: ZSpacing.xxl),
-                  for (final entry in [
-                    ('آسان', 'ai_easy', 'اشتباه زیاد، پاسخ کند', ZAccent.teal),
-                    ('متوسط', 'ai_medium', 'چالش متعادل', ZAccent.amber),
-                    ('سخت', 'ai_hard', 'سریع و با کلمات تله', ZAccent.coral),
-                  ]) ...[
-                    _DifficultyTile(
-                      label: entry.$1,
-                      subtitle: entry.$3,
-                      accent: entry.$4,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        context.push(
-                          '/game',
-                          extra: GameRouteArgs(
-                            mode: 'classic',
-                            opponentType: entry.$2,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: ZSpacing.sm),
-                  ],
-                ],
-              ),
-            ),
-          ),
-    );
   }
 
   void _openRoute(BuildContext context, String route) {
@@ -265,68 +215,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onLevel: () => context.go('/profile'),
               onResume: () => _resume(context),
             ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Difficulty tile (bottom sheet row)
-// ---------------------------------------------------------------------------
-
-class _DifficultyTile extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final ZAccent accent;
-  final VoidCallback onTap;
-
-  const _DifficultyTile({
-    required this.label,
-    required this.subtitle,
-    required this.accent,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: SolidCard(
-        elevated: false,
-        padding: const EdgeInsets.symmetric(
-          horizontal: ZSpacing.lg,
-          vertical: ZSpacing.md,
-        ),
-        child: Row(
-          children: [
-            LetterTile(
-              letter: label[0],
-              accent: accent,
-              size: ZTileSize.prompt,
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: ZTypography.cardTitle.copyWith(color: z.ink),
-                  ),
-                  Text(
-                    subtitle,
-                    style: ZTypography.body.copyWith(
-                      color: z.ink60,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: z.ink40),
-          ],
-        ),
       ),
     );
   }

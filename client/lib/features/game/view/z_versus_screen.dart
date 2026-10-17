@@ -14,6 +14,7 @@ import 'package:wordchain/core/widgets/letter_tile.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/view/widgets/z_exit_confirm.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 
 const _accentCycle = [

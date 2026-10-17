@@ -21,9 +21,24 @@ Future<void> loadVazirmatn() async {
 }
 
 /// Wraps [child] the way `main.dart` does: زنجیر theme + RTL.
-Widget zTestApp(Widget child, {Brightness brightness = Brightness.light}) {
+///
+/// [reduceMotion] sets the platform "reduce motion" flag for the whole app, so
+/// routes (dialogs) see it too — a `MediaQuery` inside [child] would not reach
+/// them.
+Widget zTestApp(
+  Widget child, {
+  Brightness brightness = Brightness.light,
+  bool reduceMotion = false,
+}) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
+    builder:
+        reduceMotion
+            ? (context, app) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: app!,
+            )
+            : null,
     theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
     home: Directionality(textDirection: TextDirection.rtl, child: child),
   );

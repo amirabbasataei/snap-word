@@ -321,7 +321,7 @@ Tutorial is out of scope (dropped, see Stage 5). Login/register were superseded 
 - **New `GameOver.iWon`** (set in `_handleWsGameOver` from `winner == myPlayerId`). The legacy screen guessed the winner from scores (`score > opponentScore`), which is wrong whenever the higher scorer loses by making the mistake. `iWon` is null while my own continue window is open, so the hero reads «زنجیر پاره شد!» until the server decides.
 - **Bug fixed in passing**: after a forfeit, the bloc is already in `GameOver` when the server's `game_over` arrives. `_handleWsGameOver` then rebuilt the result from a null `GameActive`, giving an empty chain and 0 length. It now falls back to the previous `GameOver`'s chain/mode/score.
 - `_OpponentContinueOverlay` and `_DisconnectedBanner` restyled on tokens, in Persian. The scrim is `paper` at 88% so it works in both themes. The grace period reads `GameConstants.reconnectGraceSec` (new, 30).
-- `friend_challenge_sheet.dart` restyled on tokens, in Persian. Timer copy is read from `GameConstants`, and it closes via `context.pop()`.
+- `friend_challenge_sheet.dart` restyled on tokens, in Persian. Timer copy is read from `GameConstants`, and it closes via `context.pop()`. **Replaced 2026-10-17 by `friend_challenge_dialog.dart` (see § Friend challenge dialog).**
 - Loading/error states in `game_screen.dart` restyled. The error state uses `NeutralButton`.
 - **Deleted as dead code**: `continue_prompt.dart`, `word_chain_list.dart`, `timer_bar.dart`, `word_input.dart` (no remaining references; the Z screens use `z_game_shared.dart`).
 - **Legacy palette removed**: `AppColors` and the hand-built `AppTheme.dark` are gone. `AppTheme.light`/`dark` are now both built from `ZColors` by one `_build()`. `ThemeCubit` defaults to `ThemeMode.system` now that every screen honours both themes (the design is light-first).
@@ -433,7 +433,7 @@ Glyphs are the canvas SVG paths drawn with the existing `flutter_svg` (token-col
 
 **Design defects fixed:** spent lives are drawn as empty hearts (canvas only shows full ones) with a semantic label; the timer ring pulses only at ≤ 5 s (canvas: always) and never with reduced motion; the coin price (real server behaviour) is the corner badge when none is owned (amber, text — not colour alone); the badge sits on the *end* corner via `PositionedDirectional` (canvas used physical `left`); `amberInk` was missing from the token set; points pills forced LTR; all labels ≥ 12 sp; back button 44 dp; semantics on back / timer / lives / send / power-ups / words; contrast of every ink-on-tile, chip and banner pairing asserted ≥ 4.5:1 in both themes (white on `teal` letter tile is the large-text 3:1 case). The scene stays fixed behind the keyboard (`resizeToAvoidBottomInset: false`, content pads itself).
 
-**Placeholders / follow-ups:** none fake. Follow-ups: pre-filled start letter; timed mode if wanted; `zShowEndGameDialog` (shared dialog) is still the legacy style; ZOver (next) — its «رکورد» line already uses the same stat; hoist `ChunkyPressable`.
+**Placeholders / follow-ups:** none fake. Follow-ups: pre-filled start letter; timed mode if wanted; ~~`zShowEndGameDialog` (shared dialog) is still the legacy style~~ (done in the Dialogs session below); ZOver (next) — its «رکورد» line already uses the same stat; ~~hoist `ChunkyPressable`~~ (done, `25c4d92`).
 
 **Tests:** new `test/features/game/z_solo_screen_test.dart` (states: empty / mid-game / long chain / daily / lives / mistake / power-ups / send dispatches `WordSubmitted` / back dialog; reduced motion schedules nothing; no overflow 320×568, 360×640, 393×852, 430×932 × light/dark with and without a long chain, plus 375×667 with a 260 dp keyboard; contrast table) and 3 goldens in `test/features/game/goldens/` (mid-game light/dark, daily light). `flutter analyze` clean; `flutter test` 108 pass (the previously failing shared-widgets goldens pass on this checkout).
 
@@ -470,10 +470,88 @@ Glyphs are the canvas SVG paths drawn with the existing `flutter_svg` (token-col
 **Follow-ups (not built):**
 - **The soft keyboard is dismissed on every AI turn** (pre-existing: `ZWordInput` swaps the `TextField` for the thinking card, so focus is lost and the player must tap the field again). The chunky variant has the same behaviour; fix = keep the field mounted/disabled or re-request focus when `isMyTurn` flips back.
 - Pre-filled start letter (same as ZSolo), opponent typing indicator, Rive mascot for the AI disc.
-- ZVersus should adopt `ZBubbleChain` / `ZVersusPill` / `ZGameScaffold` (convention above).
-- `zShowEndGameDialog` is still the legacy dialog.
+- ZVersus should adopt `ZBubbleChain` / `ZVersusPill` / `ZGameScaffold` (convention above) — still open.
+- ~~`zShowEndGameDialog` is still the legacy dialog.~~ (done in the Dialogs session below.)
 
 **Tests:** new `test/features/game/z_play_screen_test.dart` — `avatarInitial` unit test; states (empty, signed-in initial vs guest «ت», mid-game with my-only points + both scores, level dots 1/3, opponent thinking, power-ups, send dispatches `WordSubmitted`, long-word tag from 7 letters, back dialog); reduced motion (nothing schedules frames, no spinner); no overflow at 320×568 / 360×640 / 393×852 / 430×932 × light/dark (empty, 10-word chain with 99 999 scores, opponent thinking) + 375×667 with a 260 dp keyboard and the tag; contrast table; goldens `z_play_mid_light/dark`, `z_play_thinking_dark`. `flutter analyze` clean; `flutter test` 134 pass (ZSolo goldens unchanged).
 
 **Simulator (iPhone 17 Pro, light):** seen live — empty chain (your turn), the header pill with 28 dp discs, level chip + bonus chip, input card with price badges on the power-ups, ring running teal and switching to coral at ≤ 5 s, real play: «نام» scored 49, the AI answered «منور» for 64 (pill + result screen agreed), the continue/game-over screens after a timeout. **Not seen live:** dark mode, the bubble chain on a phone (only in the goldens — a pasted/typed word flow was too slow to automate), the 7-letter tag, the opponent-thinking card, hard/medium levels, 320 dp, soft-keyboard-open layout (golden/test only), guest variant (simulator is signed in as `amirabbas`).
 **Production side effects:** the debug app talks to production — several short vs-AI games (0–2 words, mostly timeouts/losses) were finished and synced to the account (matches/XP), no hints or continues were bought (coins stayed ۴۶۰).
+
+---
+
+## Consolidation status (as of 2026-10-17)
+
+The numbered "items 1, 2, 5" the brief refers to are not written down in this file or in `docs/`, so they cannot be matched one-to-one; this is what the history shows.
+
+**Landed (all pure moves / dedupes, behaviour unchanged):**
+- `f8b9141` `ChunkyBox` → `core/widgets/chunky.dart`.
+- `25c4d92` `ChunkyPressable` and the motion helpers (`HomeClock`, `HomeLoop`, reduced-motion check) → `core/widgets/` (`chunky_pressable.dart`, `motion.dart`). This closes the old "hoist `ChunkyPressable`" follow-up from the ZSolo section.
+- `3b6365d` shared game frame (`ZGameScaffold`/`ZGameFooter`), `avatarInitial`, the chain index peg, shared test helpers (`test/helpers/contrast.dart`, `game_fakes.dart`).
+- `790955a` `ZChunkPill` (`core/widgets/chunky_pill.dart`) and the duplicated HUD/bubble/chain pieces merged onto it.
+
+**Still open:**
+- ZVersus still has its own header, bubbles and pill; it should adopt `ZBubbleChain` / `ZVersusPill` / `ZGameScaffold` (ZVersus session).
+- Two mascots: `HomeMascot` (hanging from the chain, home only) and the new standing `ZMascot`. They are different drawings; keep both, do not merge.
+- `ZBackButton` (legacy 34px, `z_game_shared.dart`) is still used by ZLobby, Daily and ZVersus; `ZGameBackButton` (44px) is the new one.
+- `_ErrorView` is duplicated in `daily_screen.dart` and `z_profile_screen.dart`; the loading/error/empty states have no shared widget yet (`ZEmptyState` is planned for the ZFriends session).
+- The ribbon title (swallow-tail) is not a shared widget yet; first use is ZLobby.
+- Sheets without a canvas frame (referral, edit username, avatar picker, buy coins, add friend, friend challenge, taunt tray) are still Material bottom sheets; they get a `ZTray` frame in their screens' sessions.
+
+---
+
+## Dialogs session (2026-10-17) — code complete; goldens + widget tests, not seen on a device
+
+**Source:** canvas turn 8 `ZExitConfirm.dc.html` (frames 8a–8e: in-context + one per mode), turn 7 frame 7p (level picker, `ZPlayA` `level-picker`), `ZMascot.dc.html`, `zmotion.js` (`dropin`, `pop`, `sag`, loops).
+
+**Shared frame (new):** `core/widgets/z_dialog.dart`
+- `showZDialog(context, builder:)` — every non-screen modal goes through it: centred card, `scrim` token backdrop (flat, no blur), 12px side inset, max 372 wide, scrolls when tall, keeps the caller's text direction. Entrance = `dropin` (−48px, canvas spring, 520ms); reduced motion = 200ms fade.
+- `ZDialogCard` — 3px outline, r28, solid 6px edge, optional `mascot` standing on the top edge.
+- `ZDialogButton.primary` (58 / r20 / 5px edge, accent) and `.secondary` (50 / r18 / 4px edge, coloured label + icon), both on `ChunkyPressable`.
+- `core/widgets/z_mascot.dart` — `ZMascot(mood: idle|happy|sad|thinking|surprised, size, shadow, animate)`, the canvas's **standing** mascot drawn in code (no letter on it — checked in `ZMascot.dc.html`: the body is a plain amber box). Built here because the exit dialog needs it (sad / surprised); ZOver will reuse it. All five moods are drawn so ZOver/ZLobby/ZDaily don't reopen it. `HomeMascot` is untouched.
+
+**Exit confirm** — `features/game/view/widgets/z_exit_confirm.dart`: one `ZExitConfirm` with `ZExitMode { solo, ai, online, daily }`; `zShowEndGameDialog(context)` (same name/signature, callers unchanged: `ZGameBackButton` in `z_game_scaffold.dart` for ZSolo/ZPlay, and ZVersus' back button) derives the mode from the running `GameActive` (`zExitModeOf`) and ends the game with `GameEnded` on leave. Primary = stay (also scrim tap), leave is secondary in `coralInk`. The dialog closes itself if the game ends underneath it.
+
+| Mode | Caller | What leaving really does | Canvas claim → what the dialog says |
+|---|---|---|---|
+| solo (`classic` + `solo`) | ZSolo back | `GameEnded` → local match finished and saved, score/chain counted in stats + XP, synced; no continue offered | «ذخیره نمی‌شه» is false → «بازی همین‌جا تموم می‌شه … امتیازت همون‌طور که هست ثبت می‌شه»; cards = real chain length + score |
+| ai | ZPlay back | same as solo; the server records every solo/AI upload as the player's win, there is no loss record | «باخت در کارنامه» is false → no loss mentioned; cards = score + chain length |
+| online | ZVersus back | `GameEnded` shows the result screen locally; the server only learns when the socket closes (leaving ZOver), then opponent gets `opponent_disconnected`, 30 s grace, then wins and takes the pot; entry fee only exists against a human (`bloc.entryFee`, new getter) | rank «−۱۵ رتبه» does not exist → dropped; coin card + line only when `entryFee > 0`; card «باخت / نتیجهٔ بازی» |
+| daily | ZSolo (daily) back | same save; the attempt is posted with its score to the daily board; the streak is kept (the game counts as played); prizes depend on rank; a paid retry exists | «تا فردا نمی‌تونی»، «۶ روز رکورد پیاپی»، «۵۰ سکه جایزهٔ امروز» are false → «تلاش امروزت همین‌جا تموم می‌شه و با همین امتیاز توی جدول امروز ثبت می‌شه»; cards = chain + score |
+
+Header of the cards: «تا همین‌جا ثبت می‌شه» (kept) for solo/ai/daily, the canvas's «اگه بری از دستت می‌ره» only for online, where something is actually lost. Stay/leave labels follow the canvas («ادامه می‌دم» / «برمی‌گردم»; «خروج» / «تسلیم و خروج»), replacing «ادامه بازی» / «پایان بازی».
+- **Clock:** the canvas pauses the clock for solo/AI/daily. Solo and vs-AI now pause (`GamePaused`/`GameResumed`, the same mechanism the need-coins sheet used). **Daily does not pause** and says «تایمر متوقف نمی‌شه» like online: it is ranked and prized, and the back button would be a free "think as long as you like" button. One line to flip: `zExitPausesClock`.
+
+**Level picker** — `features/home/view/widgets/home_level_dialog.dart` (`showAiLevelDialog`, `AiLevelDialog`, `aiLevels`): replaces the Home bottom sheet. Cards آسان / متوسط / سخت with the canvas robot faces and the flavour names خواب‌آلود / هوشیار / بدقلق, 1–3 speed bars (no seconds), radio, default **متوسط**, «شروع بازی» CTA, close button; tapping a card only selects. `HomeScreen._startVsAi` pushes `/game` with `GameRouteArgs(mode: 'classic', opponentType: <chosen>)` exactly as before. Subtitle: «هرچه سخت‌تر، سریع‌تر و کم‌اشتباه‌تر» — the canvas's «… و بددهن‌تر» describes AI trash-talk that does not exist.
+
+**Restyled onto the frame:** `showInsufficientCoinsDialog` (earn rows are chunky rows now; API unchanged), the notification-permission dialog (happy mascot), and the power-up need-coins sheet (now a dialog; still pauses and resumes the game). All three had no canvas frame — derived from the exit dialog.
+
+**Tokens (added only):** `ZScene.scrim` (`#1E1B2E` @45% light, `#08060C` @60% dark — the canvas hardcodes 45% / 28% in the frames, the token sheet says these). `ZGame.dialogRadius 28, dialogDepth 6, dialogInset 12, dialogMaxWidth 372, dialogMascotLift 62, dialogMascotSize 88, dialogPrimaryHeight 58/Radius 20, dialogSecondaryHeight 50/Radius 18`; `ZGameMotion.dialogEnter 520ms, dialogEnterReduced 200ms, mascotPop 420ms`.
+
+**Tests:** `test/features/game/z_exit_confirm_test.dart` (mode mapping, copy per mode incl. "no invented rank/streak/prize", pause/resume/end events, scrim = stay, auto-close, reduced motion, no overflow 320×568…430×932 × both themes × 4 modes + 1.6× text, contrast, 6 goldens), `test/features/home/ai_level_dialog_test.dart` (default, selection ≠ start, result, close, scrim, radio semantics, overflow, 2 goldens), `test/core/widgets/z_dialog_test.dart` (scrim token, dismissal, width, scrolling, direction, entrance, buttons, coins + notification behaviour and goldens), `test/core/widgets/z_mascot_test.dart` (all moods, sizes, no text, reduced motion, 2 goldens). Helpers: `ScriptedGameBloc` (`test/helpers/game_fakes.dart`), `zTestApp(reduceMotion:)` sets the flag app-wide so routes see it.
+
+**Deviations from the canvas:** copy adapted where false (table above); no pill pause for daily; dialog entrance has no 300ms delay (the canvas `dropin` carries one for chain rows); mascot loops are re-derived from `zmotion.js` (breathe/hop/sag/ponder/pop/blink/tear/dots) with a ticker, not a port; the picker's character names are flavour only.
+
+**Flagged, not fixed:**
+- **Leaving an online game does not forfeit it.** `GameEnded` only finalises locally; no message goes to the server and the socket stays open until the player leaves ZOver. The opponent keeps playing against an absent player until the 30 s disconnect grace. The dialog says «می‌بازی», which is where it ends up. A real fix needs an explicit forfeit on the WS protocol.
+- The old sheets' before-state could not be captured for the level picker and the need-coins sheet (private widgets); before/after goldens exist for the exit, coins and notification dialogs (before images: scratchpad `goldens/before/`, not committed).
+
+**Not verified:** nothing was run on a device or simulator. Goldens are generated on Linux like the rest. `test/core/widgets/shared_widgets_golden_test.dart` (2), `z_bottom_nav_golden_test.dart` (4), `z_play_screen_test.dart` / `z_solo_screen_test.dart` / `home_view_golden_test.dart` goldens (9) fail on a clean checkout too (1.5–2.9% pixel diffs — confirmed with `git stash`); not caused by this work.
+
+---
+
+## Friend challenge dialog (2026-10-17) — code complete; widget tests + goldens, not seen on a device
+
+**Source:** canvas turn 9, `ZInviteConfirm.dc.html` (frames 9a in context on ZFriends, 9b card only; light + dark). Replaces the Material bottom sheet `friend_challenge_sheet.dart` (deleted).
+
+**Code:** `features/friends/view/friend_challenge_dialog.dart` — `showFriendChallengeDialog(context, friendUsername:)` → `Future<bool>` (true only for «بفرست»; «بی‌خیال», the scrim and back all give false) on the shared `showZDialog` / `ZDialogCard` / `ZDialogButton`. `_FriendRow._challenge` (`z_friends_screen.dart`) awaits it and then calls `FriendsCubit.sendChallenge(friend.userId, 'classic')` — the same call, arguments, guards (`insufficient_coins` → earn-coins dialog, other errors → toast) and navigation as before; nothing is sent until the player confirms. `ZDialogButton` gained `icon` (primary) and `height` / `radius` / `depth` (secondary). New `GameConstants.challengeValidHours = 24` (mirrors the backend's 24h expiry).
+
+**Layout (canvas):** two 60px discs (me indigo with my initial from `AuthCubit`, the friend coral with theirs — the opponent colour of the game screens) joined by an amber chain link; title «X را به بازی دعوت کنی؟» (the name in a bidi isolate); one line of body; the lobby's two tiles «ورودی ۲۰ سکه ← جایزهٔ برنده ۴۰ سکه» from `GameConstants`; a fee note; «بی‌خیال» + wider primary «بفرست» with the send glyph.
+
+**Copy adapted where the canvas claims something the product does not do:**
+- «براش اعلان می‌ره و تا ۲ دقیقه منتظر جوابش می‌مونی.» → «براش اعلان می‌ره و تا ۲۴ ساعت وقت داره جواب بده.» A challenge stays answerable for 24h (`friend_challenges.expires_at`); the 120 s is how long a *room* waits once the invite is accepted (`RoomWaitTimeoutSec`), and the challenger is not blocked meanwhile (`ChallengeWatcher` pulls them into the room).
+- «ورودی وقتی کم می‌شه که دعوت رو قبول کنه.» → «سکه وقتی کم می‌شه که بازی شروع بشه، نه همین حالا.» The fee is taken in `Room.chargeEntryFees` when the second player has joined and the match starts; accepting only creates the room, and a room nobody joins within 120 s is cancelled without charging. (Balance is *checked* at send and at accept — `402 insufficient_coins` — which is unchanged.)
+- The canvas note «Tapping «دعوت شد» again withdraws without a dialog» is not built: there is no cancel-challenge endpoint (listed in `todo.md` § 2.1), and the Friends row still says «رویارویی» rather than «دعوت به بازی».
+- The old sheet's rule line («کلاسیک · هر نوبت ۱۵ ثانیه · اولین اشتباه می‌بازد») is not in the canvas and is gone; Classic is still the only mode sent.
+
+**Tests:** `test/features/friends/friend_challenge_dialog_test.dart` — copy and numbers, initials (Persian, Latin, empty, signed-out), result values (confirm / cancel / scrim), an integration test through `ZFriendsScreen` proving `sendChallenge('friend-7','classic')` is called only after confirming and never on cancel, no overflow 320×568…430×932 × both themes, a 32-letter name at 1.6× text, contrast, 2 goldens. **Before golden:** captured from the old sheet before the change (scratchpad `goldens/before/challenge_sheet_{light,dark}.png`, not committed).

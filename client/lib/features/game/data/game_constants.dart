@@ -4,6 +4,9 @@ abstract final class GameConstants {
   static const int entryFeeCoins = 20;
   static const int entryFeePot = entryFeeCoins * 2;
   static const int classicTurnTimerSec = 15;
+
+  /// How long a friend challenge stays answerable (backend: 24h expiry).
+  static const int challengeValidHours = 24;
   static const int continueWindowSec = 15;
   static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;

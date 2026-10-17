@@ -5,6 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/chunky_pill.dart';
+import 'package:wordchain/core/widgets/z_dialog.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_power.dart';
 import 'package:wordchain/core/widgets/motion.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,7 +16,6 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/dashed_tile.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
@@ -50,64 +51,6 @@ class ZBackButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Confirm-and-end dialog shared by ZSolo/ZPlay's back button.
-void zShowEndGameDialog(BuildContext context) {
-  final z = context.z;
-  showDialog<void>(
-    context: context,
-    builder:
-        (dialogContext) => Dialog(
-          backgroundColor: z.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ZRadius.cardMax),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(ZSpacing.xl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'پایان بازی؟',
-                  style: ZTypography.screenTitle.copyWith(
-                    color: z.ink,
-                    fontSize: 17,
-                  ),
-                ),
-                const SizedBox(height: ZSpacing.sm),
-                Text(
-                  'پیشرفت فعلی ذخیره می‌شود.',
-                  style: ZTypography.body.copyWith(color: z.ink60),
-                ),
-                const SizedBox(height: ZSpacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: NeutralButton(
-                        label: 'ادامه بازی',
-                        onPressed: () => Navigator.pop(dialogContext),
-                      ),
-                    ),
-                    const SizedBox(width: ZSpacing.md),
-                    Expanded(
-                      child: AccentButton(
-                        accent: ZAccentColor.coral,
-                        label: 'پایان بازی',
-                        onPressed: () {
-                          Navigator.pop(dialogContext);
-                          context.read<GameBloc>().add(const GameEnded());
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-  );
 }
 
 /// Numeric countdown + track bar — the turn-timer row atop ZSolo/ZPlay.
@@ -414,8 +357,8 @@ class ZPowerupBar extends StatelessWidget {
     final bloc = context.read<GameBloc>();
     // The clocks stop while the sheet (and any ad) is up; solo/vs-AI only.
     bloc.add(const GamePaused());
-    await showModalBottomSheet<void>(
-      context: context,
+    await showZDialog<void>(
+      context,
       builder:
           (_) =>
               _NeedCoinsSheet(powerupLabel: _labels[type]!, missing: missing),
@@ -471,51 +414,57 @@ class _NeedCoinsSheetState extends State<_NeedCoinsSheet> {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'سکهٔ کافی برای «${widget.powerupLabel}» نداری',
-                style: ZTypography.screenTitle.copyWith(
-                  color: z.ink,
-                  fontSize: 17,
-                ),
-              ),
-              const SizedBox(height: ZSpacing.sm),
-              Text(
-                'به ${toPersianDigits(widget.missing)} سکهٔ دیگر نیاز داری. '
-                'با دیدن یک تبلیغ ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
-                style: ZTypography.body.copyWith(color: z.ink60),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: ZSpacing.sm),
-                Text(
-                  _error!,
-                  style: ZTypography.metaLabel.copyWith(color: z.coral),
-                ),
-              ],
-              const SizedBox(height: ZSpacing.xl),
-              AccentButton(
-                label:
-                    _busy
-                        ? '…'
-                        : 'تماشای تبلیغ (+${toPersianDigits(GameConstants.rewardedAdCoins)} سکه)',
-                onPressed: _busy ? null : _watchAd,
-              ),
-              const SizedBox(height: ZSpacing.sm),
-              NeutralButton(
-                label: 'بستن',
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+    final title = 'سکهٔ کافی برای «${widget.powerupLabel}» نداری';
+    return ZDialogCard(
+      semanticLabel: title,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: ZTypography.screenTitle.copyWith(
+              color: z.ink,
+              fontSize: 20,
+              height: 1.3,
+            ),
           ),
-        ),
+          const SizedBox(height: 6),
+          Text(
+            'به ${toPersianDigits(widget.missing)} سکهٔ دیگر نیاز داری. '
+            'با دیدن یک تبلیغ ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
+            textAlign: TextAlign.center,
+            style: ZTypography.body.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              height: 1.65,
+              color: z.ink60,
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: ZSpacing.sm),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: ZTypography.metaLabel.copyWith(color: context.zs.coralInk),
+            ),
+          ],
+          const SizedBox(height: 18),
+          ZDialogButton.primary(
+            label:
+                _busy
+                    ? '…'
+                    : 'تماشای تبلیغ (+${toPersianDigits(GameConstants.rewardedAdCoins)} سکه)',
+            onTap: _busy ? null : _watchAd,
+          ),
+          const SizedBox(height: 7),
+          ZDialogButton.secondary(
+            label: 'بستن',
+            onTap: () => Navigator.pop(context),
+          ),
+        ],
       ),
     );
   }

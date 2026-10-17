@@ -19,7 +19,7 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/cubit/friends_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
-import 'package:wordchain/features/friends/view/friend_challenge_sheet.dart';
+import 'package:wordchain/features/friends/view/friend_challenge_dialog.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 
 /// ZFriends.
@@ -609,18 +609,13 @@ class _FriendRow extends StatelessWidget {
 
   const _FriendRow({required this.friend, required this.showTopBorder});
 
-  void _showChallengeSheet(BuildContext context) {
+  Future<void> _challenge(BuildContext context) async {
     final cubit = context.read<FriendsCubit>();
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder:
-          (_) => FriendChallengeSheet(
-            friendUsername: friend.username,
-            onSend: (mode) => cubit.sendChallenge(friend.userId, mode),
-          ),
+    final send = await showFriendChallengeDialog(
+      context,
+      friendUsername: friend.username,
     );
+    if (send) await cubit.sendChallenge(friend.userId, 'classic');
   }
 
   @override
@@ -656,7 +651,7 @@ class _FriendRow extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () => _showChallengeSheet(context),
+            onTap: () => _challenge(context),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
               decoration: BoxDecoration(

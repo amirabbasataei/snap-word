@@ -101,6 +101,24 @@ abstract final class ZGame {
   static const gameBubbleLast = 54.0;
   static const gameBubbleTail = 6.0;
 
+  // Dialogs (canvas turn 8 `ZExitConfirm`, turn 7 level picker 7p).
+  // Card: 3px outline, r28, solid 6px edge; 12px from the screen edges.
+  static const dialogRadius = 28.0;
+  static const dialogDepth = 6.0;
+  static const dialogInset = 12.0;
+  static const dialogMaxWidth = 372.0;
+
+  /// A mascot standing on the card's top edge: the card starts this far below
+  /// the dialog's top and the mascot overlaps it.
+  static const dialogMascotLift = 62.0;
+  static const dialogMascotSize = 88.0;
+
+  /// Primary / secondary dialog buttons.
+  static const dialogPrimaryHeight = 58.0;
+  static const dialogPrimaryRadius = 20.0;
+  static const dialogSecondaryHeight = 50.0;
+  static const dialogSecondaryRadius = 18.0;
+
   /// Smallest label size on the home screen (the canvas has 10px labels).
   static const minLabel = 11.5;
 }
@@ -124,4 +142,10 @@ abstract final class ZGameMotion {
   static const blink = 4200;
   static const spin = 14000; // chest rays
   static const glow = 1600;
+
+  /// Dialog entrance: drops 48px with the canvas spring (`dropin`, 520ms);
+  /// reduced motion is a plain fade.
+  static const dialogEnter = Duration(milliseconds: 520);
+  static const dialogEnterReduced = Duration(milliseconds: 200);
+  static const mascotPop = Duration(milliseconds: 420);
 }

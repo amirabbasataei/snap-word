@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
+import 'package:wordchain/features/game/view/widgets/z_exit_confirm.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';

@@ -143,6 +143,7 @@ Do not invent layouts — if a screen is covered by a design file, follow it. If
 - **Persian digits everywhere** (۰۱۲…, thousands separator «٬») via `core/utils/persian_digits.dart`. Dates use Jalali (`shamsi_date`).
 - **RTL-native**: use `EdgeInsetsDirectional`, `start`/`end` alignment — never `left`/`right`.
 - Reuse the shared widgets in `core/widgets/` (`LetterTile`, `SolidCard`, `AccentButton`/`NeutralButton`, `CoinPill`, `TintChip`, `AvatarTile`, `SectionHeader`, `StreakStrip`, `ZBottomNav`).
+- **Dialogs:** every non-screen modal goes through `showZDialog` + `ZDialogCard` + `ZDialogButton` (`core/widgets/z_dialog.dart`; `scrim` token backdrop, drop-in entrance). The exit-confirm is one `ZExitConfirm` with a mode (solo / ai / online / daily) whose copy states what leaving really does — never copy a canvas claim the product doesn't back (`features/game/view/widgets/z_exit_confirm.dart`). The vs-AI level picker is `showAiLevelDialog` (`features/home/view/widgets/home_level_dialog.dart`). `ZMascot` (`core/widgets/z_mascot.dart`) is the standing mascot (5 moods); `HomeMascot` is the one hanging on Home.
 - Theme mode: `ThemeCubit` (persisted in `shared_preferences`, defaults to `ThemeMode.system`), toggled from ZProfile's حالت شب switch.
 - **Real-data-only**: never fabricate stats the API doesn't provide (player counts, percentiles, opponent records). Substitute a real field or drop the element, and note it in REDESIGN_PLAN.md.
 

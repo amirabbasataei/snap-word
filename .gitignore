@@ -45,3 +45,6 @@ client/tapsell.json
 admin/node_modules/
 backend/internal/adminui/dist/*
 !backend/internal/adminui/dist/.gitkeep
+
+# Local audit notes (not part of the code)
+agent-response.md

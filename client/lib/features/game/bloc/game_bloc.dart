@@ -54,6 +54,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   final void Function(int delta)? _onCoinsChanged;
   int _entryFee = 0;
 
+  /// Coins this player paid to enter the running online match (0 for solo,
+  /// vs-AI and matches against the AI fallback).
+  int get entryFee => _entryFee;
+
   GameBloc({
     required GameRepository gameRepository,
     required DictionaryService dictionaryService,
