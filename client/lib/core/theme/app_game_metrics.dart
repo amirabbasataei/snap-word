@@ -101,6 +101,26 @@ abstract final class ZGame {
   static const gameBubbleLast = 54.0;
   static const gameBubbleTail = 6.0;
 
+  // Result screen (canvas turn 7 `ZOverA`, frames 7i loss / 7j win).
+  static const overTitle = 40.0;
+  static const overTitleStroke = 6.0;
+  static const overTitleShadow = 5.0;
+  static const overWinTitle = 56.0;
+  static const overWinTitleStroke = 7.0;
+  static const overWinTitleShadow = 6.0;
+  static const overMascot = 140.0;
+  static const overWinMascot = 150.0;
+  static const overStage = 396.0; // the artwork is authored on this width
+  static const overCardRadius = 22.0;
+  static const overCardDepth = 5.0;
+  static const overBarHeight = 22.0;
+  static const overPrimaryHeight = 64.0;
+  static const overPrimaryRadius = 22.0;
+  static const overPrimaryDepth = 6.0;
+  static const overSecondaryHeight = 54.0;
+  static const overSecondaryRadius = 18.0;
+  static const overSecondaryDepth = 5.0;
+
   // Dialogs (canvas turn 8 `ZExitConfirm`, turn 7 level picker 7p).
   // Card: 3px outline, r28, solid 6px edge; 12px from the screen edges.
   static const dialogRadius = 28.0;

@@ -15,15 +15,18 @@ import 'package:wordchain/core/widgets/motion.dart';
 /// `ZSoloA`): back button, score pill, countdown ring, lives and words chips.
 /// Built on [ChunkyBox] / [ChunkyPressable] so ZPlay / ZOver can reuse them.
 
-/// 44dp back button: surface square, 3px outline, 3px solid edge.
+/// 44dp back button: surface square, 3px outline, 3px solid edge. [close]
+/// swaps the arrow for the ✕ of the result screen (canvas `ZOverA`).
 class ZGameBackButton extends StatelessWidget {
   final VoidCallback onTap;
   final String semanticLabel;
+  final bool close;
 
   const ZGameBackButton({
     super.key,
     required this.onTap,
     this.semanticLabel = 'بازگشت',
+    this.close = false,
   });
 
   @override
@@ -43,7 +46,9 @@ class ZGameBackButton extends StatelessWidget {
             height: ZGame.gameBackButton,
             alignment: Alignment.center,
             child: SvgPicture.string(
-              '<svg viewBox="0 0 24 24" fill="none" stroke="$ink" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+              close
+                  ? '<svg viewBox="0 0 24 24" fill="none" stroke="$ink" stroke-width="3.4" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>'
+                  : '<svg viewBox="0 0 24 24" fill="none" stroke="$ink" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
               width: 20,
               height: 20,
             ),

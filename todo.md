@@ -118,6 +118,7 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 
 ## 4. Product decisions pending
 
+- **ZOver follow-ups (2026-10-17):** solo / vs-AI «ادامه با ۲۵ سکه» spends the local `MockMonetizationService` balance, not the server coins / `AuthCubit` (the new HUD coin pill therefore doesn't move); a 1v1 result has no opponent name (`GameOver` carries none — add it from the WS state to replace «مقابل حریف»); the win screen's level-progress bar was dropped (needs fresh stats after the XP credit); no rematch exists (1v1 «حریف جدید» goes to the lobby). — `client/lib/features/game/view/z_over_screen.dart`, `REDESIGN_PLAN.md` § ZOver.
 - **vs-AI has no win/loss.** The server stores every solo/AI upload with `winner = player` (`CreateSoloGame`), local `wins` is never incremented for AI, ZOver says «بازی را پایان دادی» on exit. Decide whether an AI result counts as win/loss, then change stats and the exit-dialog copy. — `backend/internal/service/game.go`, `client/lib/core/database/daos/stats_dao.dart`.
 - **Taunt limits** — `config.TauntCooldownSec = 5` and `TauntMaxPerMatch = 8` per player; the canvas copy «یک طعنه در هر دست» assumes rounds, which do not exist. Pick the real rule and the sub-line of the taunt tray. — `backend/internal/config/config.go`, `Room.processTaunt`.
 - **Multiplayer lives / grace** — build it (protocol change, 1.3) or keep the canvas «۲ جان» chip out for good.

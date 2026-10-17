@@ -1,29 +1,40 @@
-import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
-import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/ad_service.dart';
+import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
-import 'package:wordchain/core/theme/app_elevation.dart';
+import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/utils/avatar_initial.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
+import 'package:wordchain/core/widgets/z_hud_coin_pill.dart';
+import 'package:wordchain/core/widgets/z_toast.dart';
+import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_scaffold.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_actions.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_cards.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
 
-/// ZOver — the unified loss/continue/results screen for every match type:
-/// solo, vs-AI, and true multiplayer (Stage 6 retired the legacy
-/// `ContinuePrompt` + `_GameOverScreen` pair). The canvas merges what used to be two separate
-/// screens (continue offer, then final results) into one: the score/chain
-/// summary is always shown, with continue actions layered on top only
-/// while the 15s continue window is open.
+const _aiLevels = {'ai_easy': 'آسان', 'ai_medium': 'متوسط', 'ai_hard': 'سخت'};
+
+/// ZOver — the result screen for every match type (solo, vs-AI, true
+/// multiplayer), in the "A · mascot-led" language (canvas turn 7, `ZOverA`:
+/// 7i loss, 7j win). One screen: a loss (or a result not yet decided) shows
+/// the broken chain with the sad mascot, the score card and — while the
+/// 15 s continue window is open — the continue offer; a win shows the happy
+/// mascot, the head-to-head score and the rewards. Once decided, the actions
+/// are «play again», home and share.
 class ZOverScreen extends StatefulWidget {
   final GameOver state;
 
@@ -34,7 +45,8 @@ class ZOverScreen extends StatefulWidget {
 }
 
 class _ZOverScreenState extends State<ZOverScreen> {
-  int _recordChainLength = 0;
+  /// The saved best chain length; null until read (and when it can't be).
+  int? _recordChainLength;
 
   @override
   void initState() {
@@ -49,12 +61,29 @@ class _ZOverScreenState extends State<ZOverScreen> {
         setState(() => _recordChainLength = stats?.bestMatchStreak ?? 0);
       }
     } catch (_) {
-      // Best-effort — near-miss/record lines just stay hidden.
+      // Best-effort — the record bar just stays hidden.
     }
   }
 
-  void _navigateHome(BuildContext context) {
-    context.go('/home');
+  void _home(BuildContext context) => context.go('/home');
+
+  void _share(GameOver s) => getIt<ShareService>().shareMatch(
+    score: s.score,
+    chainLength: s.chainLength,
+  );
+
+  /// Same opponent again for solo / vs-AI; multiplayer has no rematch, so it
+  /// goes back to the lobby for a new one.
+  void _playAgain(BuildContext context, GameOver s) {
+    final type = s.opponentType;
+    if (type == null) {
+      context.pushReplacement('/lobby');
+      return;
+    }
+    context.pushReplacement(
+      '/game',
+      extra: GameRouteArgs(mode: s.mode, opponentType: type),
+    );
   }
 
   void _handleContinue(BuildContext context, String method) async {
@@ -63,14 +92,21 @@ class _ZOverScreenState extends State<ZOverScreen> {
       final watched = await getIt<AdService>().showRewardedAd();
       if (!context.mounted) return;
       if (!watched) {
-        ZToast.show(context, 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن.', kind: ZToastKind.error);
+        ZToast.show(
+          context,
+          'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن.',
+          kind: ZToastKind.error,
+        );
         return;
       }
     } else if (method == 'coins') {
       final spent = monetization.spendCoins(GameConstants.continueCostCoins);
       if (!spent) {
         if (context.mounted) {
-          showInsufficientCoinsDialog(context, cost: GameConstants.continueCostCoins);
+          showInsufficientCoinsDialog(
+            context,
+            cost: GameConstants.continueCostCoins,
+          );
         }
         return;
       }
@@ -98,9 +134,15 @@ class _ZOverScreenState extends State<ZOverScreen> {
                   : Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(strokeWidth: 2, color: z.indigo),
+                      CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: z.indigo,
+                      ),
                       const SizedBox(height: ZSpacing.md),
-                      Text('در حال ذخیره…', style: ZTypography.body.copyWith(color: z.ink60)),
+                      Text(
+                        'در حال ذخیره…',
+                        style: ZTypography.body.copyWith(color: z.ink60),
+                      ),
                     ],
                   ),
         ),
@@ -110,76 +152,143 @@ class _ZOverScreenState extends State<ZOverScreen> {
     // True multiplayer's WS-driven GameOver never sets opponentType (see
     // GameBloc._handleWsLossEvent/_handleWsGameOver).
     final isVersus = state.opponentType == null;
-    final isAIDuel = state.opponentType != null && state.opponentType!.startsWith('ai_') && state.opponentScore > 0;
+    final isAIDuel =
+        state.opponentType != null &&
+        state.opponentType!.startsWith('ai_') &&
+        state.opponentScore > 0;
     final isDuel = isVersus || isAIDuel;
     // Versus: the server decides (a mistake loses regardless of score); null
     // while my own continue window is still open.
-    final bool? iWon = isVersus ? state.iWon : (isAIDuel ? state.score > state.opponentScore : null);
-    final showContinue = !state.isSaved && state.canContinue && state.continueTimeRemaining > 0;
+    final bool? iWon =
+        isVersus
+            ? state.iWon
+            : (isAIDuel ? state.score > state.opponentScore : null);
+    final showContinue =
+        !state.isSaved && state.canContinue && state.continueTimeRemaining > 0;
 
-    return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _Hero(state: state, iWon: iWon),
-              Padding(
-                padding: const EdgeInsets.all(ZSpacing.xxl),
-                child: Column(
-                  children: [
-                    _ScoreCard(
-                      state: state,
-                      recordChainLength: _recordChainLength,
-                      showOpponent: isDuel,
-                      showRecord: !isVersus,
-                    ),
-                    const SizedBox(height: ZSpacing.lg),
-                    if (!isDuel && _recordChainLength > state.chainLength)
-                      _NearMissBar(gap: _recordChainLength - state.chainLength),
-                    if (!isDuel && state.chainLength > 0 && _recordChainLength <= state.chainLength) ...[
-                      const SizedBox(height: ZSpacing.lg),
-                      _NewRecordBanner(),
-                    ],
-                    const SizedBox(height: ZSpacing.lg),
-                    if (state.wordChain.isNotEmpty) _ChainTail(state: state),
-                    const SizedBox(height: ZSpacing.xl),
-                    if (showContinue)
-                      _ContinueActions(
-                        state: state,
-                        onContinue: (m) => _handleContinue(context, m),
-                        onAcceptDefeat: () => context.read<GameBloc>().add(const AcceptDefeat()),
-                      )
-                    else
-                      _FinalActions(state: state, onHome: () => _navigateHome(context)),
-                  ],
+    final auth = getIt<AuthCubit>().state;
+    final won = iWon == true;
+
+    return ZGameScaffold(
+      header: _Hud(onClose: () => _leave(context, showContinue)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child:
+            won
+                ? _WinBody(state: state, auth: auth)
+                : _LossBody(
+                  state: state,
+                  record: _recordChainLength,
+                  isDuel: isDuel,
+                  isVersus: isVersus,
+                  iWon: iWon,
                 ),
-              ),
-            ],
-          ),
+      ),
+      footer: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+        // Buttons keep their canvas height; labels stop growing at 1.3×.
+        child: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child:
+              showContinue
+                  ? ZOverContinueActions(
+                    coinCost: GameConstants.continueCostCoins,
+                    secondsLeft: state.continueTimeRemaining,
+                    onVideo: () => _handleContinue(context, 'ad'),
+                    onCoins: () => _handleContinue(context, 'coins'),
+                    onShare: () => _share(state),
+                    onDecline:
+                        () =>
+                            context.read<GameBloc>().add(const AcceptDefeat()),
+                  )
+                  : ZOverFinalActions(
+                    playLabel: isVersus ? 'حریف جدید' : 'بازی دوباره',
+                    onPlay:
+                        state.isSaved ? () => _playAgain(context, state) : null,
+                    onHome: () => _home(context),
+                    onShare: () => _share(state),
+                    big: won,
+                  ),
+        ),
+      ),
+    );
+  }
+
+  /// ✕: with the continue offer open it declines it (like the home square),
+  /// otherwise it leaves for home.
+  void _leave(BuildContext context, bool showContinue) {
+    if (showContinue) {
+      context.read<GameBloc>().add(const AcceptDefeat());
+    } else {
+      _home(context);
+    }
+  }
+}
+
+/// Coin balance (signed-in players) on the start side, ✕ on the end side.
+class _Hud extends StatelessWidget {
+  final VoidCallback onClose;
+
+  const _Hud({required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          children: [
+            BlocBuilder<AuthCubit, AuthState>(
+              bloc: getIt<AuthCubit>(),
+              builder:
+                  (context, auth) =>
+                      auth is AuthAuthenticated
+                          ? Padding(
+                            padding: const EdgeInsetsDirectional.only(start: 7),
+                            child: ZHudCoinPill(coins: auth.coins),
+                          )
+                          : const SizedBox.shrink(),
+            ),
+            const Spacer(),
+            ZGameBackButton(onTap: onClose, close: true, semanticLabel: 'بستن'),
+          ],
         ),
       ),
     );
   }
 }
 
-class _Hero extends StatelessWidget {
-  final GameOver state;
-  final bool? iWon; // null = no opponent, or result not decided yet
+String? _longestWord(List<String> chain) =>
+    chain.isEmpty ? null : chain.reduce((a, b) => a.length >= b.length ? a : b);
 
-  const _Hero({required this.state, required this.iWon});
+class _LossBody extends StatelessWidget {
+  final GameOver state;
+  final int? record;
+  final bool isDuel;
+  final bool isVersus;
+  final bool? iWon;
+
+  const _LossBody({
+    required this.state,
+    required this.record,
+    required this.isDuel,
+    required this.isVersus,
+    required this.iWon,
+  });
 
   String get _title {
-    if (iWon != null) return iWon! ? 'بردی! 🏆' : 'باختی 😞';
+    if (iWon == false) return 'باختی!';
     if (state.reason == 'ended_by_user') return 'بازی را پایان دادی';
     return 'زنجیر پاره شد!';
   }
 
-  String get _subtitle {
-    final requiredLetter = state.wordChain.isNotEmpty ? state.wordChain.last[state.wordChain.last.length - 1] : null;
+  String _subtitle(String? requiredLetter) {
     switch (state.reason) {
       case 'timeout':
-        return requiredLetter != null ? 'وقت تموم شد؛ کلمه‌ای با «$requiredLetter» نداشتی.' : 'وقت تموم شد.';
+        return requiredLetter != null
+            ? 'وقت تموم شد؛ کلمه‌ای با «$requiredLetter» نداشتی.'
+            : 'وقت تموم شد.';
       case 'invalid_word':
         final word = state.rejectedWord ?? '';
         return switch (state.rejectionReason) {
@@ -199,326 +308,58 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final requiredLetter = state.wordChain.isNotEmpty ? state.wordChain.last[state.wordChain.last.length - 1] : '؟';
-    final lastFirstLetter = state.wordChain.isNotEmpty ? state.wordChain.last[0] : '؟';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(ZSpacing.xxl, ZSpacing.xxxl, ZSpacing.xxl, ZSpacing.xxxl),
-      decoration: BoxDecoration(
-        color: z.inkSurface,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(ZRadius.sheetMax)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              LetterTile(letter: lastFirstLetter, size: 42, height: 50, accent: ZAccent.amber, rotation: 0.07),
-              const SizedBox(width: ZSpacing.sm),
-              Transform.translate(
-                offset: const Offset(0, 4),
-                child: LetterTile(letter: requiredLetter, size: 42, height: 50, accent: ZAccent.coral, rotation: -0.12),
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              Transform.translate(
-                offset: const Offset(0, 6),
-                child: const LetterTile(letter: '؟', size: 42, height: 50, accent: ZAccent.indigo, rotation: -0.05),
-              ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.lg),
-          Text(
-            _title,
-            textAlign: TextAlign.center,
-            style: ZTypography.screenTitle.copyWith(color: z.onInkSurface, fontSize: 27),
-          ),
-          if (_subtitle.isNotEmpty) ...[
-            const SizedBox(height: ZSpacing.sm),
-            Text(_subtitle, textAlign: TextAlign.center, style: ZTypography.body.copyWith(color: z.onInkSurfaceSoft)),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreCard extends StatelessWidget {
-  final GameOver state;
-  final int recordChainLength;
-  final bool showOpponent;
-  final bool showRecord;
-
-  const _ScoreCard({
-    required this.state,
-    required this.recordChainLength,
-    required this.showOpponent,
-    required this.showRecord,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final longestWord = state.wordChain.isEmpty ? null : state.wordChain.reduce((a, b) => a.length >= b.length ? a : b);
-
-    return SolidCard(
-      elevated: false,
-      radius: ZRadius.sheetMin,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('امتیاز این دست', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11)),
-              const SizedBox(height: 5),
-              Text(toPersianDigits(state.score), style: ZTypography.display.copyWith(color: z.ink, fontSize: 40)),
-            ],
-          ),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _StatLine(label: 'طول زنجیر', value: '${toPersianDigits(state.chainLength)} کلمه'),
-              if (longestWord != null) _StatLine(label: 'بلندترین کلمه', value: longestWord),
-              if (showOpponent)
-                _StatLine(label: 'امتیاز حریف', value: toPersianDigits(state.opponentScore), valueColor: z.coral),
-              if (state.entryFee > 0)
-                _StatLine(
-                  label: 'سکه',
-                  value:
-                      state.coinsNet == 0
-                          ? 'بدون تغییر'
-                          : '${state.coinsNet > 0 ? '+' : '−'}${toPersianDigits(state.coinsNet.abs())}',
-                  valueColor:
-                      state.coinsNet > 0
-                          ? z.teal
-                          : state.coinsNet < 0
-                          ? z.coral
-                          : null,
-                ),
-              if (showRecord)
-                _StatLine(label: 'رکورد تو', value: '${toPersianDigits(recordChainLength)} کلمه', valueColor: z.teal),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatLine extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
-
-  const _StatLine({required this.label, required this.value, this.valueColor});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: RichText(
-        textAlign: TextAlign.end,
-        text: TextSpan(
-          style: ZTypography.metaLabel.copyWith(color: z.ink60, fontSize: 11.5),
-          children: [
-            TextSpan(text: '$label: '),
-            TextSpan(text: value, style: TextStyle(color: valueColor ?? z.ink, fontWeight: FontWeight.w800)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NearMissBar extends StatelessWidget {
-  final int gap;
-
-  const _NearMissBar({required this.gap});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SolidCard(
-      elevated: false,
-      radius: ZRadius.cardMin,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: z.amber, borderRadius: BorderRadius.circular(9)),
-            child: Text(toPersianDigits(gap), style: ZTypography.cardTitle.copyWith(color: z.onAmber, fontSize: 14)),
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Text(
-              '${toPersianDigits(gap)} کلمهٔ دیگر تا شکستن رکوردت مانده بود.',
-              style: ZTypography.body.copyWith(color: z.ink60, fontWeight: FontWeight.w600, fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NewRecordBanner extends StatelessWidget {
-  const _NewRecordBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(color: z.tintTeal, borderRadius: BorderRadius.circular(ZRadius.cardMin)),
-      child: Text(
-        'رکورد جدید! 🎉',
-        textAlign: TextAlign.center,
-        style: ZTypography.cardTitle.copyWith(color: z.teal, fontSize: 13),
-      ),
-    );
-  }
-}
-
-class _ChainTail extends StatelessWidget {
-  final GameOver state;
-
-  const _ChainTail({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
     final chain = state.wordChain;
-    final tail = chain.length > 4 ? chain.sublist(chain.length - 4) : chain;
-    final requiredLetter = chain.last[chain.last.length - 1];
-    final failChip = state.rejectedWord ?? '$requiredLetter ؟';
+    final requiredLetter =
+        chain.isEmpty ? null : DictionaryService.lastLetterOf(chain.last);
+    final tail = chain.length > 3 ? chain.sublist(chain.length - 3) : chain;
+    final longest = _longestWord(chain);
+    final recordKnown = record != null && !isDuel;
 
-    return SolidCard(
-      elevated: false,
-      radius: ZRadius.cardMin,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('آخر زنجیر', style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11)),
-          const SizedBox(height: ZSpacing.sm),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final w in tail)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                  decoration: BoxDecoration(color: z.paper, borderRadius: BorderRadius.circular(ZRadius.chip)),
-                  child: Text(
-                    w,
-                    style: ZTypography.metaLabel.copyWith(color: z.ink, fontWeight: FontWeight.w700, fontSize: 12.5),
-                  ),
-                ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                decoration: BoxDecoration(color: z.coral, borderRadius: BorderRadius.circular(ZRadius.chip)),
-                child: Text(
-                  failChip,
-                  style: ZTypography.metaLabel.copyWith(color: z.onCoral, fontWeight: FontWeight.w700, fontSize: 12.5),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final stats = [
+      ZOverStat('طول زنجیر', '${toPersianDigits(state.chainLength)} کلمه'),
+      if (longest != null) ZOverStat('بلندترین', longest),
+      if (isDuel)
+        ZOverStat('امتیاز حریف', toPersianDigits(state.opponentScore)),
+      if (state.entryFee > 0)
+        ZOverStat(
+          'سکه',
+          state.coinsNet == 0
+              ? 'بدون تغییر'
+              : '${state.coinsNet > 0 ? '+' : '−'}${toPersianDigits(state.coinsNet.abs())}',
+          ltr: state.coinsNet != 0,
+        ),
+      // vs-AI chains are shared, but the record is still the one on file.
+      if (isDuel && !isVersus && record != null)
+        ZOverStat('رکورد تو', '${toPersianDigits(record!)} کلمه'),
+    ];
 
-class _ContinueActions extends StatelessWidget {
-  final GameOver state;
-  final void Function(String method) onContinue;
-  final VoidCallback onAcceptDefeat;
-
-  const _ContinueActions({required this.state, required this.onContinue, required this.onAcceptDefeat});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
     return Column(
       children: [
-        GestureDetector(
-          onTap: () => onContinue('ad'),
-          child: Container(
-            width: double.infinity,
-            height: 56,
-            decoration: BoxDecoration(
-              color: z.teal,
-              borderRadius: BorderRadius.circular(ZRadius.cardMin),
-              boxShadow: ZElevation.solidEdge(z.tealDeep, depth: ZElevation.buttonDepth),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('ادامه با تماشای ویدیو', style: ZTypography.button.copyWith(color: z.onTeal, fontSize: 16)),
-                const SizedBox(width: ZSpacing.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: z.onTeal.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text('۳۰ ثانیه', style: ZTypography.metaLabel.copyWith(color: z.onTeal, fontSize: 11)),
-                ),
-              ],
-            ),
-          ),
+        ZOverLossHero(
+          title: _title,
+          subtitle: _subtitle(requiredLetter),
+          tail: tail,
+          tailStart: chain.length - tail.length,
+          requiredLetter: requiredLetter,
         ),
-        const SizedBox(height: ZSpacing.sm),
-        GestureDetector(
-          onTap: () => onContinue('coins'),
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: z.surface,
-              borderRadius: BorderRadius.circular(ZRadius.cardMin),
-              border: Border.all(color: z.line),
-              boxShadow: ZElevation.solidEdge(z.line, depth: ZElevation.cardDepth),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'ادامه با ${toPersianDigits(GameConstants.continueCostCoins)}',
-                  style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 14),
-                ),
-                const SizedBox(width: ZSpacing.sm),
-                Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: z.amber,
-                    shape: BoxShape.circle,
-                    boxShadow: ZElevation.solidEdge(z.amberDeep, depth: 2),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: ZSpacing.md),
-        GestureDetector(
-          onTap: onAcceptDefeat,
-          child: Container(
-            height: 44,
-            alignment: Alignment.center,
-            child: Text(
-              state.continueTimeRemaining > 0
-                  ? 'بازگشت به خانه (${toPersianDigits(state.continueTimeRemaining)})'
-                  : 'بازگشت به خانه',
-              style: ZTypography.body.copyWith(color: z.ink40, fontWeight: FontWeight.w600, fontSize: 13),
+        ZOverEnter(
+          kind: ZOverEnterKind.up,
+          delayMs: 600,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: ZOverScoreCard(
+              score: state.score,
+              stats: stats,
+              bar:
+                  recordKnown && state.chainLength > 0
+                      ? ZOverRecordBar(
+                        chain: state.chainLength,
+                        record:
+                            record! < state.chainLength
+                                ? state.chainLength
+                                : record!,
+                      )
+                      : null,
             ),
           ),
         ),
@@ -527,21 +368,95 @@ class _ContinueActions extends StatelessWidget {
   }
 }
 
-class _FinalActions extends StatelessWidget {
+class _WinBody extends StatelessWidget {
   final GameOver state;
-  final VoidCallback onHome;
+  final AuthState auth;
 
-  const _FinalActions({required this.state, required this.onHome});
+  const _WinBody({required this.state, required this.auth});
 
   @override
   Widget build(BuildContext context) {
+    final z = context.z;
+    final level = _aiLevels[state.opponentType];
+    final longest = _longestWord(state.wordChain);
+    final signedIn = auth is AuthAuthenticated;
+    final myLetter = avatarInitial(
+      auth is AuthAuthenticated ? (auth as AuthAuthenticated).username : null,
+    );
+
+    final chips = <(int, Widget)>[
+      if (state.entryFee > 0 && state.coinsNet > 0)
+        (
+          10,
+          ZOverChip(
+            kind: ZOverChipKind.amber,
+            value: '+${toPersianDigits(state.coinsNet)}',
+            label: 'سکه · سود این بازی',
+          ),
+        ),
+      // XP is the game's score (GameService.AddXP); guests have no level.
+      if (signedIn && state.score > 0)
+        (
+          10,
+          ZOverChip(
+            kind: ZOverChipKind.indigo,
+            value: '+${toPersianDigits(state.score)}',
+            label: 'امتیاز تجربه',
+          ),
+        ),
+      if (longest != null)
+        (
+          12,
+          ZOverChip(
+            kind: ZOverChipKind.surface,
+            value: longest,
+            label: 'بلندترین کلمه',
+            valueSpan: zChainWordSpan(
+              context,
+              word: longest,
+              index: 3,
+              fontSize: 20,
+              color: z.ink,
+            ),
+          ),
+        ),
+    ];
+
     return Column(
       children: [
-        AccentButton(
-          accent: ZAccentColor.teal,
-          label: 'بازگشت به خانه',
-          onPressed: onHome,
+        const ZOverWinHero(title: 'بردی!'),
+        ZOverEnter(
+          kind: ZOverEnterKind.up,
+          delayMs: 450,
+          child: ZOverVersusPill(
+            myLetter: myLetter,
+            myScore: state.score,
+            opponentScore: state.opponentScore,
+            opponentLetter: level != null ? null : 'ح',
+            caption:
+                level != null ? 'مقابل حریف هوشمند · $level' : 'مقابل حریف',
+          ),
         ),
+        if (chips.isNotEmpty)
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 600,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < chips.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 10),
+                      Expanded(flex: chips[i].$1, child: chips[i].$2),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
       ],
     );
   }
