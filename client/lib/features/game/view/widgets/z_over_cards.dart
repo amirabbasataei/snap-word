@@ -293,6 +293,10 @@ class ZOverVersusPill extends StatelessWidget {
   final String? opponentLetter;
   final String caption;
 
+  /// Premium avatars (1v1) shown instead of the initials.
+  final String? myAvatarId;
+  final String? opponentAvatarId;
+
   const ZOverVersusPill({
     super.key,
     required this.myLetter,
@@ -300,12 +304,13 @@ class ZOverVersusPill extends StatelessWidget {
     required this.opponentScore,
     required this.opponentLetter,
     required this.caption,
+    this.myAvatarId,
+    this.opponentAvatarId,
   });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final zs = context.zs;
     return Semantics(
       label:
           '$caption: ${toPersianDigits(myScore)} در برابر ${toPersianDigits(opponentScore)}',
@@ -321,6 +326,7 @@ class ZOverVersusPill extends StatelessWidget {
                 letter: myLetter,
                 size: 40,
                 highlight: false,
+                avatarId: myAvatarId,
               ),
               const SizedBox(width: 12),
               // Five-digit scores shrink the pill instead of the discs.
@@ -356,12 +362,12 @@ class ZOverVersusPill extends StatelessWidget {
               const SizedBox(width: 12),
               opponentLetter == null
                   ? ZDiscAvatar.robot(context, size: 40, highlight: false)
-                  : ZDiscAvatar(
-                    fill: z.coral,
-                    onFill: zs.onCoralSm,
-                    letter: opponentLetter,
+                  : ZDiscAvatar.opponent(
+                    context,
+                    letter: opponentLetter!,
                     size: 40,
                     highlight: false,
+                    avatarId: opponentAvatarId,
                   ),
             ],
           ),

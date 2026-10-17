@@ -41,7 +41,13 @@ class ZPlayActiveScreen extends StatelessWidget {
     return ZGameScaffold(
       header: _Header(state: state, initial: initial),
       body: ZBubbleChain(
-        entries: _entries(state),
+        entries: zBubbleEntries(
+          state,
+          isMine:
+              (i) =>
+                  i >= state.wordOwners.length ||
+                  state.wordOwners[i] == 'player',
+        ),
         nextStartLetter: state.nextStartLetter,
         myTurn: state.isMyTurn,
         myInitial: initial,
@@ -53,28 +59,6 @@ class ZPlayActiveScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Maps the shared chain to bubbles. `wordScores` only ever accumulates the
-/// player's own words (see `GameBloc._onWordSubmitted`) — it isn't parallel to
-/// `wordChain` once the AI's interspersed words are counted, so a "mine"
-/// bubble looks its score up by move count, not by chain index.
-List<ZBubbleEntry> _entries(GameActive state) {
-  final entries = <ZBubbleEntry>[];
-  var myMove = 0;
-  for (var i = 0; i < state.wordChain.length; i++) {
-    final mine =
-        i >= state.wordOwners.length || state.wordOwners[i] == 'player';
-    int? points;
-    if (mine && myMove < state.wordScores.length) {
-      points = state.wordScores[myMove];
-    }
-    if (mine) myMove++;
-    entries.add(
-      ZBubbleEntry(word: state.wordChain[i], mine: mine, points: points),
-    );
-  }
-  return entries;
 }
 
 class _Header extends StatelessWidget {

@@ -263,6 +263,10 @@ class GameOver extends GameState {
   // after the payout (+fee for the winner, -fee for the loser, 0 on a draw).
   final int entryFee;
   final int coinsNet;
+  // 1v1 only: the premium avatars both players had at game_start (see
+  // GameActive), so the result screen shows the same discs as the match did.
+  final String? myAvatarId;
+  final String? opponentAvatarId;
 
   const GameOver({
     required this.localMatchId,
@@ -282,6 +286,8 @@ class GameOver extends GameState {
     this.opponentType,
     this.entryFee = 0,
     this.coinsNet = 0,
+    this.myAvatarId,
+    this.opponentAvatarId,
   });
 
   GameOver copyWith({int? continueTimeRemaining, bool? isSaved}) {
@@ -304,6 +310,8 @@ class GameOver extends GameState {
       opponentType: opponentType,
       entryFee: entryFee,
       coinsNet: coinsNet,
+      myAvatarId: myAvatarId,
+      opponentAvatarId: opponentAvatarId,
     );
   }
 
@@ -331,6 +339,8 @@ class GameOver extends GameState {
     opponentType,
     entryFee,
     coinsNet,
+    myAvatarId,
+    opponentAvatarId,
   ];
 }
 

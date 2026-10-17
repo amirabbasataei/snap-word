@@ -433,6 +433,8 @@ class _WinBody extends StatelessWidget {
             myScore: state.score,
             opponentScore: state.opponentScore,
             opponentLetter: level != null ? null : 'ح',
+            myAvatarId: state.myAvatarId,
+            opponentAvatarId: state.opponentAvatarId,
             caption:
                 level != null ? 'مقابل حریف هوشمند · $level' : 'مقابل حریف',
           ),

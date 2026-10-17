@@ -26,6 +26,9 @@ class FakeGameBloc extends Fake implements GameBloc {
   void add(GameEvent event) => events.add(event);
 
   @override
+  int get entryFee => 0;
+
+  @override
   GameState get state => const GameInitial();
 
   @override

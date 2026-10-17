@@ -1,3 +1,5 @@
+import 'package:wordchain/core/utils/persian_digits.dart';
+
 abstract final class GameConstants {
   // Mirrors config.EntryFeeCoins on the backend: each human in a 1v1 match pays
   // this to start, and the winner takes the whole pot (2 × fee). Free vs AI.
@@ -10,6 +12,11 @@ abstract final class GameConstants {
   static const int continueWindowSec = 15;
   static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;
+
+  // Taunt limits, per player (mirror config.TauntCooldownSec / TauntMaxPerMatch;
+  // the server enforces them, the tray only states them).
+  static const int tauntCooldownSec = 5;
+  static const int tauntMaxPerMatch = 8;
   static const int guestHintUsesPerSession = 5;
 
   // Power-ups: a use comes out of the owned inventory first, otherwise it costs
@@ -62,3 +69,8 @@ abstract final class GameConstants {
   static const List<int> dailyRankPrizes = [100, 60, 30];
   static const int dailyCompletePrize = 10;
 }
+
+/// The taunt rule as the player reads it (tray sub-line, rejection toast).
+String tauntRuleText() =>
+    'هر ${toPersianDigits(GameConstants.tauntCooldownSec)} ثانیه یک طعنه · '
+    'تا ${toPersianDigits(GameConstants.tauntMaxPerMatch)} طعنه در هر بازی';

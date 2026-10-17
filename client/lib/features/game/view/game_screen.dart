@@ -321,7 +321,8 @@ class _DisconnectedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     return PositionedDirectional(
-      top: MediaQuery.of(context).padding.top + 60,
+      // Below the ZVersus header (pill row + the entry-fee chip row).
+      top: MediaQuery.of(context).padding.top + 120,
       start: ZSpacing.screenGutter,
       end: ZSpacing.screenGutter,
       child: Container(

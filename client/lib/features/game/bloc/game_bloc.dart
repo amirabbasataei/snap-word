@@ -1043,9 +1043,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     emit(
       _withNotice(
         active,
-        reason == 'rate_limited'
-            ? 'کمی صبر کن، پیام‌ها محدودند'
-            : errorMessageFor(reason),
+        // One signal covers both the cooldown and the per-match cap.
+        reason == 'rate_limited' ? tauntRuleText() : errorMessageFor(reason),
       ),
     );
   }
@@ -1082,6 +1081,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final premiumIds =
         ((gameState['premium'] as List<dynamic>?) ?? const []).cast<String>();
     final avatars = (gameState['avatars'] as Map<String, dynamic>?) ?? const {};
+    _log.d(
+      'game_start perks: premium=$premiumIds avatars=$avatars '
+      'me=$_myPlayerId opponent=$opponentId',
+    );
 
     emit(
       GameActive(
@@ -1193,6 +1196,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           continueTimeRemaining: GameConstants.continueWindowSec,
           isSaved: false,
           opponentScore: active.opponentScore,
+          myAvatarId: active.myAvatarId,
+          opponentAvatarId: active.opponentAvatarId,
         ),
       );
       if (canContinue) _startContinueTimer();
@@ -1315,6 +1320,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         opponentScore: opponentScore,
         entryFee: entryFee,
         coinsNet: entryFee > 0 ? credited - entryFee : 0,
+        myAvatarId: active?.myAvatarId ?? prevOver?.myAvatarId,
+        opponentAvatarId:
+            active?.opponentAvatarId ?? prevOver?.opponentAvatarId,
       ),
     );
   }

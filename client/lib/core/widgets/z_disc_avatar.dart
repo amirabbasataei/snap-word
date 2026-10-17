@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
+import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 
 /// Round chunky player marker of the "A · mascot-led" game screens: a coloured
@@ -18,6 +19,10 @@ class ZDiscAvatar extends StatelessWidget {
   final double size;
   final bool highlight;
 
+  /// A premium avatar's id: its server-hosted image replaces the initial. The
+  /// initial stays while it loads or if it can't be fetched.
+  final String? avatarId;
+
   const ZDiscAvatar({
     super.key,
     required this.fill,
@@ -25,6 +30,7 @@ class ZDiscAvatar extends StatelessWidget {
     this.onFill,
     this.size = ZGame.gameDisc,
     this.highlight = true,
+    this.avatarId,
   });
 
   /// The signed-in / guest player: indigo with the initial.
@@ -33,12 +39,31 @@ class ZDiscAvatar extends StatelessWidget {
     required String letter,
     double size = ZGame.gameDisc,
     bool highlight = true,
+    String? avatarId,
   }) => ZDiscAvatar(
     fill: context.z.indigo,
     onFill: context.z.onIndigo,
     letter: letter,
     size: size,
     highlight: highlight,
+    avatarId: avatarId,
+  );
+
+  /// A human opponent: coral with their initial (the opponent colour of the
+  /// head-to-head screens; the AI is the amber [robot]).
+  factory ZDiscAvatar.opponent(
+    BuildContext context, {
+    required String letter,
+    double size = ZGame.gameDisc,
+    bool highlight = true,
+    String? avatarId,
+  }) => ZDiscAvatar(
+    fill: context.z.coral,
+    onFill: context.zs.onCoralSm,
+    letter: letter,
+    size: size,
+    highlight: highlight,
+    avatarId: avatarId,
   );
 
   /// The AI opponent: amber with the robot face.
@@ -53,6 +78,19 @@ class ZDiscAvatar extends StatelessWidget {
     final o = svgHex(context.zs.outline);
     final s = svgHex(context.z.surface);
     final letter = this.letter;
+    final id = avatarId;
+    final initial =
+        letter == null
+            ? null
+            : Text(
+              letter,
+              style: TextStyle(
+                color: onFill,
+                fontWeight: FontWeight.w900,
+                fontSize: size * .42,
+                height: 1,
+              ),
+            );
     return ChunkyBox(
       fill: fill,
       depth: 0,
@@ -62,16 +100,24 @@ class ZDiscAvatar extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       child:
-          letter != null
-              ? Text(
-                letter,
-                style: TextStyle(
-                  color: onFill,
-                  fontWeight: FontWeight.w900,
-                  fontSize: size * .42,
-                  height: 1,
-                ),
-              )
+          initial != null
+              ? (id != null && id.isNotEmpty
+                  ? ClipOval(
+                    child: Image.network(
+                      avatarImageUrl(id),
+                      width: size,
+                      height: size,
+                      fit: BoxFit.cover,
+                      // The initial is the placeholder, as in AvatarTile.
+                      frameBuilder:
+                          (context, child, frame, sync) =>
+                              frame == null && !sync
+                                  ? Center(child: initial)
+                                  : child,
+                      errorBuilder: (_, _, _) => Center(child: initial),
+                    ),
+                  )
+                  : initial)
               : SvgPicture.string(
                 '<svg viewBox="0 0 42 40"><rect x="6" y="8" width="30" height="26" rx="8" fill="$s" stroke="$o" stroke-width="3.5"/><circle cx="15" cy="20" r="3.5" fill="$o"/><circle cx="27" cy="20" r="3.5" fill="$o"/>${size >= ZGame.gameDisc ? '<path d="M16 28h10" stroke="$o" stroke-width="3.5" stroke-linecap="round"/>' : ''}</svg>',
                 width: size * .6,

@@ -526,6 +526,10 @@ class ZWordInput extends StatefulWidget {
   /// (`GameConstants.longWordBonus*`) made visible while typing. Null = no tag.
   final int? longWordMinLength;
 
+  /// Chunky thinking card only: a widget standing at its end (the mascot of
+  /// ZVersus). Null = the text stays centred.
+  final Widget? thinkingAccessory;
+
   const ZWordInput({
     super.key,
     this.startLetter,
@@ -536,6 +540,7 @@ class ZWordInput extends StatefulWidget {
     this.opponentLabel = 'حریف',
     this.chunky = false,
     this.longWordMinLength,
+    this.thinkingAccessory,
   });
 
   @override
@@ -713,6 +718,10 @@ class _ZWordInputState extends State<ZWordInput> {
               ),
             ),
           ),
+          if (widget.thinkingAccessory != null) ...[
+            const SizedBox(width: 8),
+            widget.thinkingAccessory!,
+          ],
         ],
       ),
     );

@@ -383,6 +383,10 @@ class ZVersusPill extends StatelessWidget {
   final String myTurnLabel;
   final String opponentTurnLabel;
 
+  /// Premium subscribers carry a small crown before their name (1v1 only).
+  final bool myPremium;
+  final bool opponentPremium;
+
   const ZVersusPill({
     super.key,
     required this.myAvatar,
@@ -394,9 +398,12 @@ class ZVersusPill extends StatelessWidget {
     required this.myTurn,
     required this.myTurnLabel,
     required this.opponentTurnLabel,
+    this.myPremium = false,
+    this.opponentPremium = false,
   });
 
   static const _maxSide = 64.0;
+  static const _crownWidth = 15.0;
   static const _chipPad = 8.0;
   static const _scoreStyle = TextStyle(
     fontWeight: FontWeight.w900,
@@ -428,11 +435,17 @@ class ZVersusPill extends StatelessWidget {
     return painter.width;
   }
 
-  double _sideWidth(BuildContext context, int score, String label) =>
+  double _sideWidth(
+    BuildContext context,
+    int score,
+    String label,
+    bool premium,
+  ) =>
       math
           .max(
             _textWidth(context, toPersianDigits(score), _scoreStyle),
-            _textWidth(context, label, _labelStyle),
+            _textWidth(context, label, _labelStyle) +
+                (premium ? _crownWidth : 0),
           )
           .clamp(0, _maxSide)
           .toDouble();
@@ -442,6 +455,7 @@ class ZVersusPill extends StatelessWidget {
     int score,
     String label,
     CrossAxisAlignment align,
+    bool premium,
   ) {
     final z = context.z;
     return Column(
@@ -461,11 +475,27 @@ class ZVersusPill extends StatelessWidget {
         ),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _maxSide),
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _labelStyle.copyWith(color: z.ink),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (premium) ...[
+                Icon(
+                  Icons.workspace_premium_rounded,
+                  size: 12,
+                  color: z.amberDeep,
+                  semanticLabel: 'اشتراک ویژه',
+                ),
+                const SizedBox(width: 3),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _labelStyle.copyWith(color: z.ink),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -491,60 +521,77 @@ class ZVersusPill extends StatelessWidget {
         style: _chipStyle.copyWith(color: myTurn ? z.onInkSurface : z.ink),
       ),
     );
-    return LayoutBuilder(
-      builder: (context, c) {
-        // padding 2×8 + outline 2×3, then the sides and the widest chip.
-        final base =
-            22 +
-            _sideWidth(context, myScore, myLabel) +
-            _sideWidth(context, opponentScore, opponentLabel) +
-            math.max(
-              _textWidth(context, myTurnLabel, _chipStyle),
-              _textWidth(context, opponentTurnLabel, _chipStyle),
-            ) +
-            2 * _chipPad +
-            4;
-        // Avatar + its 8dp gap, on both sides.
-        final discSize =
-            base + 2 * (ZGame.gameDisc + 8) <= c.maxWidth
-                ? ZGame.gameDisc
-                : base + 2 * (ZGame.gameDiscSmall + 6) <= c.maxWidth
-                ? ZGame.gameDiscSmall
-                : null;
-        final gap = discSize == ZGame.gameDisc ? 8.0 : 6.0;
-        return ChunkyBox(
-          fill: z.surface,
-          depth: ZGame.depthMd - 1,
-          radius: 18,
-          highlight: false,
-          height: ZGame.gameVersusPillHeight,
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 8),
-          child: Row(
-            children: [
-              if (discSize != null) ...[
-                myAvatar(discSize),
-                SizedBox(width: gap),
-              ],
-              _side(context, myScore, myLabel, CrossAxisAlignment.start),
-              Expanded(
-                child: Center(
-                  child: FittedBox(fit: BoxFit.scaleDown, child: chip),
-                ),
-              ),
-              _side(
+    // Fixed-height pill: text scale is capped (like the dock and ZOver's
+    // actions) so score + name can't outgrow it.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          // padding 2×8 + outline 2×3, then the sides and the widest chip.
+          final base =
+              22 +
+              _sideWidth(context, myScore, myLabel, myPremium) +
+              _sideWidth(
                 context,
                 opponentScore,
                 opponentLabel,
-                CrossAxisAlignment.end,
-              ),
-              if (discSize != null) ...[
-                SizedBox(width: gap),
-                opponentAvatar(discSize),
+                opponentPremium,
+              ) +
+              math.max(
+                _textWidth(context, myTurnLabel, _chipStyle),
+                _textWidth(context, opponentTurnLabel, _chipStyle),
+              ) +
+              2 * _chipPad +
+              4;
+          // Avatar + its 8dp gap, on both sides.
+          final discSize =
+              base + 2 * (ZGame.gameDisc + 8) <= c.maxWidth
+                  ? ZGame.gameDisc
+                  : base + 2 * (ZGame.gameDiscSmall + 6) <= c.maxWidth
+                  ? ZGame.gameDiscSmall
+                  : null;
+          final gap = discSize == ZGame.gameDisc ? 8.0 : 6.0;
+          return ChunkyBox(
+            fill: z.surface,
+            depth: ZGame.depthMd - 1,
+            radius: 18,
+            highlight: false,
+            height: ZGame.gameVersusPillHeight,
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                if (discSize != null) ...[
+                  myAvatar(discSize),
+                  SizedBox(width: gap),
+                ],
+                _side(
+                  context,
+                  myScore,
+                  myLabel,
+                  CrossAxisAlignment.start,
+                  myPremium,
+                ),
+                Expanded(
+                  child: Center(
+                    child: FittedBox(fit: BoxFit.scaleDown, child: chip),
+                  ),
+                ),
+                _side(
+                  context,
+                  opponentScore,
+                  opponentLabel,
+                  CrossAxisAlignment.end,
+                  opponentPremium,
+                ),
+                if (discSize != null) ...[
+                  SizedBox(width: gap),
+                  opponentAvatar(discSize),
+                ],
               ],
-            ],
-          ),
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
   }
 }

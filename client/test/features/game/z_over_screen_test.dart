@@ -11,6 +11,7 @@ import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/z_hud_coin_pill.dart';
+import 'package:wordchain/core/widgets/z_disc_avatar.dart';
 import 'package:wordchain/core/widgets/z_mascot.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
@@ -40,6 +41,8 @@ GameOver _over({
   bool isSaved = true,
   int entryFee = 0,
   int coinsNet = 0,
+  String? myAvatarId,
+  String? opponentAvatarId,
 }) => GameOver(
   localMatchId: -1,
   mode: mode,
@@ -58,6 +61,8 @@ GameOver _over({
   opponentType: opponentType,
   entryFee: entryFee,
   coinsNet: coinsNet,
+  myAvatarId: myAvatarId,
+  opponentAvatarId: opponentAvatarId,
 );
 
 /// The offer of a solo loss with the continue window open.
@@ -586,6 +591,29 @@ void main() {
       expect(find.textContaining('دست'), findsNothing);
       expect(find.textContaining('دوباره با'), findsNothing);
       expect(find.text('حریف جدید'), findsOneWidget);
+    });
+
+    testWidgets('1v1 win: both discs carry their premium avatars', (t) async {
+      h.register();
+      await show(
+        t,
+        _over(
+          iWon: true,
+          score: 360,
+          opponentScore: 240,
+          myAvatarId: 'lion',
+          opponentAvatarId: 'fox',
+        ),
+      );
+      final ids =
+          t
+              .widgetList<ZDiscAvatar>(find.byType(ZDiscAvatar))
+              .map((d) => d.avatarId)
+              .whereType<String>();
+      expect(ids, containsAll(['lion', 'fox']));
+      // No avatar → initial, as before.
+      await show(t, _over(iWon: true, score: 360, opponentScore: 240));
+      expect(find.text('ح'), findsOneWidget);
     });
 
     testWidgets('server win with a lower score is still a win', (t) async {

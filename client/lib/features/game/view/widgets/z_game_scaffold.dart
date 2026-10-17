@@ -51,13 +51,15 @@ class ZGameScaffold extends StatelessWidget {
 class ZGameHeader extends StatelessWidget {
   final Widget center;
   final Widget ring;
-  final Widget below;
+
+  /// Chips under the row; null leaves the header one row tall.
+  final Widget? below;
 
   const ZGameHeader({
     super.key,
     required this.center,
     required this.ring,
-    required this.below,
+    this.below,
   });
 
   @override
@@ -75,8 +77,7 @@ class ZGameHeader extends StatelessWidget {
               ring,
             ],
           ),
-          const SizedBox(height: 12),
-          below,
+          if (below != null) ...[const SizedBox(height: 12), below!],
         ],
       ),
     );
@@ -86,12 +87,21 @@ class ZGameHeader extends StatelessWidget {
 /// The input card (with an optional [banner] above it) and the chunky
 /// power-up row. [opponentLabel] set → the card shows «… در حال فکر کردن…»
 /// while it is the opponent's turn; [longWordMinLength] set → the
-/// double-score tag appears for long words.
+/// double-score tag appears for long words. [powerups] picks the tiles (solo
+/// has no Freeze, a duel does); [trailing] sits beside the input card (the
+/// taunt button of ZVersus); [thinkingAccessory] stands at the end of the
+/// «… در حال فکر کردن» card.
 class ZGameFooter extends StatelessWidget {
   final GameActive state;
   final Widget? banner;
   final String? opponentLabel;
   final int? longWordMinLength;
+  final List<String> powerups;
+  final Widget? trailing;
+  final Widget? thinkingAccessory;
+
+  /// False blocks typing even on the player's turn (an overlay is up).
+  final bool inputEnabled;
 
   const ZGameFooter({
     super.key,
@@ -99,6 +109,10 @@ class ZGameFooter extends StatelessWidget {
     this.banner,
     this.opponentLabel,
     this.longWordMinLength,
+    this.powerups = const ['hint', 'extra_time', 'shield'],
+    this.trailing,
+    this.thinkingAccessory,
+    this.inputEnabled = true,
   });
 
   @override
@@ -112,23 +126,28 @@ class ZGameFooter extends StatelessWidget {
         children: [
           if (banner != null)
             Padding(padding: const EdgeInsets.only(bottom: 10), child: banner),
-          ZWordInput(
-            chunky: true,
-            startLetter: state.nextStartLetter,
-            enabled: state.isMyTurn,
-            hintWord: state.hintWord,
-            isOpponentThinking: thinking,
-            opponentLabel: opponentLabel ?? 'حریف',
-            longWordMinLength: longWordMinLength,
-            onSubmit:
-                (word) => context.read<GameBloc>().add(WordSubmitted(word)),
+          Row(
+            children: [
+              Expanded(
+                child: ZWordInput(
+                  chunky: true,
+                  startLetter: state.nextStartLetter,
+                  enabled: state.isMyTurn && inputEnabled,
+                  hintWord: state.hintWord,
+                  isOpponentThinking: thinking,
+                  opponentLabel: opponentLabel ?? 'حریف',
+                  longWordMinLength: longWordMinLength,
+                  thinkingAccessory: thinkingAccessory,
+                  onSubmit:
+                      (word) =>
+                          context.read<GameBloc>().add(WordSubmitted(word)),
+                ),
+              ),
+              if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+            ],
           ),
           const SizedBox(height: 14),
-          ZPowerupBar(
-            state: state,
-            types: const ['hint', 'extra_time', 'shield'],
-            chunky: true,
-          ),
+          ZPowerupBar(state: state, types: powerups, chunky: true),
         ],
       ),
     );

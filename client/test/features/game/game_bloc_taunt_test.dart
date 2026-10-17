@@ -7,6 +7,7 @@ import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
 
 class _FakeRepo extends Fake implements GameRepository {}
@@ -188,6 +189,40 @@ void main() {
     ws.emit('taunt_rejected', {'reason': 'rate_limited'});
     await _settle();
     s = bloc.state as GameActive;
-    expect(s.powerupNotice, contains('صبر'));
+    expect(s.powerupNotice, tauntRuleText());
+    expect(s.powerupNotice, contains('۵'));
+    expect(s.powerupNotice, contains('۸'));
+    expect(s.powerupNoticeSeq, before.powerupNoticeSeq + 2);
+  });
+
+  test('game_over keeps both avatars for the result screen', () async {
+    await startGame(
+      premium: [_me, _them],
+      avatars: {_me: 'lion', _them: 'fox'},
+    );
+    ws.emit('game_over', {
+      'winner': _me,
+      'scores': {_me: 90, _them: 40},
+    });
+    await _settle();
+    final over = bloc.state as GameOver;
+    expect(over.myAvatarId, 'lion');
+    expect(over.opponentAvatarId, 'fox');
+  });
+
+  test('my own loss keeps both avatars too', () async {
+    await startGame(avatars: {_me: 'lion', _them: 'fox'});
+    ws.emit('loss_event', {'player_id': _me, 'reason': 'timeout'});
+    await _settle();
+    final over = bloc.state as GameOver;
+    expect(over.myAvatarId, 'lion');
+    expect(over.opponentAvatarId, 'fox');
+  });
+
+  test('game_start never carries a username (server sends none)', () async {
+    final s = await startGame(premium: [_them], avatars: {_them: 'fox'});
+    expect(s.opponentUsername, isNull);
+    expect(s.opponentPremium, isTrue);
+    expect(s.opponentAvatarId, 'fox');
   });
 }

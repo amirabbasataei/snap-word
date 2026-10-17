@@ -32,11 +32,23 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 ### 1.5 Long-word bonus in the Go scorer
 - **What:** words of ≥ 7 letters score ×2 in Flutter solo/AI (`GameBloc._calculateScore`) but not in `engine.CalculateScore`, so multiplayer scores differ from solo.
 - **Files:** `backend/internal/engine/scorer.go`, `client/lib/features/game/bloc/game_bloc.dart`, `GameConstants.longWordBonusMinLength`.
-- **Why:** ZVersus shows the «۷ حرف · دوبرابر» tag, but the server does not apply it.
+- **Why:** ZVersus deliberately shows no «۷ حرف · دوبرابر» tag (the server does not apply it); add the tag back when this lands.
 
 ### 1.6 Typing indicator
 - **What:** no WS event for «… دارد می‌نویسد»; ZVersus ships without it.
 - **Files:** `backend/internal/ws/room.go` (`inMsg`/`outMsg`), `client/lib/features/game/view/z_versus_screen.dart`.
+
+### 1.6a Opponent name is not in `game_start`  (client falls back to «حریف»)
+- **What is sent today** (`gameStartState`, `backend/internal/ws/room.go` ~l.68, built in `startGame` and `sendCurrentState`): `match_id`, `mode`, `players` (user IDs only), `current_turn`, `chain`, `scores`, `next_letter`, `entry_fee`, `premium` (IDs with an active subscription) and `avatars` (userID → premium avatar ID, only for players who have one). So the opponent's **premium flag and avatar are already sent** and the client uses them (ZVersus pill crown + discs, in-chain bubbles, ZOver head-to-head). **No usernames** — not on `game_start`, nor on any other WS message.
+- **Needed:** `usernames` on `game_start.state`: `{ "<userID>": "<username>", … }` for both players.
+- **Where:** add `Usernames map[string]string \`json:"usernames,omitempty"\`` to `gameStartState`; fill it in `startGame` and `sendCurrentState` next to `perkState()` (a `usernameState()` modelled on `perkState()`, which already does a 3 s-timeout DB lookup while `r.mu` is held); give `RoomDeps` a `Usernames` lookup (the `UserRepository.GetUsernames(ctx, ids)` that `LeaderboardService` already uses fits) wired in `backend/cmd/server/main.go` beside `Perks: userRepo`. Decide what the AI-fallback user (`config.SystemAIUserID`) reports (its seeded username, or omit and let the client keep «حریف»).
+- **Client when it lands:** parse it in `GameBloc._handleWsGameStart` into `opponentUsername` (everything already reads `state.opponentUsername ?? 'حریف'`), copy it into `GameOver` so ZOver's «مقابل حریف» / the disc initial «ح» can use it (`ZOverVersusPill`), and drop the `usernames` absence test in `game_bloc_taunt_test.dart`.
+- **Why:** both players see «حریف» / «ح» for each other today, even though each knows their own name.
+
+### 1.6b Taunt rejection signals
+- **What the server does:** `Room.processTaunt` answers the sender with `taunt_rejected` (`premium_required` | `rate_limited`). The client shows a toast («هر ۵ ثانیه یک طعنه · تا ۸ طعنه در هر بازی» for `rate_limited`, «این امکان فقط برای اشتراک ویژه فعال است» for `premium_required`). Two gaps: `rate_limited` covers both the 5 s cooldown and the 8-per-match cap, so the client cannot say which one applied (state the rule, not the cause); and an unknown taunt id, or a taunt sent outside an active match, is dropped **without** any reply.
+- **Optional fix:** split `rate_limited` into `cooldown` / `taunt_cap`, and add `unknown_taunt`; `outMsg.Reason` already carries free-form reasons. Not blocking.
+- **Files:** `backend/internal/ws/room.go` (`processTaunt` ~l.565), `client/lib/features/game/bloc/game_bloc.dart` (`_handleWsTauntRejected`).
 
 ### 1.7 A banned player already in a room is not kicked
 - **What:** `account_banned` is checked at the WS handshake, queue join and challenge create; a socket already inside a room keeps playing until the next API call. `send-otp` still texts a banned phone.
@@ -111,16 +123,18 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 - **Friends tab badge can go stale** — `MessagesCubit.refresh()` only runs on Home init/resume and on the Messages screen; handling a request on the Friends tab does not refresh it. — `client/lib/features/messages/cubit/messages_cubit.dart`.
 - **ZProfile «صدا و لرزش» and «یادآور چالش روزانه» are cosmetic** — nothing persisted, no reminder scheduled. — `client/lib/features/profile/view/z_profile_screen.dart`.
 - **Mascot moods** — `HomeMascot` `cheer` / `sad` are never set; the standing `ZMascot` is only used by dialogs so far. — `client/lib/features/home/view/widgets/home_mascot.dart`.
-- **ZVersus should adopt the shared game frame** (`ZBubbleChain`, `ZVersusPill`, `ZGameScaffold`), drop the legacy `ZBackButton`, and get the taunt tray frame. — `client/lib/features/game/view/z_versus_screen.dart`.
+- ~~ZVersus should adopt the shared game frame~~ — done 2026-10-17 (see REDESIGN_PLAN.md § ZVersus). Left from it: the taunt tray is a centred `showZDialog` card, not the canvas's bottom-anchored tray (a `ZTray` is still to be built); `ZBackButton` (legacy 34px) is still used by ZLobby and Daily.
 - **Shared widgets still to build** — ribbon title, `ZEmptyState`, `ZTray` for the remaining bottom sheets, one shared error/loading state (`_ErrorView` is duplicated in `daily_screen.dart` and `z_profile_screen.dart`). — `REDESIGN_PLAN.md` § Consolidation status.
 
 ---
 
 ## 4. Product decisions pending
 
+- **ZVersus follow-ups (2026-10-17):** the 1v1 opponent's name is not in the WS `game_start` state — see 1.6a (backend change request); until then the pill, chip, bubbles and ZOver say «حریف» / «ح». The taunt shows only the latest taunt, inline in the chain under the sender's last word for 3 s (the canvas keeps taunts in the chain history — that needs the bloc to record them; a taunt sent before its sender has played goes under the newest word, or right after the start chip on an empty chain); the «ارسال شد / طعنهٔ این دست» used-state of the taunt button is not built (cooldown/cap are server-side only; rejections are toasted, see 1.6b). — `client/lib/features/game/view/z_versus_screen.dart`, `REDESIGN_PLAN.md` § ZVersus.
+
 - **ZOver follow-ups (2026-10-17):** solo / vs-AI «ادامه با ۲۵ سکه» spends the local `MockMonetizationService` balance, not the server coins / `AuthCubit` (the new HUD coin pill therefore doesn't move); a 1v1 result has no opponent name (`GameOver` carries none — add it from the WS state to replace «مقابل حریف»); the win screen's level-progress bar was dropped (needs fresh stats after the XP credit); no rematch exists (1v1 «حریف جدید» goes to the lobby). — `client/lib/features/game/view/z_over_screen.dart`, `REDESIGN_PLAN.md` § ZOver.
 - **vs-AI has no win/loss.** The server stores every solo/AI upload with `winner = player` (`CreateSoloGame`), local `wins` is never incremented for AI, ZOver says «بازی را پایان دادی» on exit. Decide whether an AI result counts as win/loss, then change stats and the exit-dialog copy. — `backend/internal/service/game.go`, `client/lib/core/database/daos/stats_dao.dart`.
-- **Taunt limits** — `config.TauntCooldownSec = 5` and `TauntMaxPerMatch = 8` per player; the canvas copy «یک طعنه در هر دست» assumes rounds, which do not exist. Pick the real rule and the sub-line of the taunt tray. — `backend/internal/config/config.go`, `Room.processTaunt`.
+- **Taunt limits** — resolved for now: the tray's sub-line states the real rule («هر ۵ ثانیه یک طعنه · تا ۸ طعنه در هر بازی», from `GameConstants.tauntCooldownSec/tauntMaxPerMatch`, mirroring `config.TauntCooldownSec/TauntMaxPerMatch`). Revisit only if rounds (1.4) are built. The tray's «با اشتراک ویژه طعنه بفرست» button is not built: there is no purchase flow (2.7), free players get an explanatory line instead.
 - **Multiplayer lives / grace** — build it (protocol change, 1.3) or keep the canvas «۲ جان» chip out for good.
 - **Best-of-5** — build it (1.4) or drop the round UI from the design.
 - **Daily clock on the exit dialog** — solo/vs-AI pause while the dialog is open, daily and online do not (daily is ranked and prized). Confirm or flip `zExitPausesClock`. — `client/lib/features/game/view/widgets/z_exit_confirm.dart`.
