@@ -5,8 +5,8 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/motion.dart';
 
-/// «زنجیر» lockup — four-colour wordmark with a chunky stroke and solid drop
-/// shadow, plus the tagline pill. Static.
+/// «زنجیر» lockup — four-colour wordmark with a chunky stroke (no drop
+/// shadow), plus the tagline pill. Static.
 class HomeLogo extends StatelessWidget {
   const HomeLogo({super.key});
 
@@ -44,7 +44,6 @@ class HomeLogo extends StatelessWidget {
           ..strokeJoin = StrokeJoin.round
           ..strokeWidth = ZGame.logoStroke
           ..color = zs.outline;
-    final shadowFill = zs.outline;
 
     Widget layer(TextSpan span) => Text.rich(
       span,
@@ -62,16 +61,6 @@ class HomeLogo extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // text-shadow: 0 6px 0 outline (of stroke + fill).
-              Transform.translate(
-                offset: const Offset(0, ZGame.logoShadow),
-                child: Stack(
-                  children: [
-                    layer(spans(strokePaint, null)),
-                    layer(spans(null, shadowFill)),
-                  ],
-                ),
-              ),
               layer(spans(strokePaint, null)),
               layer(spans(null, null)),
             ],

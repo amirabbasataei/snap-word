@@ -159,7 +159,6 @@ class ZOverLossHero extends StatelessWidget {
             fontSize: ZGame.overTitle,
             fill: z.coral,
             stroke: ZGame.overTitleStroke,
-            shadow: ZGame.overTitleShadow,
           ),
         ),
         if (subtitle.isNotEmpty)
@@ -576,7 +575,6 @@ class ZOverWinHero extends StatelessWidget {
                         fontSize: ZGame.overWinTitle,
                         fill: z.teal,
                         stroke: ZGame.overWinTitleStroke,
-                        shadow: ZGame.overWinTitleShadow,
                       ),
                     ),
                   ),

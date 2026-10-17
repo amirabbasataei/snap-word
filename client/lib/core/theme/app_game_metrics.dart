@@ -32,7 +32,6 @@ abstract final class ZGame {
   // Logo lockup.
   static const logoSize = 60.0;
   static const logoStroke = 7.0;
-  static const logoShadow = 6.0;
 
   // Hero scene design canvas (everything inside is laid out at this size and
   // scaled to fit the screen).
@@ -104,10 +103,8 @@ abstract final class ZGame {
   // Result screen (canvas turn 7 `ZOverA`, frames 7i loss / 7j win).
   static const overTitle = 40.0;
   static const overTitleStroke = 6.0;
-  static const overTitleShadow = 5.0;
   static const overWinTitle = 56.0;
   static const overWinTitleStroke = 7.0;
-  static const overWinTitleShadow = 6.0;
   static const overMascot = 140.0;
   static const overWinMascot = 150.0;
   static const overStage = 396.0; // the artwork is authored on this width
