@@ -464,7 +464,8 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 Client → Server:
   { "type": "submit_word",  "word": "apple" }
   { "type": "use_powerup",  "powerup": "freeze" }
-  { "type": "continue",     "method": "ad" | "coins" }   ← must arrive within 15s of loss_event
+  { "type": "continue",     "method": "ad" | "coins" | "forfeit" }   ← must arrive within 15s of loss_event; `forfeit` (the loser declines) ends the game at once for the opponent, broadcasting `continue_decision` forfeit then `game_over`
+  { "type": "forfeit" }                                   ← leave the match: while active or in a continue window the opponent wins immediately (`game_over` with winner/scores/payout; entry fee settled once). No-op in any other state, from spectators/stale connections, and when repeated or racing a timeout/disconnect (`Room.forfeit`/`resolveGame` are idempotent). Sent by the client when the player taps «تسلیم و خروج» (`GameBloc._onGameEnded`, multiplayer only)
   { "type": "send_taunt",   "taunt": "hurry_up" }         ← premium only; ID from the `taunts` table
   { "type": "ping" }
 

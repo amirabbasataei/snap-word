@@ -6,14 +6,16 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 
 ## 1. Backend / WebSocket
 
-### 1.1 Leaving an online game does not forfeit it  ⟵ start here
+### 1.1 Leaving an online game does not forfeit it  ✅ DONE 2026-10-17 (not yet verified on two devices)
+- **Done:** new WS message `forfeit` (`Room.processForfeit` → `Room.forfeit`, shared with 1.2); `GameBloc._onGameEnded` sends it in multiplayer and shows `GameOver(iWon: false)`. Tests: `backend/internal/ws/forfeit_test.go`, `client/test/features/game/game_bloc_forfeit_test.dart`. The notes below are the original analysis.
 - **What the client sends today:** nothing. Tapping «تسلیم و خروج» dispatches `GameEnded`; `_onGameEnded` finalises the game *locally* (`GameOver`, reason `ended_by_user`) and `_saveAndEmitFinal` returns early for multiplayer. No WebSocket message is sent. The socket stays open until the player leaves the result screen (`GameBloc.close()` → `_wsService.disconnect()`).
 - **What the server does:** `Room.handleMessage` only knows `submit_word`, `use_powerup`, `continue`, `send_taunt`, `ping`. Until the socket closes the match goes on: turn timers run, a timeout on the leaver's turn opens a continue window. On close, `Room.leave` broadcasts `opponent_disconnected` and starts a 30 s grace; only then `resolveGame(opponent)` runs, settles the entry fee (winner takes the pot) and sends `game_over`.
 - **Proposed:** new client message `{ "type": "forfeit" }`. Server: `case "forfeit"` → under `r.mu`, if the room is `stateActive` or `stateContinueWin`, call `resolveGame(r.opponentOf(client.userID))` (same path as a lost continue: `game_over` with `winner`, `scores`, `payout`, DB finalise, `closeAfterDrain`). Client: in `_onGameEnded` when `_isMultiplayer`, send it before finalising locally, and mark the local `GameOver` `iWon: false`. Document it in the WS protocol section of `CLAUDE.md`. Add a room test (forfeit by the player to move, and by the waiting player; fee settled once).
 - **Files:** `client/lib/features/game/bloc/game_bloc.dart` (`_onGameEnded` ~l.781, `close()`), `client/lib/features/game/view/widgets/z_exit_confirm.dart`, `backend/internal/ws/room.go` (`handleMessage` ~l.358, `leave` ~l.303, `resolveGame` ~l.949).
 - **Why:** the exit dialog promises «می‌بازی»; today the opponent keeps playing against an absent player until the socket closes + 30 s, and the leaver can sit on the result screen with the match still live.
 
-### 1.2 `continue` with `method: "forfeit"` is silently dropped
+### 1.2 `continue` with `method: "forfeit"` is silently dropped  ✅ DONE 2026-10-17
+- **Done:** `processContinue` handles `"forfeit"` (broadcasts `continue_decision` forfeit, resolves for the opponent; the window timer is invalidated by `resolveGame`). Original analysis below.
 - **What:** `AcceptDefeat` sends `{type:"continue", method:"forfeit"}` (`game_bloc.dart` ~l.879) but `Room.processContinue` returns early for anything except `"ad"` / `"coins"`. Declining the continue therefore never reaches the server; the loss only stands when the 15 s continue window times out (`triggerContinueTimeout`).
 - **Fix:** handle `"forfeit"` in `processContinue` (resolve the game for the opponent immediately) — same code as 1.1, can share the `forfeit` path.
 - **Files:** `backend/internal/ws/room.go` (`processContinue` ~l.652), `client/lib/features/game/bloc/game_bloc.dart`.

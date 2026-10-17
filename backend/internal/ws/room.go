@@ -31,7 +31,7 @@ type inMsg struct {
 	Type    string `json:"type"`
 	Word    string `json:"word"`
 	Powerup string `json:"powerup"`
-	Method  string `json:"method"` // "ad" | "coins" for continue
+	Method  string `json:"method"` // "ad" | "coins" | "forfeit" for continue
 	Taunt   string `json:"taunt"`  // preset taunt ID for send_taunt
 }
 
@@ -368,6 +368,8 @@ func (r *Room) handleMessage(client *Client, raw []byte) {
 		r.processUsePowerup(client, msg.Powerup)
 	case "continue":
 		r.processContinue(client, msg.Method)
+	case "forfeit":
+		r.processForfeit(client)
 	case "send_taunt":
 		r.processTaunt(client, msg.Taunt)
 	case "ping":
@@ -656,6 +658,16 @@ func (r *Room) processContinue(client *Client, method string) {
 	if r.state != stateContinueWin || client.userID != r.pendingLossPlayer {
 		return
 	}
+	if method == "forfeit" {
+		// The player declined: the loss stands now instead of after the window.
+		r.broadcast(mustMarshal(outMsg{
+			Type:     "continue_decision",
+			PlayerID: client.userID,
+			Decision: "forfeit",
+		}))
+		r.forfeit(client)
+		return
+	}
 	if method != "ad" && method != "coins" {
 		return
 	}
@@ -681,6 +693,40 @@ func (r *Room) processContinue(client *Client, method string) {
 	r.state = stateActive
 	r.pendingLossPlayer = ""
 	r.startTurn() // same player's turn continues
+}
+
+// processForfeit handles an explicit `forfeit` from a player who is leaving a
+// running match: the opponent wins immediately.
+func (r *Room) processForfeit(client *Client) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.forfeit(client)
+}
+
+// forfeit resolves the game for the opponent of client. A no-op unless the
+// match is running (active or in a continue window) and client is a seated,
+// currently connected player; resolveGame itself is idempotent, so racing a
+// timeout or a disconnect never settles the entry fee twice.
+// Must be called with r.mu held.
+func (r *Room) forfeit(client *Client) {
+	if r.state != stateActive && r.state != stateContinueWin {
+		return
+	}
+	if r.clients[client.userID] != client {
+		return
+	}
+	seated := false
+	for _, pid := range r.playerOrder {
+		if pid == client.userID {
+			seated = true
+			break
+		}
+	}
+	if !seated {
+		return
+	}
+	slog.Info("ws: player forfeited", "room", r.id, "userID", client.userID)
+	r.resolveGame(r.opponentOf(client.userID))
 }
 
 // ---- game lifecycle ----

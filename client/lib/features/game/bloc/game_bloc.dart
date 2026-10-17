@@ -779,15 +779,19 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   // ---------------------------------------------------------------------------
-  // GameEnded (user taps end game — solo/AI only)
+  // GameEnded (user taps end game)
   // ---------------------------------------------------------------------------
 
   Future<void> _onGameEnded(GameEnded event, Emitter<GameState> emit) async {
     final active = state;
+    // Already over (e.g. the server's game_over arrived first): nothing to
+    // forfeit, and a second tap can't send twice.
     if (active is! GameActive) return;
 
     _stopTurnTimer();
     _aiTimer?.cancel();
+    // Leaving an online match loses it: tell the server before finalising.
+    if (_isMultiplayer) _wsService.send({'type': 'forfeit'});
     await _finalizeGame(
       emit: emit,
       localMatchId: active.localMatchId,
@@ -797,6 +801,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       wordChain: active.wordChain,
       canContinue: false,
       opponentScore: active.opponentScore,
+      iWon: _isMultiplayer ? false : null,
     );
   }
 
@@ -1415,6 +1420,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     String? rejectionReason,
     int opponentScore = 0,
     String? opponentType,
+    bool? iWon,
   }) async {
     final over = GameOver(
       localMatchId: localMatchId,
@@ -1428,6 +1434,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       canContinue: false,
       continueTimeRemaining: 0,
       isSaved: false,
+      iWon: iWon,
       opponentScore: opponentScore,
       opponentType: opponentType,
     );
