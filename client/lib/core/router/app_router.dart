@@ -46,25 +46,58 @@ class _AuthStateNotifier extends ChangeNotifier {
   }
 }
 
+/// Where a signed-in player on a login page goes: the page they were sent
+/// to log in for (`/login?return=…`, or the OTP page's args), else Home.
+/// Redirecting here — rather than leaving it to the OTP screen — means the
+/// router lands on the right page at once instead of flashing Home first.
+String _afterLogin(Uri uri, Object? extra) {
+  final raw =
+      extra is OtpVerifyArgs ? extra.returnPath : uri.queryParameters['return'];
+  final safe =
+      raw != null &&
+      raw.startsWith('/') &&
+      !raw.startsWith('//') &&
+      !raw.startsWith('/login') &&
+      !raw.startsWith('/register');
+  return safe ? raw : '/home';
+}
+
+/// The router's single redirect rule (see [buildAppRouter]).
+@visibleForTesting
+String? authRedirect({
+  required Uri uri,
+  required Object? extra,
+  required AuthState authState,
+}) {
+  final path = uri.toString();
+  final onAuthScreen =
+      path.startsWith('/login') || path.startsWith('/register');
+  if (authState is AuthAuthenticated && onAuthScreen) {
+    return _afterLogin(uri, extra);
+  }
+
+  // The OTP page cannot be rebuilt without its args (e.g. a restored route).
+  if (uri.path == '/login/otp' && extra is! OtpVerifyArgs) return '/login';
+
+  // Daily challenge requires authentication
+  if (path.startsWith('/daily') && authState is! AuthAuthenticated) {
+    return '/login?return=/daily';
+  }
+
+  return null;
+}
+
 /// Called from main() after DI + AuthCubit.init() are complete.
 GoRouter buildAppRouter() {
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: _AuthStateNotifier(getIt<AuthCubit>()),
-    redirect: (context, state) {
-      final path = state.uri.toString();
-      final authState = getIt<AuthCubit>().state;
-      final onAuthScreen =
-          path.startsWith('/login') || path.startsWith('/register');
-      if (authState is AuthAuthenticated && onAuthScreen) return '/home';
-
-      // Daily challenge requires authentication
-      if (path.startsWith('/daily') && authState is! AuthAuthenticated) {
-        return '/login?return=/daily';
-      }
-
-      return null;
-    },
+    redirect:
+        (context, state) => authRedirect(
+          uri: state.uri,
+          extra: state.extra,
+          authState: getIt<AuthCubit>().state,
+        ),
     routes: [
       GoRoute(
         path: '/splash',

@@ -43,6 +43,14 @@ abstract final class GameConstants {
   };
   static const int extraTimeBonusSec = 8;
   static const int rewardedAdCoins = 20; // mirrors config.CoinRewardedAd
+
+  /// Sign-up gifts (mirror `config.CoinWelcome` / `CoinReferralSignup` /
+  /// `CoinReferralRedeem`): every new account gets the welcome bonus; a valid
+  /// referral code adds the signup bonus on top, or the redeem bonus when it
+  /// is entered after login.
+  static const int welcomeBonusCoins = 50;
+  static const int referralSignupCoins = 100;
+  static const int referralRedeemCoins = 50;
   static const int minWordLength = 3;
   static const int dailyMaxWords = 20;
   static const int dailyRetryCostCoins = 25;

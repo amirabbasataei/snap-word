@@ -1,80 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/widgets/dashed_tile.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
-import 'package:wordchain/features/auth/data/auth_repository.dart';
+import 'package:wordchain/features/auth/cubit/phone_entry_cubit.dart';
+import 'package:wordchain/features/auth/view/widgets/auth_button.dart';
+import 'package:wordchain/features/auth/view/widgets/login_cards.dart';
+import 'package:wordchain/features/auth/view/widgets/login_hero.dart';
+import 'package:wordchain/features/auth/view/widgets/otp_parts.dart'
+    show AuthStatusLine;
 import 'package:wordchain/features/auth/view/widgets/phone_input_field.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
-import 'package:wordchain/features/auth/view/z_otp_verify_screen.dart';
-import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 
-/// ZLogin — phone-entry screen (matches ZPhone.dc.html). Replaces the old
-/// email/password login_screen.dart entirely.
-class ZLoginScreen extends StatefulWidget {
+/// ZLogin — phone-entry screen (canvas `ZPhoneA`, «A · mascot-led»). A pushed
+/// route, never required: «فعلاً مهمان می‌مانم» goes straight to Home, and
+/// [returnPath] (the `return=` query) is where a successful login ends up.
+class ZLoginScreen extends StatelessWidget {
   final String? returnPath;
 
-  const ZLoginScreen({super.key, this.returnPath});
+  /// Injected by tests; the app reads the device clock.
+  final DateTime Function()? clock;
+
+  const ZLoginScreen({super.key, this.returnPath, this.clock});
 
   @override
-  State<ZLoginScreen> createState() => _ZLoginScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create:
+          (_) => PhoneEntryCubit(
+            authCubit: getIt<AuthCubit>(),
+            returnPath: returnPath,
+            clock: clock,
+          ),
+      child: const _LoginView(),
+    );
+  }
 }
 
-class _ZLoginScreenState extends State<ZLoginScreen> {
-  String _digits = '';
-  bool _termsAccepted = false;
-  bool _sending = false;
-  String? _error;
-  String? _referralCode;
+class _LoginView extends StatelessWidget {
+  const _LoginView();
 
-  bool get _phoneValid => _digits.length == 11 && _digits.startsWith('09');
-  bool get _canSubmit => _phoneValid && _termsAccepted && !_sending;
+  Future<void> _submit(BuildContext context) async {
+    final cubit = context.read<PhoneEntryCubit>();
+    final router = GoRouter.of(context);
+    final args = await cubit.submit();
+    if (args == null) return;
+    await router.push<void>('/login/otp', extra: args);
+  }
 
-  Future<void> _openReferralSheet() async {
+  Future<void> _openReferral(BuildContext context) async {
+    final cubit = context.read<PhoneEntryCubit>();
     final code = await ReferralBottomSheet.show(context);
-    if (code != null && mounted) {
-      setState(() => _referralCode = code);
-    }
+    if (code != null) cubit.setReferralCode(code);
   }
 
-  Future<void> _submit() async {
-    if (!_canSubmit) return;
-    setState(() {
-      _sending = true;
-      _error = null;
-    });
-    try {
-      final result = await getIt<AuthCubit>().sendOtp(phone: _digits);
-      if (!mounted) return;
-      await context.push<void>(
-        '/login/otp',
-        extra: OtpVerifyArgs(
-          phone: _digits,
-          returnPath: widget.returnPath,
-          referralCode: _referralCode,
-          initialCooldownSeconds: result.resendCooldownSeconds,
-        ),
-      );
-      if (mounted) setState(() => _sending = false);
-    } on AuthException catch (e) {
-      setState(() {
-        _sending = false;
-        _error = errorMessageFor(e.code);
-      });
-    } on NetworkException catch (_) {
-      setState(() {
-        _sending = false;
-        _error = networkErrorMessage;
-      });
-    }
-  }
-
-  void _continueAsGuest() {
+  void _guest(BuildContext context) {
     getIt<AuthCubit>().continueAsGuest();
     context.go('/home');
   }
@@ -82,249 +70,215 @@ class _ZLoginScreenState extends State<ZLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
+    final state = context.watch<PhoneEntryCubit>().state;
+    final cubit = context.read<PhoneEntryCubit>();
+    final inset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
       backgroundColor: z.paper,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  ZSpacing.xxl,
-                  ZSpacing.xxl,
-                  ZSpacing.xxl,
-                  ZSpacing.lg,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _wordmark(),
-                    const SizedBox(height: ZSpacing.xxl),
-                    Text(
-                      'با شماره‌ات بیا تو',
-                      style: ZTypography.display.copyWith(
-                        fontSize: 26,
-                        color: z.ink,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'یک کد چهاررقمی برات می‌فرستیم. رمزی در کار نیست.',
-                      style: ZTypography.body.copyWith(color: z.ink60),
-                    ),
-                    const SizedBox(height: ZSpacing.xl),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: z.surface,
-                        border: Border.all(color: z.line),
-                        borderRadius: BorderRadius.circular(ZRadius.cardMax),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'شمارهٔ موبایل',
-                            style: ZTypography.metaLabel.copyWith(
-                              color: z.ink40,
+      // The scene keeps its shape under the keyboard; the content makes room.
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const HomeSceneBackground(),
+          Padding(
+            padding: EdgeInsets.only(bottom: inset),
+            child: SafeArea(
+              bottom: inset == 0,
+              child: CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Column(
+                      children: [
+                        const LoginHero(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: ZOverEnter(
+                            kind: ZOverEnterKind.up,
+                            delayMs: 300,
+                            child: _PhoneCard(
+                              state: state,
+                              onDigits: cubit.setDigits,
+                              onSubmit: () => _submit(context),
                             ),
                           ),
-                          const SizedBox(height: 9),
-                          PhoneInputField(
-                            onDigitsChanged: (d) => setState(() => _digits = d),
-                          ),
-                          const SizedBox(height: 11),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: ZSpacing.lg),
-                    GestureDetector(
-                      onTap:
-                          () =>
-                              setState(() => _termsAccepted = !_termsAccepted),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            margin: const EdgeInsets.only(top: 1),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _termsAccepted ? z.teal : z.surface,
-                              borderRadius: BorderRadius.circular(6),
-                              border:
-                                  _termsAccepted
-                                      ? null
-                                      : Border.all(color: z.line),
-                            ),
-                            child:
-                                _termsAccepted
-                                    ? Icon(
-                                      Icons.check,
-                                      size: 12,
-                                      color: z.onTeal,
-                                    )
-                                    : null,
-                          ),
-                          const SizedBox(width: ZSpacing.sm + 1),
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                style: ZTypography.metaLabel.copyWith(
-                                  color: z.ink60,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 11.5,
-                                ),
-                                children: [
-                                  const TextSpan(text: 'با ورود، '),
-                                  TextSpan(
-                                    text: 'قوانین و حریم خصوصی',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: z.ink,
-                                    ),
-                                  ),
-                                  const TextSpan(text: ' زنجیر را می‌پذیرم.'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: ZSpacing.md),
-                      Text(
-                        _error!,
-                        style: ZTypography.metaLabel.copyWith(color: z.coral),
-                      ),
-                    ],
-                    const SizedBox(height: ZSpacing.lg),
-                    AccentButton(
-                      label: _sending ? '...' : 'فرستادن کد',
-                      accent: ZAccentColor.ink,
-                      onPressed: _canSubmit ? _submit : null,
-                    ),
-                    const SizedBox(height: ZSpacing.lg),
-                    GestureDetector(
-                      onTap: _openReferralSheet,
-                      child: ZDashedContainer(
-                        color: z.line,
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 24,
-                              height: 28,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: z.amber,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '۵۰',
-                                style: ZTypography.metaLabel.copyWith(
-                                  color: z.onAmber,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: ZSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _referralCode == null
-                                        ? 'کد دعوت داری؟'
-                                        : 'کد دعوت: $_referralCode',
-                                    style: ZTypography.cardTitle.copyWith(
-                                      color: z.ink,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'الان یا بعد از ورود واردش کن، ۵۰ سکه بگیر',
-                                    style: ZTypography.metaLabel.copyWith(
-                                      color: z.ink60,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ),
-                      ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: ZOverEnter(
+                            kind: ZOverEnterKind.up,
+                            delayMs: 450,
+                            child: ReferralTeaser(
+                              code: state.referralCode,
+                              onTap: () => _openReferral(context),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Spacer(),
+                        ZOverEnter(
+                          kind: ZOverEnterKind.up,
+                          delayMs: 550,
+                          child: GuestOption(onTap: () => _guest(context)),
+                        ),
+                        const SizedBox(height: 22),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                ZSpacing.xxl,
-                0,
-                ZSpacing.xxl,
-                ZSpacing.lg,
-              ),
-              child: Center(
-                child: GestureDetector(
-                  onTap: _continueAsGuest,
-                  child: Column(
-                    children: [
-                      Text(
-                        'فعلاً مهمان می‌مانم',
-                        style: ZTypography.cardTitle.copyWith(
-                          color: z.ink60,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'امتیاز مهمان فقط روی گوشی ذخیره می‌شود',
-                        style: ZTypography.metaLabel.copyWith(
-                          color: z.ink40,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
                   ),
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _wordmark() {
-    const letters = ['ز', 'ن', 'ج', 'ی', 'ر'];
-    const accents = [
-      ZAccent.indigo,
-      ZAccent.teal,
-      ZAccent.amber,
-      ZAccent.coral,
-      ZAccent.indigo,
-    ];
-    const rotations = [-5.0, 2.0, -2.0, 4.0, -3.0];
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < letters.length; i++) ...[
-          if (i > 0) const SizedBox(width: 5),
-          LetterTile(
-            letter: letters[i],
-            accent: accents[i],
-            size: 38,
-            height: 48,
-            radius: 12,
-            fontSize: 24,
-            rotation: rotations[i] * 3.14159265 / 180,
+/// The surface card: headline, the phone field, what the server said about
+/// it, the terms line and the send button.
+class _PhoneCard extends StatelessWidget {
+  final PhoneEntryState state;
+  final ValueChanged<String> onDigits;
+  final VoidCallback onSubmit;
+
+  const _PhoneCard({
+    required this.state,
+    required this.onDigits,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return ChunkyBox(
+      fill: z.surface,
+      depth: ZGame.depthLg,
+      radius: 24,
+      highlight: false,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.6,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  header: true,
+                  child: Text(
+                    'با شماره‌ات بیا تو',
+                    style: ZTypography.display.copyWith(
+                      fontSize: 22,
+                      height: 1.3,
+                      color: z.ink,
+                    ),
+                  ),
+                ),
+                Text(
+                  'یک کد چهاررقمی برایت می‌فرستیم. رمزی در کار نیست.',
+                  style: ZTypography.metaLabel.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.6,
+                    color: z.ink60,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'شمارهٔ موبایل',
+                  style: ZTypography.metaLabel.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: z.ink,
+                  ),
+                ),
+                const SizedBox(height: 6),
+              ],
+            ),
+          ),
+          PhoneInputField(
+            valid: state.phoneValid,
+            enabled: !state.sending,
+            onDigitsChanged: onDigits,
+            onSubmitted: state.canSubmit ? onSubmit : null,
+          ),
+          const SizedBox(height: 6),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 22),
+            child:
+                state.hasError
+                    ? AuthStatusLine(errorMessageFor(state.errorCode))
+                    : const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 6),
+          MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.6,
+            child: Text.rich(
+              TextSpan(
+                style: ZTypography.metaLabel.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  height: 1.6,
+                  color: z.ink60,
+                ),
+                children: [
+                  const TextSpan(text: 'با ورود، '),
+                  TextSpan(
+                    text: 'قوانین و حریم خصوصی',
+                    style: TextStyle(
+                      color: context.zs.indigoInk,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const TextSpan(text: ' زنجیر را می‌پذیرم.'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ZAuthButton(
+            label: 'فرستادن کد',
+            busyLabel: 'در حال فرستادن کد…',
+            busy: state.sending,
+            onTap: state.canSubmit ? onSubmit : null,
           ),
         ],
-      ],
+      ),
+    );
+  }
+}
+
+/// «شمارهٔ ایران»: shown once the number is complete. Every number the server
+/// accepts is an Iran mobile, which is all this claims — no carrier is named
+/// (the prefix cannot tell once numbers are portable, and the API sends none).
+class _IranChip extends StatelessWidget {
+  const _IranChip();
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: z.inkSurface,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          'شمارهٔ ایران',
+          style: ZTypography.metaLabel.copyWith(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            height: 1.4,
+            color: z.onInkSurface,
+          ),
+        ),
+      ),
     );
   }
 }

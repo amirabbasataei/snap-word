@@ -133,6 +133,15 @@ const usernameChangedMessage = 'نام کاربری تغییر کرد';
 String coinsAwardedMessage(int coins) =>
     '${toPersianDigits(coins)} سکه به حسابت اضافه شد!';
 
+/// Sign-up toast: a new account starts at 0, so its balance is the gift.
+String welcomeBonusMessage(int coins) =>
+    'خوش آمدی! ${toPersianDigits(coins)} سکه هدیه گرفتی';
+
+const referralNotFoundAtSignupMessage = 'حسابت ساخته شد، ولی کد دعوت پیدا نشد';
+
+const referralNeedsNewAccountMessage =
+    'کد دعوت فقط برای حساب تازه است؛ از پروفایل هم می‌توانی واردش کنی';
+
 // Load-failure fallbacks (used when no code is available or translatable) ----
 
 const loadFriendsFailedMessage = 'بارگذاری دوستان ناموفق بود';

@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# flutter_test writes *_masterImage/_testImage/_isolatedDiff/_maskedDiff PNGs here when a golden comparison fails
+/test/**/failures/
