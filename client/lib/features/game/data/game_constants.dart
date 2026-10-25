@@ -7,6 +7,10 @@ abstract final class GameConstants {
   static const int entryFeePot = entryFeeCoins * 2;
   static const int classicTurnTimerSec = 15;
 
+  /// How long matchmaking waits for a human before pairing the player with
+  /// the AI (mirrors `config.AIFallbackWaitSec`).
+  static const int matchmakingAiFallbackSec = 30;
+
   /// How long a friend challenge stays answerable (backend: 24h expiry).
   static const int challengeValidHours = 24;
   static const int continueWindowSec = 15;

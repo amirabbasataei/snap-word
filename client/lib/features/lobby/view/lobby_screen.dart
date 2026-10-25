@@ -1,168 +1,113 @@
-import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
-import 'package:wordchain/core/theme/app_elevation.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
-import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
+import 'package:wordchain/core/utils/avatar_initial.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/coin_pill.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
+import 'package:wordchain/core/widgets/z_hud_coin_pill.dart';
+import 'package:wordchain/core/widgets/z_ribbon_title.dart';
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
-import 'package:wordchain/features/game/view/widgets/z_game_shared.dart';
-import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/lobby/cubit/lobby_cubit.dart';
+import 'package:wordchain/features/lobby/cubit/lobby_players_cubit.dart';
+import 'package:wordchain/features/lobby/view/widgets/lobby_cta.dart';
+import 'package:wordchain/features/lobby/view/widgets/lobby_friends.dart';
+import 'package:wordchain/features/lobby/view/widgets/lobby_stage.dart';
+import 'package:wordchain/features/lobby/view/widgets/lobby_stake.dart';
+import 'package:wordchain/features/profile/data/profile_repository.dart';
 
+/// «رویارویی آنلاین» — the 1v1 lobby, "A · mascot-led" (canvas `ZLobbyA`).
 class LobbyScreen extends StatelessWidget {
   const LobbyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create:
-          (_) => LobbyCubit(
-            repo: getIt(),
-            syncService: getIt(),
-            notificationService: getIt(),
-          ),
-      child: const _LobbyView(),
+    final guest = getIt<AuthCubit>().state is! AuthAuthenticated;
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create:
+              (_) => LobbyCubit(
+                repo: getIt(),
+                syncService: getIt(),
+                notificationService: getIt(),
+              ),
+        ),
+        BlocProvider(
+          create: (_) {
+            final cubit = LobbyPlayersCubit(
+              friends: getIt<FriendsRepository>(),
+              profile: getIt<ProfileRepository>(),
+            );
+            // A guest has no friends or stats to load (both calls are 401).
+            if (!guest) cubit.load();
+            return cubit;
+          },
+        ),
+      ],
+      child: _LobbyView(guest: guest),
     );
   }
 }
 
-class _LobbyView extends StatefulWidget {
-  const _LobbyView();
+class _LobbyView extends StatelessWidget {
+  final bool guest;
 
-  @override
-  State<_LobbyView> createState() => _LobbyViewState();
-}
+  const _LobbyView({required this.guest});
 
-class _LobbyViewState extends State<_LobbyView> {
   static const _mode = 'classic';
-
-  List<FriendModel> _friends = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchFriends();
-  }
-
-  Future<void> _fetchFriends() async {
-    try {
-      final friends = await getIt<FriendsRepository>().fetchFriends();
-      if (mounted) setState(() => _friends = friends.take(2).toList());
-    } catch (_) {
-      // Best-effort — friends invite list just stays empty.
-    }
-  }
-
-  Future<void> _challengeFriend(FriendModel friend) async {
-    try {
-      final repo = getIt<FriendsRepository>();
-      final mode = _mode;
-      await repo.sendChallenge(friend.userId, mode);
-      if (mounted) {
-        ZToast.show(
-          context,
-          'دعوت‌نامه برای ${friend.username} ارسال شد',
-          kind: ZToastKind.success,
-        );
-      }
-      // Joining the room on accept is handled app-wide by ChallengeWatcher.
-    } catch (e) {
-      if (mounted) {
-        if (e is FriendsException && e.code == 'insufficient_coins') {
-          showInsufficientCoinsDialog(context);
-        } else {
-          ZToast.show(
-            context,
-            'ارسال دعوت‌نامه ناموفق بود',
-            kind: ZToastKind.error,
-          );
-        }
-      }
-    }
-  }
-
-  String get _myUsername {
-    final authState = getIt<AuthCubit>().state;
-    return authState is AuthAuthenticated ? authState.username : 'تو';
-  }
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
+    final zs = context.zs;
+    final compact = MediaQuery.sizeOf(context).height < 640;
 
-    return BlocConsumer<LobbyCubit, LobbyState>(
+    return BlocListener<LobbyCubit, LobbyState>(
       listener: (context, state) {
-        if (state is LobbyMatchFound) {
-          _navigateToGame(context, state);
-        }
+        if (state is LobbyMatchFound) _navigateToGame(context, state);
         if (state is LobbyError && state.insufficientCoins) {
           context.read<LobbyCubit>().reset();
           showInsufficientCoinsDialog(context);
         }
       },
-      builder: (context, state) {
-        return Scaffold(
-          backgroundColor: z.paper,
-          body: SafeArea(
-            child: Column(
-              children: [
-                const _TopBar(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                      ZSpacing.screenGutter,
-                      0,
-                      ZSpacing.screenGutter,
-                      ZSpacing.xl,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _VersusCard(state: state, myUsername: _myUsername),
-                        const SizedBox(height: ZSpacing.lg),
-                        switch (state) {
-                          LobbySearching s => _SearchingBlock(state: s),
-                          LobbyError e => _ErrorBlock(
-                            message: e.message,
-                            onRetry:
-                                () => context.read<LobbyCubit>().startSearch(
-                                  _mode,
-                                ),
-                          ),
-                          _ => _IdleBlock(
-                            onFindMatch:
-                                () => context.read<LobbyCubit>().startSearch(
-                                  _mode,
-                                ),
-                          ),
-                        },
-                        if (state is! LobbySearching) ...[
-                          const SizedBox(height: ZSpacing.lg),
-                          if (_friends.isNotEmpty)
-                            _FriendsCard(
-                              friends: _friends,
-                              onChallenge: _challengeFriend,
-                            ),
-                        ],
+      child: Scaffold(
+        backgroundColor: zs.sky3,
+        body: Stack(
+          children: [
+            const Positioned.fill(child: HomeSceneBackground()),
+            SafeArea(
+              child: Column(
+                children: [
+                  const _Header(),
+                  Expanded(
+                    // The friends card takes whatever height is left on a tall
+                    // phone; on a short one the page scrolls.
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: _Top(guest: guest, compact: compact),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _Friends(guest: guest),
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
@@ -182,39 +127,32 @@ class _LobbyViewState extends State<_LobbyView> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Top bar — back, title, coin pill
-// ---------------------------------------------------------------------------
-
-class _TopBar extends StatelessWidget {
-  const _TopBar();
+/// Back button, ribbon title and the live coin balance.
+class _Header extends StatelessWidget {
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-      ),
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 14, 0),
       child: Row(
         children: [
-          ZBackButton(onTap: () => context.pop()),
-          const SizedBox(width: ZSpacing.md),
-          Text(
-            'رویارویی آنلاین',
-            style: ZTypography.screenTitle.copyWith(color: z.ink, fontSize: 19),
+          ZGameBackButton(
+            onTap: () => context.canPop() ? context.pop() : context.go('/home'),
           ),
-          const Spacer(),
+          const Expanded(child: Center(child: ZRibbonTitle('رویارویی آنلاین'))),
           // AuthCubit holds the live balance; fetchStats() never returns coins.
+          // A guest has no balance, so the slot is just kept for symmetry.
           BlocBuilder<AuthCubit, AuthState>(
             bloc: getIt<AuthCubit>(),
             builder:
-                (context, auth) => CoinPill(
-                  amount: auth is AuthAuthenticated ? auth.coins : 0,
-                ),
+                (context, auth) =>
+                    auth is AuthAuthenticated
+                        ? MediaQuery.withClampedTextScaling(
+                          maxScaleFactor: 1.3,
+                          child: ZHudCoinPill(coins: auth.coins),
+                        )
+                        : const SizedBox(width: ZGame.gameBackButton),
           ),
         ],
       ),
@@ -222,468 +160,132 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Versus card — me vs opponent (placeholder while idle, animated while
-// searching, matched name once found)
-// ---------------------------------------------------------------------------
+/// Stage, match terms and the button — everything the queue itself drives.
+class _Top extends StatelessWidget {
+  final bool guest;
+  final bool compact;
 
-class _VersusCard extends StatelessWidget {
-  final LobbyState state;
-  final String myUsername;
-
-  const _VersusCard({required this.state, required this.myUsername});
+  const _Top({required this.guest, required this.compact});
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final searching = state is LobbySearching;
+    final auth = getIt<AuthCubit>().state;
+    final name = auth is AuthAuthenticated ? auth.username : 'تو';
+    final me = context.select((LobbyPlayersCubit c) => c.state);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ZSpacing.lg,
-        vertical: ZSpacing.xl,
-      ),
-      decoration: BoxDecoration(
-        color: z.inkSurface,
-        borderRadius: BorderRadius.circular(ZRadius.cardMax),
-        boxShadow: ZElevation.solidEdge(
-          z.inkSurfaceDeep,
-          depth: ZElevation.cardDepth,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _VersusSide(
-                  letter: myUsername.isNotEmpty ? myUsername[0] : 'ت',
-                  accent: ZAccent.teal,
-                  name: myUsername,
-                  subtitle: 'حاضر',
-                  dim: false,
-                ),
+    return BlocBuilder<LobbyCubit, LobbyState>(
+      builder: (context, state) {
+        final searching = state is LobbySearching;
+        final error = state is LobbyError ? state.message : null;
+        final mode = switch (state) {
+          LobbySearching() => LobbyStageMode.searching,
+          LobbyMatchFound() => LobbyStageMode.found,
+          LobbyError() => LobbyStageMode.error,
+          _ => LobbyStageMode.idle,
+        };
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            LobbyStage(
+              mode: mode,
+              myName: name,
+              myInitial: avatarInitial(name),
+              myAvatarId: me.avatarId,
+              mySubtitle:
+                  me.level == null ? null : 'سطح ${toPersianDigits(me.level!)}',
+              elapsedSeconds:
+                  state is LobbySearching ? state.elapsedSeconds : 0,
+              compact: compact,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+              child: LobbyStakeCard(error: error),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+              child: LobbyCta(
+                label:
+                    searching
+                        ? 'لغو جست‌وجو'
+                        : error != null
+                        ? 'تلاش دوباره'
+                        : 'پیدا کردن حریف',
+                cancel: searching,
+                onTap:
+                    searching
+                        ? () => context.read<LobbyCubit>().cancelSearch()
+                        : () => _find(context),
               ),
-              Text(
-                'مقابل',
-                style: ZTypography.metaLabel.copyWith(
-                  color: z.onInkSurfaceSoft,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Expanded(
-                child: _VersusSide(
-                  letter: '؟',
-                  accent: ZAccent.indigo,
-                  name: searching ? 'در جست‌وجو…' : 'آمادهٔ شروع؟',
-                  subtitle: 'هم‌سطح تو',
-                  dim: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.lg),
-          _SearchDots(active: searching),
-        ],
-      ),
-    );
-  }
-}
-
-class _VersusSide extends StatelessWidget {
-  final String letter;
-  final ZAccent accent;
-  final String name;
-  final String subtitle;
-  final bool dim;
-
-  const _VersusSide({
-    required this.letter,
-    required this.accent,
-    required this.name,
-    required this.subtitle,
-    required this.dim,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Column(
-      children: [
-        Opacity(
-          opacity: dim ? 0.65 : 1,
-          child: LetterTile(letter: letter, size: 56, accent: accent),
-        ),
-        const SizedBox(height: ZSpacing.sm),
-        Text(
-          name,
-          style: ZTypography.cardTitle.copyWith(
-            color: z.onInkSurface,
-            fontSize: 13,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          subtitle,
-          style: ZTypography.metaLabel.copyWith(
-            color: z.onInkSurfaceSoft,
-            fontSize: 11,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SearchDots extends StatefulWidget {
-  final bool active;
-
-  const _SearchDots({required this.active});
-
-  @override
-  State<_SearchDots> createState() => _SearchDotsState();
-}
-
-class _SearchDotsState extends State<_SearchDots>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    );
-    if (widget.active) _ctrl.repeat();
-  }
-
-  @override
-  void didUpdateWidget(_SearchDots oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.active && !_ctrl.isAnimating) {
-      _ctrl.repeat();
-    } else if (!widget.active) {
-      _ctrl.stop();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) {
-        final litIndex =
-            widget.active ? (_ctrl.value * 4).floor().clamp(0, 3) : -1;
-        final colors = [z.coral, z.amber, z.teal, z.indigo];
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(4, (i) {
-            final lit = widget.active ? i <= litIndex : i < 2;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color:
-                      lit
-                          ? colors[i]
-                          : z.onInkSurfaceSoft.withValues(alpha: 0.4),
-                ),
-              ),
-            );
-          }),
+            ),
+          ],
         );
       },
     );
   }
-}
 
-// ---------------------------------------------------------------------------
-// Idle — pickers + Find Match CTA
-// ---------------------------------------------------------------------------
-
-class _IdleBlock extends StatelessWidget {
-  final VoidCallback onFindMatch;
-
-  const _IdleBlock({required this.onFindMatch});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.all(ZSpacing.lg),
-      decoration: BoxDecoration(
-        color: z.surface,
-        border: Border.all(color: z.line),
-        borderRadius: BorderRadius.circular(ZRadius.cardMin),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _EntryFeeRow(),
-          const SizedBox(height: ZSpacing.lg),
-          AccentButton(
-            label: 'پیدا کردن حریف',
-            accent: ZAccentColor.coral,
-            onPressed: onFindMatch,
-          ),
-          const SizedBox(height: ZSpacing.sm),
-          Text(
-            'با یک بازیکن آنلاین جفت می‌شوی؛ اگر حریفی پیدا نشود، پس از ۳۰ ثانیه با هوش مصنوعی بازی می‌کنی و ورودی نمی‌دهی.',
-            textAlign: TextAlign.center,
-            style: ZTypography.metaLabel.copyWith(color: z.ink40, fontSize: 11),
-          ),
-        ],
-      ),
-    );
+  void _find(BuildContext context) {
+    // Direct navigation only: Home sends a guest to /login?return=/lobby.
+    if (guest) {
+      context.push('/login?return=/lobby');
+      return;
+    }
+    context.read<LobbyCubit>().startSearch(_LobbyView._mode);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Searching — elapsed time + cancel
-// ---------------------------------------------------------------------------
+class _Friends extends StatelessWidget {
+  final bool guest;
 
-class _SearchingBlock extends StatelessWidget {
-  final LobbySearching state;
+  const _Friends({required this.guest});
 
-  const _SearchingBlock({required this.state});
-
-  String get _elapsed {
-    final s = state.elapsedSeconds;
-    return toPersianDigits(
-      '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}',
-    );
+  Future<void> _invite(BuildContext context, FriendModel friend) async {
+    final result = await context.read<LobbyPlayersCubit>().invite(friend);
+    if (!context.mounted) return;
+    // Joining the room on accept is handled app-wide by ChallengeWatcher.
+    switch (result) {
+      case LobbyInviteSent():
+        ZToast.show(
+          context,
+          friendInviteSentMessage(friend.username),
+          kind: ZToastKind.success,
+        );
+      case LobbyInviteNeedsCoins():
+        showInsufficientCoinsDialog(context);
+      case LobbyInviteFailed(:final message):
+        ZToast.show(context, message, kind: ZToastKind.error);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    return Column(
-      children: [
-        Text(
-          _elapsed,
-          style: ZTypography.screenTitle.copyWith(
-            color: z.ink,
-            fontSize: 26,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-        const SizedBox(height: ZSpacing.lg),
-        NeutralButton(
-          label: 'لغو جست‌وجو',
-          onPressed: () => context.read<LobbyCubit>().cancelSearch(),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Error
-// ---------------------------------------------------------------------------
-
-class _ErrorBlock extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorBlock({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Column(
-      children: [
-        Icon(Icons.wifi_off_rounded, color: z.coral, size: 40),
-        const SizedBox(height: ZSpacing.md),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: ZTypography.body.copyWith(color: z.ink60),
-        ),
-        const SizedBox(height: ZSpacing.lg),
-        AccentButton(
-          label: 'تلاش دوباره',
-          accent: ZAccentColor.coral,
-          onPressed: onRetry,
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Entry fee — fixed stake for human-vs-human matches (config.EntryFeeCoins on
-// the backend); the winner takes the whole pot.
-// ---------------------------------------------------------------------------
-
-class _EntryFeeRow extends StatelessWidget {
-  const _EntryFeeRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ZSpacing.md,
-        vertical: ZSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: z.amber.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(ZRadius.tileMin + 2),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'ورودی بازی',
-              style: ZTypography.metaLabel.copyWith(
-                color: z.ink60,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Text(
-            '${toPersianDigits(GameConstants.entryFeeCoins)} سکه',
-            style: ZTypography.cardTitle.copyWith(color: z.ink, fontSize: 13.5),
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Text(
-            'جایزهٔ برنده',
-            style: ZTypography.metaLabel.copyWith(
-              color: z.ink60,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: ZSpacing.sm),
-          Text(
-            '${toPersianDigits(GameConstants.entryFeePot)} سکه',
-            style: ZTypography.cardTitle.copyWith(
-              color: z.teal,
-              fontSize: 13.5,
-            ),
-          ),
-        ],
+    final p = context.watch<LobbyPlayersCubit>().state;
+    final notice =
+        guest
+            ? LobbyFriendsNotice.guest
+            : switch (p.status) {
+              LobbyFriendsStatus.loading => LobbyFriendsNotice.loading,
+              LobbyFriendsStatus.error => LobbyFriendsNotice.error,
+              LobbyFriendsStatus.loaded when p.friends.isEmpty =>
+                LobbyFriendsNotice.empty,
+              LobbyFriendsStatus.loaded => null,
+            };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 18),
+      child: LobbyFriendsCard(
+        notice: notice,
+        friends: p.friends,
+        invited: p.invited,
+        inviting: p.inviting,
+        errorMessage: p.error,
+        onInvite: (f) => _invite(context, f),
+        onNoticeAction: switch (notice) {
+          LobbyFriendsNotice.error =>
+            () => context.read<LobbyPlayersCubit>().load(),
+          LobbyFriendsNotice.guest =>
+            () => context.push('/login?return=/lobby'),
+          _ => () => context.go('/friends'),
+        },
       ),
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Friends — real data (FriendsRepository.fetchFriends), substituting the
-// canvas's fabricated per-opponent win/loss "recent opponents" list (no
-// match-history-vs-a-friend endpoint exists) with each friend's real weekly
-// score, and wiring "دعوت" to the real POST /challenges call.
-// ---------------------------------------------------------------------------
-
-class _FriendsCard extends StatelessWidget {
-  final List<FriendModel> friends;
-  final void Function(FriendModel) onChallenge;
-
-  const _FriendsCard({required this.friends, required this.onChallenge});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      decoration: BoxDecoration(
-        color: z.surface,
-        border: Border.all(color: z.line),
-        borderRadius: BorderRadius.circular(ZRadius.cardMin),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: ZSpacing.md),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: ZSpacing.md),
-            child: Row(
-              children: [
-                Text(
-                  'دوستان',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
-                ),
-              ],
-            ),
-          ),
-          for (final friend in friends) ...[
-            if (friend != friends.first) Divider(color: z.line, height: 1),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: ZSpacing.sm),
-              child: Row(
-                children: [
-                  LetterTile(
-                    letter:
-                        friend.username.isNotEmpty ? friend.username[0] : '؟',
-                    size: 34,
-                    accent:
-                        _accentCycle[friends.indexOf(friend) %
-                            _accentCycle.length],
-                  ),
-                  const SizedBox(width: ZSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          friend.username,
-                          style: ZTypography.cardTitle.copyWith(
-                            color: z.ink,
-                            fontSize: 13.5,
-                          ),
-                        ),
-                        Text(
-                          '${formatPersianNumber(friend.weeklyScore)} امتیاز این هفته',
-                          style: ZTypography.metaLabel.copyWith(
-                            color: z.ink40,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => onChallenge(friend),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: z.tintTeal,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        'دعوت',
-                        style: ZTypography.metaLabel.copyWith(
-                          color: z.teal,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-const _accentCycle = [
-  ZAccent.indigo,
-  ZAccent.teal,
-  ZAccent.amber,
-  ZAccent.coral,
-];

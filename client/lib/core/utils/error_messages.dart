@@ -123,6 +123,11 @@ String friendRequestSentMessage(String username) =>
 
 const challengeSentMessage = 'چالش ارسال شد';
 
+/// Lobby invite toast. The name sits in a bidi isolate so a Latin username
+/// can't reorder the Persian around it.
+String friendInviteSentMessage(String username) =>
+    'دعوت‌نامه برای \u2068$username\u2069 ارسال شد';
+
 const usernameChangedMessage = 'نام کاربری تغییر کرد';
 
 String coinsAwardedMessage(int coins) =>

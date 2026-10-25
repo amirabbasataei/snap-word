@@ -69,8 +69,9 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 - **Files:** `backend/internal/service/challenge.go`, `backend/internal/handler/`, `CLAUDE.md` § Friend Challenges.
 
 ### 2.2 Online player count
-- **What:** no endpoint reports players online; ZHome shows «۳٬۴۰۱ نفر آنلاین» in debug builds only (`kDebugMode`, marked `PLACEHOLDER`). `Hub.Snapshot()` already counts live players for the admin dashboard.
-- **Files:** `client/lib/features/home/view/home_screen.dart`, `backend/internal/service/admin_dashboard.go`.
+- **What:** no endpoint reports players online; ZHome shows «۳٬۴۰۱ نفر آنلاین» in debug builds only (`kDebugMode`, marked `PLACEHOLDER`). `Hub.Snapshot()` already counts live players for the admin dashboard. The ZLobby canvas (`ZLobbyA`) also has a «۳٬۴۰۱ نفر آنلاین · هم‌سطح تو» chip under the mascot — omitted for the same reason, and its «هم‌سطح تو» half is false today: `MatchmakingService.processQueue` pairs the first two fresh queue entries by arrival order (no level/score matching).
+- **Request (if wanted):** `GET /api/v1/match/online` → `{ "data": { "online": 3401, "searching": 2 } }` (auth required, cache 5–10 s) — add a handler next to `MatchmakingHandler` (`backend/internal/handler/`), fill it from `Hub.Snapshot()` (players in rooms) and the Redis queue length (`LLEN queue:classic`); client: `LobbyRepository.fetchOnline()` + a chip in `LobbyStage`'s slot under the mascot (it currently only holds the elapsed-time chip while searching). Only add «هم‌سطح» if pairing actually uses level.
+- **Files:** `client/lib/features/home/view/home_screen.dart`, `client/lib/features/lobby/view/widgets/lobby_stage.dart`, `backend/internal/service/admin_dashboard.go`, `backend/internal/service/matchmaking.go`.
 
 ### 2.3 Levels, chest, badges, accuracy
 - **What:** XP/levels exist (`player_stats.xp`, migration 009, no backfill). Still missing: level-up rewards (the chest/crown milestones ۱۳/۱۴/۱۵ are derived, no reward behind them), badges (no schema; the ZProfile card is commented out), accuracy % and unique-word count.
@@ -87,7 +88,7 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 - **Files:** `backend/internal/service/daily.go`, `client/lib/features/daily/view/daily_screen.dart`.
 
 ### 2.6 Friends list data
-- **What:** no presence (online/offline, in-match status); friend rows carry only `userId`, `username`, `weeklyScore`; premium avatar/badge are not on the friends list (they are on leaderboards and ZVersus).
+- **What:** no presence (online/offline, in-match status); friend rows carry only `userId`, `username`, `weeklyScore`; premium avatar/badge are not on the friends list (they are on leaderboards and ZVersus). The ZLobby canvas also wants a per-friend head-to-head record («با هم: ۲ برد · ۱ باخت») and best chain («بهترین زنجیر ۲۹») — neither exists, the lobby shows the weekly score instead. A «آفلاین» state on the invite button (legacy canvas) needs presence.
 - **Files:** `backend/internal/service/friends.go`, `client/lib/features/friends/data/friends_repository.dart`, `CLAUDE.md` § Premium Perks.
 
 ### 2.7 Premium: no billing, no weekly coins
@@ -119,14 +120,16 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 
 ## 3. Frontend follow-ups (non-visual)
 
+- **Leaving the lobby while searching doesn't leave the queue** — `LobbyCubit.close()` only cancels its timers/push subscription; the in-flight `POST /match/queue` is not cancelled and `cancelQueue` is only called from the «لغو جست‌وجو» button. Backing out (or the OS killing the route) leaves the player in the server queue until it pairs (they would land in a room nobody is in, then wait up to `RoomWaitTimeoutSec`) or the 35 s long-poll times out. Fix: call `cancelQueue()` from the back button / `close()` when `state is LobbySearching`. — `client/lib/features/lobby/cubit/lobby_cubit.dart`, `lobby_screen.dart` — *flagged during the ZLobby rebuild, behaviour left as it was.*
+- **Lobby: invite has no confirm step and can't be withdrawn** — the lobby's «دعوت به بازی» sends at once (the Friends tab asks first via `showFriendChallengeDialog`), and the server happily creates a second pending challenge + push for the same friend (`ChallengeService.CreateChallenge` has no duplicate check). The lobby now blocks a repeat from the same screen visit only. Decide: confirm dialog in the lobby too, and/or a server-side "one pending challenge per pair" rule (+ the withdraw call from 2.1). — `client/lib/features/lobby/cubit/lobby_players_cubit.dart`, `backend/internal/service/challenge.go`.
 - **Soft keyboard is dismissed on every AI turn** — `ZWordInput` swaps the `TextField` for the "thinking" card, so focus is lost. Keep the field mounted/disabled or re-request focus when `isMyTurn` flips back. — `client/lib/features/game/view/widgets/z_game_shared.dart` — *player must re-tap the field every turn.*
 - **Pre-filled start letter** — the canvas draws the letter pre-filled and the player types the rest; today the whole word is typed. Changes `WordSubmitted` / hint behaviour. — `client/lib/features/game/view/z_solo_screen.dart`, `z_play_screen.dart`, `GameBloc`.
 - **Board tabs «امروز» / «همیشه»** — the client ships 2 of 4 tabs; the backend already has `GET /leaderboard?type=alltime` and `GET /daily/leaderboard`. — `client/lib/features/leaderboard/view/z_board_screen.dart` — *planned in PLAN.md Phase 18.*
 - **Friends tab badge can go stale** — `MessagesCubit.refresh()` only runs on Home init/resume and on the Messages screen; handling a request on the Friends tab does not refresh it. — `client/lib/features/messages/cubit/messages_cubit.dart`.
 - **ZProfile «صدا و لرزش» and «یادآور چالش روزانه» are cosmetic** — nothing persisted, no reminder scheduled. — `client/lib/features/profile/view/z_profile_screen.dart`.
 - **Mascot moods** — `HomeMascot` `cheer` / `sad` are never set; the standing `ZMascot` is only used by dialogs so far. — `client/lib/features/home/view/widgets/home_mascot.dart`.
-- ~~ZVersus should adopt the shared game frame~~ — done 2026-10-17 (see REDESIGN_PLAN.md § ZVersus). Left from it: the taunt tray is a centred `showZDialog` card, not the canvas's bottom-anchored tray (a `ZTray` is still to be built); `ZBackButton` (legacy 34px) is still used by ZLobby and Daily.
-- **Shared widgets still to build** — ribbon title, `ZEmptyState`, `ZTray` for the remaining bottom sheets, one shared error/loading state (`_ErrorView` is duplicated in `daily_screen.dart` and `z_profile_screen.dart`). — `REDESIGN_PLAN.md` § Consolidation status.
+- ~~ZVersus should adopt the shared game frame~~ — done 2026-10-17 (see REDESIGN_PLAN.md § ZVersus). Left from it: the taunt tray is a centred `showZDialog` card, not the canvas's bottom-anchored tray (a `ZTray` is still to be built); `ZBackButton` (legacy 34px) is still used by Daily only (ZLobby moved to `ZGameBackButton` 2026-10-25).
+- **Shared widgets still to build** — `ZEmptyState` (the ribbon title is done: `ZRibbonTitle`, 2026-10-25), `ZTray` for the remaining bottom sheets, one shared error/loading state (`_ErrorView` is duplicated in `daily_screen.dart` and `z_profile_screen.dart`). — `REDESIGN_PLAN.md` § Consolidation status.
 
 ---
 
