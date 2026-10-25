@@ -1,48 +1,85 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 
 part 'leaderboard_state.dart';
 
 class LeaderboardCubit extends Cubit<LeaderboardState> {
   final LeaderboardRepository _repo;
-  final String currentUserId;
 
   LeaderboardCubit({
     required LeaderboardRepository repository,
-    required this.currentUserId,
+    required String currentUserId,
   }) : _repo = repository,
-       super(const LeaderboardInitial());
+       super(LeaderboardState(currentUserId: currentUserId));
 
-  bool _hasLoaded = false;
+  String get currentUserId => state.currentUserId;
 
-  /// [silent] reloads in the background: no spinner, and a failure keeps
-  /// whatever is already on screen.
-  Future<void> load({bool silent = false}) async {
-    final quiet = silent && _hasLoaded;
-    if (!quiet) emit(const LeaderboardLoading());
-    try {
-      final results = await Future.wait([
-        _repo.fetchGlobal(),
-        _repo.fetchAllTime(),
-        _repo.fetchFriends(),
-      ]);
+  /// Request counter per tab: a slow answer for an older request must not
+  /// overwrite a newer one.
+  final _seq = <BoardTab, int>{};
+
+  /// Shows [tab] and (re)loads it. A tab that already has a result keeps it on
+  /// screen while the fresh one is fetched.
+  Future<void> select(BoardTab tab) {
+    emit(state.copyWith(tab: tab));
+    return _fetch(tab, silent: true);
+  }
+
+  /// Reloads the visible tab. [silent] (a bottom-nav tab tap) never swaps the
+  /// screen for a spinner, and a failure keeps whatever is already shown.
+  Future<void> load({bool silent = false}) => _fetch(state.tab, silent: silent);
+
+  Future<void> _fetch(BoardTab tab, {required bool silent}) async {
+    final seq = (_seq[tab] ?? 0) + 1;
+    _seq[tab] = seq;
+    final hasData = state.boards.containsKey(tab);
+    if (!hasData && !silent) {
       emit(
-        LeaderboardLoaded(
-          global: results[0],
-          allTime: results[1],
-          friends: results[2],
-          currentUserId: currentUserId,
+        state.copyWith(
+          loading: {...state.loading, tab},
+          errors: {...state.errors}..remove(tab),
         ),
       );
-      _hasLoaded = true;
+    } else if (!hasData && !state.errors.containsKey(tab)) {
+      emit(state.copyWith(loading: {...state.loading, tab}));
+    }
+    try {
+      final result = await _fetchTab(tab);
+      if (isClosed || _seq[tab] != seq) return;
+      emit(
+        state.copyWith(
+          boards: {...state.boards, tab: result},
+          errors: {...state.errors}..remove(tab),
+          loading: {...state.loading}..remove(tab),
+        ),
+      );
     } on LeaderboardException catch (e) {
-      if (!quiet) emit(LeaderboardError(e.message));
+      _failed(tab, seq, e.message);
     } catch (_) {
-      if (!quiet) emit(const LeaderboardError(loadLeaderboardFailedMessage));
+      _failed(tab, seq, loadLeaderboardFailedMessage);
     }
   }
 
-  Future<void> refresh() => load();
+  void _failed(BoardTab tab, int seq, String message) {
+    if (isClosed || _seq[tab] != seq) return;
+    emit(
+      state.copyWith(
+        loading: {...state.loading}..remove(tab),
+        // With a result on screen the failure is swallowed.
+        errors:
+            state.boards.containsKey(tab)
+                ? state.errors
+                : {...state.errors, tab: message},
+      ),
+    );
+  }
+
+  Future<LeaderboardResult> _fetchTab(BoardTab tab) => switch (tab) {
+    BoardTab.weekly => _repo.fetchGlobal(),
+    BoardTab.daily => _repo.fetchDaily(currentUserId),
+    BoardTab.allTime => _repo.fetchAllTime(),
+    BoardTab.friends => _repo.fetchFriends(currentUserId),
+  };
 }

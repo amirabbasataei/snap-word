@@ -737,9 +737,10 @@ All sent via FCM HTTP v1 API. Tokens registered at login, deregistered at logout
 
 ## 🏆 Leaderboard & Weekly Reset
 
-- Redis Sorted Set `leaderboard:global:weekly` — score added at end of **multiplayer and Daily Challenge games only** (not solo).
+- Redis Sorted Set `leaderboard:global:weekly` — score added at end of **multiplayer games only** (`ws.Room` is the sole `AddScore` caller; solo, vs-AI and Daily Challenge scores are not added — todo.md 2.4).
 - **All-time board («همیشه»):** `GET /leaderboard?type=alltime` ranks `player_stats.total_score` (lifetime, never reset; DB-backed, AI user excluded). `LeaderboardService.AddScore` increments it together with the weekly Redis score, so it counts exactly the games the weekly board counts (currently multiplayer only — Daily Challenge scores are not added to either). Counts only from migration 008 onward; no backfill.
-- `GET /leaderboard?type=friends` fetches friend IDs, retrieves scores via `ZSCORE` from the same set.
+- `GET /leaderboard?type=friends` fetches friend IDs, retrieves scores via `ZSCORE` from the same set. Its `player_rank`/`player_score` are the requester's *global* weekly values, not their place among friends (the client reads that from the entries — todo.md 2.13).
+- **ZBoard client (`features/leaderboard/`):** four tabs — «این هفته» (`type=global`), «امروز» (`GET /daily/leaderboard`, today's Daily Challenge; rows carry `chain_length`, no avatar, no player score), «همیشه» (`type=alltime`), «دوستان» (`type=friends`). Each tab loads on demand and fails on its own; the weekly note shows the real prizes and the countdown to the Saturday 00:00 Iran-time reset (`untilIranWeekReset`). Per-stage detail in REDESIGN_PLAN.md § ZBoard.
 
 **Weekly reset (Saturday 00:00 Iran time = end of Friday, the Iranian week):**
 1. Query top 3 → insert `weekly_leaderboard_rewards` (idempotent)

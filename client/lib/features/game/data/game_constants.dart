@@ -18,6 +18,11 @@ abstract final class GameConstants {
   /// debounce only: the server has no duplicate guard and no «who did I
   /// invite» read, so the app can't know the friend declined.
   static const int friendInviteSentSec = 300;
+
+  /// Prizes of the top three, 1st → 3rd (mirror `config.CoinWeeklyRank1..3` and
+  /// `config.CoinDailyRank1..3`); claimed from the inbox after the reset.
+  static const List<int> weeklyPrizeCoins = [500, 300, 100];
+  static const List<int> dailyPrizeCoins = [100, 60, 30];
   static const int continueWindowSec = 15;
   static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;

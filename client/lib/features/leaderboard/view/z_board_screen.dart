@@ -2,48 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/utils/tab_refresh.dart';
-import 'package:wordchain/core/theme/app_elevation.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/avatar_tile.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/z_empty_state.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
+import 'package:wordchain/core/widgets/z_mascot.dart';
+import 'package:wordchain/core/widgets/z_ribbon_title.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
+import 'package:wordchain/core/widgets/z_dialog.dart';
 import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_note.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_parts.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_podium.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_rows.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_self_row.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_tabs.dart';
 
-/// ZBoard — weekly, all-time and friends leaderboards.
+/// «جدول» — the leaderboard tab, "A · mascot-led" (canvas `ZBoardA`): sky
+/// scene, ribbon title, a four-way segmented control, the podium, the ranked
+/// list and the player's own row pinned underneath.
 ///
-/// Canvas shows 4 tabs (این هفته / امروز / همیشه / دوستان). "امروز" (today) has
-/// no real data source, so per the no-fake-mechanics policy it is dropped.
-/// "این هفته", "همیشه" and "دوستان" ship, wired to
-/// `GET /leaderboard?type=global|alltime|friends`. All-time ranks lifetime
-/// `player_stats.total_score` (counted from migration 008 onward).
+/// Tabs: «این هفته» (`type=global`, the weekly Redis board), «امروز»
+/// (`GET /daily/leaderboard`, today's Daily Challenge), «همیشه» (`type=alltime`)
+/// and «دوستان» (`type=friends`). The canvas's «بلندترین زنجیر» sub-line is
+/// real only on the daily board (`chain_length`); the other boards carry no
+/// such field, so their rows have none. No rank deltas, leagues or player
+/// counts exist on the server, so none are drawn.
 class ZBoardScreen extends StatelessWidget {
-  const ZBoardScreen({super.key});
+  /// Clock for the countdowns; tests pass a fixed one.
+  final DateTime Function()? clock;
+
+  const ZBoardScreen({super.key, this.clock});
 
   @override
   Widget build(BuildContext context) {
-    // GET /leaderboard is behind auth on the backend (CLAUDE.md lists
-    // leaderboard viewing itself, not just writes, as requiring
-    // registration). The legacy `LeaderboardScreen` never gated this and
-    // would loop on a 401 for guests — fixed here with the same guest-gate
-    // pattern already used by FriendsScreen/ProfileScreen.
-    //
-    // Also wrapped in `BlocBuilder<AuthCubit>` + a userId-derived `Key`,
-    // same as ZProfileScreen/ZFriendsScreen: this branch is kept alive
-    // forever by the shell's IndexedStack, so a one-time `AuthCubit.state`
-    // read never picked up sign-out or a different account signing in
-    // without an app restart.
+    // GET /leaderboard is behind auth on the backend, so a guest gets a login
+    // card instead of a call that would 401. The tab is kept alive by the
+    // shell's IndexedStack, so the auth state is watched and the cubit is
+    // keyed by user id: sign-out or another account starts from scratch.
     return BlocBuilder<AuthCubit, AuthState>(
       bloc: getIt<AuthCubit>(),
       builder: (context, authState) {
         if (authState is! AuthAuthenticated) {
-          return const _GuestGate();
+          return const _BoardFrame(child: _GuestBody());
         }
         return BlocProvider(
           key: ValueKey('board-${authState.userId}'),
@@ -55,7 +61,7 @@ class ZBoardScreen extends StatelessWidget {
           child: TabRefreshListener(
             index: MainTab.board,
             onRefresh: (ctx) => ctx.read<LeaderboardCubit>().load(silent: true),
-            child: _BoardView(username: authState.username),
+            child: _BoardView(username: authState.username, clock: clock),
           ),
         );
       },
@@ -63,671 +69,233 @@ class ZBoardScreen extends StatelessWidget {
   }
 }
 
-class _GuestGate extends StatelessWidget {
-  const _GuestGate();
+/// Scene, ribbon title and a body slot — what every state shares.
+class _BoardFrame extends StatelessWidget {
+  final Widget child;
+
+  const _BoardFrame({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
     return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.screenGutter),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: context.zs.sky3,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: HomeSceneBackground()),
+          SafeArea(
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsetsDirectional.fromSTEB(14, 10, 14, 0),
+                  child: Center(
+                    child: ZRibbonTitle(
+                      'جدول',
+                      accent: ZDialogAccent.indigo,
+                      expand: false,
+                    ),
+                  ),
+                ),
+                Expanded(child: child),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A full-width card for the states that have no list (loading, failed,
+/// guest, an empty board).
+class _StateCard extends StatelessWidget {
+  final Widget child;
+
+  const _StateCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChunkyBox(
+      fill: context.z.surface,
+      depth: ZGame.depthMd,
+      radius: 22,
+      highlight: false,
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      child: child,
+    );
+  }
+}
+
+class _GuestBody extends StatelessWidget {
+  const _GuestBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+      child: _StateCard(
+        child: ZEmptyState(
+          title: 'جدول را ببین',
+          body: 'برای دیدن جدول امتیازات، ثبت‌نام کن',
+          actionLabel: 'ثبت‌نام رایگان',
+          onAction: () => context.push('/login?return=/leaderboard'),
+        ),
+      ),
+    );
+  }
+}
+
+class _BoardView extends StatelessWidget {
+  final String username;
+  final DateTime Function()? clock;
+
+  const _BoardView({required this.username, required this.clock});
+
+  @override
+  Widget build(BuildContext context) {
+    return _BoardFrame(
+      child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
+        builder: (context, state) {
+          final cubit = context.read<LeaderboardCubit>();
+          return Column(
             children: [
-              Text(
-                'جدول',
-                style: ZTypography.screenTitle.copyWith(color: z.ink),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: BoardTabs(selected: state.tab, onSelect: cubit.select),
               ),
               Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.emoji_events_outlined,
-                        color: z.ink40,
-                        size: 52,
-                      ),
-                      const SizedBox(height: ZSpacing.lg),
-                      Text(
-                        'برای دیدن جدول امتیازات، ثبت‌نام کن',
-                        style: ZTypography.body.copyWith(color: z.ink60),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: ZSpacing.xl),
-                      AccentButton(
-                        label: 'ثبت‌نام رایگان',
-                        onPressed:
-                            () => context.push('/login?return=/leaderboard'),
-                      ),
-                    ],
-                  ),
+                child: _TabBody(
+                  state: state,
+                  username: username,
+                  now: (clock ?? DateTime.now)(),
+                  onRetry: cubit.load,
                 ),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-class _BoardView extends StatefulWidget {
+class _TabBody extends StatelessWidget {
+  final LeaderboardState state;
   final String username;
+  final DateTime now;
+  final VoidCallback onRetry;
 
-  const _BoardView({required this.username});
-
-  @override
-  State<_BoardView> createState() => _BoardViewState();
-}
-
-class _BoardViewState extends State<_BoardView> {
-  int _tab =
-      0; // 0 = این هفته (global weekly), 1 = همیشه (all-time), 2 = دوستان (friends)
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(
-                ZSpacing.screenGutter,
-                ZSpacing.lg,
-                ZSpacing.screenGutter,
-                ZSpacing.md,
-              ),
-              decoration: BoxDecoration(
-                color: z.surface,
-                border: Border(bottom: BorderSide(color: z.line)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'جدول',
-                    style: ZTypography.screenTitle.copyWith(color: z.ink),
-                  ),
-                  const SizedBox(height: ZSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _TabPill(
-                          label: 'این هفته',
-                          selected: _tab == 0,
-                          onTap: () => setState(() => _tab = 0),
-                        ),
-                      ),
-                      const SizedBox(width: ZSpacing.sm),
-                      Expanded(
-                        child: _TabPill(
-                          label: 'همیشه',
-                          selected: _tab == 1,
-                          onTap: () => setState(() => _tab = 1),
-                        ),
-                      ),
-                      const SizedBox(width: ZSpacing.sm),
-                      Expanded(
-                        child: _TabPill(
-                          label: 'دوستان',
-                          selected: _tab == 2,
-                          onTap: () => setState(() => _tab = 2),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
-                builder: (context, state) {
-                  if (state is LeaderboardLoading ||
-                      state is LeaderboardInitial) {
-                    return Center(
-                      child: CircularProgressIndicator(color: z.indigo),
-                    );
-                  }
-                  if (state is LeaderboardError) {
-                    return _ErrorState(
-                      message: state.message,
-                      onRetry: () => context.read<LeaderboardCubit>().load(),
-                    );
-                  }
-                  if (state is LeaderboardLoaded) {
-                    final result = switch (_tab) {
-                      0 => state.global,
-                      1 => state.allTime,
-                      _ => state.friends,
-                    };
-                    return _LeaderboardBody(
-                      result: result,
-                      username: widget.username,
-                      tab: _tab,
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TabPill extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TabPill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? z.ink : z.paper,
-          borderRadius: BorderRadius.circular(11),
-          border: selected ? null : Border.all(color: z.line),
-        ),
-        child: Text(
-          label,
-          style: ZTypography.metaLabel.copyWith(
-            color: selected ? z.paper : z.ink60,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LeaderboardBody extends StatelessWidget {
-  final LeaderboardResult result;
-  final String username;
-  final int tab;
-
-  const _LeaderboardBody({
-    required this.result,
+  const _TabBody({
+    required this.state,
     required this.username,
-    required this.tab,
+    required this.now,
+    required this.onRetry,
   });
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final entries = result.entries;
-
-    if (entries.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.xxl),
-          child: Text(
-            switch (tab) {
-              2 => 'دوستی نداری یا هنوز کسی این هفته امتیاز نگرفته',
-              1 => 'هنوز کسی امتیازی نگرفته — اولین نفر باش!',
-              _ => 'هنوز کسی این هفته امتیاز نگرفته — اولین نفر باش!',
-            },
-            style: ZTypography.body.copyWith(color: z.ink60),
-            textAlign: TextAlign.center,
-          ),
+    final result = state.current;
+    if (result == null) {
+      final error = state.errors[state.tab];
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+        child: _StateCard(
+          child:
+              error != null
+                  ? ZLoadState.error(message: error, onRetry: onRetry)
+                  : const ZLoadState.loading(),
         ),
       );
     }
 
+    final tab = state.tab;
+    final mine = state.currentUserId;
+    final entries = result.entries;
+    // The friends board always holds the player, so «no friends» is a board of
+    // one.
+    final empty =
+        entries.isEmpty ||
+        (tab == BoardTab.friends &&
+            entries.every((e) => e.userId == state.currentUserId));
+    if (empty) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+        child: _StateCard(child: _EmptyBoard(tab: tab)),
+      );
+    }
+
     final hasPodium = entries.length >= 3;
-    final podium =
-        hasPodium ? entries.take(3).toList() : const <LeaderboardEntry>[];
-    final restStart = hasPodium ? 3 : 0;
-    final rest =
-        entries.length > restStart
-            ? entries.sublist(restStart)
-            : const <LeaderboardEntry>[];
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.xl,
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-      ),
-      children: [
-        if (hasPodium) _Podium(top3: podium),
-        if (hasPodium) const SizedBox(height: ZSpacing.xl),
-        if (rest.isNotEmpty)
-          SolidCard(
-            padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-            radius: ZRadius.cardMax,
-            child: Column(
-              children: [
-                for (var i = 0; i < rest.length; i++)
-                  _RankRow(entry: rest[i], showTopBorder: i > 0),
-              ],
-            ),
-          ),
-        const SizedBox(height: ZSpacing.xl),
-        _SelfRow(
-          rank: result.playerRank,
-          score: result.playerScore,
-          username: username,
-          avatarId: result.playerAvatarId,
-        ),
-        const SizedBox(height: ZSpacing.md),
-      ],
-    );
-  }
-}
-
-Color _accentColor(ZColors z, ZAccent accent) {
-  switch (accent) {
-    case ZAccent.indigo:
-      return z.indigo;
-    case ZAccent.teal:
-      return z.teal;
-    case ZAccent.amber:
-      return z.amber;
-    case ZAccent.coral:
-      return z.coral;
-    case ZAccent.neutral:
-      return z.ink;
-  }
-}
-
-class _Podium extends StatelessWidget {
-  /// [top3] is rank-ascending: index 0 = رتبهٔ ۱.
-  final List<LeaderboardEntry> top3;
-
-  const _Podium({required this.top3});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          flex: 10,
-          child: _PedestalCell(
-            entry: top3[1],
-            accent: ZAccent.teal,
-            avatarSize: 46,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 12,
-          child: _PedestalCell(
-            entry: top3[0],
-            accent: ZAccent.amber,
-            avatarSize: 56,
-            isFirst: true,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 10,
-          child: _PedestalCell(
-            entry: top3[2],
-            accent: ZAccent.coral,
-            avatarSize: 46,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PedestalCell extends StatelessWidget {
-  final LeaderboardEntry entry;
-  final ZAccent accent;
-  final double avatarSize;
-  final bool isFirst;
-
-  const _PedestalCell({
-    required this.entry,
-    required this.accent,
-    required this.avatarSize,
-    this.isFirst = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final initial =
-        entry.username.isEmpty
-            ? '؟'
-            : entry.username.substring(0, 1).toUpperCase();
-
+    final rest = hasPodium ? entries.sublist(3) : entries;
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          isFirst ? '🏆' : (entry.rank == 2 ? '🥈' : '🥉'),
-          style: TextStyle(fontSize: isFirst ? 26 : 22, height: 1.0),
-        ),
-        const SizedBox(height: 8),
-        _BoardAvatar(
-          name: entry.username,
-          letter: initial,
-          avatarId: entry.avatarId,
-          size: avatarSize,
-          accent: accent,
-          radius: isFirst ? 16 : 14,
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.fromLTRB(
-            6,
-            isFirst ? 12 : 10,
-            6,
-            isFirst ? 20 : 14,
-          ),
-          decoration: BoxDecoration(
-            color: z.surface,
-            border: Border.all(color: z.line),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(isFirst ? 18 : 16),
-              topRight: Radius.circular(isFirst ? 18 : 16),
-            ),
-            boxShadow: ZElevation.solidEdge(
-              z.line,
-              depth: ZElevation.cardDepth,
-            ),
-          ),
-          child: Column(
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             children: [
-              Text(
-                entry.username,
-                style: ZTypography.cardTitle.copyWith(
-                  fontSize: isFirst ? 13 : 12,
-                  color: z.ink,
+              BoardNote(tab: tab, now: now, dayNumber: result.dayNumber),
+              if (hasPodium)
+                BoardPodium(
+                  top3: entries.take(3).toList(),
+                  currentUserId: mine,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                formatPersianNumber(entry.score),
-                style: ZTypography.cardTitle.copyWith(
-                  fontSize: isFirst ? 17 : 15,
-                  color: _accentColor(z, accent),
+              if (hasPodium && rest.isEmpty)
+                // Nothing under the pedestals: close them with the card's rim.
+                const SizedBox(height: 4)
+              else if (rest.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: hasPodium ? 0 : 12),
+                  child: BoardRowsCard(
+                    entries: rest,
+                    currentUserId: mine,
+                    underPodium: hasPodium,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                toPersianDigits(entry.rank),
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: isFirst ? 20 : 18,
-                  color: z.ink40,
-                ),
-              ),
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+          child: BoardSelfRow(
+            username: username,
+            avatarId: result.playerAvatarId ?? state.selfAvatarId,
+            rank: result.playerRank,
+            score: result.playerScore,
+            subtitle: selfSubtitle(tab, result.playerRank, result.playerScore),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _RankRow extends StatelessWidget {
-  final LeaderboardEntry entry;
-  final bool showTopBorder;
+class _EmptyBoard extends StatelessWidget {
+  final BoardTab tab;
 
-  const _RankRow({required this.entry, required this.showTopBorder});
-
-  static const _accents = [
-    ZAccent.indigo,
-    ZAccent.teal,
-    ZAccent.amber,
-    ZAccent.coral,
-  ];
+  const _EmptyBoard({required this.tab});
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final accent =
-        _accents[(entry.rank - 1).clamp(0, 1 << 30) % _accents.length];
-    final initial =
-        entry.username.isEmpty
-            ? '؟'
-            : entry.username.substring(0, 1).toUpperCase();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(
-        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
+    return switch (tab) {
+      BoardTab.weekly => const ZEmptyState(
+        title: 'هنوز کسی امتیاز نگرفته',
+        body: 'این هفته اولین نفر باش — یک بازی آنلاین بازی کن.',
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 22,
-            child: Text(
-              toPersianDigits(entry.rank),
-              style: ZTypography.cardTitle.copyWith(
-                fontSize: 13,
-                color: z.ink40,
-              ),
-            ),
-          ),
-          const SizedBox(width: ZSpacing.md),
-          _BoardAvatar(
-            name: entry.username,
-            letter: initial,
-            avatarId: entry.avatarId,
-            size: 32,
-            accent: accent,
-            radius: 10,
-            fontSize: 14,
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Text(
-              entry.username,
-              style: ZTypography.cardTitle.copyWith(
-                fontSize: 13.5,
-                color: z.ink,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            formatPersianNumber(entry.score),
-            style: ZTypography.cardTitle.copyWith(fontSize: 14, color: z.ink),
-          ),
-        ],
+      BoardTab.daily => ZEmptyState(
+        mood: ZMascotMood.thinking,
+        title: 'امروز هنوز کسی بازی نکرده',
+        body: 'اولین نفر چالش روزانه باش!',
+        actionLabel: 'چالش روزانه',
+        onAction: () => context.push('/daily'),
       ),
-    );
-  }
-}
-
-class _SelfRow extends StatelessWidget {
-  final int rank;
-  final int score;
-  final String username;
-  final String? avatarId;
-
-  const _SelfRow({
-    required this.rank,
-    required this.score,
-    required this.username,
-    this.avatarId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final initial =
-        username.isEmpty ? '؟' : username.substring(0, 1).toUpperCase();
-    final unranked = rank <= 0;
-
-    final String subtitle;
-    if (unranked) {
-      subtitle =
-          'این هفته امتیازی نداری — یک بازی آنلاین یا چالش روزانه بازی کن';
-    } else if (rank <= 10) {
-      subtitle = 'جزو ده نفر برتری!';
-    } else {
-      subtitle = '${toPersianDigits(rank - 10)} پله تا ده‌تای اول';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: z.inkSurface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: ZElevation.solidEdge(
-          z.inkSurfaceDeep,
-          depth: ZElevation.tileDepth,
-        ),
+      BoardTab.allTime => const ZEmptyState(
+        title: 'هنوز کسی امتیازی ندارد',
+        body: 'اولین نفر باش — یک بازی آنلاین بازی کن.',
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 22,
-            child: Text(
-              unranked ? '—' : toPersianDigits(rank),
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 14,
-                color: z.onInkSurfaceSoft,
-              ),
-            ),
-          ),
-          const SizedBox(width: ZSpacing.md),
-          _BoardAvatar(
-            name: username,
-            letter: initial,
-            avatarId: avatarId,
-            size: 34,
-            accent: ZAccent.teal,
-            radius: 11,
-            fontSize: 15,
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'تو — $username',
-                  style: ZTypography.cardTitle.copyWith(
-                    fontSize: 14,
-                    color: z.onInkSurface,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  subtitle,
-                  style: ZTypography.metaLabel.copyWith(
-                    color: z.onInkSurfaceSoft,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          if (!unranked)
-            Text(
-              formatPersianNumber(score),
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 15,
-                color: z.onInkSurface,
-              ),
-            ),
-        ],
+      BoardTab.friends => ZEmptyState(
+        title: 'هنوز دوستی نداری',
+        body: 'دوست اضافه کن تا امتیاز این هفته‌تان را کنار هم ببینی.',
+        actionLabel: 'افزودن دوست',
+        onAction: () => context.go('/friends'),
       ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorState({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(ZSpacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: z.ink40, size: 44),
-            const SizedBox(height: ZSpacing.md),
-            Text(
-              message,
-              style: ZTypography.body.copyWith(color: z.ink60),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: ZSpacing.lg),
-            NeutralButton(label: 'تلاش دوباره', onPressed: onRetry),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Premium avatar when the player has one, else the coloured initial tile.
-class _BoardAvatar extends StatelessWidget {
-  final String name;
-  final String letter;
-  final String? avatarId;
-  final double size;
-  final ZAccent accent;
-  final double radius;
-  final double? fontSize;
-
-  const _BoardAvatar({
-    required this.name,
-    required this.letter,
-    required this.avatarId,
-    required this.size,
-    required this.accent,
-    required this.radius,
-    this.fontSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (avatarId != null && avatarId!.isNotEmpty) {
-      return AvatarTile(name: name, size: size, avatarId: avatarId);
-    }
-    return LetterTile(
-      letter: letter,
-      size: size,
-      accent: accent,
-      radius: radius,
-      fontSize: fontSize,
-    );
+    };
   }
 }
