@@ -231,15 +231,19 @@ class ZDialogButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[icon!, const SizedBox(width: 8)],
-                  Text(
-                    label,
-                    style: ZTypography.button.copyWith(
-                      fontSize: fontSize ?? 19,
-                      height: 1,
-                      color: on,
-                      shadows: [
-                        Shadow(color: deep, offset: const Offset(0, 2)),
-                      ],
+                  // The pressable already announces [label]; the visible text
+                  // would make a screen reader say it twice.
+                  ExcludeSemantics(
+                    child: Text(
+                      label,
+                      style: ZTypography.button.copyWith(
+                        fontSize: fontSize ?? 19,
+                        height: 1,
+                        color: on,
+                        shadows: [
+                          Shadow(color: deep, offset: const Offset(0, 2)),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -265,12 +269,14 @@ class ZDialogButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (icon != null) ...[icon!, const SizedBox(width: 8)],
-                Text(
-                  label,
-                  style: ZTypography.button.copyWith(
-                    fontSize: 16,
-                    height: 1,
-                    color: ink,
+                ExcludeSemantics(
+                  child: Text(
+                    label,
+                    style: ZTypography.button.copyWith(
+                      fontSize: 16,
+                      height: 1,
+                      color: ink,
+                    ),
                   ),
                 ),
               ],

@@ -2,25 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
-import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
-import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/z_empty_state.dart';
 import 'package:wordchain/core/widgets/z_load_state.dart';
 import 'package:wordchain/core/widgets/z_mascot.dart';
 import 'package:wordchain/core/widgets/z_ribbon_title.dart';
+import 'package:wordchain/core/widgets/z_state_card.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/core/widgets/z_dialog.dart';
 import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
-import 'package:wordchain/features/leaderboard/view/widgets/board_note.dart';
-import 'package:wordchain/features/leaderboard/view/widgets/board_parts.dart';
-import 'package:wordchain/features/leaderboard/view/widgets/board_podium.dart';
-import 'package:wordchain/features/leaderboard/view/widgets/board_rows.dart';
-import 'package:wordchain/features/leaderboard/view/widgets/board_self_row.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_result_view.dart';
 import 'package:wordchain/features/leaderboard/view/widgets/board_tabs.dart';
 
 /// «جدول» — the leaderboard tab, "A · mascot-led" (canvas `ZBoardA`): sky
@@ -105,26 +99,6 @@ class _BoardFrame extends StatelessWidget {
   }
 }
 
-/// A full-width card for the states that have no list (loading, failed,
-/// guest, an empty board).
-class _StateCard extends StatelessWidget {
-  final Widget child;
-
-  const _StateCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return ChunkyBox(
-      fill: context.z.surface,
-      depth: ZGame.depthMd,
-      radius: 22,
-      highlight: false,
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-      child: child,
-    );
-  }
-}
-
 class _GuestBody extends StatelessWidget {
   const _GuestBody();
 
@@ -132,7 +106,7 @@ class _GuestBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-      child: _StateCard(
+      child: ZStateCard(
         child: ZEmptyState(
           title: 'جدول را ببین',
           body: 'برای دیدن جدول امتیازات، ثبت‌نام کن',
@@ -198,7 +172,7 @@ class _TabBody extends StatelessWidget {
       final error = state.errors[state.tab];
       return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-        child: _StateCard(
+        child: ZStateCard(
           child:
               error != null
                   ? ZLoadState.error(message: error, onRetry: onRetry)
@@ -219,50 +193,17 @@ class _TabBody extends StatelessWidget {
     if (empty) {
       return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-        child: _StateCard(child: _EmptyBoard(tab: tab)),
+        child: ZStateCard(child: _EmptyBoard(tab: tab)),
       );
     }
 
-    final hasPodium = entries.length >= 3;
-    final rest = hasPodium ? entries.sublist(3) : entries;
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            children: [
-              BoardNote(tab: tab, now: now, dayNumber: result.dayNumber),
-              if (hasPodium)
-                BoardPodium(
-                  top3: entries.take(3).toList(),
-                  currentUserId: mine,
-                ),
-              if (hasPodium && rest.isEmpty)
-                // Nothing under the pedestals: close them with the card's rim.
-                const SizedBox(height: 4)
-              else if (rest.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: hasPodium ? 0 : 12),
-                  child: BoardRowsCard(
-                    entries: rest,
-                    currentUserId: mine,
-                    underPodium: hasPodium,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-          child: BoardSelfRow(
-            username: username,
-            avatarId: result.playerAvatarId ?? state.selfAvatarId,
-            rank: result.playerRank,
-            score: result.playerScore,
-            subtitle: selfSubtitle(tab, result.playerRank, result.playerScore),
-          ),
-        ),
-      ],
+    return BoardResultView(
+      tab: tab,
+      result: result,
+      currentUserId: mine,
+      username: username,
+      selfAvatarId: state.selfAvatarId,
+      now: now,
     );
   }
 }

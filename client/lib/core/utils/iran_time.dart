@@ -12,6 +12,14 @@ Duration untilIranMidnight([DateTime? now]) {
   return next.difference(n);
 }
 
+/// The Iran calendar day of [now] as `yyyy-MM-dd` — the same string the server
+/// sends as a Daily Challenge's `challenge_date`.
+String iranDateString([DateTime? now]) {
+  final n = (now ?? DateTime.now()).toUtc().add(iranOffset);
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${n.year.toString().padLeft(4, '0')}-${two(n.month)}-${two(n.day)}';
+}
+
 /// Time left until the weekly leaderboard resets: Saturday 00:00 Iran time
 /// (the end of Friday, the Iranian week — `scheduler` + `RunWeeklyReset`).
 /// Exactly on Saturday 00:00 the next reset is a full week away.

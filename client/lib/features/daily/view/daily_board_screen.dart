@@ -1,245 +1,148 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
-import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
-import 'package:wordchain/core/widgets/tint_chip.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/core/widgets/z_dialog.dart';
+import 'package:wordchain/core/widgets/z_empty_state.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
+import 'package:wordchain/core/widgets/z_mascot.dart';
+import 'package:wordchain/core/widgets/z_ribbon_title.dart';
+import 'package:wordchain/core/widgets/z_state_card.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
-import 'package:wordchain/features/daily/data/daily_repository.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
+import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
+import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
+import 'package:wordchain/features/leaderboard/view/widgets/board_result_view.dart';
 
-/// Today's Daily Challenge ranking (best score per player). Prizes are paid
-/// as claimable rewards at Iran midnight: a completion prize for everyone plus
-/// a rank prize for the top 3.
-class DailyBoardScreen extends StatefulWidget {
-  const DailyBoardScreen({super.key});
+/// «جدول امروز» — today's Daily Challenge ranking, pushed from both daily
+/// screens. It is the leaderboard tab's «امروز» board on its own route (back
+/// button instead of the dock): the same data (`GET /daily/leaderboard` through
+/// `LeaderboardRepository.fetchDaily`) and the same podium / rows / own-row
+/// widgets, so there is one daily board, not two renderings of it.
+///
+/// Prizes are paid at Iran midnight as claimable rewards: everyone who played
+/// gets [GameConstants.dailyCompletePrize] coins, the top three more
+/// (`BoardNote` lists the latter, this screen adds the former).
+class DailyBoardScreen extends StatelessWidget {
+  /// Clock for the countdown in the note; tests pass a fixed one.
+  final DateTime Function()? clock;
 
-  @override
-  State<DailyBoardScreen> createState() => _DailyBoardScreenState();
-}
-
-class _DailyBoardScreenState extends State<DailyBoardScreen> {
-  late Future<DailyBoard> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = getIt<DailyRepository>().getLeaderboard();
-  }
-
-  void _reload() =>
-      setState(() => _future = getIt<DailyRepository>().getLeaderboard());
+  const DailyBoardScreen({super.key, this.clock});
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
     final auth = getIt<AuthCubit>().state;
-    final myId = auth is AuthAuthenticated ? auth.userId : '';
+    final userId = auth is AuthAuthenticated ? auth.userId : '';
+    final username = auth is AuthAuthenticated ? auth.username : '';
+    return BlocProvider(
+      create:
+          (_) => LeaderboardCubit(
+            repository: getIt<LeaderboardRepository>(),
+            currentUserId: userId,
+          )..select(BoardTab.daily),
+      child: _DailyBoardView(username: username, clock: clock),
+    );
+  }
+}
 
+class _DailyBoardView extends StatelessWidget {
+  final String username;
+  final DateTime Function()? clock;
+
+  const _DailyBoardView({required this.username, required this.clock});
+
+  void _back(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/home');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: FutureBuilder<DailyBoard>(
-          future: _future,
-          builder: (context, snap) {
-            final board = snap.data;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: context.zs.sky3,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const HomeSceneBackground(),
+          SafeArea(
+            child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    ZSpacing.screenGutter,
-                    ZSpacing.lg,
-                    ZSpacing.screenGutter,
-                    ZSpacing.sm,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
                   child: Row(
                     children: [
-                      IconButton(
-                        onPressed: () => context.pop(),
-                        icon: Icon(Icons.arrow_back_rounded, color: z.ink),
-                      ),
-                      const SizedBox(width: ZSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          board == null || board.dayNumber == 0
-                              ? 'جدول امروز'
-                              : 'جدول چالش #${toPersianDigits(board.dayNumber)}',
-                          style: ZTypography.screenTitle.copyWith(color: z.ink),
+                      ZGameBackButton(onTap: () => _back(context)),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Center(
+                          child: ZRibbonTitle(
+                            'جدول امروز',
+                            accent: ZDialogAccent.indigo,
+                            expand: false,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 10 + 44),
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: ZSpacing.screenGutter,
+                Expanded(
+                  child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
+                    builder: (context, state) {
+                      final cubit = context.read<LeaderboardCubit>();
+                      final result = state.boards[BoardTab.daily];
+                      if (result == null) {
+                        final error = state.errors[BoardTab.daily];
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+                          child: ZStateCard(
+                            child:
+                                error != null
+                                    ? ZLoadState.error(
+                                      message: error,
+                                      onRetry: cubit.load,
+                                    )
+                                    : const ZLoadState.loading(),
+                          ),
+                        );
+                      }
+                      if (result.entries.isEmpty) {
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+                          child: ZStateCard(
+                            child: ZEmptyState(
+                              mood: ZMascotMood.thinking,
+                              title: 'امروز هنوز کسی بازی نکرده',
+                              body: 'اولین نفر چالش روزانه باش!',
+                              actionLabel: 'بازگشت به چالش',
+                              onAction: () => _back(context),
+                            ),
+                          ),
+                        );
+                      }
+                      return BoardResultView(
+                        tab: BoardTab.daily,
+                        result: result,
+                        currentUserId: state.currentUserId,
+                        username: username,
+                        selfAvatarId: state.selfAvatarId,
+                        now: (clock ?? DateTime.now)(),
+                        extraNoteLines: [
+                          'همهٔ شرکت‌کننده‌ها ${toPersianDigits(GameConstants.dailyCompletePrize)} سکه می‌گیرند',
+                        ],
+                      );
+                    },
                   ),
-                  child: Text(
-                    'جایزه‌ها نیمه‌شب به وقت ایران در «پیام‌ها» می‌آید: '
-                    'همهٔ شرکت‌کننده‌ها ${toPersianDigits(GameConstants.dailyCompletePrize)} سکه، '
-                    '۳ نفر اول جایزهٔ بیشتر.',
-                    style: ZTypography.metaLabel.copyWith(color: z.ink60),
-                  ),
-                ),
-                const SizedBox(height: ZSpacing.md),
-                Expanded(child: _body(context, snap, board, myId)),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _body(
-    BuildContext context,
-    AsyncSnapshot<DailyBoard> snap,
-    DailyBoard? board,
-    String myId,
-  ) {
-    final z = context.z;
-    if (snap.hasError) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'بارگذاری جدول ممکن نشد',
-              style: ZTypography.body.copyWith(color: z.ink60),
-            ),
-            const SizedBox(height: ZSpacing.md),
-            NeutralButton(label: 'تلاش دوباره', onPressed: _reload),
-          ],
-        ),
-      );
-    }
-    if (board == null) {
-      return Center(child: CircularProgressIndicator(color: z.indigo));
-    }
-    if (board.entries.isEmpty) {
-      return Center(
-        child: Text(
-          'هنوز کسی چالش امروز را بازی نکرده — اولین نفر باش!',
-          style: ZTypography.body.copyWith(color: z.ink40),
-        ),
-      );
-    }
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        0,
-        ZSpacing.screenGutter,
-        ZSpacing.xl,
-      ),
-      children: [
-        SolidCard(
-          padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-          radius: ZRadius.cardMax,
-          child: Column(
-            children: [
-              for (var i = 0; i < board.entries.length; i++)
-                _Row(
-                  entry: board.entries[i],
-                  isMe: board.entries[i].userId == myId,
-                  showTopBorder: i > 0,
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Row extends StatelessWidget {
-  final DailyBoardEntry entry;
-  final bool isMe;
-  final bool showTopBorder;
-
-  const _Row({
-    required this.entry,
-    required this.isMe,
-    required this.showTopBorder,
-  });
-
-  static const _accents = [ZAccent.amber, ZAccent.indigo, ZAccent.teal];
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final prizes = GameConstants.dailyRankPrizes;
-    final prize =
-        entry.rank >= 1 && entry.rank <= prizes.length
-            ? prizes[entry.rank - 1]
-            : null;
-    final initial =
-        entry.username.isEmpty
-            ? '؟'
-            : entry.username.substring(0, 1).toUpperCase();
-    final accent =
-        entry.rank >= 1 && entry.rank <= _accents.length
-            ? _accents[entry.rank - 1]
-            : ZAccent.coral;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(
-        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 24,
-            child: Text(
-              toPersianDigits(entry.rank),
-              style: ZTypography.cardTitle.copyWith(
-                fontSize: 13,
-                color: z.ink40,
-              ),
-            ),
-          ),
-          const SizedBox(width: ZSpacing.md),
-          LetterTile(
-            letter: initial,
-            size: 32,
-            accent: accent,
-            radius: 10,
-            fontSize: 14,
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isMe ? '${entry.username} (تو)' : entry.username,
-                  style: ZTypography.cardTitle.copyWith(
-                    fontSize: 13.5,
-                    color: isMe ? z.indigo : z.ink,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '${toPersianDigits(entry.chainLength)} کلمه',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
                 ),
               ],
             ),
-          ),
-          if (prize != null) ...[
-            TintChip(label: '+${toPersianDigits(prize)} سکه', tint: ZTint.teal),
-            const SizedBox(width: ZSpacing.sm),
-          ],
-          Text(
-            formatPersianNumber(entry.score),
-            style: ZTypography.cardTitle.copyWith(fontSize: 14, color: z.ink),
           ),
         ],
       ),

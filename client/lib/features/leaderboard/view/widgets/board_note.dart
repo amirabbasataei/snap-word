@@ -21,11 +21,15 @@ class BoardNote extends StatelessWidget {
   final int? dayNumber;
   final DateTime now;
 
+  /// Extra lines under the tab's own (a screen that knows something more).
+  final List<String> extraLines;
+
   const BoardNote({
     super.key,
     required this.tab,
     required this.now,
     this.dayNumber,
+    this.extraLines = const [],
   });
 
   static String prizeLine(List<int> coins) =>
@@ -55,7 +59,7 @@ class BoardNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final text = lines(tab, now, dayNumber: dayNumber);
+    final text = [...lines(tab, now, dayNumber: dayNumber), ...extraLines];
     return ChunkyBox(
       fill: z.surface,
       depth: 0,
