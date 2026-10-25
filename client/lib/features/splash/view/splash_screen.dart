@@ -1,17 +1,32 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:wordchain/core/theme/app_motion.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
+import 'package:wordchain/core/theme/app_typography.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/motion.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
+import 'package:wordchain/features/splash/view/widgets/splash_hero.dart';
+import 'package:wordchain/features/splash/view/widgets/splash_timeline.dart';
 
-/// Launch splash: the wordmark tiles drop in one after another, starting with
-/// «ز» (rightmost) and ending with «ر», then the title fades in and the app
-/// continues to `/home`.
+/// Launch splash (canvas `ZSplash`): the wordmark tiles fall in, the mascot
+/// drops onto the chain, then the app continues to `/home` — for guests and
+/// signed-in players alike (never a login gate).
+///
+/// It waits for nothing. `main()` has already loaded the dictionary, wired
+/// DI and resolved auth (`AuthCubit.init`) before the first frame, so this is
+/// a fixed-length intro: [SplashTimeline.introMs] of choreography, a short
+/// hold and a fade, [SplashTimeline.totalMs] in all. One controller owns the
+/// timing — no timer to leak, and after the app was backgrounded the first
+/// frame back lands past the end and continues at once. With reduced motion
+/// the finished composition is shown still for
+/// [GameConstants.splashReducedMs].
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  static const next = '/home';
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -19,121 +34,155 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  static const _letters = [
-    ('ز', ZAccent.indigo, -5.0),
-    ('ن', ZAccent.teal, 2.0),
-    ('ج', ZAccent.amber, -2.0),
-    ('ی', ZAccent.coral, 4.0),
-    ('ر', ZAccent.indigo, -3.0),
-  ];
-
-  static const _total = Duration(milliseconds: 2600);
-  static const _stagger = 0.085; // fraction of _total between tiles
-  static const _tileSpan = 0.2;
-
-  late final AnimationController _c;
+  AnimationController? _c;
+  late GoRouter _router;
+  bool _reduced = false;
 
   @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(vsync: this, duration: _total)
-      ..forward().whenComplete(() async {
-        await Future<void>.delayed(const Duration(milliseconds: 350));
-        if (mounted) context.go('/home');
-      });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_c != null) return;
+    _reduced = homeReducedMotion(context);
+    _router = GoRouter.of(context);
+    _c = AnimationController(
+      vsync: this,
+      duration: Duration(
+        milliseconds:
+            _reduced
+                ? GameConstants.splashReducedMs
+                : SplashTimeline.totalMs.round(),
+      ),
+    )..addStatusListener((s) {
+      if (s == AnimationStatus.completed && mounted && _stillHere) {
+        _router.go(SplashScreen.next);
+      }
+    });
+    _c!.forward();
   }
+
+  /// A deep link or challenge can move the router on while the splash is
+  /// still on screen (a route being replaced stays mounted for its exit
+  /// transition); continuing Home then would drag the player off it.
+  bool get _stillHere =>
+      _router.routerDelegate.currentConfiguration.uri.path == '/splash';
 
   @override
   void dispose() {
-    _c.dispose();
+    _c?.dispose();
     super.dispose();
   }
 
-  static double _deg(double d) => d * math.pi / 180;
+  @override
+  Widget build(BuildContext context) {
+    final c = _c!;
+    return Scaffold(
+      backgroundColor: context.z.paper,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const HomeSceneBackground(rings: false),
+          // The wordmark reads «ز» on the right whatever the app's direction.
+          Directionality(
+            textDirection: TextDirection.rtl,
+            child: SafeArea(
+              child: AnimatedBuilder(
+                animation: c,
+                builder: (context, _) {
+                  final ms =
+                      _reduced
+                          ? SplashTimeline.introMs
+                          : c.value * SplashTimeline.totalMs;
+                  final exit = _reduced ? 0.0 : SplashTimeline.exit(ms);
+                  return Opacity(
+                    opacity: 1 - exit,
+                    child: Transform.scale(
+                      scale: 1 + .06 * exit,
+                      child: Stack(
+                        children: [
+                          // Centre of the hero sits at 45.6% of the canvas
+                          // frame (y 370 of 812).
+                          Align(
+                            alignment: const Alignment(0, -.09),
+                            child: MediaQuery.withNoTextScaling(
+                              child: FittedBox(
+                                child: SplashHero(ms: ms, animate: !_reduced),
+                              ),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Padding(
+                              padding: const EdgeInsetsDirectional.fromSTEB(
+                                44,
+                                0,
+                                44,
+                                44,
+                              ),
+                              child: MediaQuery.withClampedTextScaling(
+                                maxScaleFactor: 1.3,
+                                child: _Foot(t: SplashTimeline.foot(ms)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The rule in one sentence, rising in under the chain. The canvas also draws
+/// a progress bar and «نسخهٔ ۱٫۰» here; nothing loads and the app does not
+/// read its version, so neither is shown.
+class _Foot extends StatelessWidget {
+  final double t;
+
+  const _Foot({required this.t});
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    return Scaffold(
-      backgroundColor: z.paper,
-      body: Center(
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) {
-            final titleT = Curves.easeOut.transform(
-              ((_c.value - 0.62) / 0.25).clamp(0.0, 1.0),
-            );
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: FittedBox(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (var i = 0; i < _letters.length; i++) ...[
-                          _tile(i),
-                          if (i != _letters.length - 1)
-                            const SizedBox(width: 8),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: ZSpacing.lg),
-                Opacity(
-                  opacity: titleT,
-                  child: Transform.translate(
-                    offset: Offset(0, 10 * (1 - titleT)),
-                    child: Text(
-                      'زنجیر',
-                      style: TextStyle(
-                        fontFamily: 'Vazirmatn',
-                        fontWeight: FontWeight.w900,
-                        fontSize: 34,
-                        height: 1.2,
-                        color: z.ink,
-                      ),
-                    ),
-                  ),
-                ),
-                Opacity(
-                  opacity: titleT,
-                  child: Text(
-                    'کلمه بساز، زنجیر را نگه دار',
-                    style: TextStyle(
-                      fontFamily: 'Vazirmatn',
-                      fontSize: 14,
-                      color: z.ink60,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
+    final zs = context.zs;
+    final style = ZTypography.body.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      height: 1.6,
+      color: z.ink,
     );
-  }
-
-  Widget _tile(int i) {
-    final start = i * _stagger;
-    final t = ((_c.value - start) / _tileSpan).clamp(0.0, 1.0);
-    final drop = ZMotion.tileDropCurve.transform(t);
-    final (letter, accent, deg) = _letters[i];
     return Opacity(
-      opacity: Curves.easeOut.transform((t * 2.5).clamp(0.0, 1.0)),
+      opacity: t.clamp(0.0, 1.0),
       child: Transform.translate(
-        offset: Offset(0, -90 * (1 - drop)),
-        child: LetterTile(
-          letter: letter,
-          accent: accent,
-          size: 54,
-          height: 68,
-          radius: ZRadius.tileMax,
-          fontSize: 34,
-          rotation: _deg(deg) * drop + _deg(-14) * (1 - drop),
+        offset: Offset(0, 30 * (1 - t)),
+        child: ChunkyBox(
+          fill: z.surface,
+          depth: ZGame.depthSm,
+          radius: 14,
+          highlight: false,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          child: Text.rich(
+            TextSpan(
+              style: style,
+              children: [
+                const TextSpan(text: 'هر کلمه با '),
+                TextSpan(
+                  text: 'حرف آخرِ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: zs.coralInk,
+                  ),
+                ),
+                const TextSpan(text: ' کلمهٔ قبلی شروع می‌شود'),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );

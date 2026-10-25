@@ -130,7 +130,7 @@ wordchain/
 
 **Current source of truth (Phase 17): the زنجیر Claude Design canvas**, project `4a90de7c-3340-476f-922d-213a9dcd6307`. Full plan, token values, spec-conflict decisions, and per-stage notes live in **REDESIGN_PLAN.md** — read it before touching any screen.
 - Fetch screens with the `DesignSync` tool: `method: "get_file"`, `projectId: "4a90de7c-3340-476f-922d-213a9dcd6307"`, `path: "<File>.dc.html"`. WebFetch/browser access to `claude.ai/design/...` returns 403, and `list_projects` doesn't surface this canvas — `get_file` still works.
-- Screen files: `ZHome`, `ZSolo`, `ZPlay`, `ZOver`, `ZLobby`, `ZVersus`, `ZDailyBefore`, `ZDailyAfter`, `ZBoard`, `ZProfile`, `ZFriends`, `ZPhone`, `ZOtp`; `Zanjir.dc.html` holds the token sheet.
+- Screen files: `ZHome`, `ZSolo`, `ZPlay`, `ZOver`, `ZLobby`, `ZVersus`, `ZDailyBefore`, `ZDailyAfter`, `ZBoard`, `ZProfile`, `ZFriends`, `ZPhone`, `ZOtp`, `ZSplash`; `Zanjir.dc.html` holds the token sheet.
 - The PNGs in `figma/` are the **legacy** Phase 1–16 references, superseded by the canvas for any screen it covers.
 
 Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference. Screens with no canvas design (e.g. the opponent-deciding overlay, friend challenge sheet) are derived from the token system (REDESIGN_PLAN.md Stage 6). `ZOverScreen` is the single game-over/continue screen for solo, vs-AI and multiplayer.
@@ -542,6 +542,8 @@ App launch
 Tap "Find Match", "Leaderboard", "Friends", or "Daily Challenge"
   └── Guest? → /login?return=<destination>
 ```
+
+All of the launch box above (dictionary, DI, `AuthCubit.init()` incl. the refresh call) runs in `main()` **before** `runApp`; `SplashScreen` (`/splash`, initial location, 3.2 s intro from the ZSplash canvas) waits for nothing and then goes to `/home` for guests and signed-in players alike — only while it is still the router's location. Slow/failed init therefore has no UI yet (todo.md § 3).
 
 `AuthCubit` must expose an `isGuest` flag. Only multiplayer queue and leaderboard write path force a login redirect.
 

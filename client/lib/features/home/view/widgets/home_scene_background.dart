@@ -12,10 +12,15 @@ import 'package:wordchain/core/widgets/motion.dart';
 /// [calm] is the quieter variant used behind game screens (canvas
 /// `<ZScene calm>`): no rings or sparkles, two softer blobs and four letters
 /// that only drift a few pixels.
+///
+/// [rings] (canvas `<ZScene rings>`, default on unless [calm]) draws the three
+/// concentric rings; the splash passes false and draws its own, bigger pair.
 class HomeSceneBackground extends StatelessWidget {
   final bool calm;
+  final bool showRings;
 
-  const HomeSceneBackground({super.key, this.calm = false});
+  const HomeSceneBackground({super.key, this.calm = false, bool? rings})
+    : showRings = rings ?? !calm;
 
   static const _designW = 396.0;
   static const _designH = 812.0;
@@ -64,9 +69,11 @@ class HomeSceneBackground extends StatelessWidget {
                     ] else ...[
                       circle(-90, 420, 300, zs.blobIndigo),
                       circle(396 + 110 - 280, 90, 280, zs.blobTeal),
-                      circle(8, 110, 380, zs.ring),
-                      circle(68, 170, 260, zs.ring),
-                      circle(128, 230, 140, zs.ring),
+                      if (showRings) ...[
+                        circle(8, 110, 380, zs.ring),
+                        circle(68, 170, 260, zs.ring),
+                        circle(128, 230, 140, zs.ring),
+                      ],
                     ],
                   ],
                 ),

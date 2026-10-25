@@ -33,6 +33,14 @@ abstract final class GameConstants {
   static const int tauntMaxPerMatch = 8;
   static const int guestHintUsesPerSession = 5;
 
+  // Launch splash. The intro choreography is 2.4 s (SplashTimeline); it then
+  // holds the finished composition and fades out. Nothing loads during it —
+  // main() has already finished DI and auth — so these are pure branding time.
+  static const int splashHoldMs = 500;
+  static const int splashExitMs = 300;
+  // Reduced motion: the finished composition is shown still for this long.
+  static const int splashReducedMs = 600;
+
   // Power-ups: a use comes out of the owned inventory first, otherwise it costs
   // coins (server-authoritative). Mirror config.CoinHint/Freeze/ExtraTime/Shield.
   static const Map<String, int> powerupCostCoins = {
