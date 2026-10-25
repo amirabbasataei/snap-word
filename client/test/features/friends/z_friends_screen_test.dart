@@ -30,17 +30,9 @@ import '../../helpers/contrast.dart';
 import '../../helpers/game_fakes.dart';
 import '../../helpers/z_test_app.dart';
 
-const _signedIn = AuthAuthenticated(
-  userId: 'me-1',
-  username: 'آرش',
-  coins: 1240,
-);
+const _signedIn = AuthAuthenticated(userId: 'me-1', username: 'آرش', coins: 1240);
 
-const _maryam = FriendModel(
-  userId: 'f1',
-  username: 'مریم ک.',
-  weeklyScore: 1840,
-);
+const _maryam = FriendModel(userId: 'f1', username: 'مریم ک.', weeklyScore: 1840);
 const _hossein = FriendModel(userId: 'f2', username: 'حسین ط.', weeklyScore: 0);
 const _sina = FriendModel(userId: 'f3', username: 'sina_r', weeklyScore: 320);
 const _friends = [_maryam, _hossein, _sina];
@@ -160,10 +152,7 @@ class _FakeMessages extends Fake implements MessagesCubit {
   Stream<void> get friendsChanged => changed.stream;
 
   @override
-  void setPending(
-    List<PendingRequest> requests,
-    List<PendingChallenge> challenges,
-  ) => pendingSets++;
+  void setPending(List<PendingRequest> requests, List<PendingChallenge> challenges) => pendingSets++;
 }
 
 class _FakeShare extends Fake implements ShareService {
@@ -213,9 +202,7 @@ class _Harness {
       ..registerSingleton<NotificationService>(notifications)
       ..registerSingleton<TabRefreshBus>(bus)
       ..registerSingleton<AdService>(_FakeAds())
-      ..registerSingleton<SharedPreferences>(
-        await SharedPreferences.getInstance(),
-      );
+      ..registerSingleton<SharedPreferences>(await SharedPreferences.getInstance());
   }
 
   Widget app({
@@ -257,10 +244,7 @@ class _Harness {
               textScaler: TextScaler.linear(textScale),
               viewInsets: EdgeInsets.only(bottom: keyboard),
             ),
-            child: Directionality(
-              textDirection: TextDirection.rtl,
-              child: child!,
-            ),
+            child: Directionality(textDirection: TextDirection.rtl, child: child!),
           ),
     );
   }
@@ -281,11 +265,7 @@ Future<void> _settle(WidgetTester tester) async {
 
 /// Runs the clock until no toast text is left on screen.
 Future<void> _waitForToastToGo(WidgetTester tester) async {
-  for (
-    var i = 0;
-    i < 30 && find.text('چالش ارسال شد').evaluate().isNotEmpty;
-    i++
-  ) {
+  for (var i = 0; i < 30 && find.text('چالش ارسال شد').evaluate().isNotEmpty; i++) {
     await tester.pump(const Duration(seconds: 1));
   }
   await tester.pump(const Duration(milliseconds: 500));
@@ -319,12 +299,7 @@ void main() {
     _size(tester, w, hgt);
     await h.register(state: auth);
     await tester.pumpWidget(
-      h.app(
-        brightness: brightness,
-        reduceMotion: reduceMotion,
-        textScale: textScale,
-        keyboard: keyboard,
-      ),
+      h.app(brightness: brightness, reduceMotion: reduceMotion, textScale: textScale, keyboard: keyboard),
     );
     await _settle(tester);
   }
@@ -348,7 +323,7 @@ void main() {
       expect(find.text('۳۲۰ امتیاز این هفته'), findsOneWidget);
       expect(find.text('بدون امتیاز این هفته'), findsOneWidget);
       expect(find.text('دعوت به بازی'), findsNWidgets(3));
-      expect(find.text('برای حذف یک دوست، روی نامش نگه دار'), findsOneWidget);
+      expect(find.text('برای حذف یک دوست، انگشتتُ روی اسمش نگه دار'), findsOneWidget);
 
       // Initials on discs, no mascot while there are friends.
       final discs = tester.widgetList<ZDiscAvatar>(find.byType(ZDiscAvatar));
@@ -371,14 +346,7 @@ void main() {
     });
 
     testWidgets('a premium friend shows their avatar image id', (tester) async {
-      h.repo.friends = const [
-        FriendModel(
-          userId: 'f1',
-          username: 'مریم ک.',
-          weeklyScore: 10,
-          avatarId: 'fox',
-        ),
-      ];
+      h.repo.friends = const [FriendModel(userId: 'f1', username: 'مریم ک.', weeklyScore: 10, avatarId: 'fox')];
       await open(tester);
 
       final disc = tester.widget<ZDiscAvatar>(find.byType(ZDiscAvatar).first);
@@ -386,9 +354,7 @@ void main() {
       expect(disc.letter, 'م', reason: 'the initial stays as the fallback');
     });
 
-    testWidgets('the add button, the search and the discs keep 44dp targets', (
-      tester,
-    ) async {
+    testWidgets('the add button, the search and the discs keep 44dp targets', (tester) async {
       await open(tester);
       final add = tester.getSize(find.byType(FriendsGlyphButton));
       expect(add.width, greaterThanOrEqualTo(44));
@@ -397,9 +363,7 @@ void main() {
   });
 
   group('loading, error, empty, guest', () {
-    testWidgets('loading shows the shared loading state, then the list', (
-      tester,
-    ) async {
+    testWidgets('loading shows the shared loading state, then the list', (tester) async {
       h.repo.gate = Completer();
       await open(tester);
 
@@ -414,21 +378,13 @@ void main() {
       expect(find.text('دوستان من'), findsOneWidget);
     });
 
-    testWidgets('a failed first load shows the Persian message and retries', (
-      tester,
-    ) async {
-      h.repo.fetchError = const FriendsException(
-        code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
-      );
+    testWidgets('a failed first load shows the Persian message and retries', (tester) async {
+      h.repo.fetchError = const FriendsException(code: 'network_error', message: 'خطا در اتصال به اینترنت');
       await open(tester);
 
       expect(find.text('خطا در اتصال به اینترنت'), findsOneWidget);
       expect(find.text('تلاش دوباره'), findsOneWidget);
-      expect(
-        tester.widget<ZMascot>(find.byType(ZMascot)).mood,
-        ZMascotMood.sad,
-      );
+      expect(tester.widget<ZMascot>(find.byType(ZMascot)).mood, ZMascotMood.sad);
 
       h.repo.fetchError = null;
       await tester.tap(find.text('تلاش دوباره'));
@@ -437,9 +393,7 @@ void main() {
       expect(find.text('خطا در اتصال به اینترنت'), findsNothing);
     });
 
-    testWidgets('no friends: the empty state, no search, invite code kept', (
-      tester,
-    ) async {
+    testWidgets('no friends: the empty state, no search, invite code kept', (tester) async {
       h.repo.friends = const [];
       await open(tester);
 
@@ -448,7 +402,7 @@ void main() {
       expect(find.text('افزودن دوست'), findsOneWidget);
       expect(find.text('جست‌وجوی نام دوستان'), findsNothing);
       expect(find.text('۰ نفر'), findsNothing);
-      expect(find.text('برای حذف یک دوست، روی نامش نگه دار'), findsNothing);
+      expect(find.text('برای حذف یک دوست، انگشتتُ روی اسمش نگه دار'), findsNothing);
       // The share card is the best next step when the list is empty.
       expect(find.text('با کد دعوت، ۵۰ سکه بگیر'), findsOneWidget);
 
@@ -457,9 +411,7 @@ void main() {
       expect(find.text('ارسال درخواست'), findsOneWidget);
     });
 
-    testWidgets('a guest sees the sign-up gate and nothing is fetched', (
-      tester,
-    ) async {
+    testWidgets('a guest sees the sign-up gate and nothing is fetched', (tester) async {
       await open(tester, auth: const AuthGuest());
 
       expect(find.text('دوستانت را پیدا کن'), findsOneWidget);
@@ -474,9 +426,7 @@ void main() {
   });
 
   group('requests', () {
-    testWidgets('requests and challenges share one card with a count', (
-      tester,
-    ) async {
+    testWidgets('requests and challenges share one card with a count', (tester) async {
       h.repo.requests = const [_leila, _behnam];
       h.repo.challenges = [_challenge];
       await open(tester);
@@ -499,36 +449,25 @@ void main() {
       h.repo.requests = const [_leila, _behnam];
       await open(tester);
 
-      await tester.tap(
-        find.bySemanticsLabel('پذیرفتن درخواست دوستی ${isolate('لیلا م.')}'),
-      );
+      await tester.tap(find.bySemanticsLabel('پذیرفتن درخواست دوستی ${isolate('لیلا م.')}'));
       await _settle(tester);
       expect(h.repo.responses, [('r1', true)]);
       expect(find.text('لیلا م.'), findsNothing);
       expect(find.text('بهنام ص.'), findsOneWidget);
       expect(find.byType(ZLoadState), findsNothing, reason: 'no spinner');
 
-      await tester.tap(
-        find.bySemanticsLabel('رد درخواست دوستی ${isolate('بهنام ص.')}'),
-      );
+      await tester.tap(find.bySemanticsLabel('رد درخواست دوستی ${isolate('بهنام ص.')}'));
       await _settle(tester);
       expect(h.repo.responses, [('r1', true), ('r2', false)]);
       expect(find.text('درخواست‌ها'), findsNothing);
     });
 
-    testWidgets('a failed response keeps the lists and toasts the reason', (
-      tester,
-    ) async {
+    testWidgets('a failed response keeps the lists and toasts the reason', (tester) async {
       h.repo.requests = const [_leila];
-      h.repo.respondError = const FriendsException(
-        code: 'request_not_found',
-        message: 'درخواست دوستی پیدا نشد',
-      );
+      h.repo.respondError = const FriendsException(code: 'request_not_found', message: 'درخواست دوستی پیدا نشد');
       await open(tester);
 
-      await tester.tap(
-        find.bySemanticsLabel('پذیرفتن درخواست دوستی ${isolate('لیلا م.')}'),
-      );
+      await tester.tap(find.bySemanticsLabel('پذیرفتن درخواست دوستی ${isolate('لیلا م.')}'));
       await _settle(tester);
 
       expect(find.text('درخواست دوستی پیدا نشد'), findsOneWidget);
@@ -541,9 +480,7 @@ void main() {
       h.repo.roomOnAccept = 'room-9';
       await open(tester);
 
-      await tester.tap(
-        find.bySemanticsLabel('پذیرفتن چالش ${isolate('مریم ک.')}'),
-      );
+      await tester.tap(find.bySemanticsLabel('پذیرفتن چالش ${isolate('مریم ک.')}'));
       await _settle(tester);
 
       expect(h.repo.challengeResponses, [('c1', true)]);
@@ -555,9 +492,7 @@ void main() {
       expect(args.opponentName, 'مریم ک.');
     });
 
-    testWidgets('declining a challenge sends decline and stays', (
-      tester,
-    ) async {
+    testWidgets('declining a challenge sends decline and stays', (tester) async {
       h.repo.challenges = [_challenge];
       await open(tester);
 
@@ -569,25 +504,17 @@ void main() {
       expect(find.text('درخواست‌ها'), findsNothing);
     });
 
-    testWidgets(
-      'accepting a challenge you cannot afford opens the coins dialog',
-      (tester) async {
-        h.repo.challenges = [_challenge];
-        h.repo.respondError = const FriendsException(
-          code: 'insufficient_coins',
-          message: 'سکهٔ کافی نداری',
-        );
-        await open(tester);
+    testWidgets('accepting a challenge you cannot afford opens the coins dialog', (tester) async {
+      h.repo.challenges = [_challenge];
+      h.repo.respondError = const FriendsException(code: 'insufficient_coins', message: 'سکهٔ کافی نداری');
+      await open(tester);
 
-        await tester.tap(
-          find.bySemanticsLabel('پذیرفتن چالش ${isolate('مریم ک.')}'),
-        );
-        await _settle(tester);
+      await tester.tap(find.bySemanticsLabel('پذیرفتن چالش ${isolate('مریم ک.')}'));
+      await _settle(tester);
 
-        expect(find.text('متوجه شدم'), findsOneWidget);
-        expect(find.text('دوستان من'), findsOneWidget, reason: 'list stays');
-      },
-    );
+      expect(find.text('متوجه شدم'), findsOneWidget);
+      expect(find.text('دوستان من'), findsOneWidget, reason: 'list stays');
+    });
   });
 
   group('add a friend', () {
@@ -596,18 +523,11 @@ void main() {
       await _settle(tester);
     }
 
-    testWidgets('sends the trimmed username and toasts the success', (
-      tester,
-    ) async {
+    testWidgets('sends the trimmed username and toasts the success', (tester) async {
       await open(tester);
       await openDialog(tester);
 
-      expect(
-        find.text(
-          'نام کاربری دقیق دوستت را بنویس تا برایش درخواست دوستی بفرستیم.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('نام کاربری دقیق دوستت را بنویس تا برایش درخواست دوستی بفرستیم.'), findsOneWidget);
       await tester.enterText(find.byType(TextField).last, '  زهرا_ب  ');
       await tester.tap(find.text('ارسال درخواست'));
       await _settle(tester);
@@ -628,9 +548,7 @@ void main() {
       expect(h.repo.requested, ['zahra']);
     });
 
-    testWidgets('an empty name sends nothing and keeps the dialog open', (
-      tester,
-    ) async {
+    testWidgets('an empty name sends nothing and keeps the dialog open', (tester) async {
       await open(tester);
       await openDialog(tester);
 
@@ -656,13 +574,8 @@ void main() {
       expect(h.repo.requested, isEmpty);
     });
 
-    testWidgets('a failure toasts the Persian reason and the list stays', (
-      tester,
-    ) async {
-      h.repo.requestError = const FriendsException(
-        code: 'user_not_found',
-        message: 'کاربری با این نام پیدا نشد',
-      );
+    testWidgets('a failure toasts the Persian reason and the list stays', (tester) async {
+      h.repo.requestError = const FriendsException(code: 'user_not_found', message: 'کاربری با این نام پیدا نشد');
       await open(tester);
       await openDialog(tester);
       await tester.enterText(find.byType(TextField).last, 'nobody');
@@ -675,10 +588,7 @@ void main() {
     });
 
     testWidgets('the same failure twice toasts twice', (tester) async {
-      h.repo.requestError = const FriendsException(
-        code: 'user_not_found',
-        message: 'کاربری با این نام پیدا نشد',
-      );
+      h.repo.requestError = const FriendsException(code: 'user_not_found', message: 'کاربری با این نام پیدا نشد');
       await open(tester);
       for (var i = 0; i < 2; i++) {
         await openDialog(tester);
@@ -696,32 +606,23 @@ void main() {
   });
 
   group('challenge a friend', () {
-    testWidgets(
-      'confirm sends a classic challenge and the row says «دعوت شد»',
-      (tester) async {
-        await open(tester);
-        await tester.tap(find.text('دعوت به بازی').first);
-        await _settle(tester);
-        expect(
-          h.repo.sent,
-          isEmpty,
-          reason: 'nothing is sent before confirming',
-        );
+    testWidgets('confirm sends a classic challenge and the row says «دعوت شد»', (tester) async {
+      await open(tester);
+      await tester.tap(find.text('دعوت به بازی').first);
+      await _settle(tester);
+      expect(h.repo.sent, isEmpty, reason: 'nothing is sent before confirming');
 
-        await tester.tap(find.text('بفرست'));
-        await _settle(tester);
+      await tester.tap(find.text('بفرست'));
+      await _settle(tester);
 
-        expect(h.repo.sent, [('f1', 'classic')]);
-        expect(find.text('چالش ارسال شد'), findsOneWidget);
-        expect(find.text('دعوت شد'), findsOneWidget);
-        expect(find.text('دعوت به بازی'), findsNWidgets(2));
-        expect(find.byType(ZLoadState), findsNothing);
-      },
-    );
+      expect(h.repo.sent, [('f1', 'classic')]);
+      expect(find.text('چالش ارسال شد'), findsOneWidget);
+      expect(find.text('دعوت شد'), findsOneWidget);
+      expect(find.text('دعوت به بازی'), findsNWidgets(2));
+      expect(find.byType(ZLoadState), findsNothing);
+    });
 
-    testWidgets('«دعوت شد» is inert and wears off after a while', (
-      tester,
-    ) async {
+    testWidgets('«دعوت شد» is inert and wears off after a while', (tester) async {
       await open(tester);
       await tester.tap(find.text('دعوت به بازی').first);
       await _settle(tester);
@@ -733,9 +634,7 @@ void main() {
       expect(find.text('بفرست'), findsNothing, reason: 'no second dialog');
       expect(h.repo.sent, hasLength(1));
 
-      await tester.pump(
-        const Duration(seconds: GameConstants.friendInviteSentSec + 1),
-      );
+      await tester.pump(const Duration(seconds: GameConstants.friendInviteSentSec + 1));
       expect(find.text('دعوت شد'), findsNothing);
       expect(find.text('دعوت به بازی'), findsNWidgets(3));
     });
@@ -763,13 +662,8 @@ void main() {
       expect(find.text('دعوت شد'), findsNothing);
     });
 
-    testWidgets('not enough coins opens the earn-coins dialog, no mark', (
-      tester,
-    ) async {
-      h.repo.challengeError = const FriendsException(
-        code: 'insufficient_coins',
-        message: 'سکهٔ کافی نداری',
-      );
+    testWidgets('not enough coins opens the earn-coins dialog, no mark', (tester) async {
+      h.repo.challengeError = const FriendsException(code: 'insufficient_coins', message: 'سکهٔ کافی نداری');
       await open(tester);
       await tester.tap(find.text('دعوت به بازی').first);
       await _settle(tester);
@@ -780,9 +674,7 @@ void main() {
       expect(find.text('دعوت شد'), findsNothing);
     });
 
-    testWidgets('another failure toasts the reason and keeps the list', (
-      tester,
-    ) async {
+    testWidgets('another failure toasts the reason and keeps the list', (tester) async {
       h.repo.challengeError = const FriendsException(
         code: 'not_friends',
         message: 'برای چالش دادن باید با این بازیکن دوست باشی',
@@ -793,10 +685,7 @@ void main() {
       await tester.tap(find.text('بفرست'));
       await _settle(tester);
 
-      expect(
-        find.text('برای چالش دادن باید با این بازیکن دوست باشی'),
-        findsOneWidget,
-      );
+      expect(find.text('برای چالش دادن باید با این بازیکن دوست باشی'), findsOneWidget);
       expect(find.text('دعوت شد'), findsNothing);
       expect(find.text('دوستان من'), findsOneWidget);
     });
@@ -836,10 +725,7 @@ void main() {
     });
 
     testWidgets('a failure toasts and the friend stays', (tester) async {
-      h.repo.removeError = const FriendsException(
-        code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
-      );
+      h.repo.removeError = const FriendsException(code: 'network_error', message: 'خطا در اتصال به اینترنت');
       await open(tester);
       await tester.longPress(find.text('مریم ک.'));
       await _settle(tester);
@@ -862,9 +748,7 @@ void main() {
           type: SemanticsAction.customAction,
           viewId: tester.view.viewId,
           nodeId: node.id,
-          arguments: CustomSemanticsAction.getIdentifier(
-            const CustomSemanticsAction(label: 'حذف از دوستان'),
-          ),
+          arguments: CustomSemanticsAction.getIdentifier(const CustomSemanticsAction(label: 'حذف از دوستان')),
         ),
       );
       await _settle(tester);
@@ -882,11 +766,7 @@ void main() {
 
       expect(find.text('مریم ک.'), findsOneWidget);
       expect(find.text('حسین ط.'), findsNothing);
-      expect(
-        find.text('۱ نفر'),
-        findsOneWidget,
-        reason: 'count follows the filter',
-      );
+      expect(find.text('۱ نفر'), findsOneWidget, reason: 'count follows the filter');
       expect(h.repo.fetches, 1, reason: 'local filter, no request');
     });
 
@@ -898,20 +778,14 @@ void main() {
       expect(find.text('مریم ک.'), findsNothing);
     });
 
-    testWidgets('no match shows a message, clearing brings the list back', (
-      tester,
-    ) async {
+    testWidgets('no match shows a message, clearing brings the list back', (tester) async {
       await open(tester);
       await tester.enterText(find.byType(TextField), 'zzz');
       await tester.pump();
 
       expect(find.text('نتیجه‌ای پیدا نشد'), findsOneWidget);
-      expect(
-        find.text('افزودن دوست'),
-        findsNothing,
-        reason: 'not «no friends»',
-      );
-      expect(find.text('برای حذف یک دوست، روی نامش نگه دار'), findsNothing);
+      expect(find.text('افزودن دوست'), findsNothing, reason: 'not «no friends»');
+      expect(find.text('برای حذف یک دوست، انگشتتُ روی اسمش نگه دار'), findsNothing);
 
       await tester.tap(find.bySemanticsLabel('پاک کردن جست‌وجو'));
       await tester.pump();
@@ -933,9 +807,7 @@ void main() {
       expect(h.share.codes, ['K7M2QX']);
     });
 
-    testWidgets('while loading there is no code and no share button', (
-      tester,
-    ) async {
+    testWidgets('while loading there is no code and no share button', (tester) async {
       final gate = Completer<String>();
       await h.register();
       h.auth.codeError = null;
@@ -964,11 +836,7 @@ void main() {
 
       expect(find.text('کد دعوت بارگذاری نشد'), findsOneWidget);
       expect(find.text('هم‌رسانی'), findsNothing);
-      expect(
-        find.text('دوستان من'),
-        findsOneWidget,
-        reason: 'screen unaffected',
-      );
+      expect(find.text('دوستان من'), findsOneWidget, reason: 'screen unaffected');
 
       h.auth.codeError = null;
       await tester.tap(find.text('تلاش دوباره'));
@@ -978,16 +846,11 @@ void main() {
   });
 
   group('tab refresh', () {
-    testWidgets('a tab tap reloads silently: no spinner, new data appears', (
-      tester,
-    ) async {
+    testWidgets('a tab tap reloads silently: no spinner, new data appears', (tester) async {
       await open(tester);
       expect(h.repo.fetches, 1);
 
-      h.repo.friends = [
-        ..._friends,
-        const FriendModel(userId: 'f9', username: 'نوید ا.', weeklyScore: 5),
-      ];
+      h.repo.friends = [..._friends, const FriendModel(userId: 'f9', username: 'نوید ا.', weeklyScore: 5)];
       h.repo.gate = Completer();
       h.bus.notify(MainTab.friends);
       await tester.pump();
@@ -1000,14 +863,9 @@ void main() {
       expect(find.text('نوید ا.'), findsOneWidget);
     });
 
-    testWidgets('a failed refresh keeps the current data and says nothing', (
-      tester,
-    ) async {
+    testWidgets('a failed refresh keeps the current data and says nothing', (tester) async {
       await open(tester);
-      h.repo.fetchError = const FriendsException(
-        code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
-      );
+      h.repo.fetchError = const FriendsException(code: 'network_error', message: 'خطا در اتصال به اینترنت');
       h.bus.notify(MainTab.friends);
       await _settle(tester);
 
@@ -1033,11 +891,7 @@ void main() {
 
     testWidgets('the first tap explains notifications, once', (tester) async {
       await open(tester);
-      expect(
-        find.text('از دوستانت جا نمون!'),
-        findsNothing,
-        reason: 'not on load',
-      );
+      expect(find.text('از دوستانت جا نمون!'), findsNothing, reason: 'not on load');
 
       h.bus.notify(MainTab.friends);
       await _settle(tester);
@@ -1080,12 +934,7 @@ void main() {
   });
 
   group('layout', () {
-    const sizes = [
-      Size(320, 568),
-      Size(360, 640),
-      Size(393, 852),
-      Size(430, 932),
-    ];
+    const sizes = [Size(320, 568), Size(360, 640), Size(393, 852), Size(430, 932)];
 
     void busy() {
       h.repo.friends = [
@@ -1098,43 +947,27 @@ void main() {
       ];
       h.repo.requests = const [
         _leila,
-        PendingRequest(
-          requesterId: 'r9',
-          username: 'نام_کاربری_بسیار_بلند_برای_درخواست_دوستی',
-        ),
+        PendingRequest(requesterId: 'r9', username: 'نام_کاربری_بسیار_بلند_برای_درخواست_دوستی'),
       ];
       h.repo.challenges = [_challenge];
     }
 
     for (final size in sizes) {
       for (final brightness in Brightness.values) {
-        final tag =
-            '${size.width.toInt()}×${size.height.toInt()} ${brightness.name}';
+        final tag = '${size.width.toInt()}×${size.height.toInt()} ${brightness.name}';
 
         testWidgets('busy list: no overflow $tag', (tester) async {
           busy();
-          await open(
-            tester,
-            brightness: brightness,
-            w: size.width,
-            hgt: size.height,
-          );
+          await open(tester, brightness: brightness, w: size.width, hgt: size.height);
           expect(tester.takeException(), isNull);
           await tester.drag(find.byType(ListView), const Offset(0, -2000));
           await tester.pump();
           expect(tester.takeException(), isNull);
         });
 
-        testWidgets('empty, guest, loading, error: no overflow $tag', (
-          tester,
-        ) async {
+        testWidgets('empty, guest, loading, error: no overflow $tag', (tester) async {
           h.repo.friends = const [];
-          await open(
-            tester,
-            brightness: brightness,
-            w: size.width,
-            hgt: size.height,
-          );
+          await open(tester, brightness: brightness, w: size.width, hgt: size.height);
           expect(tester.takeException(), isNull);
           await tester.drag(find.byType(ListView), const Offset(0, -2000));
           await tester.pump();
@@ -1142,63 +975,36 @@ void main() {
 
           await GetIt.I.reset();
           h = _Harness();
-          h.repo.fetchError = const FriendsException(
-            code: 'network_error',
-            message: 'خطا در اتصال به اینترنت',
-          );
-          await open(
-            tester,
-            brightness: brightness,
-            w: size.width,
-            hgt: size.height,
-          );
+          h.repo.fetchError = const FriendsException(code: 'network_error', message: 'خطا در اتصال به اینترنت');
+          await open(tester, brightness: brightness, w: size.width, hgt: size.height);
           expect(tester.takeException(), isNull);
 
           await GetIt.I.reset();
           h = _Harness();
           h.repo.gate = Completer();
-          await open(
-            tester,
-            brightness: brightness,
-            w: size.width,
-            hgt: size.height,
-          );
+          await open(tester, brightness: brightness, w: size.width, hgt: size.height);
           expect(tester.takeException(), isNull);
 
           await GetIt.I.reset();
           h = _Harness();
-          await open(
-            tester,
-            auth: const AuthGuest(),
-            brightness: brightness,
-            w: size.width,
-            hgt: size.height,
-          );
+          await open(tester, auth: const AuthGuest(), brightness: brightness, w: size.width, hgt: size.height);
           expect(tester.takeException(), isNull);
         });
       }
     }
 
     for (final scale in [1.3, 1.6, 2.0]) {
-      testWidgets('text ×$scale: no overflow, fixed controls capped at 1.3', (
-        tester,
-      ) async {
+      testWidgets('text ×$scale: no overflow, fixed controls capped at 1.3', (tester) async {
         busy();
         await open(tester, textScale: scale, w: 320, hgt: 568);
         expect(tester.takeException(), isNull);
 
-        double scaleOf(String label) => tester
-            .renderObject<RenderParagraph>(find.text(label).first)
-            .textScaler
-            .scale(10);
+        double scaleOf(String label) =>
+            tester.renderObject<RenderParagraph>(find.text(label).first).textScaler.scale(10);
         expect(scaleOf('جست‌وجوی نام دوستان'), lessThanOrEqualTo(13.01));
 
         final list = find.byType(Scrollable).first;
-        await tester.scrollUntilVisible(
-          find.text('هم‌رسانی'),
-          200,
-          scrollable: list,
-        );
+        await tester.scrollUntilVisible(find.text('هم‌رسانی'), 200, scrollable: list);
         expect(scaleOf('هم‌رسانی'), lessThanOrEqualTo(13.01));
         await tester.drag(list, const Offset(0, -3000));
         await tester.pump();
@@ -1218,17 +1024,9 @@ void main() {
     });
 
     for (final brightness in Brightness.values) {
-      testWidgets('keyboard open (search focused) ${brightness.name}', (
-        tester,
-      ) async {
+      testWidgets('keyboard open (search focused) ${brightness.name}', (tester) async {
         busy();
-        await open(
-          tester,
-          brightness: brightness,
-          w: 375,
-          hgt: 667,
-          keyboard: 260,
-        );
+        await open(tester, brightness: brightness, w: 375, hgt: 667, keyboard: 260);
         await tester.tap(find.byType(TextField));
         await tester.pump();
         expect(tester.takeException(), isNull);
@@ -1244,16 +1042,8 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('keyboard open (add dialog) ${brightness.name}', (
-        tester,
-      ) async {
-        await open(
-          tester,
-          brightness: brightness,
-          w: 320,
-          hgt: 568,
-          keyboard: 260,
-        );
+      testWidgets('keyboard open (add dialog) ${brightness.name}', (tester) async {
+        await open(tester, brightness: brightness, w: 320, hgt: 568, keyboard: 260);
         await tester.tap(find.bySemanticsLabel('افزودن دوست'));
         await _settle(tester);
         expect(tester.takeException(), isNull);
@@ -1271,9 +1061,7 @@ void main() {
 
   group('colours', () {
     for (final brightness in Brightness.values) {
-      testWidgets('text on its fill is readable (${brightness.name})', (
-        tester,
-      ) async {
+      testWidgets('text on its fill is readable (${brightness.name})', (tester) async {
         await open(tester, brightness: brightness);
         final z = tester.element(find.byType(ZFriendsScreen)).z;
 
@@ -1291,10 +1079,7 @@ void main() {
 
   group('goldens', () {
     Future<void> shot(WidgetTester tester, String name) async {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/$name.png'),
-      );
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/$name.png'));
     }
 
     for (final brightness in Brightness.values) {
@@ -1330,17 +1115,12 @@ void main() {
     });
 
     testWidgets('error dark', (tester) async {
-      h.repo.fetchError = const FriendsException(
-        code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
-      );
+      h.repo.fetchError = const FriendsException(code: 'network_error', message: 'خطا در اتصال به اینترنت');
       await open(tester, brightness: Brightness.dark);
       await shot(tester, 'z_friends_error_dark');
     });
 
-    testWidgets('add dialog with the keyboard up, small phone light', (
-      tester,
-    ) async {
+    testWidgets('add dialog with the keyboard up, small phone light', (tester) async {
       await open(tester, w: 320, hgt: 568, keyboard: 260);
       await tester.tap(find.bySemanticsLabel('افزودن دوست'));
       await _settle(tester);

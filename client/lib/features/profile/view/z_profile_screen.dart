@@ -1,33 +1,43 @@
-import 'package:wordchain/core/widgets/z_coin.dart';
-import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shamsi_date/shamsi_date.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
-import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/services/perks_catalog_service.dart';
-import 'package:wordchain/core/widgets/avatar_tile.dart';
-import 'package:wordchain/core/widgets/coin_pill.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
-import 'package:wordchain/core/widgets/tint_chip.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/z_empty_state.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/view/widgets/edit_username_sheet.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
-import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/friends/cubit/invite_code_cubit.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/profile/cubit/profile_cubit.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_header.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_invite_card.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_premium_card.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_settings.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_sheets.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_stats_grid.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_xp_bar.dart';
 
+/// «پروفایل» — the profile tab, "A · mascot-led" (canvas `ZProfileA`): sky
+/// scene, the player's disc in an XP ring, level bar, stat tiles, the invite
+/// card and the settings controls.
+///
+/// Omitted because nothing backs them (see REDESIGN_PLAN.md § ZProfile): the
+/// badges row, the join date, «برد آنلاین», accuracy % and unique-word count,
+/// the invite counter / chest progress and the cosmetic sound / reminder
+/// toggles. The canvas's gear has no screen behind it, so the coin balance
+/// takes that corner.
 class ZProfileScreen extends StatelessWidget {
   const ZProfileScreen({super.key});
 
@@ -35,37 +45,102 @@ class ZProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // This screen lives inside `_MainShell`'s `StatefulShellRoute.indexedStack`
     // (`app_router.dart`), which keeps every branch's widget alive forever —
-    // switching tabs never rebuilds it. Reading `AuthCubit.isGuest` once here
-    // meant sign-out (or signing in as a different account) never refreshed
-    // this screen; it kept showing whichever account was authenticated when
-    // it was first built until the app was killed and relaunched. Caught
-    // live on-device testing referral redemption across two accounts.
-    // Wrapping in `BlocBuilder<AuthCubit, AuthState>` with a `Key` derived
-    // from the identity that matters (guest vs. a specific userId) forces
-    // `ProfileCubit` to be recreated — and `.load()` to re-run — on every
-    // real auth transition, not just app restarts.
+    // switching tabs never rebuilds it. Watching `AuthCubit` and keying the
+    // providers by identity (guest vs. a specific userId) recreates
+    // `ProfileCubit` — and re-runs `.load()` — on every real auth transition,
+    // so sign-out, or signing in as someone else, never leaves the previous
+    // account on screen.
     return BlocBuilder<AuthCubit, AuthState>(
       bloc: getIt<AuthCubit>(),
+      buildWhen:
+          (a, b) =>
+              (a is AuthAuthenticated) != (b is AuthAuthenticated) ||
+              (a is AuthAuthenticated &&
+                  b is AuthAuthenticated &&
+                  a.userId != b.userId),
       builder: (context, authState) {
         final isGuest = authState is! AuthAuthenticated;
         final identity =
             authState is AuthAuthenticated ? authState.userId : 'guest';
-        return BlocProvider(
+        return MultiBlocProvider(
           key: ValueKey('profile-$identity'),
-          create:
-              (_) => ProfileCubit(
-                repository: getIt<ProfileRepository>(),
-                statsDao: getIt(),
-                powerupCacheDao: getIt(),
-                isGuest: isGuest,
-              )..load(),
+          providers: [
+            BlocProvider(
+              create:
+                  (_) => ProfileCubit(
+                    repository: getIt<ProfileRepository>(),
+                    statsDao: getIt(),
+                    powerupCacheDao: getIt(),
+                    isGuest: isGuest,
+                  )..load(),
+            ),
+            if (!isGuest)
+              BlocProvider(
+                create:
+                    (_) => InviteCodeCubit(
+                      fetch: getIt<AuthCubit>().fetchMyReferralCode,
+                    )..load(),
+              ),
+          ],
           child: TabRefreshListener(
             index: MainTab.profile,
-            onRefresh: (ctx) => ctx.read<ProfileCubit>().load(silent: true),
+            onRefresh: (ctx) {
+              ctx.read<ProfileCubit>().load(silent: true);
+              if (!isGuest) {
+                final code = ctx.read<InviteCodeCubit>();
+                if (code.state.status != InviteCodeStatus.ready) code.load();
+              }
+            },
             child: const _ProfileView(),
           ),
         );
       },
+    );
+  }
+}
+
+/// Scene and a body slot — what every state shares.
+class _ProfileFrame extends StatelessWidget {
+  final Widget child;
+
+  const _ProfileFrame({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.zs.sky3,
+      body: Stack(
+        // Without this a short body (the loading / failed card) would shrink
+        // the Stack, and the scene would stop where the content does.
+        fit: StackFit.expand,
+        children: [
+          const Positioned.fill(child: HomeSceneBackground()),
+          SafeArea(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+/// A full-width card for the states that have no profile to show.
+class _StateCard extends StatelessWidget {
+  final Widget child;
+
+  const _StateCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 18),
+      child: ChunkyBox(
+        width: double.infinity,
+        fill: context.z.surface,
+        depth: ZGame.depthMd,
+        radius: 22,
+        highlight: false,
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+        child: child,
+      ),
     );
   }
 }
@@ -75,50 +150,32 @@ class _ProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: BlocBuilder<ProfileCubit, ProfileState>(
-          builder: (context, state) {
-            if (state is ProfileLoading || state is ProfileInitial) {
-              return Center(child: CircularProgressIndicator(color: z.indigo));
-            }
-            if (state is ProfileError) {
-              return _ErrorView(
+    return _ProfileFrame(
+      child: BlocBuilder<ProfileCubit, ProfileState>(
+        builder: (context, state) {
+          if (state is ProfileLoaded) return _LoadedView(state: state);
+          if (state is ProfileError) {
+            return _StateCard(
+              child: ZLoadState.error(
                 message: state.message,
                 onRetry: () => context.read<ProfileCubit>().load(),
-              );
-            }
-            if (state is ProfileLoaded) {
-              return _LoadedView(state: state);
-            }
-            return const SizedBox.shrink();
-          },
-        ),
+              ),
+            );
+          }
+          return const _StateCard(child: ZLoadState.loading());
+        },
       ),
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Loaded profile view
-// ---------------------------------------------------------------------------
 
 class _LoadedView extends StatelessWidget {
   final ProfileLoaded state;
 
   const _LoadedView({required this.state});
 
-  String _username(BuildContext context) {
-    final auth = getIt<AuthCubit>().state;
-    if (auth is AuthAuthenticated) return auth.username;
-    return 'مهمان';
-  }
-
-  void _purchaseProduct(BuildContext context, String productId) async {
-    final monetization = getIt<MonetizationService>();
-    final result = await monetization.purchase(productId);
+  void _purchase(BuildContext context, String productId) async {
+    final result = await getIt<MonetizationService>().purchase(productId);
     if (!context.mounted) return;
     final msg = switch (result.status) {
       PurchaseStatus.success => 'خرید با موفقیت انجام شد!',
@@ -135,1059 +192,139 @@ class _LoadedView extends StatelessWidget {
     );
   }
 
-  void _showAvatarSheet(BuildContext context, PremiumPerks perks) {
-    final z = context.z;
+  void _pickAvatar(BuildContext context) {
     final cubit = context.read<ProfileCubit>();
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: z.surface,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(ZRadius.sheetMax),
-        ),
-      ),
-      builder:
-          (sheetContext) => _AvatarPickerSheet(
-            selected: perks.avatarId,
-            onPick: (id) async {
-              Navigator.of(sheetContext).pop();
-              final error = await cubit.setAvatar(id);
-              if (error != null && context.mounted) {
-                ZToast.show(context, error, kind: ZToastKind.error);
-              }
-            },
-          ),
-    );
-  }
-
-  void _showBuyCoinsSheet(BuildContext context) {
-    final z = context.z;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: z.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(ZRadius.sheetMax),
-        ),
-      ),
-      builder:
-          (_) => _BuyCoinsSheet(
-            onPurchase: (productId) => _purchaseProduct(context, productId),
-          ),
+    showAvatarPicker(
+      context,
+      selected: state.perks.avatarId,
+      onPick: (id) async {
+        final error = await cubit.setAvatar(id);
+        if (error != null && context.mounted) {
+          ZToast.show(context, error, kind: ZToastKind.error);
+        }
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final stats = state.stats;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-        ZSpacing.screenGutter,
-        ZSpacing.xl,
-      ),
-      children: [
-        BlocBuilder<AuthCubit, AuthState>(
-          bloc: getIt<AuthCubit>(),
-          builder:
-              (context, _) => _ProfileHeader(
-                username: _username(context),
-                isGuest: state.isGuest,
-                level: stats.level,
-                perks: state.perks,
-              ),
-        ),
-        const SizedBox(height: ZSpacing.xl),
-
-        if (!state.isGuest) ...[
-          _LevelCard(stats: stats),
-          const SizedBox(height: ZSpacing.md),
-        ],
-
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                value: toPersianDigits(stats.totalMatches),
-                label: 'بازی‌شده',
-              ),
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: _StatCard(
-                value: toPersianDigits(stats.bestMatchStreak),
-                label: 'بلندترین زنجیر',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: ZSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                value: stats.longestWord?.toUpperCase() ?? '—',
-                label:
-                    stats.longestWord != null
-                        ? 'کلمهٔ بلند (${toPersianDigits(stats.longestWord!.length)})'
-                        : 'کلمهٔ بلند',
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: _StatCard(
-                value: toPersianDigits(stats.dailyStreak),
-                label: 'روز پیاپی',
-              ),
-            ),
-          ],
-        ),
-
-        // if (!state.isGuest) ...[
-        //   const SizedBox(height: ZSpacing.md),
-        //   const _BadgesCard(),
-        // ],
-        const SizedBox(height: ZSpacing.xl),
-
-        if (state.isGuest) ...[
-          _GuestBanner(onTap: () => context.push('/login?return=/profile')),
-          const SizedBox(height: ZSpacing.xl),
-        ] else ...[
-          _PremiumCard(perks: state.perks),
-          const SizedBox(height: ZSpacing.md),
-          const _LiveCoinRow(),
-          const SizedBox(height: ZSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: AccentButton(
-                  label: 'خرید سکه',
-                  accent: ZAccentColor.amber,
-                  onPressed: () => _showBuyCoinsSheet(context),
-                ),
-              ),
-              const SizedBox(width: ZSpacing.md),
-              Expanded(
-                child: NeutralButton(
-                  label: state.perks.isPremium ? 'تغییر آواتار' : 'اشتراک ویژه',
-                  onPressed:
-                      state.perks.isPremium
-                          ? () => _showAvatarSheet(context, state.perks)
-                          : () => _purchaseProduct(context, 'premium_monthly'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.xl),
-        ],
-
-        if (!state.isGuest) ...[
-          const _InviteCard(),
-          const SizedBox(height: ZSpacing.xl),
-        ],
-
-        _SectionLabel('تنظیمات'),
-        const SizedBox(height: ZSpacing.sm),
-        SolidCard(
-          padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-          radius: ZRadius.cardMax,
-          child: Column(
-            children: [
-              const _NightModeRow(),
-              if (!state.isGuest) ...[
-                // const _CosmeticToggleRow(
-                //   title: 'صدا و لرزش',
-                //   icon: Icons.volume_up_outlined,
-                //   valueLabel: 'روشن',
-                //   showTopBorder: true,
-                // ),
-                // const _CosmeticToggleRow(
-                //   title: 'یادآور چالش روزانه',
-                //   icon: Icons.notifications_none_rounded,
-                //   valueLabel: '۲۱:۰۰',
-                //   showTopBorder: true,
-                // ),
-                // _SettingsRow(
-                //   title: 'حذف تبلیغات',
-                //   subtitle: 'خرید یک‌بار · ۱۵٬۰۰۰ تومان',
-                //   showTopBorder: true,
-                //   onTap: () => _purchaseProduct(context, 'remove_ads'),
-                // ),
-                _SettingsRow(
-                  title: 'کد دعوت داری؟',
-                  subtitle: 'یک‌بار وارد کن، ۵۰ سکه بگیر',
-                  showTopBorder: true,
-                  onTap: () => ReferralBottomSheet.show(context),
-                ),
-                _SettingsRow(
-                  title: 'خروج از حساب',
-                  subtitle: '',
-                  showTopBorder: true,
-                  isDestructive: true,
-                  onTap: () => getIt<AuthCubit>().logout(),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Invite friends — shows the caller's own referral code and shares it (with a
-// short text) through the system share sheet: social apps, SMS, etc.
-// ---------------------------------------------------------------------------
-
-class _InviteCard extends StatefulWidget {
-  const _InviteCard();
-
-  @override
-  State<_InviteCard> createState() => _InviteCardState();
-}
-
-class _InviteCardState extends State<_InviteCard> {
-  String? _code;
-  bool _failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _failed = false);
-    try {
-      final code = await getIt<AuthCubit>().fetchMyReferralCode();
-      if (!mounted) return;
-      setState(() {
-        _code = code.isEmpty ? null : code;
-        _failed = code.isEmpty;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final code = _code;
-    return SolidCard(
-      padding: const EdgeInsets.all(ZSpacing.lg),
-      radius: ZRadius.cardMax,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'دعوت از دوستان',
-            style: ZTypography.cardTitle.copyWith(color: z.ink),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'دوستت ۱۰۰ سکه می‌گیرد و تو هم ۵۰ سکه!',
-            style: ZTypography.metaLabel.copyWith(color: z.ink60),
-          ),
-          const SizedBox(height: ZSpacing.md),
-          if (_failed)
-            NeutralButton(label: 'تلاش دوباره', onPressed: _load)
-          else if (code == null)
-            SizedBox(
-              height: 52,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: z.indigo,
-                  strokeWidth: 2,
-                ),
-              ),
-            )
-          else ...[
-            GestureDetector(
-              onTap: () async {
-                await Clipboard.setData(ClipboardData(text: code));
-                if (!context.mounted) return;
-                ZToast.show(
-                  context,
-                  'کد دعوت کپی شد',
-                  kind: ZToastKind.success,
-                );
-              },
-              child: Container(
-                height: 52,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: z.wash,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  code,
-                  textDirection: TextDirection.ltr,
-                  style: ZTypography.cardTitle.copyWith(
-                    color: z.ink,
-                    fontSize: 20,
-                    letterSpacing: 4,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: ZSpacing.md),
-            AccentButton(
-              label: 'ارسال دعوت',
-              accent: ZAccentColor.amber,
-              onPressed: () => getIt<ShareService>().shareInvite(code: code),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Live coin balance
-//
-// No endpoint anywhere returns a live coin balance for an authenticated user
-// (only POST /auth/verify-otp's login response and POST /referral/redeem's
-// award do) — `ProfileStats.coins` reads a JSON key the backend's
-// statsResponse never sends and is always 0 (same bug already shipped on
-// ZHome's top-bar CoinPill, flagged separately, not fixed here since ZHome
-// is out of Stage 5's scope). AuthCubit's own `coins` field is the best real
-// value available: accurate at login and bumped on referral redemption.
-//
-// This must be its own `BlocBuilder<AuthCubit, AuthState>` rather than a
-// one-time `getIt<AuthCubit>().state` read in `_LoadedView.build` — that
-// read is a snapshot, not reactive, so it never picked up the redeem
-// sheet's coin bump (`AuthCubit.redeemReferral` emits from AuthCubit, not
-// ProfileCubit, so nothing rebuilt this screen). Caught live on-device: the
-// snackbar confirmed +50 coins but the pill kept showing ۰ until this fix.
-// ---------------------------------------------------------------------------
-
-class _LiveCoinRow extends StatelessWidget {
-  const _LiveCoinRow();
-
-  @override
-  Widget build(BuildContext context) {
+    final signedIn = !state.isGuest;
     return BlocBuilder<AuthCubit, AuthState>(
       bloc: getIt<AuthCubit>(),
-      builder: (context, authState) {
-        final coins = authState is AuthAuthenticated ? authState.coins : 0;
-        return Row(children: [CoinPill(amount: coins), const Spacer()]);
-      },
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
-
-/// Premium status. Free: lists what the subscription unlocks. Premium: shows
-/// the active-until date. (Premium itself is granted server-side only.)
-class _PremiumCard extends StatelessWidget {
-  final PremiumPerks perks;
-
-  const _PremiumCard({required this.perks});
-
-  static const _benefits = [
-    'ارسال پیام‌های سریع حین بازی دو نفره',
-    'آواتارهای ویژه و نشان تاج کنار نام',
-    'بدون تبلیغ + ۲۰۰ سکه در هفته',
-  ];
-
-  String _untilLabel(DateTime until) {
-    final j = Jalali.fromDateTime(until.toLocal());
-    return '${toPersianDigits(j.day)} ${j.formatter.mN} ${toPersianDigits(j.year)}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SolidCard(
-      radius: ZRadius.cardMax,
-      padding: const EdgeInsets.all(ZSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.workspace_premium_rounded, color: z.amberDeep),
-              const SizedBox(width: ZSpacing.sm),
-              Text(
-                perks.isPremium ? 'اشتراک ویژه فعال است' : 'اشتراک ویژه',
-                style: ZTypography.cardTitle.copyWith(color: z.ink),
+      builder: (context, auth) {
+        final username = auth is AuthAuthenticated ? auth.username : 'مهمان';
+        final coins = auth is AuthAuthenticated ? auth.coins : 0;
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 18),
+          children: [
+            ProfileHeader(
+              username: username,
+              signedIn: signedIn,
+              level: stats.level,
+              xpFraction: ProfileXpBar.fraction(
+                stats.xpInLevel,
+                stats.xpForNext,
               ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.sm),
-          if (perks.isPremium && perks.premiumUntil != null)
-            Text(
-              'تا ${_untilLabel(perks.premiumUntil!)}',
-              style: ZTypography.metaLabel.copyWith(color: z.ink40),
-            )
-          else if (!perks.isPremium)
-            for (final b in _benefits)
+              xpInLevel: stats.xpInLevel,
+              xpForNext: stats.xpForNext,
+              avatarId: state.perks.avatarId,
+              isPremium: state.perks.isPremium,
+              coins: coins,
+              onCoinsTap:
+                  () => showBuyCoinsSheet(
+                    context,
+                    onPurchase: (id) => _purchase(context, id),
+                  ),
+              onEdit: () => EditUsernameSheet.show(context),
+            ),
+            if (signedIn)
               Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Text(
-                  '• $b',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+                child: ProfileXpBar(
+                  level: stats.level,
+                  xpInLevel: stats.xpInLevel,
+                  xpForNext: stats.xpForNext,
                 ),
               ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AvatarPickerSheet extends StatelessWidget {
-  final String? selected;
-  final ValueChanged<String> onPick;
-
-  const _AvatarPickerSheet({required this.selected, required this.onPick});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final catalog = getIt<PerksCatalogService>();
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(ZSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'انتخاب آواتار',
-              style: ZTypography.cardTitle.copyWith(color: z.ink),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: ProfileStatsGrid(stats: stats),
             ),
-            const SizedBox(height: ZSpacing.md),
-            // Last known list shows at once; the fetch swaps in new entries.
-            FutureBuilder<PerksCatalog>(
-              initialData: catalog.cached,
-              future: catalog.refresh(),
-              builder: (context, snapshot) {
-                final ids = snapshot.data?.avatarIds ?? const [];
-                if (ids.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: ZSpacing.md),
-                    child: Center(
-                      child:
-                          snapshot.connectionState == ConnectionState.done
-                              ? Text(
-                                'آواتاری در دسترس نیست',
-                                style: ZTypography.metaLabel.copyWith(
-                                  color: z.ink40,
-                                ),
-                              )
-                              : const CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                return Wrap(
-                  spacing: ZSpacing.md,
-                  runSpacing: ZSpacing.md,
-                  children: [
-                    for (final id in ids)
-                      GestureDetector(
-                        onTap: () => onPick(id),
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color:
-                                  id == selected ? z.ink : Colors.transparent,
-                              width: 2,
+            if (signedIn) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: ProfilePremiumCard(
+                  perks: state.perks,
+                  onChangeAvatar: () => _pickAvatar(context),
+                  onSubscribe: () => _purchase(context, 'premium_monthly'),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: BlocBuilder<InviteCodeCubit, InviteCodeState>(
+                  builder:
+                      (context, invite) => ProfileInviteCard(
+                        state: invite,
+                        onRetry: () => context.read<InviteCodeCubit>().load(),
+                        onShare:
+                            () => getIt<ShareService>().shareInvite(
+                              code: invite.code!,
                             ),
-                          ),
-                          child: AvatarTile(name: id, size: 56, avatarId: id),
-                        ),
+                        onCopy: () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: invite.code!),
+                          );
+                          if (!context.mounted) return;
+                          ZToast.show(
+                            context,
+                            'کد دعوت کپی شد',
+                            kind: ZToastKind.success,
+                          );
+                        },
                       ),
-                  ],
-                );
-              },
+                ),
+              ),
+            ] else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: ChunkyBox(
+                  fill: context.z.surface,
+                  depth: ZGame.depthMd,
+                  radius: 20,
+                  highlight: false,
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: ZEmptyState(
+                    mascotSize: 80,
+                    title: 'پیشرفتت را ذخیره کن',
+                    body:
+                        'ثبت‌نام رایگان کن تا پیشرفتت ذخیره شود و قدرت‌های بیشتری باز شود.',
+                    actionLabel: 'ثبت‌نام رایگان',
+                    onAction: () => context.push('/login?return=/profile'),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: BlocBuilder<ThemeCubit, ThemeMode>(
+                bloc: getIt<ThemeCubit>(),
+                builder: (context, _) {
+                  // The brightness on screen, so ThemeMode.system shows
+                  // correctly.
+                  final brightness = Theme.of(context).brightness;
+                  return ProfileSettings(
+                    isDark: brightness == Brightness.dark,
+                    onToggleTheme: () => getIt<ThemeCubit>().toggle(brightness),
+                    signedIn: signedIn,
+                    onRedeem: () => ReferralBottomSheet.show(context),
+                    onLogout: () => getIt<AuthCubit>().logout(),
+                  );
+                },
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileHeader extends StatelessWidget {
-  final String username;
-  final bool isGuest;
-  final int level;
-  final PremiumPerks perks;
-
-  const _ProfileHeader({
-    required this.username,
-    required this.isGuest,
-    required this.level,
-    required this.perks,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final initial =
-        username.isEmpty ? '؟' : username.substring(0, 1).toUpperCase();
-
-    return Row(
-      children: [
-        if (perks.avatarId != null && perks.avatarId!.isNotEmpty)
-          AvatarTile(name: username, size: 64, avatarId: perks.avatarId)
-        else
-          LetterTile(
-            letter: initial,
-            size: 64,
-            accent: ZAccent.teal,
-            radius: 20,
-            fontSize: 28,
-          ),
-        const SizedBox(width: ZSpacing.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      username,
-                      style: ZTypography.screenTitle.copyWith(
-                        color: z.ink,
-                        fontSize: 19,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (perks.isPremium) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.workspace_premium_rounded,
-                      size: 20,
-                      color: z.amberDeep,
-                    ),
-                  ],
-                  if (!isGuest)
-                    IconButton(
-                      tooltip: 'ویرایش نام کاربری',
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(Icons.edit_outlined, size: 18, color: z.ink40),
-                      onPressed: () => EditUsernameSheet.show(context),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 5),
-              if (isGuest)
-                Text(
-                  'در حال بازی به‌صورت مهمان',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
-                )
-              else
-                TintChip(
-                  label:
-                      'سطح ${toPersianDigits(level)} · ${GameConstants.levelTitle(level)}',
-                  tint: ZTint.indigo,
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Level / XP card — server-driven (player_stats.xp, curve in config.go).
-// ---------------------------------------------------------------------------
-
-class _LevelCard extends StatelessWidget {
-  final ProfileStats stats;
-
-  const _LevelCard({required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SolidCard(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ZSpacing.lg,
-        vertical: ZSpacing.lg,
-      ),
-      radius: ZRadius.cardMax,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'تا سطح ${toPersianDigits(stats.level + 1)}',
-                style: ZTypography.metaLabel.copyWith(color: z.ink40),
-              ),
-              const Spacer(),
-              Text(
-                '${formatPersianNumber(stats.xpInLevel)} / ${formatPersianNumber(stats.xpForNext)}',
-                style: ZTypography.metaLabel.copyWith(
-                  color: z.ink60,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 9),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(ZRadius.chip),
-            child: Container(
-              height: 10,
-              color: z.wash,
-              alignment: AlignmentDirectional.centerStart,
-              child: FractionallySizedBox(
-                widthFactor:
-                    stats.xpForNext <= 0
-                        ? 0
-                        : (stats.xpInLevel / stats.xpForNext).clamp(0.0, 1.0),
-                child: Container(color: z.indigo),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Badges card — placeholder (no backend field), flagged.
-// ---------------------------------------------------------------------------
-
-// class _BadgesCard extends StatelessWidget {
-//   const _BadgesCard();
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final z = context.z;
-//     return SolidCard(
-//       padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.lg),
-//       radius: ZRadius.cardMax,
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Row(
-//             children: [
-//               Text('نشان‌ها', style: ZTypography.cardTitle.copyWith(color: z.ink)),
-//               const Spacer(),
-//               Text('۰ از ۴', style: ZTypography.metaLabel.copyWith(color: z.ink40)),
-//             ],
-//           ),
-//           const SizedBox(height: ZSpacing.md),
-//           SizedBox(
-//             height: 48,
-//             child: ZDashedContainer(
-//               color: z.line,
-//               radius: 12,
-//               padding: EdgeInsets.zero,
-//               child: SizedBox.expand(
-//                 child: Center(
-//                   child: Text(
-//                     'هنوز نشانی باز نکرده‌ای',
-//                     style: ZTypography.metaLabel.copyWith(color: z.ink40, fontWeight: FontWeight.w700),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// ---------------------------------------------------------------------------
-// Stat card
-// ---------------------------------------------------------------------------
-
-class _StatCard extends StatelessWidget {
-  final String value;
-  final String label;
-  final double fontSize;
-
-  const _StatCard({
-    required this.value,
-    required this.label,
-    this.fontSize = 26,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SolidCard(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
-      radius: ZRadius.cardMax,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'Vazirmatn',
-              fontWeight: FontWeight.w900,
-              fontSize: fontSize,
-              height: 1.0,
-              color: z.ink,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: ZTypography.metaLabel.copyWith(color: z.ink60)),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Settings rows
-// ---------------------------------------------------------------------------
-
-class _NightModeRow extends StatelessWidget {
-  const _NightModeRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final themeCubit = getIt<ThemeCubit>();
-    return BlocBuilder<ThemeCubit, ThemeMode>(
-      bloc: themeCubit,
-      builder: (context, mode) {
-        // Actual on-screen brightness, so ThemeMode.system shows correctly.
-        final brightness = Theme.of(context).brightness;
-        final isDark = brightness == Brightness.dark;
-        return _SettingsShell(
-          title: 'حالت شب',
-          icon: Icons.dark_mode_outlined,
-          showTopBorder: false,
-          trailing: GestureDetector(
-            onTap: () => themeCubit.toggle(brightness),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 44,
-              height: 26,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: isDark ? z.ink : z.line,
-                borderRadius: BorderRadius.circular(ZRadius.chip),
-              ),
-              alignment:
-                  isDark
-                      ? AlignmentDirectional.centerEnd
-                      : AlignmentDirectional.centerStart,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: z.paper,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ),
         );
       },
-    );
-  }
-}
-
-class _SettingsShell extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final bool showTopBorder;
-  final Widget trailing;
-
-  // Material icons stand in for the canvas's bespoke square glyphs, same as
-  // ZBottomNav (no glyph assets exist).
-  const _SettingsShell({
-    required this.title,
-    required this.icon,
-    required this.showTopBorder,
-    required this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: z.wash,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(icon, size: 17, color: z.ink60),
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Text(
-              title,
-              style: ZTypography.cardTitle.copyWith(
-                fontSize: 13.5,
-                color: z.ink,
-              ),
-            ),
-          ),
-          trailing,
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsRow extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final bool isDestructive;
-  final bool showTopBorder;
-
-  const _SettingsRow({
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.isDestructive = false,
-    this.showTopBorder = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: ZTypography.cardTitle.copyWith(
-                      fontSize: 14,
-                      color: isDestructive ? z.coral : z.ink,
-                    ),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: ZTypography.metaLabel.copyWith(color: z.ink40),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (!isDestructive)
-              Icon(Icons.chevron_right, color: z.ink40, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Section label
-// ---------------------------------------------------------------------------
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Text(
-      text,
-      style: ZTypography.metaLabel.copyWith(color: z.ink40, letterSpacing: 0.4),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Buy coins bottom sheet
-// ---------------------------------------------------------------------------
-
-class _BuyCoinsSheet extends StatelessWidget {
-  final void Function(String productId) onPurchase;
-
-  const _BuyCoinsSheet({required this.onPurchase});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    const coinBundles = [
-      ('coins_100', '۱۰۰ سکه', '۹٬۰۰۰ تومان'),
-      ('coins_350', '۳۵۰ سکه', '۲۵٬۰۰۰ تومان'),
-      ('coins_1500', '۱۵۰۰ سکه', '۷۹٬۰۰۰ تومان'),
-    ];
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter,
-          ZSpacing.xl,
-          ZSpacing.screenGutter,
-          ZSpacing.xl,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionLabel('خرید سکه'),
-            const SizedBox(height: ZSpacing.lg),
-            ...coinBundles.map((bundle) {
-              final (id, title, price) = bundle;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: ZSpacing.md),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    onPurchase(id);
-                  },
-                  child: Container(
-                    height: 52,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: ZSpacing.lg,
-                    ),
-                    decoration: BoxDecoration(
-                      color: z.wash,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        const ZCoin(size: 24),
-                        const SizedBox(width: ZSpacing.md),
-                        Text(
-                          title,
-                          style: ZTypography.cardTitle.copyWith(
-                            color: z.ink,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          price,
-                          style: ZTypography.cardTitle.copyWith(
-                            color: z.amberDeep,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Guest registration banner
-// ---------------------------------------------------------------------------
-
-class _GuestBanner extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _GuestBanner({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(ZSpacing.lg),
-        decoration: BoxDecoration(
-          color: z.tintIndigo,
-          borderRadius: BorderRadius.circular(ZRadius.cardMax),
-          border: Border.all(color: z.indigo.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.cloud_upload_outlined, color: z.indigo, size: 20),
-            const SizedBox(width: ZSpacing.md),
-            Expanded(
-              child: Text(
-                'ثبت‌نام رایگان کن تا پیشرفتت ذخیره شود و قدرت‌های بیشتری باز شود.',
-                style: ZTypography.body.copyWith(color: z.indigo),
-              ),
-            ),
-            const SizedBox(width: ZSpacing.sm),
-            Icon(Icons.chevron_right, color: z.indigo, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Error view
-// ---------------------------------------------------------------------------
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorView({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(ZSpacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: z.ink40, size: 48),
-            const SizedBox(height: ZSpacing.md),
-            Text(
-              message,
-              style: ZTypography.body.copyWith(color: z.ink60),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: ZSpacing.lg),
-            NeutralButton(label: 'تلاش دوباره', onPressed: onRetry),
-          ],
-        ),
-      ),
     );
   }
 }

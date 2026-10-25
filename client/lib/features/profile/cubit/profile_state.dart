@@ -41,6 +41,7 @@ class ProfileLoaded extends ProfileState {
     powerups,
     isGuest,
     perks.isPremium,
+    perks.premiumUntil,
     perks.avatarId,
   ];
 }
