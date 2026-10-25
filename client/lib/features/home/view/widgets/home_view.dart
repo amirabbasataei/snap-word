@@ -99,9 +99,7 @@ class HomeView extends StatelessWidget {
               // The shell's floating dock overlays the bottom of this screen
               // (`extendBody`); its height arrives as bottom padding.
               child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.paddingOf(context).bottom,
-                ),
+                padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
                 child: SafeArea(
                   bottom: false,
                   child: LayoutBuilder(
@@ -118,16 +116,10 @@ class HomeView extends StatelessWidget {
                       final scale =
                           byWidth
                               .clamp(0.0, _maxHeroScale)
-                              .clamp(
-                                0.0,
-                                byHeight.clamp(_minHeroScale, _maxHeroScale),
-                              )
+                              .clamp(0.0, byHeight.clamp(_minHeroScale, _maxHeroScale))
                               .toDouble();
                       final heroH = ZGame.heroHeight * scale;
-                      final extra = (c.maxHeight - fixed - heroH).clamp(
-                        0.0,
-                        double.infinity,
-                      );
+                      final extra = (c.maxHeight - fixed - heroH).clamp(0.0, double.infinity);
 
                       return SingleChildScrollView(
                         physics: const ClampingScrollPhysics(),
@@ -137,15 +129,10 @@ class HomeView extends StatelessWidget {
                             children: [
                               const SizedBox(height: 10),
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14),
                                 child: HomeHud(
                                   level: data.level,
-                                  levelProgress:
-                                      data.xpForNext <= 0
-                                          ? 0
-                                          : data.xpInLevel / data.xpForNext,
+                                  levelProgress: data.xpForNext <= 0 ? 0 : data.xpInLevel / data.xpForNext,
                                   coins: data.coins,
                                   streak: data.streak,
                                   onLevelTap: onLevel,
@@ -173,12 +160,7 @@ class HomeView extends StatelessWidget {
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  6,
-                                  16,
-                                  0,
-                                ),
+                                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                                 child: HomeProgressPath(
                                   level: data.level,
                                   xpInLevel: data.xpInLevel,
@@ -187,43 +169,18 @@ class HomeView extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(height: extra * .3),
-                              if (data.hasActiveMatch)
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    18,
-                                    0,
-                                    18,
-                                    0,
-                                  ),
-                                  child: _ResumeChip(onTap: onResume),
-                                ),
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  18,
-                                  14,
-                                  18,
-                                  0,
-                                ),
-                                child: HomePlayButton(
-                                  onTap: onPlay,
-                                  animate: animate,
-                                ),
+                                padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                                child: HomePlayButton(onTap: onPlay, animate: animate),
                               ),
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  40,
-                                  18,
-                                  40,
-                                  0,
-                                ),
+                                padding: const EdgeInsets.fromLTRB(40, 18, 40, 0),
                                 child: HomeOnlineButton(
                                   onTap: onOnline,
                                   subtitle:
                                       data.onlineCount == null
                                           ? onlineFallback
-                                          : HomeOnlineButton.onlineCountLabel(
-                                            data.onlineCount!,
-                                          ),
+                                          : HomeOnlineButton.onlineCountLabel(data.onlineCount!),
                                 ),
                               ),
                               SizedBox(height: extra * .4 + 4),
@@ -239,53 +196,6 @@ class HomeView extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-/// Slim "continue your game" pill, shown only while a solo/AI match is
-/// waiting. The canvas has no slot for it; it keeps the resume entry point
-/// the old home screen had.
-class _ResumeChip extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _ResumeChip({required this.onTap});
-
-  static const label = 'ادامهٔ بازی';
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Align(
-      child: ChunkyPressable(
-        depth: ZGame.depthSm,
-        onTap: onTap,
-        semanticLabel: label,
-        builder:
-            (context, depth, pressed) => ZChunkPill(
-              fill: z.surface,
-              depth: depth,
-              borderWidth: ZGame.outline,
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              expand: true,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.play_arrow_rounded, color: z.indigo, size: 22),
-                  const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: ZTypography.button.copyWith(
-                      fontSize: 14,
-                      height: 1,
-                      color: z.ink,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-      ),
     );
   }
 }
