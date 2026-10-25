@@ -13,6 +13,11 @@ abstract final class GameConstants {
 
   /// How long a friend challenge stays answerable (backend: 24h expiry).
   static const int challengeValidHours = 24;
+
+  /// How long the Friends row keeps «دعوت شد» after a challenge is sent. A UI
+  /// debounce only: the server has no duplicate guard and no «who did I
+  /// invite» read, so the app can't know the friend declined.
+  static const int friendInviteSentSec = 300;
   static const int continueWindowSec = 15;
   static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;

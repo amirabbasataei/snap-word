@@ -31,26 +31,33 @@ Future<T?> showZDialog<T>(
     transitionDuration:
         reduced ? ZGameMotion.dialogEnterReduced : ZGameMotion.dialogEnter,
     pageBuilder:
-        (_, _, _) => Directionality(
+        (context, _, _) => Directionality(
           textDirection: direction,
-          child: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: ZGame.dialogInset,
-                  vertical: ZGame.dialogInset,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: ZGame.dialogMaxWidth,
+          // A dialog with a text field must stay above the soft keyboard: the
+          // card centres in what is left and scrolls when that is too short.
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: ZGame.dialogInset,
+                    vertical: ZGame.dialogInset,
                   ),
-                  // Material gives descendants a text style and ink context
-                  // without painting anything.
-                  child: Material(
-                    type: MaterialType.transparency,
-                    // A Builder so [builder]'s context sits below the
-                    // Directionality above.
-                    child: Builder(builder: builder),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: ZGame.dialogMaxWidth,
+                    ),
+                    // Material gives descendants a text style and ink context
+                    // without painting anything.
+                    child: Material(
+                      type: MaterialType.transparency,
+                      // A Builder so [builder]'s context sits below the
+                      // Directionality above.
+                      child: Builder(builder: builder),
+                    ),
                   ),
                 ),
               ),

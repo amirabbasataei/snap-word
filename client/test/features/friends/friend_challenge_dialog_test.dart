@@ -214,7 +214,7 @@ void main() {
       tester,
     ) async {
       await pumpScreen(tester);
-      await tester.tap(find.text('رویارویی'));
+      await tester.tap(find.text('دعوت به بازی'));
       await _settle(tester);
       expect(repo.sent, isEmpty, reason: 'nothing is sent before confirming');
 
@@ -225,7 +225,7 @@ void main() {
 
     testWidgets('cancelling sends nothing', (tester) async {
       await pumpScreen(tester);
-      await tester.tap(find.text('رویارویی'));
+      await tester.tap(find.text('دعوت به بازی'));
       await _settle(tester);
       await tester.tap(find.text('بی‌خیال'));
       await _settle(tester);

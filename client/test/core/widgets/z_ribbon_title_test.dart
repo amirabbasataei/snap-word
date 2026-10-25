@@ -14,6 +14,7 @@ Widget _ribbon({
   TextDirection direction = TextDirection.rtl,
   ZDialogAccent accent = ZDialogAccent.coral,
   String text = 'رویارویی آنلاین',
+  bool expand = true,
 }) => zTestApp(
   Builder(
     builder:
@@ -26,7 +27,9 @@ Widget _ribbon({
             child: Center(
               child: SizedBox(
                 width: width,
-                child: Center(child: ZRibbonTitle(text, accent: accent)),
+                child: Center(
+                  child: ZRibbonTitle(text, accent: accent, expand: expand),
+                ),
               ),
             ),
           ),
@@ -107,4 +110,47 @@ void main() {
       });
     }
   }
+
+  group('expand: false (the compact Friends ribbon)', () {
+    testWidgets('hugs the text instead of filling the width', (tester) async {
+      await tester.pumpWidget(_ribbon(width: 300));
+      final full = tester.getRect(find.byType(ChunkyBox));
+      await tester.pumpWidget(
+        _ribbon(width: 300, expand: false, text: 'دوستان'),
+      );
+      final compact = tester.getRect(find.byType(ChunkyBox));
+
+      expect(compact.width, lessThan(full.width / 2));
+      expect(compact.height, ZRibbonTitle.height);
+      // Still centred in the row it is given.
+      expect(
+        compact.center.dx,
+        closeTo(tester.getRect(find.byType(SizedBox).first).center.dx, 1),
+      );
+      expect(find.text('دوستان'), findsOneWidget);
+    });
+
+    testWidgets('still scales down in a narrow slot at ×2', (tester) async {
+      await tester.pumpWidget(
+        _ribbon(
+          width: 120,
+          expand: false,
+          textScale: 2,
+          text: 'رویارویی آنلاین',
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getRect(find.byType(ZRibbonTitle)).width,
+        lessThanOrEqualTo(120),
+      );
+    });
+
+    testWidgets('the label is vertically centred in the plate', (tester) async {
+      await tester.pumpWidget(_ribbon(expand: false, text: 'دوستان'));
+      final plate = tester.getRect(find.byType(ChunkyBox));
+      final label = tester.getRect(find.text('دوستان'));
+      expect(label.center.dy, closeTo(plate.center.dy, 2));
+    });
+  });
 }

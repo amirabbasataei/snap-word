@@ -10,15 +10,25 @@ import 'package:wordchain/core/widgets/z_dialog.dart';
 /// accent plate with a notched tail poking out of each end, in the accent's
 /// deep colour and outlined like every other game object.
 ///
-/// Sizes itself to the text and scales the text down (never wraps) when the
-/// space it is given is narrower than that, so it can sit in a header row
-/// between a back button and a coin pill on a 320dp phone. The label ignores
-/// text scaling above 1.3× — the plate is a fixed 44dp tall.
+/// Scales the text down (never wraps) when the space it is given is narrower
+/// than the text, so it can sit in a header row between a back button and a
+/// coin pill on a 320dp phone. The label ignores text scaling above 1.3× — the
+/// plate is a fixed 44dp tall.
+///
+/// By default the plate fills the width it is given (ZLobby). With
+/// [expand] false it hugs the text instead, as the canvas draws the compact
+/// ribbon of `ZFriendsA`.
 class ZRibbonTitle extends StatelessWidget {
   final String text;
   final ZDialogAccent accent;
+  final bool expand;
 
-  const ZRibbonTitle(this.text, {super.key, this.accent = ZDialogAccent.coral});
+  const ZRibbonTitle(
+    this.text, {
+    super.key,
+    this.accent = ZDialogAccent.coral,
+    this.expand = true,
+  });
 
   static const height = 44.0;
   static const depth = 4.0;
@@ -84,14 +94,20 @@ class ZRibbonTitle extends StatelessWidget {
                 depth: depth,
                 radius: 12,
                 height: height,
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                alignment: Alignment.center,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    text,
-                    maxLines: 1,
-                    style: ZTypography.button.copyWith(fontSize: 19, color: on),
+                padding: EdgeInsets.symmetric(horizontal: expand ? 18 : 24),
+                alignment: expand ? Alignment.center : null,
+                child: Center(
+                  widthFactor: expand ? null : 1,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      text,
+                      maxLines: 1,
+                      style: ZTypography.button.copyWith(
+                        fontSize: 19,
+                        color: on,
+                      ),
+                    ),
                   ),
                 ),
               ),

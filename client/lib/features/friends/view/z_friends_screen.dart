@@ -1,62 +1,83 @@
 import 'dart:async';
 
-import 'package:wordchain/core/widgets/notification_permission_dialog.dart';
-import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
-import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
-import 'package:wordchain/core/utils/tab_refresh.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/services/share_service.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/core/utils/tab_refresh.dart';
+import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
+import 'package:wordchain/core/widgets/notification_permission_dialog.dart';
+import 'package:wordchain/core/widgets/z_dialog.dart';
+import 'package:wordchain/core/widgets/z_empty_state.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
+import 'package:wordchain/core/widgets/z_ribbon_title.dart';
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/cubit/friends_cubit.dart';
+import 'package:wordchain/features/friends/cubit/invite_code_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
-import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/friends/view/friend_challenge_dialog.dart';
+import 'package:wordchain/features/friends/view/widgets/friends_dialogs.dart';
+import 'package:wordchain/features/friends/view/widgets/friends_invite_card.dart';
+import 'package:wordchain/features/friends/view/widgets/friends_list_card.dart';
+import 'package:wordchain/features/friends/view/widgets/friends_parts.dart';
+import 'package:wordchain/features/friends/view/widgets/friends_requests_card.dart';
+import 'package:wordchain/features/friends/view/widgets/friends_search_field.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
+import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 
-/// ZFriends.
+/// «دوستان» — the Friends tab, "A · mascot-led" (canvas `ZFriendsA`): a sky
+/// scene, the ribbon title with an add-friend button, a search box, the
+/// pending requests / challenges, the player's invite code and the friends
+/// list with «دعوت به بازی».
 ///
-/// The canvas splits friends into "آنلاین"/"آفلاین" (online/offline)
-/// sections with a per-friend "در بازی · دست ۳" / "منتظر نوبت تو" status.
-/// No presence system exists anywhere in the backend (no WS presence
-/// broadcast, no online/last-seen column, no in-match status endpoint) —
-/// `FriendsRepository`/`FriendModel` only ever carries `userId`/`username`/
-/// `weeklyScore`. Rather than fabricate online status, every friend is
-/// rendered in one real "دوستان" list, exactly matching the data the legacy
-/// `FriendsScreen` already showed. Flagged in the Stage 5 report.
+/// The canvas also shows per-friend «با هم: ۴ برد · ۲ باخت» / «بهترین
+/// زنجیر» lines and online state; the server sends neither (`GET /friends` is
+/// `user_id`, `username`, `friend_since` — todo.md 2.6), so a friend's sub-line
+/// is this week's score and there is no presence.
 class ZFriendsScreen extends StatelessWidget {
   const ZFriendsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Same fix as ZProfileScreen: this branch is kept alive forever by the
-    // shell's IndexedStack, so a one-time `isGuest` read never picked up
-    // sign-out (or a different account signing in) without an app restart.
-    // `BlocBuilder<AuthCubit>` + a userId-derived `Key` forces a fresh
-    // `FriendsCubit`/guest-gate on every real auth transition.
+    // This branch is kept alive by the shell's IndexedStack, so a one-time
+    // `isGuest` read never picked up sign-out (or another account signing in).
+    // `BlocBuilder<AuthCubit>` + a userId-derived `Key` forces fresh cubits on
+    // every real auth transition.
     return BlocBuilder<AuthCubit, AuthState>(
       bloc: getIt<AuthCubit>(),
       builder: (context, authState) {
         if (authState is! AuthAuthenticated) {
-          return const _GuestGate();
+          return const _FriendsFrame(onAdd: null, child: _GuestBody());
         }
-        return BlocProvider(
+        return MultiBlocProvider(
           key: ValueKey('friends-${authState.userId}'),
-          create:
-              (_) =>
-                  FriendsCubit(repository: getIt<FriendsRepository>())..load(),
+          providers: [
+            BlocProvider(
+              create:
+                  (_) =>
+                      FriendsCubit(repository: getIt<FriendsRepository>())
+                        ..load(),
+            ),
+            BlocProvider(
+              create:
+                  (_) => InviteCodeCubit(
+                    fetch: getIt<AuthCubit>().fetchMyReferralCode,
+                  )..load(),
+            ),
+          ],
           child: TabRefreshListener(
             index: MainTab.friends,
             onRefresh: (ctx) {
               ctx.read<FriendsCubit>().load(silent: true);
+              final code = ctx.read<InviteCodeCubit>();
+              if (code.state.status != InviteCodeStatus.ready) code.load();
               maybeAskNotificationPermission(ctx);
             },
             child: const _FriendsView(),
@@ -67,48 +88,101 @@ class ZFriendsScreen extends StatelessWidget {
   }
 }
 
-class _GuestGate extends StatelessWidget {
-  const _GuestGate();
+/// Scene, header and a body slot; everything every state shares.
+class _FriendsFrame extends StatelessWidget {
+  final VoidCallback? onAdd;
+  final Widget child;
+
+  const _FriendsFrame({required this.onAdd, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
     return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(ZSpacing.screenGutter),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'دوستان',
-                style: ZTypography.screenTitle.copyWith(color: z.ink),
-              ),
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.group_outlined, color: z.ink40, size: 52),
-                      const SizedBox(height: ZSpacing.lg),
-                      Text(
-                        'ثبت‌نام کن تا دوست اضافه کنی، چالش بفرستی و رقابت کنی!',
-                        style: ZTypography.body.copyWith(color: z.ink60),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: ZSpacing.xl),
-                      AccentButton(
-                        label: 'ثبت‌نام رایگان',
-                        onPressed: () => context.push('/login?return=/friends'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+      backgroundColor: context.zs.sky3,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: HomeSceneBackground()),
+          SafeArea(
+            child: Column(
+              children: [_Header(onAdd: onAdd), Expanded(child: child)],
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ribbon title, with the add-friend button on the end side (canvas: a 44dp
+/// spacer on the start side keeps the title centred).
+class _Header extends StatelessWidget {
+  final VoidCallback? onAdd;
+
+  const _Header({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 14, 0),
+      child: Row(
+        children: [
+          const SizedBox(width: ZGame.gameBackButton),
+          const Expanded(
+            child: Center(
+              child: ZRibbonTitle(
+                'دوستان',
+                accent: ZDialogAccent.indigo,
+                expand: false,
+              ),
+            ),
+          ),
+          if (onAdd != null)
+            FriendsGlyphButton(
+              glyph: FriendsGlyph.addFriend,
+              semanticLabel: 'افزودن دوست',
+              onTap: onAdd!,
+            )
+          else
+            const SizedBox(width: ZGame.gameBackButton),
+        ],
+      ),
+    );
+  }
+}
+
+/// A full-width card for the states that have no list (loading, failed, guest).
+class _StateCard extends StatelessWidget {
+  final Widget child;
+
+  const _StateCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+      child: ChunkyBox(
+        fill: context.z.surface,
+        depth: ZGame.depthMd,
+        radius: 22,
+        highlight: false,
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _GuestBody extends StatelessWidget {
+  const _GuestBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return _StateCard(
+      child: ZEmptyState(
+        title: 'دوستانت را پیدا کن',
+        body: 'ثبت‌نام کن تا دوست اضافه کنی، چالش بفرستی و رقابت کنی!',
+        actionLabel: 'ثبت‌نام رایگان',
+        onAction: () => context.push('/login?return=/friends'),
       ),
     );
   }
@@ -122,12 +196,13 @@ class _FriendsView extends StatefulWidget {
 }
 
 class _FriendsViewState extends State<_FriendsView> {
-  final _searchController = TextEditingController();
+  final _search = TextEditingController();
   StreamSubscription<void>? _messagesSub;
 
   @override
   void initState() {
     super.initState();
+    _search.addListener(() => setState(() {}));
     _messagesSub = getIt<MessagesCubit>().friendsChanged.listen((_) {
       if (mounted) context.read<FriendsCubit>().load(silent: true);
     });
@@ -136,13 +211,36 @@ class _FriendsViewState extends State<_FriendsView> {
   @override
   void dispose() {
     _messagesSub?.cancel();
-    _searchController.dispose();
+    _search.dispose();
     super.dispose();
+  }
+
+  Future<void> _add() async {
+    final cubit = context.read<FriendsCubit>();
+    final username = await showAddFriendDialog(context);
+    if (username != null) await cubit.sendFriendRequest(username);
+  }
+
+  Future<void> _challenge(FriendModel friend) async {
+    final cubit = context.read<FriendsCubit>();
+    final send = await showFriendChallengeDialog(
+      context,
+      friendUsername: friend.username,
+    );
+    if (send) await cubit.sendChallenge(friend.userId, 'classic');
+  }
+
+  Future<void> _remove(FriendModel friend) async {
+    final cubit = context.read<FriendsCubit>();
+    final remove = await showRemoveFriendDialog(
+      context,
+      friendUsername: friend.username,
+    );
+    if (remove) await cubit.removeFriend(friend.userId);
   }
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
     return BlocListener<FriendsCubit, FriendsState>(
       listener: (context, state) {
         if (state is ChallengAccepted) {
@@ -172,652 +270,91 @@ class _FriendsViewState extends State<_FriendsView> {
           ZToast.show(context, state.actionError!, kind: ZToastKind.error);
         }
       },
-      child: Scaffold(
-        backgroundColor: z.paper,
-        body: SafeArea(
-          child: BlocBuilder<FriendsCubit, FriendsState>(
-            builder: (context, state) {
-              if (state is FriendsLoading || state is FriendsInitial) {
-                return Center(
-                  child: CircularProgressIndicator(color: z.indigo),
-                );
-              }
-              if (state is FriendsError) {
-                return _ErrorState(
+      child: _FriendsFrame(
+        onAdd: _add,
+        child: BlocBuilder<FriendsCubit, FriendsState>(
+          // One-shot signals (toast, navigation, coins dialog) must not blank
+          // the list they were raised from.
+          buildWhen:
+              (_, s) =>
+                  s is FriendsLoaded ||
+                  s is FriendsLoading ||
+                  s is FriendsInitial ||
+                  s is FriendsError,
+          builder: (context, state) {
+            if (state is FriendsLoaded) return _loaded(context, state);
+            if (state is FriendsError) {
+              return _StateCard(
+                child: ZLoadState.error(
                   message: state.message,
                   onRetry: () => context.read<FriendsCubit>().load(),
-                );
-              }
-              if (state is FriendsLoaded) {
-                return _LoadedBody(
-                  state: state,
-                  searchController: _searchController,
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+                ),
+              );
+            }
+            return const _StateCard(child: ZLoadState.loading());
+          },
         ),
       ),
     );
   }
-}
 
-class _LoadedBody extends StatefulWidget {
-  final FriendsLoaded state;
-  final TextEditingController searchController;
-
-  const _LoadedBody({required this.state, required this.searchController});
-
-  @override
-  State<_LoadedBody> createState() => _LoadedBodyState();
-}
-
-class _LoadedBodyState extends State<_LoadedBody> {
-  @override
-  void initState() {
-    super.initState();
-    widget.searchController.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.searchController.removeListener(_onSearchChanged);
-    super.dispose();
-  }
-
-  void _onSearchChanged() => setState(() {});
-
-  void _showAddFriendDialog(BuildContext context) {
+  Widget _loaded(BuildContext context, FriendsLoaded state) {
     final cubit = context.read<FriendsCubit>();
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _AddFriendSheet(onSubmit: cubit.sendFriendRequest),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final state = widget.state;
-    final query = widget.searchController.text.trim().toLowerCase();
-    final pendingTotal =
-        state.pendingRequests.length + state.pendingChallenges.length;
-    final filteredFriends =
+    final query = _search.text.trim().toLowerCase();
+    final shown =
         query.isEmpty
             ? state.friends
             : state.friends
                 .where((f) => f.username.toLowerCase().contains(query))
                 .toList();
-
+    final hasPending =
+        state.pendingRequests.isNotEmpty || state.pendingChallenges.isNotEmpty;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        ZSpacing.lg,
-        ZSpacing.screenGutter,
-        ZSpacing.xl,
-      ),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'دوستان',
-                style: ZTypography.screenTitle.copyWith(color: z.ink),
-              ),
-            ),
-            GestureDetector(
-              onTap: () => _showAddFriendDialog(context),
-              child: const _AddButton(),
-            ),
-          ],
-        ),
-        const SizedBox(height: ZSpacing.lg),
-        Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-          decoration: BoxDecoration(
-            color: z.surface,
-            border: Border.all(color: z.line),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.search, color: z.ink40, size: 18),
-              const SizedBox(width: ZSpacing.md),
-              Expanded(
-                child: TextField(
-                  controller: widget.searchController,
-                  style: ZTypography.body.copyWith(color: z.ink),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintText: 'جست‌وجوی نام یا شناسه',
-                    hintStyle: ZTypography.body.copyWith(color: z.ink40),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: ZSpacing.lg),
-        // _ReferralBanner(onTap: () => ReferralBottomSheet.show(context)),
-        const SizedBox(height: ZSpacing.xl),
-        if (pendingTotal > 0) ...[
-          Row(
-            children: [
-              Text(
-                'درخواست‌ها',
-                style: ZTypography.cardTitle.copyWith(
-                  fontSize: 12.5,
-                  color: z.ink,
-                ),
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: z.coral,
-                  borderRadius: BorderRadius.circular(ZRadius.chip),
-                ),
-                child: Text(
-                  toPersianDigits(pendingTotal),
-                  style: ZTypography.metaLabel.copyWith(
-                    color: z.onCoral,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: ZSpacing.sm),
-          SolidCard(
-            padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-            radius: ZRadius.cardMax,
-            child: Column(
-              children: [
-                for (var i = 0; i < state.pendingRequests.length; i++)
-                  _PendingRequestRow(
-                    request: state.pendingRequests[i],
-                    showTopBorder: i > 0,
-                  ),
-                for (var i = 0; i < state.pendingChallenges.length; i++)
-                  _PendingChallengeRow(
-                    challenge: state.pendingChallenges[i],
-                    showTopBorder: i > 0 || state.pendingRequests.isNotEmpty,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: ZSpacing.xl),
+        if (state.friends.isNotEmpty) ...[
+          FriendsSearchField(controller: _search),
+          const SizedBox(height: 11),
         ],
-        Row(
-          children: [
-            Text(
-              'دوستان',
-              style: ZTypography.cardTitle.copyWith(
-                fontSize: 12.5,
-                color: z.ink,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '${toPersianDigits(filteredFriends.length)} نفر',
-              style: ZTypography.metaLabel.copyWith(color: z.ink40),
-            ),
-          ],
-        ),
-        const SizedBox(height: ZSpacing.sm),
-        if (filteredFriends.isEmpty)
-          SolidCard(
-            radius: ZRadius.cardMax,
-            child: Center(
-              child: Text(
-                state.friends.isEmpty
-                    ? 'هنوز دوستی نداری — یکی اضافه کن!'
-                    : 'نتیجه‌ای پیدا نشد',
-                style: ZTypography.body.copyWith(color: z.ink40),
-              ),
-            ),
-          )
-        else
-          SolidCard(
-            padding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg),
-            radius: ZRadius.cardMax,
-            child: Column(
-              children: [
-                for (var i = 0; i < filteredFriends.length; i++)
-                  _FriendRow(friend: filteredFriends[i], showTopBorder: i > 0),
-              ],
-            ),
+        if (hasPending) ...[
+          FriendsRequestsCard(
+            requests: state.pendingRequests,
+            challenges: state.pendingChallenges,
+            onAcceptRequest: (r) => cubit.respondToRequest(r.requesterId, true),
+            onDeclineRequest:
+                (r) => cubit.respondToRequest(r.requesterId, false),
+            onAcceptChallenge:
+                (c) => cubit.respondToChallenge(
+                  c.id,
+                  true,
+                  c.mode,
+                  opponentName: c.challengerUsername,
+                ),
+            onDeclineChallenge:
+                (c) => cubit.respondToChallenge(c.id, false, c.mode),
           ),
+          const SizedBox(height: 16),
+        ],
+        BlocBuilder<InviteCodeCubit, InviteCodeState>(
+          builder:
+              (context, invite) => FriendsInviteCard(
+                state: invite,
+                onRetry: () => context.read<InviteCodeCubit>().load(),
+                onShare:
+                    () => getIt<ShareService>().shareInvite(code: invite.code!),
+              ),
+        ),
+        const SizedBox(height: 16),
+        FriendsListCard(
+          friends: shown,
+          totalFriends: state.friends.length,
+          invited: state.invited,
+          onInvite: _challenge,
+          onRemove: _remove,
+          onAddFriend: _add,
+        ),
       ],
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  const _AddButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: z.tintIndigo,
-        borderRadius: BorderRadius.circular(ZRadius.chip),
-      ),
-      child: Text(
-        'افزودن',
-        style: ZTypography.metaLabel.copyWith(
-          color: z.indigo,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Pending request / challenge rows
-// ---------------------------------------------------------------------------
-
-class _PendingRequestRow extends StatelessWidget {
-  final PendingRequest request;
-  final bool showTopBorder;
-
-  const _PendingRequestRow({
-    required this.request,
-    required this.showTopBorder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(
-        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-      ),
-      child: Row(
-        children: [
-          _NameAvatar(name: request.username, accent: ZAccent.amber),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  request.username,
-                  style: ZTypography.cardTitle.copyWith(
-                    fontSize: 13.5,
-                    color: z.ink,
-                  ),
-                ),
-                Text(
-                  'می‌خواهد دوست تو شود',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
-                ),
-              ],
-            ),
-          ),
-          _PillAction(
-            label: 'تأیید',
-            bg: z.teal,
-            fg: z.onTeal,
-            onTap:
-                () => context.read<FriendsCubit>().respondToRequest(
-                  request.requesterId,
-                  true,
-                ),
-          ),
-          const SizedBox(width: 6),
-          _PillAction(
-            label: 'رد',
-            bg: z.paper,
-            fg: z.ink40,
-            onTap:
-                () => context.read<FriendsCubit>().respondToRequest(
-                  request.requesterId,
-                  false,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PendingChallengeRow extends StatelessWidget {
-  final PendingChallenge challenge;
-  final bool showTopBorder;
-
-  const _PendingChallengeRow({
-    required this.challenge,
-    required this.showTopBorder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final modeName = 'کلاسیک';
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(
-        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-      ),
-      child: Row(
-        children: [
-          _NameAvatar(
-            name: challenge.challengerUsername,
-            accent: ZAccent.coral,
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  challenge.challengerUsername,
-                  style: ZTypography.cardTitle.copyWith(
-                    fontSize: 13.5,
-                    color: z.ink,
-                  ),
-                ),
-                Text(
-                  'چالش فرستاد · $modeName',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
-                ),
-              ],
-            ),
-          ),
-          _PillAction(
-            label: 'تأیید',
-            bg: z.teal,
-            fg: z.onTeal,
-            onTap:
-                () => context.read<FriendsCubit>().respondToChallenge(
-                  challenge.id,
-                  true,
-                  challenge.mode,
-                  opponentName: challenge.challengerUsername,
-                ),
-          ),
-          const SizedBox(width: 6),
-          _PillAction(
-            label: 'رد',
-            bg: z.paper,
-            fg: z.ink40,
-            onTap:
-                () => context.read<FriendsCubit>().respondToChallenge(
-                  challenge.id,
-                  false,
-                  challenge.mode,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PillAction extends StatelessWidget {
-  final String label;
-  final Color bg;
-  final Color fg;
-  final VoidCallback onTap;
-
-  const _PillAction({
-    required this.label,
-    required this.bg,
-    required this.fg,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(ZRadius.chip),
-        ),
-        child: Text(
-          label,
-          style: ZTypography.metaLabel.copyWith(
-            color: fg,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Friend row
-// ---------------------------------------------------------------------------
-
-class _FriendRow extends StatelessWidget {
-  final FriendModel friend;
-  final bool showTopBorder;
-
-  const _FriendRow({required this.friend, required this.showTopBorder});
-
-  Future<void> _challenge(BuildContext context) async {
-    final cubit = context.read<FriendsCubit>();
-    final send = await showFriendChallengeDialog(
-      context,
-      friendUsername: friend.username,
-    );
-    if (send) await cubit.sendChallenge(friend.userId, 'classic');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: BoxDecoration(
-        border: showTopBorder ? Border(top: BorderSide(color: z.line)) : null,
-      ),
-      child: Row(
-        children: [
-          _NameAvatar(name: friend.username, accent: ZAccent.indigo),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  friend.username,
-                  style: ZTypography.cardTitle.copyWith(
-                    fontSize: 13.5,
-                    color: z.ink,
-                  ),
-                ),
-                Text(
-                  friend.weeklyScore > 0
-                      ? '${toPersianDigits(friend.weeklyScore)} امتیاز این هفته'
-                      : 'بدون امتیاز این هفته',
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _challenge(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-              decoration: BoxDecoration(
-                color: z.tintCoral,
-                borderRadius: BorderRadius.circular(ZRadius.chip),
-              ),
-              child: Text(
-                'رویارویی',
-                style: ZTypography.metaLabel.copyWith(
-                  color: z.coral,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NameAvatar extends StatelessWidget {
-  final String name;
-  final ZAccent accent;
-
-  const _NameAvatar({required this.name, required this.accent});
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.isEmpty ? '؟' : name.substring(0, 1).toUpperCase();
-    return LetterTile(
-      letter: initial,
-      size: 34,
-      accent: accent,
-      radius: 11,
-      fontSize: 15,
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Error state
-// ---------------------------------------------------------------------------
-
-class _ErrorState extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorState({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(ZSpacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, color: z.ink40, size: 44),
-            const SizedBox(height: ZSpacing.md),
-            Text(
-              message,
-              style: ZTypography.body.copyWith(color: z.ink60),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: ZSpacing.lg),
-            NeutralButton(label: 'تلاش دوباره', onPressed: onRetry),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Bottom sheet for sending a friend request by exact username.
-class _AddFriendSheet extends StatefulWidget {
-  final void Function(String username) onSubmit;
-  const _AddFriendSheet({required this.onSubmit});
-
-  @override
-  State<_AddFriendSheet> createState() => _AddFriendSheetState();
-}
-
-class _AddFriendSheetState extends State<_AddFriendSheet> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final username = _controller.text.trim();
-    if (username.isEmpty) return;
-    Navigator.of(context).pop();
-    widget.onSubmit(username);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: z.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(ZRadius.sheetMax),
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              ZSpacing.xxl,
-              ZSpacing.xl,
-              ZSpacing.xxl,
-              ZSpacing.xxl,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'افزودن دوست',
-                  style: ZTypography.screenTitle.copyWith(color: z.ink),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'نام کاربری دقیق دوستت را وارد کن',
-                  style: ZTypography.body.copyWith(color: z.ink60),
-                ),
-                const SizedBox(height: ZSpacing.xl),
-                Container(
-                  height: 52,
-                  alignment: AlignmentDirectional.centerStart,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: z.paper,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: z.line),
-                  ),
-                  child: TextField(
-                    controller: _controller,
-                    autofocus: true,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _submit(),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      isDense: true,
-                      hintText: 'نام کاربری',
-                      hintStyle: ZTypography.body.copyWith(color: z.ink40),
-                    ),
-                    style: ZTypography.cardTitle.copyWith(color: z.ink),
-                  ),
-                ),
-                const SizedBox(height: ZSpacing.xl),
-                AccentButton(label: 'ارسال درخواست', onPressed: _submit),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

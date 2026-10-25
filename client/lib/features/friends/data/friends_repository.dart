@@ -17,19 +17,27 @@ class FriendModel {
   final String username;
   final int weeklyScore;
 
+  /// The friend's premium avatar, when they have one. `GET /friends` does not
+  /// send it; it comes from the friends leaderboard row, which the server fills
+  /// from active perks only (so a lapsed subscription has none).
+  final String? avatarId;
+
   const FriendModel({
     required this.userId,
     required this.username,
     required this.weeklyScore,
+    this.avatarId,
   });
 
   factory FriendModel.fromJson(
     Map<String, dynamic> json, {
     int weeklyScore = 0,
+    String? avatarId,
   }) => FriendModel(
     userId: json['user_id'] as String,
     username: json['username'] as String,
     weeklyScore: weeklyScore,
+    avatarId: avatarId == null || avatarId.isEmpty ? null : avatarId,
   );
 }
 
@@ -86,7 +94,8 @@ class FriendsRepository {
       final friendList = (friendsResp.data['data'] as List<dynamic>?) ?? [];
 
       // Fetch friends leaderboard scores
-      Map<String, int> scoreMap = {};
+      final scoreMap = <String, int>{};
+      final avatarMap = <String, String>{};
       try {
         final lbResp = await _dio.get(
           ApiEndpoints.leaderboard,
@@ -96,10 +105,13 @@ class FriendsRepository {
             (lbResp.data['data']?['entries'] as List<dynamic>?) ?? [];
         for (final e in entries) {
           final m = e as Map<String, dynamic>;
-          scoreMap[m['user_id'] as String] = (m['score'] as num?)?.toInt() ?? 0;
+          final id = m['user_id'] as String;
+          scoreMap[id] = (m['score'] as num?)?.toInt() ?? 0;
+          final avatar = m['avatar_id'];
+          if (avatar is String && avatar.isNotEmpty) avatarMap[id] = avatar;
         }
       } catch (_) {
-        // Scores unavailable — show 0
+        // Scores and avatars unavailable — show 0 and the initial
       }
 
       return friendList
@@ -107,6 +119,7 @@ class FriendsRepository {
             (e) => FriendModel.fromJson(
               e as Map<String, dynamic>,
               weeklyScore: scoreMap[e['user_id'] as String] ?? 0,
+              avatarId: avatarMap[e['user_id'] as String],
             ),
           )
           .toList();

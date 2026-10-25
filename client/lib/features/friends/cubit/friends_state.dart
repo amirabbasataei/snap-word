@@ -19,20 +19,35 @@ class FriendsLoaded extends FriendsState {
   final List<FriendModel> friends;
   final List<PendingRequest> pendingRequests;
   final List<PendingChallenge> pendingChallenges;
+
+  /// Friends a challenge was sent to a moment ago (see
+  /// `GameConstants.friendInviteSentSec`): their row says «دعوت شد».
+  final Set<String> invited;
   final String? actionError;
 
   const FriendsLoaded({
     required this.friends,
     required this.pendingRequests,
     required this.pendingChallenges,
+    this.invited = const {},
     this.actionError,
   });
+
+  FriendsLoaded copyWith({Set<String>? invited, String? actionError}) =>
+      FriendsLoaded(
+        friends: friends,
+        pendingRequests: pendingRequests,
+        pendingChallenges: pendingChallenges,
+        invited: invited ?? this.invited,
+        actionError: actionError,
+      );
 
   @override
   List<Object?> get props => [
     friends,
     pendingRequests,
     pendingChallenges,
+    invited,
     actionError,
   ];
 }

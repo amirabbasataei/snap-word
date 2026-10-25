@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 
 part 'friends_state.dart';
 
@@ -13,6 +16,9 @@ class FriendsCubit extends Cubit<FriendsState> {
       super(const FriendsInitial());
 
   bool _hasLoaded = false;
+
+  /// Friends invited a moment ago, each with the timer that clears the mark.
+  final _invitedTimers = <String, Timer>{};
 
   /// [silent] reloads in the background: no spinner, and a failure keeps
   /// whatever is already on screen.
@@ -50,6 +56,7 @@ class FriendsCubit extends Cubit<FriendsState> {
           friends: friends,
           pendingRequests: requests,
           pendingChallenges: challenges,
+          invited: _invitedNow,
         ),
       );
       _hasLoaded = true;
@@ -59,6 +66,8 @@ class FriendsCubit extends Cubit<FriendsState> {
       if (!quiet) emit(const FriendsError(loadFriendsFailedMessage));
     }
   }
+
+  Set<String> get _invitedNow => Set.unmodifiable(_invitedTimers.keys);
 
   /// Keeps the loaded list on screen and surfaces the failure as a toast; a
   /// coin shortfall gets its own state so the screen can show the earn-coins
@@ -72,14 +81,10 @@ class FriendsCubit extends Cubit<FriendsState> {
     final message = e.message;
     final current = state;
     if (current is FriendsLoaded) {
-      emit(
-        FriendsLoaded(
-          friends: current.friends,
-          pendingRequests: current.pendingRequests,
-          pendingChallenges: current.pendingChallenges,
-          actionError: message,
-        ),
-      );
+      // A repeat of the same failure must still be a state change, or the
+      // listener never shows its toast a second time.
+      if (current.actionError == message) emit(current.copyWith());
+      emit(current.copyWith(actionError: message));
     } else {
       emit(FriendsError(message));
     }
@@ -89,7 +94,7 @@ class FriendsCubit extends Cubit<FriendsState> {
     try {
       await _repo.sendFriendRequest(username);
       emit(FriendActionSuccess(friendRequestSentMessage(username)));
-      await load();
+      await load(silent: true);
     } on FriendsException catch (e) {
       _emitActionError(e);
     }
@@ -98,9 +103,9 @@ class FriendsCubit extends Cubit<FriendsState> {
   Future<void> respondToRequest(String requesterId, bool accept) async {
     try {
       await _repo.respondToRequest(requesterId, accept);
-      await load();
+      await load(silent: true);
     } on FriendsException catch (e) {
-      emit(FriendsError(e.message));
+      _emitActionError(e);
     }
   }
 
@@ -120,12 +125,10 @@ class FriendsCubit extends Cubit<FriendsState> {
             opponentName: opponentName,
           ),
         );
-        // ChallengAccepted is a one-shot navigation signal; restore the list
-        // so the tab isn't blank when the player comes back (e.g. cancels).
-        await load(silent: true);
-      } else {
-        await load();
       }
+      // ChallengAccepted is a one-shot navigation signal; restore the list
+      // so the tab isn't blank when the player comes back (e.g. cancels).
+      await load(silent: true);
     } on FriendsException catch (e) {
       _emitActionError(e);
     }
@@ -134,20 +137,44 @@ class FriendsCubit extends Cubit<FriendsState> {
   Future<void> removeFriend(String friendId) async {
     try {
       await _repo.removeFriend(friendId);
-      await load();
+      _invitedTimers.remove(friendId)?.cancel();
+      await load(silent: true);
     } on FriendsException catch (e) {
-      emit(FriendsError(e.message));
+      _emitActionError(e);
     }
   }
 
   Future<void> sendChallenge(String friendId, String mode) async {
     try {
       await _repo.sendChallenge(friendId, mode);
+      _markInvited(friendId);
       emit(const FriendActionSuccess(challengeSentMessage));
-      // Reload to get fresh state
-      await load();
+      await load(silent: true);
     } on FriendsException catch (e) {
       _emitActionError(e);
     }
+  }
+
+  void _markInvited(String friendId) {
+    _invitedTimers[friendId]?.cancel();
+    _invitedTimers[friendId] = Timer(
+      const Duration(seconds: GameConstants.friendInviteSentSec),
+      () {
+        _invitedTimers.remove(friendId);
+        final current = state;
+        if (!isClosed && current is FriendsLoaded) {
+          emit(current.copyWith(invited: _invitedNow));
+        }
+      },
+    );
+  }
+
+  @override
+  Future<void> close() {
+    for (final t in _invitedTimers.values) {
+      t.cancel();
+    }
+    _invitedTimers.clear();
+    return super.close();
   }
 }
