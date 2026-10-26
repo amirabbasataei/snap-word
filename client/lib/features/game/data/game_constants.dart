@@ -84,6 +84,11 @@ abstract final class GameConstants {
   /// (mirrors `config.RoomWaitTimeoutSec`).
   static const int roomWaitTimeoutSec = 120;
 
+  /// The waiting screen stays hidden for this long after entering a room, so a
+  /// `game_start` that arrives right away (both players joined together) never
+  /// flashes it.
+  static const Duration roomWaitRevealDelay = Duration(milliseconds: 1500);
+
   /// Level titles by minimum level (levels themselves come from the server).
   static const List<(int, String)> levelTitles = [
     (1, 'تازه‌کار'),

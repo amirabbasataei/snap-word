@@ -286,7 +286,9 @@ class _WaitingForOpponent extends StatefulWidget {
 class _WaitingForOpponentState extends State<_WaitingForOpponent> {
   static const _total = GameConstants.roomWaitTimeoutSec;
   late final Timer _timer;
+  late final Timer _revealTimer;
   int _remaining = _total;
+  bool _revealed = false;
 
   @override
   void initState() {
@@ -294,11 +296,15 @@ class _WaitingForOpponentState extends State<_WaitingForOpponent> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_remaining > 0) setState(() => _remaining--);
     });
+    _revealTimer = Timer(GameConstants.roomWaitRevealDelay, () {
+      if (mounted) setState(() => _revealed = true);
+    });
   }
 
   @override
   void dispose() {
     _timer.cancel();
+    _revealTimer.cancel();
     super.dispose();
   }
 
@@ -311,6 +317,7 @@ class _WaitingForOpponentState extends State<_WaitingForOpponent> {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
+    if (!_revealed) return Scaffold(backgroundColor: z.paper);
     return Scaffold(
       backgroundColor: z.paper,
       body: SafeArea(
