@@ -31,8 +31,7 @@ import 'daily_fakes.dart';
 DateTime _now() => DateTime.utc(2026, 10, 16, 12);
 
 class _Auth extends FakeAuthCubit {
-  _Auth()
-    : super(const AuthAuthenticated(userId: 'me', username: 'آرش', coins: 90));
+  _Auth() : super(const AuthAuthenticated(userId: 'me', username: 'آرش', coins: 90));
 
   @override
   bool get isGuest => false;
@@ -54,28 +53,16 @@ class _Harness {
       ..registerSingleton<AuthCubit>(_Auth())
       ..registerSingleton<DailyRepository>(repo)
       ..registerSingleton<ShareService>(share)
-      ..registerSingleton<StatsDao>(
-        stats ?? FakeStats(lastPlayed: DateTime(2026, 10, 16)),
-      )
+      ..registerSingleton<StatsDao>(stats ?? FakeStats(lastPlayed: DateTime(2026, 10, 16)))
       ..registerSingleton<AdService>(_Ads());
   }
 
-  Widget app({
-    Brightness brightness = Brightness.light,
-    bool reduceMotion = true,
-    double textScale = 1,
-  }) {
+  Widget app({Brightness brightness = Brightness.light, bool reduceMotion = true, double textScale = 1}) {
     final router = GoRouter(
       initialLocation: '/daily',
       routes: [
         GoRoute(path: '/daily', builder: (_, _) => DailyScreen(clock: _now)),
-        for (final path in [
-          '/game',
-          '/daily/board',
-          '/home',
-          '/rewards',
-          '/friends',
-        ])
+        for (final path in ['/game', '/daily/board', '/home', '/rewards', '/friends'])
           GoRoute(
             path: path,
             builder: (_, state) {
@@ -92,14 +79,10 @@ class _Harness {
       theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
       builder:
           (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              disableAnimations: reduceMotion,
-              textScaler: TextScaler.linear(textScale),
-            ),
-            child: Directionality(
-              textDirection: TextDirection.rtl,
-              child: child!,
-            ),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(disableAnimations: reduceMotion, textScaler: TextScaler.linear(textScale)),
+            child: Directionality(textDirection: TextDirection.rtl, child: child!),
           ),
     );
   }
@@ -142,13 +125,7 @@ void main() {
   }) async {
     _size(tester, w, hgt);
     await h.register(stats: stats);
-    await tester.pumpWidget(
-      h.app(
-        brightness: brightness,
-        reduceMotion: reduceMotion,
-        textScale: textScale,
-      ),
-    );
+    await tester.pumpWidget(h.app(brightness: brightness, reduceMotion: reduceMotion, textScale: textScale));
     await _settle(tester);
   }
 
@@ -161,9 +138,7 @@ void main() {
   }
 
   group('loading and failure', () {
-    testWidgets('loading: the mascot card under the same header', (
-      tester,
-    ) async {
+    testWidgets('loading: the mascot card under the same header', (tester) async {
       h.repo.loadGate = Completer();
       await open(tester);
       expect(find.byType(ZLoadState), findsOneWidget);
@@ -173,13 +148,8 @@ void main() {
       expect(find.byType(ZGameBackButton), findsOneWidget);
     });
 
-    testWidgets('failure: the Persian message and a working retry', (
-      tester,
-    ) async {
-      h.repo.loadError = const DailyException(
-        code: 'no_daily_challenge',
-        message: 'چالش امروز هنوز آماده نشده',
-      );
+    testWidgets('failure: the Persian message and a working retry', (tester) async {
+      h.repo.loadError = const DailyException(code: 'no_daily_challenge', message: 'چالش امروز هنوز آماده نشده');
       await open(tester);
       expect(find.text('چالش امروز هنوز آماده نشده'), findsOneWidget);
       expect(find.text(ZLoadState.retryLabel), findsOneWidget);
@@ -212,11 +182,7 @@ void main() {
       expect(find.text('رکورد امروز ۴۶۰ امتیاز'), findsOneWidget);
 
       expect(find.text('۲ جان'), findsOneWidget);
-      expect(
-        find.text('۱۵ ثانیه'),
-        findsOneWidget,
-        reason: 'not the canvas 10',
-      );
+      expect(find.text('۱۵ ثانیه'), findsOneWidget, reason: 'not the canvas 10');
       expect(find.text('یک بار رایگان'), findsOneWidget);
       expect(find.text('بار دوم ۲۵ سکه'), findsOneWidget);
 
@@ -226,12 +192,7 @@ void main() {
 
     testWidgets('nothing the server does not send is drawn', (tester) async {
       await open(tester);
-      for (final invented in [
-        '۸٬۲۳۰',
-        'میانگین',
-        'نفر امروز بازی کردند',
-        'دیروز:',
-      ]) {
+      for (final invented in ['۸٬۲۳۰', 'میانگین', 'نفر امروز بازی کردند', 'دیروز:']) {
         expect(find.textContaining(invented), findsNothing, reason: invented);
       }
     });
@@ -249,26 +210,19 @@ void main() {
       expect(find.textContaining('روز پیاپی'), findsNothing);
     });
 
-    testWidgets('no local stats: the streak card has no record line', (
-      tester,
-    ) async {
+    testWidgets('no local stats: the streak card has no record line', (tester) async {
       await open(tester, stats: FakeStats(none: true));
       expect(find.text('۷ روز پیاپی'), findsOneWidget);
       expect(find.textContaining('رکورد: '), findsNothing);
     });
 
-    testWidgets('«شروع چالش امروز» opens the daily game with the letter', (
-      tester,
-    ) async {
+    testWidgets('«شروع چالش امروز» opens the daily game with the letter', (tester) async {
       await open(tester);
       await tapText(tester, 'شروع چالش امروز');
       await _settle(tester);
       expect(h.visited, ['/game']);
       final args = h.extras.single as GameRouteArgs;
-      expect(
-        (args.mode, args.opponentType, args.startLetter),
-        ('daily', 'solo', 'ب'),
-      );
+      expect((args.mode, args.opponentType, args.startLetter), ('daily', 'solo', 'ب'));
     });
 
     testWidgets('«دیدن جدول امروز» opens the board', (tester) async {
@@ -285,9 +239,7 @@ void main() {
       expect(h.visited, ['/home']);
     });
 
-    testWidgets('the date chip moves under the header on a narrow phone', (
-      tester,
-    ) async {
+    testWidgets('the date chip moves under the header on a narrow phone', (tester) async {
       await open(tester, w: 320, hgt: 568);
       expect(find.text('جمعه ۲۴ مهر'), findsOneWidget);
       final chip = tester.getTopLeft(find.text('جمعه ۲۴ مهر')).dy;
@@ -309,11 +261,7 @@ void main() {
       expect(find.text('۸ روز پیاپی'), findsOneWidget);
       expect(find.text('رکورد: ۱۲ روز'), findsOneWidget);
       expect(find.text('چالش بعدی · فردا ۰۰:۰۰'), findsOneWidget);
-      expect(
-        find.text('۰۸:۳۰'),
-        findsOneWidget,
-        reason: 'read once, no seconds',
-      );
+      expect(find.text('۰۸:۳۰'), findsOneWidget, reason: 'read once, no seconds');
     });
 
     testWidgets('percentile and player count are not invented', (tester) async {
@@ -323,9 +271,7 @@ void main() {
       }
     });
 
-    testWidgets('chain card: first eight words and the rest counted', (
-      tester,
-    ) async {
+    testWidgets('chain card: first eight words and the rest counted', (tester) async {
       await open(tester);
       expect(find.byType(DailyChainCard), findsOneWidget);
       expect(find.text('زنجیر امروزت'), findsOneWidget);
@@ -333,11 +279,7 @@ void main() {
       // Words are rich text, so look at the card's semantics.
       expect(
         find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              (w.properties.label ?? '').startsWith(
-                'زنجیر امروزت: بادام، مداد',
-              ),
+          (w) => w is Semantics && (w.properties.label ?? '').startsWith('زنجیر امروزت: بادام، مداد'),
         ),
         findsOneWidget,
       );
@@ -345,63 +287,47 @@ void main() {
     });
 
     testWidgets('a short chain has no overflow chip', (tester) async {
-      h.repo.challenge = dailyChallenge(
-        attempt: dailyAttempt(words: dailyWords.take(5).toList()),
-        streak: 2,
-      );
+      h.repo.challenge = dailyChallenge(attempt: dailyAttempt(words: dailyWords.take(5).toList()), streak: 2);
       await open(tester);
       expect(find.textContaining('کلمهٔ دیگر'), findsNothing);
       expect(find.text('۵'), findsOneWidget);
     });
 
-    testWidgets('no rank from the server: says the result is recorded', (
-      tester,
-    ) async {
+    testWidgets('no rank from the server: says the result is recorded', (tester) async {
       h.repo.challenge = dailyChallenge(played: true, rank: null);
       await open(tester);
       expect(find.text('نتیجهٔ امروزت ثبت شد'), findsOneWidget);
       expect(find.textContaining('رتبهٔ'), findsNothing);
     });
 
-    testWidgets('no streak: the countdown takes the row, no streak tile', (
-      tester,
-    ) async {
+    testWidgets('no streak: the countdown takes the row, no streak tile', (tester) async {
       h.repo.challenge = dailyChallenge(played: true, streak: 0);
       await open(tester);
       expect(find.textContaining('روز پیاپی'), findsNothing);
       expect(find.text('۰۸:۳۰'), findsOneWidget);
     });
 
-    testWidgets('the record line only shows when it beats the streak', (
-      tester,
-    ) async {
+    testWidgets('the record line only shows when it beats the streak', (tester) async {
       await open(tester, stats: FakeStats(record: 8));
       expect(find.text('امروز هم حساب شد'), findsOneWidget);
       expect(find.textContaining('رکورد: '), findsNothing);
     });
 
-    testWidgets(
-      'a lower retry: the first attempt is the one shown and marked best',
-      (tester) async {
-        h.repo.challenge = dailyChallenge(
-          attempt: dailyAttempt(score: 460),
-          retry: dailyAttempt(
-            number: 2,
-            score: 300,
-            words: dailyWords.take(9).toList(),
-          ),
-        );
-        await open(tester);
-        expect(find.text('۴۶۰ امتیاز'), findsOneWidget, reason: 'hero = best');
-        expect(find.text('۱۹'), findsWidgets);
-        expect(find.byType(DailyCompareCard), findsOneWidget);
-        await tester.ensureVisible(find.byType(DailyCompareCard));
-        expect(find.text('تلاش اول · بهترین'), findsOneWidget);
-        expect(find.text('تلاش دوباره'), findsOneWidget);
-        // The retry is used up: no retry button.
-        expect(find.textContaining('امتحان دوباره'), findsNothing);
-      },
-    );
+    testWidgets('a lower retry: the first attempt is the one shown and marked best', (tester) async {
+      h.repo.challenge = dailyChallenge(
+        attempt: dailyAttempt(score: 460),
+        retry: dailyAttempt(number: 2, score: 300, words: dailyWords.take(9).toList()),
+      );
+      await open(tester);
+      expect(find.text('۴۶۰ امتیاز'), findsOneWidget, reason: 'hero = best');
+      expect(find.text('۱۹'), findsWidgets);
+      expect(find.byType(DailyCompareCard), findsOneWidget);
+      await tester.ensureVisible(find.byType(DailyCompareCard));
+      expect(find.text('تلاش اول · بهترین'), findsOneWidget);
+      expect(find.text('تلاش دوباره'), findsOneWidget);
+      // The retry is used up: no retry button.
+      expect(find.textContaining('امتحان دوباره'), findsNothing);
+    });
 
     testWidgets('a higher retry becomes the hero', (tester) async {
       h.repo.challenge = dailyChallenge(
@@ -417,20 +343,13 @@ void main() {
     testWidgets('share sends the best attempt', (tester) async {
       h.repo.challenge = dailyChallenge(
         attempt: dailyAttempt(score: 460),
-        retry: dailyAttempt(
-          number: 2,
-          score: 300,
-          words: dailyWords.take(9).toList(),
-        ),
+        retry: dailyAttempt(number: 2, score: 300, words: dailyWords.take(9).toList()),
       );
       await open(tester);
-      await tapText(tester, 'هم‌رسانی نتیجه');
+      await tapText(tester, 'اشتراک‌گذاری نتیجه');
       await _settle(tester);
       final shared = h.share.shared.single;
-      expect(
-        (shared.dayNumber, shared.score, shared.chainLength),
-        (42, 460, 19),
-      );
+      expect((shared.dayNumber, shared.score, shared.chainLength), (42, 460, 19));
       expect(shared.wordChain, dailyWords);
     });
 
@@ -446,15 +365,10 @@ void main() {
       await tapText(tester, 'بازی تک‌نفره');
       await _settle(tester);
       final args = h.extras.single as GameRouteArgs;
-      expect(
-        (args.mode, args.opponentType, args.startLetter),
-        ('classic', 'solo', null),
-      );
+      expect((args.mode, args.opponentType, args.startLetter), ('classic', 'solo', null));
     });
 
-    testWidgets('back goes home even when something is underneath', (
-      tester,
-    ) async {
+    testWidgets('back goes home even when something is underneath', (tester) async {
       await open(tester);
       await tester.tap(find.byType(ZGameBackButton));
       await _settle(tester);
@@ -477,10 +391,7 @@ void main() {
       expect(h.repo.retries, 1);
       expect(h.visited, ['/game']);
       final args = h.extras.single as GameRouteArgs;
-      expect(
-        (args.mode, args.opponentType, args.startLetter),
-        ('daily', 'solo', 'ب'),
-      );
+      expect((args.mode, args.opponentType, args.startLetter), ('daily', 'solo', 'ب'));
     });
 
     testWidgets('busy while paying: one call, a waiting label', (tester) async {
@@ -498,20 +409,12 @@ void main() {
       expect(h.visited, ['/game']);
     });
 
-    testWidgets('too poor: the earn-coins dialog, result stays', (
-      tester,
-    ) async {
-      h.repo.retryError = const DailyException(
-        code: 'insufficient_coins',
-        message: 'سکهٔ کافی نداری',
-      );
+    testWidgets('too poor: the earn-coins dialog, result stays', (tester) async {
+      h.repo.retryError = const DailyException(code: 'insufficient_coins', message: 'سکهٔ کافی نداری');
       await open(tester);
       await tapText(tester, 'امتحان دوباره · ۲۵ سکه');
       await _settle(tester);
-      expect(
-        find.text('برای این کار ۲۵ سکه لازم است. با این راه‌ها سکه جمع کن:'),
-        findsOneWidget,
-      );
+      expect(find.text('برای این کار ۲۵ سکه لازم است. با این راه‌ها سکه جمع کن:'), findsOneWidget);
       expect(h.visited, isEmpty);
       // Close it; the retry can be tried again.
       await tester.tap(find.text('متوجه شدم'));
@@ -534,13 +437,8 @@ void main() {
       expect(h.visited, ['/game']);
     });
 
-    testWidgets('other failure: a toast, the result and button stay', (
-      tester,
-    ) async {
-      h.repo.retryError = const DailyException(
-        code: 'network',
-        message: 'اتصال برقرار نشد',
-      );
+    testWidgets('other failure: a toast, the result and button stay', (tester) async {
+      h.repo.retryError = const DailyException(code: 'network', message: 'اتصال برقرار نشد');
       await open(tester);
       await tapText(tester, 'امتحان دوباره · ۲۵ سکه');
       await _settle(tester);
@@ -563,9 +461,7 @@ void main() {
   });
 
   group('the clock', () {
-    testWidgets('back from the background on a later Iran day reloads', (
-      tester,
-    ) async {
+    testWidgets('back from the background on a later Iran day reloads', (tester) async {
       await open(tester);
       expect(h.repo.loads, 1);
       // Still the same day: nothing.
@@ -574,9 +470,7 @@ void main() {
       expect(h.repo.loads, 1);
     });
 
-    testWidgets('a challenge from an earlier day is replaced on resume', (
-      tester,
-    ) async {
+    testWidgets('a challenge from an earlier day is replaced on resume', (tester) async {
       h.repo.challenge = dailyChallenge(date: '2026-10-15', letter: 'ز');
       await open(tester);
       expect(find.text('ز'), findsOneWidget);
@@ -588,9 +482,7 @@ void main() {
       expect(find.text('ز'), findsNothing);
     });
 
-    testWidgets('nothing ticks: no periodic timer, no frame scheduled', (
-      tester,
-    ) async {
+    testWidgets('nothing ticks: no periodic timer, no frame scheduled', (tester) async {
       h.repo.challenge = dailyChallenge(played: true);
       await open(tester);
       await tester.pump(const Duration(seconds: 2));
@@ -599,9 +491,7 @@ void main() {
   });
 
   group('motion', () {
-    testWidgets('on: the entrances play and end in the same layout', (
-      tester,
-    ) async {
+    testWidgets('on: the entrances play and end in the same layout', (tester) async {
       await open(tester, reduceMotion: false);
       await tester.pump(const Duration(seconds: 2));
       expect(find.text('شروع چالش امروز'), findsOneWidget);
@@ -634,10 +524,7 @@ void main() {
         expect(contrastRatio(z.ink60, z.surface), greaterThanOrEqualTo(4.5));
         expect(contrastRatio(z.ink60, z.wash), greaterThanOrEqualTo(4.5));
         expect(contrastRatio(z.ink, z.tintTeal), greaterThanOrEqualTo(4.5));
-        expect(
-          contrastRatio(z.onInkSurface, z.inkSurface),
-          greaterThanOrEqualTo(4.5),
-        );
+        expect(contrastRatio(z.onInkSurface, z.inkSurface), greaterThanOrEqualTo(4.5));
         for (final h in ZChainHue.values) {
           final ink = switch (h) {
             ZChainHue.coral => zs.coralInk,
@@ -645,11 +532,7 @@ void main() {
             ZChainHue.indigo => zs.indigoInk,
             ZChainHue.amber => zs.amberInk,
           };
-          expect(
-            contrastRatio(ink, zs.tile),
-            greaterThanOrEqualTo(4.3),
-            reason: '$h',
-          );
+          expect(contrastRatio(ink, zs.tile), greaterThanOrEqualTo(4.3), reason: '$h');
         }
         expect(contrastRatio(z.ink, zs.tile), greaterThanOrEqualTo(4.5));
       }
@@ -657,12 +540,7 @@ void main() {
   });
 
   group('layout', () {
-    const sizes = [
-      Size(320, 568),
-      Size(360, 640),
-      Size(393, 852),
-      Size(430, 932),
-    ];
+    const sizes = [Size(320, 568), Size(360, 640), Size(393, 852), Size(430, 932)];
 
     /// Long word, six-digit score, big rank: the widest the data can get.
     DailyChallenge heavy({bool retry = false}) => dailyChallenge(
@@ -670,20 +548,11 @@ void main() {
         attemptNumber: 1,
         score: 999999,
         chainLength: 20,
-        wordChain: [
-          'فوق‌العاده‌ترین‌واژه‌ی‌ممکن‌دراین‌زبان',
-          ...dailyWords.take(18),
-          'رود',
-        ],
+        wordChain: ['فوق‌العاده‌ترین‌واژه‌ی‌ممکن‌دراین‌زبان', ...dailyWords.take(18), 'رود'],
       ),
       retry:
           retry
-              ? const DailyAttempt(
-                attemptNumber: 2,
-                score: 123456,
-                chainLength: 12,
-                wordChain: ['بادام', 'مداد'],
-              )
+              ? const DailyAttempt(attemptNumber: 2, score: 123456, chainLength: 12, wordChain: ['بادام', 'مداد'])
               : null,
       streak: 365,
       best: 999999,
@@ -706,54 +575,27 @@ void main() {
       required double scale,
       required Size size,
     }) async {
-      final tag =
-          '${size.width.toInt()}×${size.height.toInt()} ${brightness.name} ×$scale';
+      final tag = '${size.width.toInt()}×${size.height.toInt()} ${brightness.name} ×$scale';
       // Loading.
       h.repo.loadGate = Completer();
-      await open(
-        tester,
-        brightness: brightness,
-        textScale: scale,
-        w: size.width,
-        hgt: size.height,
-      );
+      await open(tester, brightness: brightness, textScale: scale, w: size.width, hgt: size.height);
       await visit(tester, 'loading $tag');
       // Failure.
       await GetIt.I.reset();
       h = _Harness();
-      h.repo.loadError = const DailyException(
-        code: 'x',
-        message: 'بارگذاری چالش امروز ناموفق بود',
-      );
-      await open(
-        tester,
-        brightness: brightness,
-        textScale: scale,
-        w: size.width,
-        hgt: size.height,
-      );
+      h.repo.loadError = const DailyException(code: 'x', message: 'بارگذاری چالش امروز ناموفق بود');
+      await open(tester, brightness: brightness, textScale: scale, w: size.width, hgt: size.height);
       await visit(tester, 'error $tag');
       // Before, heavy numbers.
       for (final (name, challenge) in [
-        (
-          'before',
-          heavy().bestAttempt == null
-              ? dailyChallenge()
-              : dailyChallenge(best: 999999, streak: 365),
-        ),
+        ('before', heavy().bestAttempt == null ? dailyChallenge() : dailyChallenge(best: 999999, streak: 365)),
         ('after', heavy()),
         ('after+retry', heavy(retry: true)),
       ]) {
         await GetIt.I.reset();
         h = _Harness();
         h.repo.challenge = challenge;
-        await open(
-          tester,
-          brightness: brightness,
-          textScale: scale,
-          w: size.width,
-          hgt: size.height,
-        );
+        await open(tester, brightness: brightness, textScale: scale, w: size.width, hgt: size.height);
         await visit(tester, '$name $tag');
       }
     }
@@ -764,12 +606,7 @@ void main() {
           testWidgets(
             'every state: no overflow ${size.width.toInt()}×${size.height.toInt()} ${brightness.name} ×$scale',
             (tester) async {
-              await allStates(
-                tester,
-                brightness: brightness,
-                scale: scale,
-                size: size,
-              );
+              await allStates(tester, brightness: brightness, scale: scale, size: size);
             },
           );
         }
@@ -779,10 +616,7 @@ void main() {
 
   group('goldens', () {
     Future<void> shot(WidgetTester tester, String name) async {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/$name.png'),
-      );
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/$name.png'));
     }
 
     for (final brightness in Brightness.values) {
@@ -806,11 +640,7 @@ void main() {
     testWidgets('after + retried light', (tester) async {
       h.repo.challenge = dailyChallenge(
         attempt: dailyAttempt(score: 460),
-        retry: dailyAttempt(
-          number: 2,
-          score: 300,
-          words: dailyWords.take(9).toList(),
-        ),
+        retry: dailyAttempt(number: 2, score: 300, words: dailyWords.take(9).toList()),
         streak: 8,
       );
       await open(tester, w: 360, hgt: 1250);
@@ -824,10 +654,7 @@ void main() {
     });
 
     testWidgets('error light', (tester) async {
-      h.repo.loadError = const DailyException(
-        code: 'no_daily_challenge',
-        message: 'چالش امروز هنوز آماده نشده',
-      );
+      h.repo.loadError = const DailyException(code: 'no_daily_challenge', message: 'چالش امروز هنوز آماده نشده');
       await open(tester);
       await shot(tester, 'daily_error_light');
     });

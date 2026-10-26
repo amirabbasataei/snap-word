@@ -39,12 +39,7 @@ class ProfileInviteCard extends StatelessWidget {
     final z = context.z;
     final ready = state.status == InviteCodeStatus.ready;
     final failed = state.status == InviteCodeStatus.failed;
-    final sub = ZTypography.button.copyWith(
-      fontSize: 12,
-      fontWeight: FontWeight.w800,
-      height: 1.4,
-      color: z.onIndigo,
-    );
+    final sub = ZTypography.button.copyWith(fontSize: 12, fontWeight: FontWeight.w800, height: 1.4, color: z.onIndigo);
     return ChunkyBox(
       fill: z.indigo,
       deep: z.indigoDeep,
@@ -56,14 +51,7 @@ class ProfileInviteCard extends StatelessWidget {
         children: [
           Semantics(
             header: true,
-            child: Text(
-              title,
-              style: ZTypography.button.copyWith(
-                fontSize: 15,
-                height: 1.3,
-                color: z.onIndigo,
-              ),
-            ),
+            child: Text(title, style: ZTypography.button.copyWith(fontSize: 15, height: 1.3, color: z.onIndigo)),
           ),
           Text(subtitle, style: sub),
           const SizedBox(height: 8),
@@ -72,30 +60,16 @@ class ProfileInviteCard extends StatelessWidget {
               children: [
                 Expanded(child: Text('کد دعوت بارگذاری نشد', style: sub)),
                 const SizedBox(width: 8),
-                ProfileChunkButton(
-                  label: 'تلاش دوباره',
-                  semanticLabel: 'بارگذاری دوبارهٔ کد دعوت',
-                  onTap: onRetry,
-                ),
+                ProfileChunkButton(label: 'تلاش دوباره', semanticLabel: 'بارگذاری دوبارهٔ کد دعوت', onTap: onRetry),
               ],
             )
           else
             Row(
               children: [
-                Expanded(
-                  child:
-                      ready
-                          ? _CodeChip(code: state.code!, onCopy: onCopy)
-                          : const _CodeSkeleton(),
-                ),
+                Expanded(child: ready ? _CodeChip(code: state.code!, onCopy: onCopy) : const _CodeSkeleton()),
                 const SizedBox(width: 8),
                 if (ready)
-                  ProfileGlyphButton(
-                    semanticLabel: 'هم‌رسانی کد دعوت',
-                    onTap: onShare,
-                    svg: shareSvg,
-                    glyph: 18,
-                  )
+                  ProfileGlyphButton(semanticLabel: 'اشتراک‌گذاری کد دعوت', onTap: onShare, svg: shareSvg, glyph: 18)
                 else
                   const SizedBox(width: 44, height: 44),
               ],
@@ -133,21 +107,14 @@ class _CodeChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: z.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: context.zs.outline,
-                  width: ZGame.outlineInner,
-                ),
+                border: Border.all(color: context.zs.outline, width: ZGame.outlineInner),
               ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   '\u2066$code\u2069',
                   maxLines: 1,
-                  style: ZTypography.button.copyWith(
-                    fontSize: 18,
-                    letterSpacing: 3,
-                    color: z.ink,
-                  ),
+                  style: ZTypography.button.copyWith(fontSize: 18, letterSpacing: 3, color: z.ink),
                 ),
               ),
             ),

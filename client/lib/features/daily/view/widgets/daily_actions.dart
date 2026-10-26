@@ -11,11 +11,7 @@ class DailyBeforeActions extends StatelessWidget {
   final VoidCallback onStart;
   final VoidCallback onBoard;
 
-  const DailyBeforeActions({
-    super.key,
-    required this.onStart,
-    required this.onBoard,
-  });
+  const DailyBeforeActions({super.key, required this.onStart, required this.onBoard});
 
   @override
   Widget build(BuildContext context) {
@@ -75,27 +71,15 @@ class DailyAfterActions extends StatelessWidget {
     final z = context.z;
     final scale = MediaQuery.textScalerOf(context).scale(1);
     final narrow = MediaQuery.sizeOf(context).width < 340 || scale > 1.15;
-    final board = ZDialogButton.secondary(
-      label: 'جدول امروز',
-      onTap: onBoard,
-      height: 50,
-      radius: 18,
-      depth: 5,
-    );
-    final solo = ZDialogButton.secondary(
-      label: 'بازی تک‌نفره',
-      onTap: onSolo,
-      height: 50,
-      radius: 18,
-      depth: 5,
-    );
+    final board = ZDialogButton.secondary(label: 'جدول امروز', onTap: onBoard, height: 50, radius: 18, depth: 5);
+    final solo = ZDialogButton.secondary(label: 'بازی تک‌نفره', onTap: onSolo, height: 50, radius: 18, depth: 5);
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ZDialogButton.primary(
-            label: 'هم‌رسانی نتیجه',
+            label: 'اشتراک‌گذاری نتیجه',
             onTap: onShare,
             height: 62,
             radius: 22,
@@ -109,13 +93,7 @@ class DailyAfterActions extends StatelessWidget {
             const SizedBox(height: 4),
             solo,
           ] else
-            Row(
-              children: [
-                Expanded(child: board),
-                const SizedBox(width: 10),
-                Expanded(child: solo),
-              ],
-            ),
+            Row(children: [Expanded(child: board), const SizedBox(width: 10), Expanded(child: solo)]),
           if (onRetry != null) ...[
             const SizedBox(height: 4),
             ZDialogButton.secondary(

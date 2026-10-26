@@ -558,13 +558,13 @@ Every user gets a unique 6-char alphanumeric `referral_code` (charset excludes a
 
 Self-referral (code equals the caller's own) is rejected (`400 self_referral`) — structurally impossible at signup since the new code doesn't exist yet, checked explicitly for the post-login path.
 
-**Renaming:** ZProfile's pencil icon (signed-in only) opens `EditUsernameSheet` (`features/auth/view/widgets/edit_username_sheet.dart`) → `PATCH /profile/username` (`AuthService.UpdateUsername`). The JWT keeps the old username in its claims until refresh; nothing authoritative reads it.
+**Renaming:** ZProfile's pencil icon (signed-in only) opens `EditUsernameDialog` (`showEditUsernameDialog`, `features/auth/view/widgets/edit_username_dialog.dart`, canvas ZDialogs 14b) → `PATCH /profile/username` (`AuthService.UpdateUsername`). The JWT keeps the old username in its claims until refresh; nothing authoritative reads it.
 
 **Sharing your own code:** ZProfile's `ProfileInviteCard` (`features/profile/view/widgets/profile_invite_card.dart`, fed by `InviteCodeCubit`) loads it via `GET /referral/me` and shares a short Persian invite text + code through `ShareService.shareInvite` (system share sheet → social apps/SMS).
 
 **Inviter reward (+50 coins, `config.CoinReferralInviter`):** whenever a referral is linked (either entry point) an unclaimed `inbox_rewards` row is created for the referrer.
 
-Client: both entry points are served by one shared widget, `ReferralBottomSheet` (`client/lib/features/auth/view/widgets/referral_bottom_sheet.dart`), which branches on `AuthCubit`'s state (authenticated → redeem directly; not yet authenticated → stash the code and forward it into `verify-otp`). Triggered from the ZLogin phone screen's referral teaser card (entry point a) and from ZProfile's «کد دعوت داری؟» button (entry point b) — the latter is a deliberate small addition beyond the two named screens (ZLobby has no referral row any more — it was removed 2026-10-03 and is not in the "A" canvas).
+Client: both entry points are served by one shared widget, `ReferralDialog` (`showReferralDialog`, `client/lib/features/auth/view/widgets/referral_dialog.dart`, canvas ZDialogs 14a), which branches on `AuthCubit`'s state (authenticated → redeem directly; not yet authenticated → stash the code and forward it into `verify-otp`). Triggered from the ZLogin phone screen's referral teaser card (entry point a) and from ZProfile's «کد دعوت داری؟» button (entry point b) — the latter is a deliberate small addition beyond the two named screens (ZLobby has no referral row any more — it was removed 2026-10-03 and is not in the "A" canvas).
 
 ---
 

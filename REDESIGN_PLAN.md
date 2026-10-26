@@ -568,7 +568,7 @@ Header of the cards: «تا همین‌جا ثبت می‌شه» (kept) for solo
 **Code:** `features/game/view/z_over_screen.dart` (data + routing: which layout, which actions) and three widget files in `features/game/view/widgets/`: `z_over_hero.dart` (`ZOverEnter` stagger, `ZOverLossHero` with the broken-chain art, `ZOverWinHero` with rays/confetti), `z_over_cards.dart` (`ZOverScoreCard`, `ZOverRecordBar`, `ZOverVersusPill`, `ZOverChip`), `z_over_actions.dart` (`ZOverContinueActions`, `ZOverFinalActions`). Built on the frame `ZGameScaffold` (header = coin pill + ✕, body scrolls, footer = pinned actions), `ZMascot` (sad / happy), `ChunkyBox`/`ChunkyPressable`, `ZDialogButton.primary/secondary`, `ZDiscAvatar`, `zChainWordSpan` (shared-letter colours), `DashedBorderPainter`, `ZCoin`, `showInsufficientCoinsDialog` (continue-with-coins when the balance is short — unchanged logic).
 **Hoisted / added shared pieces:** `core/widgets/z_hud_coin_pill.dart` (`ZHudCoinPill`, pure move of Home's private `_CoinPill`; no `onTap` → plain read-out without the «+»), `core/widgets/z_rays.dart` (`ZRaysPainter`, pure move out of `home_chest.dart`), `core/widgets/z_stroked_text.dart` (`ZStrokedText`: outlined sticker title with solid drop shadow), `ZGameBackButton(close: true)` (✕). Home renders byte-identically after the moves (checked by diffing the Home golden test images before/after). Tokens: none new; metrics `ZGame.over*`.
 
-**Layouts:** *loss / not yet decided / ended by the player* — «زنجیر پاره شد!» (stroked coral), the reason pill, sad mascot, the last three words as tiles joined by chain links with the final link broken and a dashed «ر؟» slot (letters coloured like in the game), score card (big score + stat tiles + record bar), then the actions. *win* (`iWon == true`) — «بردی!», happy mascot over rays and confetti, head-to-head pill, reward chips, actions. Actions: while the 15 s continue window is open → «ادامه با ویدیو», «ادامه با ۲۵ سکه», share, home(decline); once decided → primary «بازی دوباره», «خانه», «هم‌رسانی».
+**Layouts:** *loss / not yet decided / ended by the player* — «زنجیر پاره شد!» (stroked coral), the reason pill, sad mascot, the last three words as tiles joined by chain links with the final link broken and a dashed «ر؟» slot (letters coloured like in the game), score card (big score + stat tiles + record bar), then the actions. *win* (`iWon == true`) — «بردی!», happy mascot over rays and confetti, head-to-head pill, reward chips, actions. Actions: while the 15 s continue window is open → «ادامه با ویدیو», «ادامه با ۲۵ سکه», share, home(decline); once decided → primary «بازی دوباره», «خانه», «اشتراک‌گذاری».
 
 **Adapted where the canvas doesn't match the product:**
 - **Continue price ۵۰ → ۲۵** (`GameConstants.continueCostCoins`), as already decided.
@@ -810,7 +810,7 @@ All four ship. `GET /leaderboard?type=alltime` was already wired (the brief said
 - Guest: local Drift `local_player_stats` (the cubit's existing path).
 
 **Omitted — nothing backs it (not faked)**
-- **Badges row** («نشان‌ها · ۶ از ۲۴», disc row, «هم‌رسانی»): no schema, no endpoint (todo.md 2.3). Its slot holds the subscription card.
+- **Badges row** («نشان‌ها · ۶ از ۲۴», disc row, «اشتراک‌گذاری»): no schema, no endpoint (todo.md 2.3). Its slot holds the subscription card.
 - **«عضو از تیر ۱۴۰۴» chip:** no created-at is sent.
 - **«برد آنلاین ۱۴۲»:** `wins` is **never written** — not by the server (`UpsertStats` has no caller; only `IncrementMatchStats` and the streak/XP/leaderboard writers run) and not locally (`stats_dao` keeps `existing.wins`). A tile would read ۰ for everyone, so it is not drawn.
 - **«۹۱٪ کلمهٔ درست»** and **«۸۷۴ کلمهٔ یکتا ساختی»:** no accuracy or unique-word counter anywhere (todo.md 2.3).
@@ -1111,3 +1111,21 @@ The 7a top bar gained a **notifications bell** between the spacer and the gear (
 - **Tests:** `home_view_test.dart` (badge digits, none at 0, «۹۹+», tap, semantics label, bell before gear on the same row; layout group now sets `pendingMessages: 120`), `home_view_golden_test.dart` (HUD goldens regenerated; new 320dp dark golden).
 - **Not verified on a device:** the tap through to `/messages` and the badge refresh after answering an invitation.
 
+
+## ZDialogs 14a / 14b — invite-code and username dialogs (2026-10-26) — code complete; widget tests pass, NOT seen on a device
+
+**Source:** canvas `ZDialogs.dc.html` (`kind` = `invite` / `username`, `preview` = empty / error / success). Replaces the two Material bottom sheets opened from ZProfile (and the invite one from ZLogin's teaser, since it is the same widget).
+
+**Built:** `core/widgets/z_form_dialog.dart` — `ZFormDialog` (mascot-led `ZDialogCard`: pill, title, body, `wash` panel, filled primary that goes muted/edge-less when disabled, optional neutral secondary), `ZRewardChip`, `ZDialogField` (3px outline → coral on error). `features/auth/view/widgets/referral_dialog.dart` (`showReferralDialog`, `ReferralDialog`) and `edit_username_dialog.dart` (`showEditUsernameDialog`, `EditUsernameDialog`) replace `referral_bottom_sheet.dart` / `edit_username_sheet.dart`.
+
+**Canvas vs product (decisions):**
+- Reward chips show what the server pays, not the canvas's «+۱۰۰ / +۱۰۰»: post-login redeem → +۵۰ for you; pre-signup → +۱۰۰ for you; the inviter always +۵۰ (`GameConstants.referralInviterCoins`, new, mirrors `config.CoinReferralInviter`).
+- Username rules follow the backend (3–20 letters/digits/`_`, unicode letters allowed), not the canvas's 3–16 A–Z; the «شروع با حرف» chip, the live «این نام آزاده!» and the client-side «taken» list are dropped — no endpoint backs them; «taken» comes back from `PATCH /profile/username` (`username_taken`) and is shown in the panel.
+- Invite code field: 6 characters (`referral_code VARCHAR(6)`), letters/digits only, uppercased on submit (canvas allowed 12).
+- Success states are in-dialog (canvas): username «نام تازه‌ات ثبت شد!» / «باشه»; redeem «خوش اومدی به زنجیر!» with the real awarded amount / «بزن بریم». The old success toasts are gone. Pre-signup, the dialog still just returns the code to ZLogin (nothing was redeemed yet, so no success state).
+- Primary stays disabled until the field is non-empty (invite) or the name is changed and valid (username); the old "unchanged name just closes" path is now the «انصراف» button.
+
+**Tests:** `z_profile_screen_test.dart` (rename flow incl. disabled-until-valid, taken name, redeem success/refusal, reward chips), `z_login_screen_test.dart` referral group. `enterText` must be followed by `pump()` (the button state rebuilds). No goldens added. Remaining failures in those folders are the existing golden pixel diffs.
+**Not verified on a device.**
+
+**Visual pass against the canvas (2026-10-26):** the first cut was compared with the canvas render and corrected — pill and rule chips hug their text (they had stretched to the card width), field text is vertically centred, the muted primary uses `ink60` text, the canvas copy is used verbatim (colloquial tone), and the success state keeps the field panel (teal outline, read-only, chips all teal) with only the title/pill/button changing, as drawn. Method: `test/features/auth/z_dialogs_golden_test.dart` renders 14aL / 14bL (light, empty) and 14aD (dark, refused code) / 14bD (dark, saved) at 396×812 @1× into `test/features/auth/goldens/z_dialogs_*.png`; the reference was an HTML replica of the canvas template (tokens from `Zanjir.dc.html` turn 14) rendered in headless Chrome. Remaining known differences, all deliberate: reward amounts (+۵۰/+۵۰ not +۱۰۰/+۱۰۰), 20-char Persian-capable username with two rule chips (no «شروع با حرف»), Persian digits in the counter, the server's own error text, and ~3 px more space under the last button (the shared `ChunkyPressable` reserves its edge).

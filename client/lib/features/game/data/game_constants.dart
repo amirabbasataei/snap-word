@@ -59,6 +59,10 @@ abstract final class GameConstants {
   static const int welcomeBonusCoins = 50;
   static const int referralSignupCoins = 100;
   static const int referralRedeemCoins = 50;
+
+  /// Paid to the inviter (inbox reward) for every linked referral — mirrors
+  /// `config.CoinReferralInviter`.
+  static const int referralInviterCoins = 50;
   static const int minWordLength = 3;
   static const int dailyMaxWords = 20;
   static const int dailyRetryCostCoins = 25;

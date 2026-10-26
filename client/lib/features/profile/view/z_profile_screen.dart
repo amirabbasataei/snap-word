@@ -15,8 +15,8 @@ import 'package:wordchain/core/widgets/z_empty_state.dart';
 import 'package:wordchain/core/widgets/z_load_state.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
-import 'package:wordchain/features/auth/view/widgets/edit_username_sheet.dart';
-import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
+import 'package:wordchain/features/auth/view/widgets/edit_username_dialog.dart';
+import 'package:wordchain/features/auth/view/widgets/referral_dialog.dart';
 import 'package:wordchain/features/friends/cubit/invite_code_cubit.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/profile/cubit/profile_cubit.dart';
@@ -236,7 +236,7 @@ class _LoadedView extends StatelessWidget {
                     context,
                     onPurchase: (id) => _purchase(context, id),
                   ),
-              onEdit: () => EditUsernameSheet.show(context),
+              onEdit: () => showEditUsernameDialog(context),
             ),
             if (signedIn)
               Padding(
@@ -316,7 +316,7 @@ class _LoadedView extends StatelessWidget {
                     isDark: brightness == Brightness.dark,
                     onToggleTheme: () => getIt<ThemeCubit>().toggle(brightness),
                     signedIn: signedIn,
-                    onRedeem: () => ReferralBottomSheet.show(context),
+                    onRedeem: () => showReferralDialog(context),
                     onLogout: () => getIt<AuthCubit>().logout(),
                   );
                 },

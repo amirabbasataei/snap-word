@@ -8,7 +8,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
-import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
+import 'package:wordchain/features/auth/view/widgets/referral_dialog.dart';
 
 import '../../helpers/contrast.dart';
 import '../../helpers/z_test_app.dart';
@@ -294,21 +294,22 @@ void main() {
 
   group('referral code', () {
     Finder sheetField() => find.descendant(
-      of: find.byType(ReferralBottomSheet),
+      of: find.byType(ReferralDialog),
       matching: find.byType(TextField),
     );
 
-    testWidgets('the teaser opens the existing sheet; the code is stashed', (
+    testWidgets('the teaser opens the dialog; the code is stashed', (
       tester,
     ) async {
       await pumpLogin(tester);
       await tester.tap(find.text('کد دعوت داری؟'));
       await flush(tester);
-      expect(find.byType(ReferralBottomSheet), findsOneWidget);
+      expect(find.byType(ReferralDialog), findsOneWidget);
       await tester.enterText(sheetField(), 'k7m2qx');
+      await tester.pump();
       await tester.tap(find.text('ثبت کد'));
       await flush(tester);
-      expect(find.byType(ReferralBottomSheet), findsNothing);
+      expect(find.byType(ReferralDialog), findsNothing);
       expect(find.text('کد دعوت ثبت شد'), findsOneWidget);
       expect(find.text('برای عوض کردنش بزن'), findsOneWidget);
       expect(auth.sentTo, isEmpty);
@@ -319,6 +320,7 @@ void main() {
       await tester.tap(find.text('کد دعوت داری؟'));
       await flush(tester);
       await tester.enterText(sheetField(), 'k7m2qx');
+      await tester.pump();
       await tester.tap(find.text('ثبت کد'));
       await flush(tester);
       await sendCode(tester);
@@ -328,7 +330,7 @@ void main() {
       await waitOutToast(tester);
     });
 
-    testWidgets('closing the sheet without a code changes nothing', (
+    testWidgets('closing the dialog without a code changes nothing', (
       tester,
     ) async {
       await pumpLogin(tester);

@@ -802,7 +802,7 @@ void main() {
       expect(find.textContaining('K7M2QX'), findsOneWidget);
       expect(find.textContaining('ZNJR'), findsNothing);
 
-      await tester.tap(find.text('هم‌رسانی'));
+      await tester.tap(find.text('اشتراک‌گذاری'));
       await _settle(tester);
       expect(h.share.codes, ['K7M2QX']);
     });
@@ -818,13 +818,13 @@ void main() {
       await _settle(tester);
 
       expect(find.text('با کد دعوت، ۵۰ سکه بگیر'), findsOneWidget);
-      expect(find.text('هم‌رسانی'), findsNothing);
+      expect(find.text('اشتراک‌گذاری'), findsNothing);
       expect(find.textContaining('کد تو'), findsNothing);
 
       gate.complete('ABC234');
       await _settle(tester);
       expect(find.textContaining('ABC234'), findsOneWidget);
-      expect(find.text('هم‌رسانی'), findsOneWidget);
+      expect(find.text('اشتراک‌گذاری'), findsOneWidget);
     });
 
     testWidgets('a failed fetch offers a retry', (tester) async {
@@ -835,7 +835,7 @@ void main() {
       await _settle(tester);
 
       expect(find.text('کد دعوت بارگذاری نشد'), findsOneWidget);
-      expect(find.text('هم‌رسانی'), findsNothing);
+      expect(find.text('اشتراک‌گذاری'), findsNothing);
       expect(find.text('دوستان من'), findsOneWidget, reason: 'screen unaffected');
 
       h.auth.codeError = null;
@@ -1004,8 +1004,8 @@ void main() {
         expect(scaleOf('جست‌وجوی نام دوستان'), lessThanOrEqualTo(13.01));
 
         final list = find.byType(Scrollable).first;
-        await tester.scrollUntilVisible(find.text('هم‌رسانی'), 200, scrollable: list);
-        expect(scaleOf('هم‌رسانی'), lessThanOrEqualTo(13.01));
+        await tester.scrollUntilVisible(find.text('اشتراک‌گذاری'), 200, scrollable: list);
+        expect(scaleOf('اشتراک‌گذاری'), lessThanOrEqualTo(13.01));
         await tester.drag(list, const Offset(0, -3000));
         await tester.pump();
         expect(tester.takeException(), isNull);

@@ -16,7 +16,7 @@ import 'package:wordchain/features/auth/view/widgets/login_hero.dart';
 import 'package:wordchain/features/auth/view/widgets/otp_parts.dart'
     show AuthStatusLine;
 import 'package:wordchain/features/auth/view/widgets/phone_input_field.dart';
-import 'package:wordchain/features/auth/view/widgets/referral_bottom_sheet.dart';
+import 'package:wordchain/features/auth/view/widgets/referral_dialog.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 
@@ -58,7 +58,7 @@ class _LoginView extends StatelessWidget {
 
   Future<void> _openReferral(BuildContext context) async {
     final cubit = context.read<PhoneEntryCubit>();
-    final code = await ReferralBottomSheet.show(context);
+    final code = await showReferralDialog(context);
     if (code != null) cubit.setReferralCode(code);
   }
 
