@@ -7,7 +7,7 @@ import 'package:wordchain/core/widgets/chunky.dart';
 /// The home scene's inline glyphs, ported 1:1 from the canvas SVGs and
 /// re-coloured from the theme tokens (they are filled/stroked in the object
 /// palette, so they can't go through the monochrome `ZIcon`).
-enum HomeGlyph { flame, gear, robot, chest, crown, play, clock }
+enum HomeGlyph { flame, gear, bell, robot, chest, crown, play, clock }
 
 class HomeSvg extends StatelessWidget {
   final HomeGlyph glyph;
@@ -35,6 +35,8 @@ class HomeSvg extends StatelessWidget {
         '<svg viewBox="0 0 20 24"><path d="M10 1C11 6 18 8 18 15a8 8 0 0 1-16 0c0-4 2-6 4-8 0 3 1 4 2 5 0-4 1-8 2-11z" fill="${svgHex(z.coral)}" stroke="$o" stroke-width="2.2" stroke-linejoin="round"/><path d="M10 13c1 2 3 3 3 5a3 3 0 0 1-6 0c0-2 2-3 3-5z" fill="${svgHex(z.amber)}"/></svg>',
       HomeGlyph.gear =>
         '<svg viewBox="0 0 24 24" fill="none" stroke="$c" stroke-width="2.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>',
+      HomeGlyph.bell =>
+        '<svg viewBox="0 0 24 24" fill="none" stroke="$c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 15 6 10z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></svg>',
       HomeGlyph.robot =>
         '<svg viewBox="0 0 42 40"><path d="M21 3v6" stroke="$o" stroke-width="3" stroke-linecap="round"/><circle cx="21" cy="4" r="3" fill="${svgHex(z.amber)}" stroke="$o" stroke-width="2.5"/><rect x="6" y="10" width="30" height="26" rx="8" fill="${svgHex(z.surface)}" stroke="$o" stroke-width="2.8"/><circle cx="15" cy="22" r="3.2" fill="$o"/><circle cx="27" cy="22" r="3.2" fill="$o"/><path d="M16 30h10" stroke="$o" stroke-width="2.8" stroke-linecap="round"/></svg>',
       HomeGlyph.chest =>

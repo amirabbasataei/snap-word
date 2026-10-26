@@ -25,6 +25,9 @@ class HomeViewData {
   /// Unclaimed rewards waiting in the inbox (drives the chest).
   final int unclaimedRewards;
 
+  /// Pending friend requests + challenges (the bell's badge).
+  final int pendingMessages;
+
   final bool dailyAttempted;
   final bool hasActiveMatch;
 
@@ -39,6 +42,7 @@ class HomeViewData {
     this.xpInLevel = 0,
     this.xpForNext = 1000,
     this.unclaimedRewards = 0,
+    this.pendingMessages = 0,
     this.dailyAttempted = false,
     this.hasActiveMatch = false,
     this.onlineCount,
@@ -53,6 +57,7 @@ class HomeView extends StatelessWidget {
   final VoidCallback onDaily;
   final VoidCallback onChest;
   final VoidCallback onCoins;
+  final VoidCallback onMessages;
   final VoidCallback onSettings;
   final VoidCallback onLevel;
   final VoidCallback onResume;
@@ -66,6 +71,7 @@ class HomeView extends StatelessWidget {
     required this.onDaily,
     required this.onChest,
     required this.onCoins,
+    required this.onMessages,
     required this.onSettings,
     required this.onLevel,
     required this.onResume,
@@ -135,8 +141,10 @@ class HomeView extends StatelessWidget {
                                   levelProgress: data.xpForNext <= 0 ? 0 : data.xpInLevel / data.xpForNext,
                                   coins: data.coins,
                                   streak: data.streak,
+                                  messages: data.pendingMessages,
                                   onLevelTap: onLevel,
                                   onCoinsTap: onCoins,
+                                  onMessagesTap: onMessages,
                                   onSettingsTap: onSettings,
                                 ),
                               ),

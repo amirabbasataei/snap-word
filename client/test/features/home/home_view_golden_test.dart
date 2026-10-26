@@ -10,12 +10,17 @@ import '../../helpers/z_test_app.dart';
 void main() {
   setUpAll(loadVazirmatn);
 
-  for (final brightness in Brightness.values) {
-    testWidgets('golden home hud + resume chip ${brightness.name}', (
+  // The 320dp case pins the shrunk leading cluster next to the bell + gear.
+  for (final (brightness, size, suffix) in [
+    (Brightness.light, const Size(393, 852), ''),
+    (Brightness.dark, const Size(393, 852), ''),
+    (Brightness.dark, const Size(320, 640), '_320'),
+  ]) {
+    testWidgets('golden home hud + resume chip ${brightness.name}$suffix', (
       tester,
     ) async {
       tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(393, 852);
+      tester.view.physicalSize = size;
       addTearDown(tester.view.reset);
       void noop() {}
       await tester.pumpWidget(
@@ -33,14 +38,19 @@ void main() {
                           padding: const EdgeInsets.only(bottom: 100),
                         ),
                         child: HomeView(
-                          data: const HomeViewData(
+                          data: HomeViewData(
                             coins: 1240,
                             streak: 12,
                             level: 9,
                             xpInLevel: 2220,
                             xpForNext: 9000,
                             unclaimedRewards: 1,
+                            pendingMessages: 3,
                             hasActiveMatch: true,
+                            // The no-count subtitle of the online button
+                            // overflows by 0.6dp at 320 (todo.md § 3), which
+                            // is not what this golden pins.
+                            onlineCount: suffix.isEmpty ? null : 3401,
                           ),
                           onPlay: noop,
                           onAi: noop,
@@ -48,6 +58,7 @@ void main() {
                           onDaily: noop,
                           onChest: noop,
                           onCoins: noop,
+                          onMessages: noop,
                           onSettings: noop,
                           onLevel: noop,
                           onResume: noop,
@@ -72,7 +83,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await expectLater(
         find.byKey(const Key('golden')),
-        matchesGoldenFile('goldens/home_hud_${brightness.name}.png'),
+        matchesGoldenFile('goldens/home_hud_${brightness.name}$suffix.png'),
       );
     });
   }

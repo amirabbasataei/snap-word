@@ -495,7 +495,7 @@ The numbered "items 1, 2, 5" the brief refers to are not written down in this fi
 - ~~ZVersus still has its own header, bubbles and pill~~ — adopted the shared pieces in the ZVersus session (below).
 - Two mascots: `HomeMascot` (hanging from the chain, home only) and the new standing `ZMascot`. They are different drawings; keep both, do not merge.
 - `ZBackButton` (legacy 34px, `z_game_shared.dart`) is now used by no screen (Daily moved to `ZGameBackButton`, 44px, in the ZDaily session, 2026-10-25) — dead code, safe to delete with the lobby test line that asserts its absence.
-- `ZEmptyState` and `ZLoadState` (loading + failed load) exist (ZFriends session, 2026-10-25) with `ZStateCard` (the surface card around them, hoisted in the ZDaily session). The Friends, Board, Profile and both Daily screens use them. **Still duplicated, not migrated:** the private `_StateCard` copies in `z_friends_screen.dart` / `z_profile_screen.dart`, and the bare `CircularProgressIndicator` loading state of `messages_screen.dart` (`rewards_screen.dart` migrated 2026-10-26, § ZAwards).
+- `ZEmptyState` and `ZLoadState` (loading + failed load) exist (ZFriends session, 2026-10-25) with `ZStateCard` (the surface card around them, hoisted in the ZDaily session). The Friends, Board, Profile and both Daily screens use them. **Still duplicated, not migrated:** the private `_StateCard` copies in `z_friends_screen.dart` / `z_profile_screen.dart`, (`rewards_screen.dart` migrated 2026-10-26, § ZAwards; `messages_screen.dart` migrated 2026-10-26, § ZNotifs).
 - ~~The ribbon title (swallow-tail) is not a shared widget yet~~ — `ZRibbonTitle` (`core/widgets/z_ribbon_title.dart`) landed with ZLobby (below).
 - Sheets without a canvas frame (referral, edit username, avatar picker, buy coins, taunt tray) are still Material bottom sheets; they get a `ZTray` frame in their screens' sessions. (The ZProfile, ZDaily, ZPhoneA and ZOtpA canvases draw none of them — the avatar picker and buy-coins sheets only moved to `profile_sheets.dart`, and the login rebuild left `ReferralBottomSheet` alone — so a `ZTray` is still unbuilt.) (Add friend became a `showZDialog` card in the ZFriends session; the friend challenge was already a dialog.)
 - `ZInviteButton` (the amber «دعوت به بازی») is shared by the lobby and the Friends tab since the ZFriends session.
@@ -1061,3 +1061,53 @@ All four ship. `GET /leaderboard?type=alltime` was already wired (the brief said
 4. Claim buttons are teal (canvas) instead of amber.
 
 **Not verified (needs a device):** a real claim against the server, the balance pop and toast on hardware, a rewarded ad on Android, dark mode and large system font on a phone.
+
+---
+
+## ZNotifs — «اعلان‌ها» / MessagesScreen (2026-10-26) — code complete; widget tests + goldens (47 tests in `test/features/messages/`), NOT seen on a device
+
+**Source:** canvas turn 12, `ZNotifs.dc.html` (frame **12a**; project `4a90de7c-…`, `list_files` 2026-10-26). No `ZNotifsA` exists, so the plain frame is the source. `ZScene` was already built. **The frame draws no sheet, tray or dialog**, so **`ZTray` was not built**.
+
+**The canvas is a general notification feed, the product has two kinds of pending invitation.** ZNotifs draws a mixed feed (game invite, «نوبت توست», prize ready, daily challenge, a loss, a new friend) with an all / unread tab pair, a read state (coral dot, wash card once read), «امروز / قبل‌تر» day groups, a time on every card and a «همه خوانده شد» pill. What exists is `GET /friends/requests` + `GET /challenges/pending`: actionable invitations that vanish once answered. So the screen takes the canvas's **frame** (header, card anatomy, teal accept + neutral decline, empty state) and fills it with those.
+
+**Code**
+- `features/messages/view/messages_screen.dart` — orchestration only: `HomeSceneBackground` + header + a `ListView`, `ZOverEnter` staggers. Answering is per invitation (`_busy`, keys `r:<requesterId>` / `c:<id>`), so a second tap is ignored. Behaviour kept: accept/decline use the friends endpoints through `MessagesCubit`; accepting a challenge `push`es `/game` with the room (`GameRouteArgs`, `opponentName`); `insufficient_coins` → `showInsufficientCoinsDialog` and the invite stays; any other challenge failure resyncs and toasts `challenge_expired` / `challenger_cannot_afford`.
+- New `features/messages/view/widgets/`: `messages_header.dart` (`MessagesHeader` — `ZGameBackButton` + the «اعلان‌ها» title), `message_tile.dart` (`MessageTile`: disc, title, text, teal accept + neutral decline inset 64dp under the text), `message_format.dart` (`requestFace` / `challengeFace` → title / body / glyph / accent / button labels / per-button screen-reader labels naming the sender).
+- **New shared widget `ZAccentDisc`** (`core/widgets/z_accent_disc.dart`): the 52dp accent square, lifted out of `RewardTile` (pure move, rewards goldens unchanged) and reused here. `ZDialogButton.secondary` gained an optional `fontSize` (default 16, unchanged) so the two buttons share the canvas's 14.
+- Loading / failed first load / empty use `ZLoadState` / `ZEmptyState` inside `ZStateCard` — the bare `CircularProgressIndicator` (todo.md § 3) is gone. `MessagesState` gained `loaded` and `error` (Persian, `errorMessageFor(e.code)`) exactly like `RewardsState`.
+
+**Real data used:** pending friend requests (username) and pending challenges (challenger username). Disc = sender's initial (`nameInitial`), indigo for a friend request, coral for a game invite (canvas colours for those two). Usernames sit in a bidi isolate.
+
+**Omitted — nothing backs it (not faked)**
+- **Tabs «همه / خوانده‌نشده», the unread dot, the read-card wash and «همه خوانده شد»:** the server keeps no read state; every listed item is simply waiting for an answer.
+- **«امروز / قبل‌تر» groups and the time stamp:** friend requests carry no timestamp; a challenge only has `expires_at` (creation + 24 h). Needs `created_at` on both endpoints before it can be drawn.
+- **The «done» line** («دعوت را پذیرفتی») and the feed-only kinds (turn reminder, prize ready, daily challenge, game result, new friend): an answered invitation leaves the list at once, and the others are not stored anywhere (prizes live on «جایزه‌ها»).
+
+**Adapted / kept**
+- **Title «اعلان‌ها»** (canvas) replaces the old «پیام‌ها». The entry point is the Home top bar's bell (below), which the canvas also calls «اعلان‌ها». Revisit if a feed of real notifications is ever built.
+- Decline reads **«رد»**, not the canvas's «بعداً»: declining is final (`respond accept:false`), «later» would promise a deferral the product does not have. Same rule as ZExitConfirm. Accept reads «بپذیر» for a friend request (the canvas has none) and the canvas's «بازی کن» for a game invite.
+- Body copy follows the canvas: «{name} تو را به یک بازی آنلاین دعوت کرده است.» (the old «کلاسیک» wording is gone; the mode is always Classic).
+- Text scale: the buttons cap at 1.3× (fixed 44dp height), the title caps at 1.3×, card titles and text wrap freely, the disc ignores it.
+
+**Behaviour changed on purpose (flagged)**
+1. A first load that fails now shows the failed-load card with «تلاش دوباره» (before: «پیامی نداری», indistinguishable from empty). A failed *refresh* still keeps the current list.
+2. A signed-out visitor gets the empty state at once (the cubit reports `loaded: true` for guests).
+3. Request-answer failures toast the Persian text of the error code (`errorMessageFor(e.code)`) instead of one fixed sentence.
+4. The screen now has the sky scene, not the plain paper background.
+
+**Found, not fixed:** in light mode `teal` / `onTeal` is **3.15:1**, so the 14dp w900 label of every teal chunky button (`ZDialogButton.primary`, used app-wide) is under 4.5:1 and only passes the large-text 3:1 floor. It is the canvas's own pair — a token decision, not part of this screen.
+
+**Not verified (needs a device):** a real accept/decline against the server, entering a room from an accepted challenge, dark mode and large system font on a phone.
+
+### Home bell — the entry point to ZNotifs (2026-10-26, canvas `ZHome3A` frame 7a)
+
+The 7a top bar gained a **notifications bell** between the spacer and the gear (it links to frame 12a). `list_files` showed no new file; the change is inside `ZHome3A.dc.html`.
+
+- `home_hud.dart` — `_BellButton` (44dp chunky square r14 like the gear, bell glyph `HomeGlyph.bell` in `home_icons.dart`) with a coral count badge hanging off the end-top corner (`PositionedDirectional(end: -7, top: -7)`, min 20dp, 11 pt w900 `zs.onCoralSm`, 2dp outline). `HomeHud` takes `messages` + `onMessagesTap`; `HomeViewData.pendingMessages` / `HomeView.onMessages` carry them.
+- **Real data:** the badge is `MessagesCubit.count` (pending friend requests + challenges — the same number as the Friends tab badge), **hidden at 0** (the canvas always draws «۳»), «۹۹+» past 99. Home already refreshes the cubit on load and resume, and answering on the notifications screen updates the shared singleton, so the badge follows. A guest has no invitations; tapping the bell sends them to `/login?return=/messages` (same as the chest).
+- **Semantics:** one button, «اعلان‌ها، N مورد» (just «اعلان‌ها» at 0).
+- **Size:** 44dp, not the canvas's 40 — same hit-target bump the gear already had (`ZGame.hudIconButton`).
+- **Layout:** two buttons no longer fit next to level + coins + streak on ≤ 360dp phones (overflow 5.3 px at 360, 45 px at 320). The leading cluster now sits in `Expanded > Align > FittedBox(scaleDown)`, so it shrinks only when it must (≈ 0.8× at 320; unchanged at ≥ 393) and the buttons stay full size; a large system font shrinks it instead of overflowing, too.
+- **Tests:** `home_view_test.dart` (badge digits, none at 0, «۹۹+», tap, semantics label, bell before gear on the same row; layout group now sets `pendingMessages: 120`), `home_view_golden_test.dart` (HUD goldens regenerated; new 320dp dark golden).
+- **Not verified on a device:** the tap through to `/messages` and the badge refresh after answering an invitation.
+

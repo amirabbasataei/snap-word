@@ -2,20 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
-import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/widgets/letter_tile.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
+import 'package:wordchain/core/widgets/z_empty_state.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
+import 'package:wordchain/core/widgets/z_mascot.dart';
+import 'package:wordchain/core/widgets/z_state_card.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
-import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/features/messages/view/widgets/message_format.dart';
+import 'package:wordchain/features/messages/view/widgets/message_tile.dart';
+import 'package:wordchain/features/messages/view/widgets/messages_header.dart';
 
-/// Actionable invitations behind the home inbox icon: friend requests and
-/// friend challenges. Claimable coin prizes live on the rewards screen.
+/// «اعلان‌ها» — the actionable invitations (canvas `ZNotifs`, frame 12a):
+/// pending friend requests and friend challenges, one card each, answered in
+/// place. Accept / decline reuse the friends endpoints (through
+/// [MessagesCubit]); accepting a challenge enters the room. Claimable coin
+/// prizes live on the rewards screen.
+///
+/// A pushed route, not a tab. The canvas is a general notification feed (tabs,
+/// read state, day groups); the product only has these two kinds of pending
+/// invitation, so that is all the cards show (REDESIGN_PLAN.md § ZNotifs).
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
 
@@ -24,263 +36,176 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
+  /// Invitations with an answer in flight (`r:<requesterId>` / `c:<id>`), so a
+  /// second tap is ignored.
+  final _busy = <String>{};
+
   @override
   void initState() {
     super.initState();
     getIt<MessagesCubit>().refresh();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                ZSpacing.screenGutter,
-                ZSpacing.lg,
-                ZSpacing.screenGutter,
-                ZSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: Icon(Icons.arrow_back_rounded, color: z.ink),
-                  ),
-                  const SizedBox(width: ZSpacing.sm),
-                  Text(
-                    'پیام‌ها',
-                    style: ZTypography.screenTitle.copyWith(color: z.ink),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: BlocBuilder<MessagesCubit, MessagesState>(
-                bloc: getIt<MessagesCubit>(),
-                builder: (context, state) {
-                  if (state.count == 0) {
-                    return Center(
-                      child:
-                          state.loading
-                              ? CircularProgressIndicator(color: z.indigo)
-                              : Text(
-                                'پیامی نداری',
-                                style: ZTypography.body.copyWith(
-                                  color: z.ink40,
-                                ),
-                              ),
-                    );
-                  }
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      ZSpacing.screenGutter,
-                      0,
-                      ZSpacing.screenGutter,
-                      ZSpacing.xl,
-                    ),
-                    children: [
-                      for (final r in state.requests) ...[
-                        _MessageTile(
-                          name: r.username,
-                          accent: ZAccent.amber,
-                          title: r.username,
-                          body: 'می‌خواهد دوست تو شود',
-                          onAccept: () => _respondRequest(r, true),
-                          onDecline: () => _respondRequest(r, false),
-                        ),
-                        const SizedBox(height: ZSpacing.md),
-                      ],
-                      for (final c in state.challenges) ...[
-                        _MessageTile(
-                          name: c.challengerUsername,
-                          accent: ZAccent.coral,
-                          title: c.challengerUsername,
-                          body: 'تو را به یک بازی کلاسیک چالش کرد',
-                          onAccept: () => _respondChallenge(c, true),
-                          onDecline: () => _respondChallenge(c, false),
-                        ),
-                        const SizedBox(height: ZSpacing.md),
-                      ],
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _respondRequest(PendingRequest r, bool accept) async {
-    final overlay = Overlay.of(context, rootOverlay: true);
-    try {
-      await getIt<MessagesCubit>().respondToRequest(r.requesterId, accept);
-    } on FriendsException {
-      ZToast.showOn(
-        overlay,
-        'مشکلی پیش آمد، دوباره تلاش کن',
-        kind: ZToastKind.error,
-      );
+  void _back() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/home');
     }
   }
 
-  Future<void> _respondChallenge(PendingChallenge c, bool accept) async {
-    final overlay = Overlay.of(context, rootOverlay: true);
+  Future<void> _answer(String key, Future<void> Function() action) async {
+    if (!_busy.add(key)) return;
+    setState(() {});
     try {
-      final roomId = await getIt<MessagesCubit>().respondToChallenge(
-        c.id,
-        accept,
-      );
-      if (roomId != null && mounted) {
-        context.push(
-          '/game',
-          extra: GameRouteArgs(
-            mode: c.mode,
-            opponentType: 'multiplayer',
-            roomId: roomId,
-            opponentName: c.challengerUsername,
-          ),
+      await action();
+    } finally {
+      _busy.remove(key);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _respondRequest(PendingRequest r, bool accept) {
+    return _answer('r:${r.requesterId}', () async {
+      final overlay = Overlay.of(context, rootOverlay: true);
+      try {
+        await getIt<MessagesCubit>().respondToRequest(r.requesterId, accept);
+      } on FriendsException catch (e) {
+        ZToast.showOn(overlay, errorMessageFor(e.code), kind: ZToastKind.error);
+      }
+    });
+  }
+
+  Future<void> _respondChallenge(PendingChallenge c, bool accept) {
+    return _answer('c:${c.id}', () async {
+      final overlay = Overlay.of(context, rootOverlay: true);
+      try {
+        final roomId = await getIt<MessagesCubit>().respondToChallenge(
+          c.id,
+          accept,
+        );
+        if (roomId != null && mounted) {
+          context.push(
+            '/game',
+            extra: GameRouteArgs(
+              mode: c.mode,
+              opponentType: 'multiplayer',
+              roomId: roomId,
+              opponentName: c.challengerUsername,
+            ),
+          );
+        }
+      } on FriendsException catch (e) {
+        if (e.code == 'insufficient_coins') {
+          // The invite stays pending so it can be accepted once coins are earned.
+          if (mounted) await showInsufficientCoinsDialog(context);
+          return;
+        }
+        // Expired or answered elsewhere → resync instead of a dead-end error.
+        await getIt<MessagesCubit>().refresh();
+        ZToast.showOn(
+          overlay,
+          e.code == 'challenger_cannot_afford'
+              ? errorMessageFor(e.code)
+              : errorMessageFor('challenge_expired'),
+          kind: ZToastKind.error,
         );
       }
-    } on FriendsException catch (e) {
-      if (e.code == 'insufficient_coins') {
-        // The invite stays pending so it can be accepted once coins are earned.
-        if (mounted) await showInsufficientCoinsDialog(context);
-        return;
-      }
-      // Expired or answered elsewhere → resync instead of a dead-end error.
-      await getIt<MessagesCubit>().refresh();
-      ZToast.showOn(
-        overlay,
-        e.code == 'challenger_cannot_afford'
-            ? errorMessageFor(e.code)
-            : errorMessageFor('challenge_expired'),
-        kind: ZToastKind.error,
-      );
-    }
-  }
-}
-
-class _MessageTile extends StatefulWidget {
-  final String name;
-  final ZAccent accent;
-  final String title;
-  final String body;
-  final Future<void> Function() onAccept;
-  final Future<void> Function() onDecline;
-
-  const _MessageTile({
-    required this.name,
-    required this.accent,
-    required this.title,
-    required this.body,
-    required this.onAccept,
-    required this.onDecline,
-  });
-
-  @override
-  State<_MessageTile> createState() => _MessageTileState();
-}
-
-class _MessageTileState extends State<_MessageTile> {
-  bool _busy = false;
-
-  Future<void> _run(Future<void> Function() action) async {
-    setState(() => _busy = true);
-    await action();
-    if (mounted) setState(() => _busy = false);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final initial =
-        widget.name.isEmpty ? '؟' : widget.name.substring(0, 1).toUpperCase();
-    return SolidCard(
-      padding: const EdgeInsets.all(ZSpacing.lg),
-      radius: ZRadius.cardMax,
-      child: Row(
+    return Scaffold(
+      backgroundColor: context.zs.sky3,
+      body: Stack(
+        fit: StackFit.expand,
         children: [
-          LetterTile(
-            letter: initial,
-            size: 34,
-            accent: widget.accent,
-            radius: 11,
-            fontSize: 15,
-          ),
-          const SizedBox(width: ZSpacing.md),
-          Expanded(
+          const HomeSceneBackground(),
+          SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.title,
-                  style: ZTypography.cardTitle.copyWith(color: z.ink),
+                ZOverEnter(
+                  kind: ZOverEnterKind.up,
+                  delayMs: 0,
+                  child: MessagesHeader(onBack: _back),
                 ),
-                Text(
-                  widget.body,
-                  style: ZTypography.metaLabel.copyWith(color: z.ink40),
+                Expanded(
+                  child: BlocBuilder<MessagesCubit, MessagesState>(
+                    bloc: getIt<MessagesCubit>(),
+                    builder: _body,
+                  ),
                 ),
               ],
             ),
-          ),
-          _PillAction(
-            label: 'تأیید',
-            bg: z.teal,
-            fg: z.onTeal,
-            onTap: _busy ? null : () => _run(widget.onAccept),
-          ),
-          const SizedBox(width: 6),
-          _PillAction(
-            label: 'رد',
-            bg: z.paper,
-            fg: z.ink40,
-            onTap: _busy ? null : () => _run(widget.onDecline),
           ),
         ],
       ),
     );
   }
-}
 
-class _PillAction extends StatelessWidget {
-  final String label;
-  final Color bg;
-  final Color fg;
-  final VoidCallback? onTap;
-
-  const _PillAction({
-    required this.label,
-    required this.bg,
-    required this.fg,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(ZRadius.chip),
+  Widget _body(BuildContext context, MessagesState state) {
+    if (!state.loaded) {
+      final error = state.error;
+      return _stateCard(
+        error == null
+            ? const ZLoadState.loading()
+            : ZLoadState.error(
+              message: error,
+              onRetry: () => getIt<MessagesCubit>().refresh(),
+            ),
+      );
+    }
+    if (state.count == 0) {
+      return _stateCard(
+        const ZEmptyState(
+          title: 'اعلانی نداری',
+          body: 'هر خبر تازه‌ای برسد، همین‌جا می‌بینی.',
+          mood: ZMascotMood.idle,
         ),
-        child: Text(
-          label,
-          style: ZTypography.metaLabel.copyWith(
-            color: fg,
-            fontWeight: FontWeight.w800,
+      );
+    }
+    var i = 0;
+    int delay() => 180 + 50 * (i++ < 6 ? i - 1 : 6);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+      children: [
+        for (final r in state.requests)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+            child: ZOverEnter(
+              key: ValueKey('r:${r.requesterId}'),
+              kind: ZOverEnterKind.up,
+              delayMs: delay(),
+              child: MessageTile(
+                face: requestFace(r),
+                busy: _busy.contains('r:${r.requesterId}'),
+                onAccept: () => _respondRequest(r, true),
+                onDecline: () => _respondRequest(r, false),
+              ),
+            ),
           ),
-        ),
-      ),
+        for (final c in state.challenges)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+            child: ZOverEnter(
+              key: ValueKey('c:${c.id}'),
+              kind: ZOverEnterKind.up,
+              delayMs: delay(),
+              child: MessageTile(
+                face: challengeFace(c),
+                busy: _busy.contains('c:${c.id}'),
+                onAccept: () => _respondChallenge(c, true),
+                onDecline: () => _respondChallenge(c, false),
+              ),
+            ),
+          ),
+      ],
     );
   }
+
+  Widget _stateCard(Widget child) => SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+    child: ZStateCard(child: child),
+  );
 }

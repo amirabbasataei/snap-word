@@ -160,7 +160,7 @@ enum ZDialogAccent { teal, indigo, amber, coral }
 /// A dialog button in the canvas's chunky style. [ZDialogButton.primary] is
 /// the filled accent button (default: 58 tall, r20, 5px edge);
 /// [ZDialogButton.secondary] is the neutral surface button with an optional
-/// coloured label and leading icon (50 tall, r18, 4px edge).
+/// coloured label and leading icon (50 tall, r18, 4px edge, 16 pt label).
 class ZDialogButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
@@ -199,9 +199,9 @@ class ZDialogButton extends StatelessWidget {
     this.height,
     this.radius,
     this.depth,
+    this.fontSize,
   }) : _primary = false,
-       accent = ZDialogAccent.teal,
-       fontSize = null;
+       accent = ZDialogAccent.teal;
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +273,7 @@ class ZDialogButton extends StatelessWidget {
                   child: Text(
                     label,
                     style: ZTypography.button.copyWith(
-                      fontSize: 16,
+                      fontSize: fontSize ?? 16,
                       height: 1,
                       color: ink,
                     ),

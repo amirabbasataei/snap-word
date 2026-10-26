@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 
@@ -9,10 +10,22 @@ class MessagesState {
   final List<PendingChallenge> challenges;
   final bool loading;
 
+  /// A list (even an empty one) has been received at least once, or there is
+  /// nothing to receive (guest, or the Friends tab handed over its own load).
+  /// Before that the screen shows its loading / failed-load block instead of
+  /// the empty state.
+  final bool loaded;
+
+  /// Persian message of the last failed [MessagesCubit.refresh]; the screen
+  /// only shows it while nothing has loaded yet.
+  final String? error;
+
   const MessagesState({
     this.requests = const [],
     this.challenges = const [],
     this.loading = false,
+    this.loaded = false,
+    this.error,
   });
 
   int get count => requests.length + challenges.length;
@@ -37,7 +50,7 @@ class MessagesCubit extends Cubit<MessagesState> {
   /// Best-effort: on failure the previous list (and badge) is kept.
   Future<void> refresh() async {
     if (_auth.state is! AuthAuthenticated) {
-      emit(const MessagesState());
+      emit(const MessagesState(loaded: true));
       return;
     }
     emit(
@@ -45,6 +58,7 @@ class MessagesCubit extends Cubit<MessagesState> {
         requests: state.requests,
         challenges: state.challenges,
         loading: true,
+        loaded: state.loaded,
       ),
     );
     try {
@@ -56,11 +70,17 @@ class MessagesCubit extends Cubit<MessagesState> {
         MessagesState(
           requests: results[0] as List<PendingRequest>,
           challenges: results[1] as List<PendingChallenge>,
+          loaded: true,
         ),
       );
-    } on FriendsException {
+    } on FriendsException catch (e) {
       emit(
-        MessagesState(requests: state.requests, challenges: state.challenges),
+        MessagesState(
+          requests: state.requests,
+          challenges: state.challenges,
+          loaded: state.loaded,
+          error: errorMessageFor(e.code),
+        ),
       );
     }
   }
@@ -72,7 +92,9 @@ class MessagesCubit extends Cubit<MessagesState> {
     List<PendingChallenge> challenges,
   ) {
     if (_auth.state is! AuthAuthenticated) return;
-    emit(MessagesState(requests: requests, challenges: challenges));
+    emit(
+      MessagesState(requests: requests, challenges: challenges, loaded: true),
+    );
   }
 
   Future<void> respondToRequest(String requesterId, bool accept) async {
@@ -85,6 +107,7 @@ class MessagesCubit extends Cubit<MessagesState> {
             if (r.requesterId != requesterId) r,
         ],
         challenges: state.challenges,
+        loaded: true,
       ),
     );
   }
@@ -100,6 +123,7 @@ class MessagesCubit extends Cubit<MessagesState> {
           for (final c in state.challenges)
             if (c.id != id) c,
         ],
+        loaded: true,
       ),
     );
     return accept ? roomId : null;

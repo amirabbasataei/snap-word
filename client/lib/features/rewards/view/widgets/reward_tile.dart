@@ -5,6 +5,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/widgets/z_accent_disc.dart';
 import 'package:wordchain/core/widgets/z_dialog.dart';
 import 'package:wordchain/features/rewards/data/rewards_repository.dart';
 import 'package:wordchain/features/rewards/view/widgets/reward_format.dart';
@@ -49,7 +50,7 @@ class RewardTile extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Disc(glyph: face.glyph, accent: face.accent, dim: claimed),
+              ZAccentDisc(glyph: face.glyph, accent: face.accent, dim: claimed),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -109,50 +110,6 @@ class RewardTile extends StatelessWidget {
   }
 
   static const _buttonWidth = 118.0;
-}
-
-/// The 52dp accent square with the prize's glyph; a claimed prize loses its
-/// colour (wash fill, no edge).
-class _Disc extends StatelessWidget {
-  final String glyph;
-  final ZDialogAccent accent;
-  final bool dim;
-
-  const _Disc({required this.glyph, required this.accent, required this.dim});
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    final (fill, deep, on) = switch (accent) {
-      ZDialogAccent.teal => (z.teal, z.tealDeep, z.onTeal),
-      ZDialogAccent.indigo => (z.indigo, z.indigoDeep, z.onIndigo),
-      ZDialogAccent.amber => (z.amber, z.amberDeep, z.onAmber),
-      ZDialogAccent.coral => (z.coral, z.coralDeep, z.onCoral),
-    };
-    return ExcludeSemantics(
-      child: MediaQuery.withNoTextScaling(
-        child: ChunkyBox(
-          fill: dim ? z.wash : fill,
-          deep: dim ? null : deep,
-          depth: dim ? 0 : 4,
-          radius: 16,
-          highlight: !dim,
-          width: 52,
-          height: 52,
-          alignment: Alignment.center,
-          child: Text(
-            glyph,
-            maxLines: 1,
-            style: ZTypography.button.copyWith(
-              fontSize: glyph.runes.length > 1 ? 18 : 24,
-              height: 1,
-              color: dim ? z.ink60 : on,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// «۵۰ سکه» with the small amber coin.

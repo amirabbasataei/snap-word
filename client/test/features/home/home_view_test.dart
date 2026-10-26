@@ -14,6 +14,7 @@ import '../../helpers/z_test_app.dart';
 Widget _home({
   HomeViewData data = const HomeViewData(),
   VoidCallback? onPlay,
+  VoidCallback? onMessages,
   bool reduceMotion = false,
   Brightness brightness = Brightness.light,
 }) {
@@ -36,6 +37,7 @@ Widget _home({
               onDaily: noop,
               onChest: noop,
               onCoins: noop,
+              onMessages: onMessages ?? noop,
               onSettings: noop,
               onLevel: noop,
               onResume: noop,
@@ -133,6 +135,7 @@ void main() {
                 xpInLevel: 320,
                 xpForNext: 500,
                 unclaimedRewards: 2,
+                pendingMessages: 120,
                 hasActiveMatch: true,
                 onlineCount: 3401,
               ),
@@ -182,6 +185,77 @@ void main() {
         _home(data: const HomeViewData(unclaimedRewards: 1)),
       );
       expect(find.text(HomeChest.readyLabel), findsOneWidget);
+    });
+  });
+
+  group('notifications bell', () {
+    Finder bell(String label) => find.bySemanticsLabel(label);
+
+    /// The 11dp badge text (other 11.5dp «۳» glyphs exist elsewhere on Home).
+    Finder badge(String text) => find.byWidgetPredicate(
+      (w) => w is Text && w.data == text && w.style?.fontSize == 11,
+    );
+
+    testWidgets('shows the pending count in Persian digits', (tester) async {
+      await _setSize(tester, 393, 852);
+      await tester.pumpWidget(
+        _home(data: const HomeViewData(pendingMessages: 3)),
+      );
+      expect(badge('۳'), findsOneWidget);
+    });
+
+    testWidgets('no badge when nothing is waiting', (tester) async {
+      await _setSize(tester, 393, 852);
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _home(data: const HomeViewData(coins: 1240, streak: 5)),
+      );
+      expect(bell('اعلان‌ها'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate((w) => w is Text && w.style?.fontSize == 11),
+        findsNothing,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a long queue reads ۹۹+', (tester) async {
+      await _setSize(tester, 393, 852);
+      await tester.pumpWidget(
+        _home(data: const HomeViewData(pendingMessages: 150)),
+      );
+      expect(badge('۹۹+'), findsOneWidget);
+    });
+
+    testWidgets('tap opens the notifications; the label carries the count', (
+      tester,
+    ) async {
+      await _setSize(tester, 393, 852);
+      final handle = tester.ensureSemantics();
+      var opened = 0;
+      await tester.pumpWidget(
+        _home(
+          onMessages: () => opened++,
+          data: const HomeViewData(pendingMessages: 2),
+        ),
+      );
+      final label = bell('اعلان‌ها، ۲ مورد');
+      expect(label, findsOneWidget);
+      await tester.tap(label);
+      expect(opened, 1);
+      handle.dispose();
+    });
+
+    testWidgets('sits before the gear, at the end of the bar', (tester) async {
+      await _setSize(tester, 393, 852);
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_home());
+      final bellBox = tester.getRect(bell('اعلان‌ها'));
+      final gearBox = tester.getRect(bell('حالت شب'));
+      // RTL: the bell is to the right (start side) of the gear, same row.
+      expect(bellBox.center.dx, greaterThan(gearBox.center.dx));
+      expect(bellBox.center.dy, closeTo(gearBox.center.dy, 0.5));
+      expect(bellBox.size, gearBox.size);
+      handle.dispose();
     });
   });
 

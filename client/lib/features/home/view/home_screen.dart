@@ -182,38 +182,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: z.paper,
-      body: BlocBuilder<RewardsCubit, RewardsState>(
-        bloc: getIt<RewardsCubit>(),
+      body: BlocBuilder<MessagesCubit, MessagesState>(
+        bloc: getIt<MessagesCubit>(),
         builder:
-            (context, rewards) => HomeView(
-              data: HomeViewData(
-                coins: _coins,
-                streak: _stats?.dailyStreak ?? 0,
-                level: _level,
-                xpInLevel: _xpInLevel,
-                xpForNext: _xpForNext,
-                unclaimedRewards: rewards.unclaimedCount,
-                dailyAttempted: _daily?.hasAttempted ?? false,
-                hasActiveMatch: _checked && _activeMatch != null,
-                // PLACEHOLDER: no endpoint reports players online. The
-                // design's «۳٬۴۰۱» is shown in debug builds only so the
-                // layout can be checked; release shows a real subtitle.
-                onlineCount: kDebugMode ? 3401 : null,
-              ),
-              onPlay: () => _startSolo(context),
-              onAi: () => _startVsAi(context),
-              onOnline: () => _startOnline(context),
-              onDaily: () => context.push('/daily'),
-              onChest: () => _openRoute(context, '/rewards'),
-              // Coin purchase lives in ZProfile's buy sheet.
-              onCoins: () => context.go('/profile'),
-              // The gear is the quick light/dark switch (same ThemeCubit as
-              // ZProfile's حالت شب row).
-              onSettings:
-                  () =>
-                      getIt<ThemeCubit>().toggle(Theme.of(context).brightness),
-              onLevel: () => context.go('/profile'),
-              onResume: () => _resume(context),
+            (context, messages) => BlocBuilder<RewardsCubit, RewardsState>(
+              bloc: getIt<RewardsCubit>(),
+              builder:
+                  (context, rewards) => HomeView(
+                    data: HomeViewData(
+                      coins: _coins,
+                      streak: _stats?.dailyStreak ?? 0,
+                      level: _level,
+                      xpInLevel: _xpInLevel,
+                      xpForNext: _xpForNext,
+                      unclaimedRewards: rewards.unclaimedCount,
+                      pendingMessages: messages.count,
+                      dailyAttempted: _daily?.hasAttempted ?? false,
+                      hasActiveMatch: _checked && _activeMatch != null,
+                      // PLACEHOLDER: no endpoint reports players online. The
+                      // design's «۳٬۴۰۱» is shown in debug builds only so the
+                      // layout can be checked; release shows a real subtitle.
+                      onlineCount: kDebugMode ? 3401 : null,
+                    ),
+                    onPlay: () => _startSolo(context),
+                    onAi: () => _startVsAi(context),
+                    onOnline: () => _startOnline(context),
+                    onDaily: () => context.push('/daily'),
+                    onChest: () => _openRoute(context, '/rewards'),
+                    onMessages: () => _openRoute(context, '/messages'),
+                    // Coin purchase lives in ZProfile's buy sheet.
+                    onCoins: () => context.go('/profile'),
+                    // The gear is the quick light/dark switch (same ThemeCubit as
+                    // ZProfile's حالت شب row).
+                    onSettings:
+                        () => getIt<ThemeCubit>().toggle(
+                          Theme.of(context).brightness,
+                        ),
+                    onLevel: () => context.go('/profile'),
+                    onResume: () => _resume(context),
+                  ),
             ),
       ),
     );
