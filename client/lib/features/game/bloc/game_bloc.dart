@@ -1212,6 +1212,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         active.copyWith(
           opponentContinueWindowActive: true,
           opponentContinueWindowRemaining: GameConstants.continueWindowSec,
+          opponentLossReason: reason,
         ),
       );
       _startOpponentContinueTimer();

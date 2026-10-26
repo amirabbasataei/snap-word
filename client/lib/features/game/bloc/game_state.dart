@@ -50,6 +50,9 @@ class GameActive extends GameState {
   final List<String?> wordOwners; // parallel to wordChain — player ID per word
   final bool opponentContinueWindowActive;
   final int opponentContinueWindowRemaining;
+  // Why the opponent lost (`invalid_word` | `timeout`), for the
+  // opponent-deciding dialog's wording. Null until a loss_event names it.
+  final String? opponentLossReason;
   final bool opponentDisconnected;
 
   // Power-ups. `powerupCounts` is the owned inventory (authenticated only);
@@ -101,6 +104,7 @@ class GameActive extends GameState {
     this.wordOwners = const [],
     this.opponentContinueWindowActive = false,
     this.opponentContinueWindowRemaining = 0,
+    this.opponentLossReason,
     this.opponentDisconnected = false,
     this.powerupCounts = const {},
     this.usedPowerups = const {},
@@ -135,6 +139,7 @@ class GameActive extends GameState {
     int? opponentScore,
     bool? opponentContinueWindowActive,
     int? opponentContinueWindowRemaining,
+    String? opponentLossReason,
     bool? opponentDisconnected,
     Map<String, int>? powerupCounts,
     Set<String>? usedPowerups,
@@ -177,6 +182,7 @@ class GameActive extends GameState {
       opponentContinueWindowRemaining:
           opponentContinueWindowRemaining ??
           this.opponentContinueWindowRemaining,
+      opponentLossReason: opponentLossReason ?? this.opponentLossReason,
       opponentDisconnected: opponentDisconnected ?? this.opponentDisconnected,
       powerupCounts: powerupCounts ?? this.powerupCounts,
       usedPowerups: usedPowerups ?? this.usedPowerups,
@@ -224,6 +230,7 @@ class GameActive extends GameState {
     opponentScore,
     opponentContinueWindowActive,
     opponentContinueWindowRemaining,
+    opponentLossReason,
     opponentDisconnected,
     powerupCounts,
     usedPowerups,

@@ -133,7 +133,7 @@ wordchain/
 - Screen files: `ZHome`, `ZSolo`, `ZPlay`, `ZOver`, `ZLobby`, `ZVersus`, `ZDailyBefore`, `ZDailyAfter`, `ZBoard`, `ZProfile`, `ZFriends`, `ZPhone`, `ZOtp`, `ZSplash`; `Zanjir.dc.html` holds the token sheet.
 - The PNGs in `figma/` are the **legacy** Phase 1–16 references, superseded by the canvas for any screen it covers.
 
-Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference. Screens with no canvas design (e.g. the opponent-deciding overlay, friend challenge sheet) are derived from the token system (REDESIGN_PLAN.md Stage 6). `ZOverScreen` is the single game-over/continue screen for solo, vs-AI and multiplayer.
+Do not invent layouts — if a screen is covered by a design file, follow it. If a detail is ambiguous, match the overall visual style and spacing of the nearest reference. Screens with no canvas design (e.g. the friend challenge sheet) are derived from the token system (REDESIGN_PLAN.md Stage 6). `ZOverScreen` is the single game-over/continue screen for solo, vs-AI and multiplayer.
 
 ### Visual system rules (Phase 17)
 - **A screen never names a hex value.** Read colors from the `ZColors` theme extension via `context.z.<token>` (`core/theme/app_tokens.dart`). Light/dark are the same widgets with different token values. Any `Color(0x…)` in a screen file is a bug.
@@ -212,7 +212,7 @@ In any multiplayer match (vs AI or 1v1), **both players contribute to a single s
 1. On a loss event: player may **Watch a rewarded ad** (free) or **Spend 25 coins** (instant).
 2. On continue: chain resumes from the last valid word; it is that player's turn again.
 3. Each player may use **at most one continue per match**.
-4. In multiplayer, the opponent sees "Opponent deciding…" with a **15-second countdown**. If it expires, the loss stands.
+4. In multiplayer, the opponent sees "Opponent deciding…" with a **15-second countdown** — the canvas `ZOppDeciding` dialog (`ZOppDecidingOverlay`, `features/game/view/widgets/z_opp_deciding.dart`, fed by `GameActive.opponentContinueWindowRemaining` / `opponentLossReason`). If it expires, the loss stands.
 5. **Shield interaction**: Shield auto-activates *before* a loss event; the continue prompt appears only if no Shield is held.
 
 ### Word validation rules

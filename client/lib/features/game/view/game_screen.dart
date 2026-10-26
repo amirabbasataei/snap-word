@@ -10,7 +10,6 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
@@ -19,6 +18,7 @@ import 'package:wordchain/features/game/view/z_over_screen.dart';
 import 'package:wordchain/features/game/view/z_play_screen.dart';
 import 'package:wordchain/features/game/view/z_solo_screen.dart';
 import 'package:wordchain/features/game/view/z_versus_screen.dart';
+import 'package:wordchain/features/game/view/widgets/z_opp_deciding.dart';
 
 class GameRouteArgs {
   final String mode; // classic | daily
@@ -208,9 +208,9 @@ class _GameView extends StatelessWidget {
               children: [
                 ZVersusActiveScreen(state: state),
                 if (state.opponentContinueWindowActive)
-                  _OpponentContinueOverlay(
+                  ZOppDecidingOverlay(
                     remaining: state.opponentContinueWindowRemaining,
-                    opponentName: state.opponentUsername ?? 'حریف',
+                    lossReason: state.opponentLossReason,
                   ),
                 if (state.opponentDisconnected) const _DisconnectedBanner(),
               ],
@@ -220,92 +220,6 @@ class _GameView extends StatelessWidget {
 
         return const SizedBox.shrink();
       },
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Opponent continue-window overlay — "Opponent deciding…" (CLAUDE.md
-// Continue Rules #4). No canvas design; derived from the token system.
-// ---------------------------------------------------------------------------
-
-class _OpponentContinueOverlay extends StatelessWidget {
-  final int remaining;
-  final String opponentName;
-
-  const _OpponentContinueOverlay({
-    required this.remaining,
-    required this.opponentName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Positioned.fill(
-      child: ColoredBox(
-        color: z.paper.withValues(alpha: 0.88),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: ZSpacing.xxxl),
-            child: SolidCard(
-              radius: ZRadius.sheetMin,
-              padding: const EdgeInsets.symmetric(
-                horizontal: ZSpacing.xxl,
-                vertical: ZSpacing.xxxl,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 88,
-                    height: 88,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox.expand(
-                          child: CircularProgressIndicator(
-                            value: (remaining / GameConstants.continueWindowSec)
-                                .clamp(0.0, 1.0),
-                            strokeWidth: 6,
-                            strokeCap: StrokeCap.round,
-                            color: z.coral,
-                            backgroundColor: z.tintCoral,
-                          ),
-                        ),
-                        Text(
-                          toPersianDigits(remaining),
-                          style: ZTypography.display.copyWith(
-                            color: z.coral,
-                            fontSize: 30,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: ZSpacing.lg),
-                  Text(
-                    '$opponentName دارد تصمیم می‌گیرد…',
-                    textAlign: TextAlign.center,
-                    style: ZTypography.cardTitle.copyWith(
-                      color: z.ink,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: ZSpacing.sm),
-                  Text(
-                    'حریف می‌تواند با تماشای ویدیو یا خرج سکه ادامه دهد.',
-                    textAlign: TextAlign.center,
-                    style: ZTypography.body.copyWith(
-                      color: z.ink60,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

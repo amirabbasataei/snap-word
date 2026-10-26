@@ -94,6 +94,63 @@ Future<T?> showZDialog<T>(
 /// The canvas spring `cubic-bezier(.34,1.56,.64,1)`.
 const _spring = Cubic(.34, 1.56, .64, 1);
 
+/// The `dropin` entrance for a dialog that lives in the widget tree instead of
+/// a route (state-driven ones, like the opponent-deciding overlay): plays once
+/// on mount, same drop, fade and spring as [showZDialog]; a fade under reduced
+/// motion.
+class ZDropIn extends StatefulWidget {
+  final Widget child;
+
+  const ZDropIn({super.key, required this.child});
+
+  @override
+  State<ZDropIn> createState() => _ZDropInState();
+}
+
+class _ZDropInState extends State<ZDropIn> with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+  bool _reduced = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller != null) return;
+    _reduced = homeReducedMotion(context);
+    _controller = AnimationController(
+      vsync: this,
+      duration:
+          _reduced ? ZGameMotion.dialogEnterReduced : ZGameMotion.dialogEnter,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller!;
+    return AnimatedBuilder(
+      animation: controller,
+      child: widget.child,
+      builder: (context, child) {
+        final t = controller.value;
+        if (_reduced) return Opacity(opacity: t, child: child);
+        final fade = Curves.easeOut.transform((t / .4).clamp(0.0, 1.0));
+        return Opacity(
+          opacity: fade,
+          child: Transform.translate(
+            offset: Offset(0, -48 * (1 - _spring.transform(t))),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// The dialog frame: surface card with a 3px outline, r28 and a solid 6px
 /// edge. An optional [mascot] stands on the card's top edge.
 class ZDialogCard extends StatelessWidget {
