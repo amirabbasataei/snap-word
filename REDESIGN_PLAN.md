@@ -495,7 +495,7 @@ The numbered "items 1, 2, 5" the brief refers to are not written down in this fi
 - ~~ZVersus still has its own header, bubbles and pill~~ — adopted the shared pieces in the ZVersus session (below).
 - Two mascots: `HomeMascot` (hanging from the chain, home only) and the new standing `ZMascot`. They are different drawings; keep both, do not merge.
 - `ZBackButton` (legacy 34px, `z_game_shared.dart`) is now used by no screen (Daily moved to `ZGameBackButton`, 44px, in the ZDaily session, 2026-10-25) — dead code, safe to delete with the lobby test line that asserts its absence.
-- `ZEmptyState` and `ZLoadState` (loading + failed load) exist (ZFriends session, 2026-10-25) with `ZStateCard` (the surface card around them, hoisted in the ZDaily session). The Friends, Board, Profile and both Daily screens use them. **Still duplicated, not migrated:** the private `_StateCard` copies in `z_friends_screen.dart` / `z_profile_screen.dart`, and the bare `CircularProgressIndicator` loading states of `messages_screen.dart` and `rewards_screen.dart`.
+- `ZEmptyState` and `ZLoadState` (loading + failed load) exist (ZFriends session, 2026-10-25) with `ZStateCard` (the surface card around them, hoisted in the ZDaily session). The Friends, Board, Profile and both Daily screens use them. **Still duplicated, not migrated:** the private `_StateCard` copies in `z_friends_screen.dart` / `z_profile_screen.dart`, and the bare `CircularProgressIndicator` loading state of `messages_screen.dart` (`rewards_screen.dart` migrated 2026-10-26, § ZAwards).
 - ~~The ribbon title (swallow-tail) is not a shared widget yet~~ — `ZRibbonTitle` (`core/widgets/z_ribbon_title.dart`) landed with ZLobby (below).
 - Sheets without a canvas frame (referral, edit username, avatar picker, buy coins, taunt tray) are still Material bottom sheets; they get a `ZTray` frame in their screens' sessions. (The ZProfile, ZDaily, ZPhoneA and ZOtpA canvases draw none of them — the avatar picker and buy-coins sheets only moved to `profile_sheets.dart`, and the login rebuild left `ReferralBottomSheet` alone — so a `ZTray` is still unbuilt.) (Add friend became a `showZDialog` card in the ZFriends session; the friend challenge was already a dialog.)
 - `ZInviteButton` (the amber «دعوت به بازی») is shared by the lobby and the Friends tab since the ZFriends session.
@@ -1026,3 +1026,38 @@ All four ship. `GET /leaderboard?type=alltime` was already wired (the brief said
 **Verification:** `flutter analyze` — 7 findings, none in files touched here (4 unused imports in `home_view.dart`, 2 in `test/features/friends/z_friends_screen_test.dart`, and the unused `_IranChip` in `z_login_screen.dart`, all in HEAD). Full suite **1187 pass / 27 fail**; a clean checkout of HEAD (`git worktree add --detach`, `.dart_tool` + `app_database.g.dart` copied) gives **1127 pass / 27 fail** — +60 is exactly the new splash tests, and the sorted `[E]` lists are **identical** (shared widgets ×2, dock ×4, Friends goldens ×3, ZPlay ×5, ZSolo ×4, Home HUD ×2, and 7 in `z_login_screen_test.dart` — 3 tests + 4 goldens — which fail at HEAD too, so the "20 known failures" of the login session no longer describes HEAD; not investigated, not caused by this change). Worktree and the generated `failures/` dirs removed.
 
 **NOT verified (needs devices):** a real cold start (the native → Flutter hand-off colour, the first-frame hitch the dictionary/DI/ad init may cause, how long a refresh-token launch really waits on a slow or offline network), the splash with a valid token / an expired refresh token / airplane mode, returning from the background mid-splash, a push-notification launch, the choreography's frame rate on a low-end Android phone (a full-screen `AnimationController` rebuild per frame plus the scene and mascot tickers), dark mode, a large system font, and the OS reduced-motion setting on hardware.
+
+---
+
+## ZAwards — «جایزه‌ها» / RewardsScreen (2026-10-26) — code complete; widget tests + goldens (69 tests in `test/features/rewards/`), NOT seen on a device
+
+**Source:** canvas turn 11, `ZAwards.dc.html` (frames **11aL / 11aD**, light + dark). No `ZAwardsA` exists (`list_files` 2026-10-26), so the plain frame is the source. `ZScene` / `ZMascot` were already built. **The frame draws no sheet, tray or dialog**, so **`ZTray` was not built**.
+
+**The canvas is an *achievements* screen, the product has *inbox prizes*.** ZAwards draws a fixed catalogue («هفت روز پشت هم», «حرف کمیاب», «قهرمان آنلاین» …) with progress bars (`۲۳ / ۲۰`), a «ready / locked / claimed» state and a «N از M جایزه گرفته‌ای» line. What exists is `inbox_rewards`: prizes that appear only once earned (kinds `streak · weekly_rank · daily_rank · daily_done · daily_login · referral_reward · admin_gift`), claimed with `POST /rewards/:id/claim`. So the screen takes the canvas's **frame** (header, amber summary, card anatomy, teal «دریافت», grey «گرفتی») and fills it with real prizes. Badges/achievements stay unbuilt (see CLAUDE.md § Open issues).
+
+**Code**
+- `features/rewards/view/rewards_screen.dart` — orchestration only: `HomeSceneBackground` + header + a `ListView` (summary, ad card, prize cards), `ZOverEnter` staggers (`up`, from `data-d`: 0 / 120 / 200+). Claim = `RewardsCubit.claim` (unchanged); a claim in flight is tracked per prize (`_claiming`), so a second tap is ignored.
+- New `features/rewards/view/widgets/`: `rewards_header.dart` (`RewardsHeader` — `ZGameBackButton`, the «جایزه‌ها» title, `ZHudCoinPill` read-out; `RewardsCoinBump` pops the pill 1 → 1.35 → 1 in 380 ms when the balance grows, as the canvas does; rests under reduced motion), `rewards_summary.dart` (amber card), `reward_tile.dart` (`RewardTile`: 52dp accent disc with glyph, title, text, coin amount, teal button / «گرفتی» badge), `rewards_free_coins.dart` (the ad card), `reward_format.dart` (`rewardFace(item)` → title / body / glyph / accent per kind; `sortRewards`, `readyCoins`).
+- Loading / failed load / empty use the shared **`ZLoadState` / `ZEmptyState` inside `ZStateCard`** — the bare `CircularProgressIndicator` (the todo.md § 3 item) is gone.
+- `RewardsState` gained `loaded` and `error` (Persian message); `RewardsRepository` now builds its exception from `apiErrorCode(e)` (it used the literal `'network'`, which had no Persian entry, so a connectivity failure would have read the generic text). `error_messages.dart` gained `adUnavailableMessage`; the screen's other ad toasts now use `coinsAwardedMessage` / `networkErrorMessage` (the inline strings are gone).
+
+**Real data used:** list + live coin balance from `GET /rewards` (balance → `AuthCubit.setCoins`, the pill reads `AuthCubit`); the summary count and coins are computed from the unclaimed items; disc glyph = streak days / rank number for those kinds, a letter otherwise (`چ` daily_done, `و` daily_login, `ز` admin_gift, `+` invite); accents amber / indigo / teal / coral from tokens.
+
+**Omitted — nothing backs it (not faked)**
+- **Progress bars, «۲۳ / ۲۰» and the dashed "locked" card:** prizes only exist once earned; no progress is tracked.
+- **«N از M جایزه گرفته‌ای»:** there is no catalogue to count against, and claimed prizes leave the list a day after claiming. The line shows «روی هم N سکه منتظر توست» (real), «همهٔ جایزه‌هایت را گرفته‌ای» (nothing left, some claimed) or «بازی کن تا جایزه‌ها برسند».
+- **The «readyFirst» tweak** is not a switch: unclaimed prizes always sort first, claimed last, each group in the server's order.
+
+**Adapted / kept**
+- The canvas's button reads «دریافت + N سکه»; with no progress bar the amount already sits at the card's start («● N سکه»), so the button says just «دریافت» (the whole card is one screen-reader stop: title, text, amount, «دریافت»).
+- **«سکهٔ رایگان» (rewarded ad)** is not in the canvas but is real, so it stays above the prizes in the same card style (only when ads are on and the player is signed in).
+- The empty state body line is generic («چالش روزانه، بازی پیاپی و دعوت دوستان برایت هدیه می‌آورد.»).
+- Text scale: the amount, buttons, header title and summary count cap at 1.3×; titles and text wrap freely; the disc ignores text scale.
+
+**Behaviour changed on purpose (flagged)**
+1. A first load that fails now shows the failed-load card with «تلاش دوباره» (before: «هدیه‌ای نداری», indistinguishable from empty). A failed *refresh* still keeps the current list.
+2. A signed-out player reaching the route gets the empty state at once (the cubit reports `loaded: true` for guests) instead of a spinner.
+3. The invite prize wraps the friend's name in a bidi isolate (a Latin username no longer reorders the Persian around it).
+4. Claim buttons are teal (canvas) instead of amber.
+
+**Not verified (needs a device):** a real claim against the server, the balance pop and toast on hardware, a rewarded ad on Android, dark mode and large system font on a phone.

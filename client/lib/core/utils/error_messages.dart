@@ -123,6 +123,9 @@ String friendRequestSentMessage(String username) =>
 
 const challengeSentMessage = 'چالش ارسال شد';
 
+/// Toast when the rewarded-ad SDK has nothing to show right now.
+const adUnavailableMessage = 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن';
+
 /// Lobby invite toast. The name sits in a bidi isolate so a Latin username
 /// can't reorder the Persian around it.
 String friendInviteSentMessage(String username) =>

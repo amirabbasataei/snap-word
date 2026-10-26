@@ -1,23 +1,37 @@
-import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/ad_service.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/core/utils/persian_digits.dart';
+import 'package:wordchain/core/widgets/z_empty_state.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
+import 'package:wordchain/core/widgets/z_mascot.dart';
+import 'package:wordchain/core/widgets/z_state_card.dart';
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
-import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
-import 'package:wordchain/core/utils/persian_digits.dart';
-import 'package:wordchain/core/widgets/solid_card.dart';
-import 'package:wordchain/core/widgets/z_buttons.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/rewards/cubit/rewards_cubit.dart';
 import 'package:wordchain/features/rewards/data/rewards_repository.dart';
-import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/features/rewards/view/widgets/reward_format.dart';
+import 'package:wordchain/features/rewards/view/widgets/reward_tile.dart';
+import 'package:wordchain/features/rewards/view/widgets/rewards_free_coins.dart';
+import 'package:wordchain/features/rewards/view/widgets/rewards_header.dart';
+import 'package:wordchain/features/rewards/view/widgets/rewards_summary.dart';
 
-/// Claimable prizes (referral, streak, rank, daily) behind the home gift icon.
+/// «جایزه‌ها» — the claimable prizes behind the home gift icon (canvas
+/// `ZAwards`, frame 11a): the header with the live coin balance, the amber
+/// summary card and one card per prize. Claiming is `POST /rewards/:id/claim`
+/// (through [RewardsCubit]); the balance is the server's, read with the list.
+///
+/// A pushed route, not a tab. Signed-out players have nothing to show (the
+/// cubit reports an empty, loaded list). A claimed prize stays on the list,
+/// greyed, until the server drops it a day later.
 class RewardsScreen extends StatefulWidget {
   const RewardsScreen({super.key});
 
@@ -26,219 +40,29 @@ class RewardsScreen extends StatefulWidget {
 }
 
 class _RewardsScreenState extends State<RewardsScreen> {
+  final _claiming = <String>{};
+  bool _watching = false;
+
   @override
   void initState() {
     super.initState();
     getIt<RewardsCubit>().refresh();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return Scaffold(
-      backgroundColor: z.paper,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                ZSpacing.screenGutter,
-                ZSpacing.lg,
-                ZSpacing.screenGutter,
-                ZSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: Icon(Icons.arrow_back_rounded, color: z.ink),
-                  ),
-                  const SizedBox(width: ZSpacing.sm),
-                  Text(
-                    'هدیه‌ها',
-                    style: ZTypography.screenTitle.copyWith(color: z.ink),
-                  ),
-                ],
-              ),
-            ),
-            const _FreeCoinsCard(),
-            Expanded(
-              child: BlocBuilder<RewardsCubit, RewardsState>(
-                bloc: getIt<RewardsCubit>(),
-                builder: (context, state) {
-                  if (state.items.isEmpty) {
-                    return Center(
-                      child:
-                          state.loading
-                              ? CircularProgressIndicator(color: z.indigo)
-                              : Text(
-                                'هدیه‌ای نداری',
-                                style: ZTypography.body.copyWith(
-                                  color: z.ink40,
-                                ),
-                              ),
-                    );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                      ZSpacing.screenGutter,
-                      0,
-                      ZSpacing.screenGutter,
-                      ZSpacing.xl,
-                    ),
-                    itemCount: state.items.length,
-                    separatorBuilder:
-                        (_, _) => const SizedBox(height: ZSpacing.md),
-                    itemBuilder: (_, i) => _RewardTile(item: state.items[i]),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Opt-in "watch an ad, get coins" row; authenticated players only because the
-/// coins are credited server-side.
-class _FreeCoinsCard extends StatefulWidget {
-  const _FreeCoinsCard();
-
-  @override
-  State<_FreeCoinsCard> createState() => _FreeCoinsCardState();
-}
-
-class _FreeCoinsCardState extends State<_FreeCoinsCard> {
-  bool _busy = false;
-
-  Future<void> _watch() async {
-    setState(() => _busy = true);
-    final overlay = Overlay.of(context, rootOverlay: true);
-    try {
-      final watched = await getIt<AdService>().showRewardedAd();
-      if (!watched) {
-        ZToast.showOn(
-          overlay,
-          'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن',
-          kind: ZToastKind.error,
-        );
-        return;
-      }
-      final coins = await getIt<GameRepository>().claimRewardedAd();
-      await getIt<AuthCubit>().setCoins(coins);
-      ZToast.showOn(
-        overlay,
-        '${toPersianDigits(GameConstants.rewardedAdCoins)} سکه به حسابت اضافه شد!',
-        kind: ZToastKind.success,
-      );
-    } catch (_) {
-      ZToast.showOn(
-        overlay,
-        'اتصال برقرار نشد؛ دوباره تلاش کن',
-        kind: ZToastKind.error,
-      );
-    } finally {
-      if (mounted) setState(() => _busy = false);
+  void _back() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/home');
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final ads = getIt<AdService>();
-    if (!ads.rewardedEnabled || getIt<AuthCubit>().isGuest) {
-      return const SizedBox.shrink();
-    }
-    final z = context.z;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        ZSpacing.screenGutter,
-        0,
-        ZSpacing.screenGutter,
-        ZSpacing.md,
-      ),
-      child: SolidCard(
-        padding: const EdgeInsets.all(ZSpacing.lg),
-        radius: ZRadius.cardMax,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'سکهٔ رایگان',
-              style: ZTypography.cardTitle.copyWith(color: z.ink),
-            ),
-            const SizedBox(height: ZSpacing.xs),
-            Text(
-              'با دیدن یک تبلیغ کوتاه ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
-              style: ZTypography.body.copyWith(color: z.ink60),
-            ),
-            const SizedBox(height: ZSpacing.md),
-            AccentButton(
-              label: _busy ? 'کمی صبر کن…' : 'دیدن تبلیغ',
-              onPressed: _busy ? null : _watch,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-(String, String) _messageFor(RewardItem item) {
-  final coins = toPersianDigits(item.coins);
-  switch (item.kind) {
-    case 'streak':
-      return (
-        'پاداش روزهای پیاپی',
-        '${toPersianDigits(item.detail)} روز پیاپی بازی کردی! $coins سکه هدیه بگیر.',
-      );
-    case 'weekly_rank':
-      return (
-        'پاداش جدول هفتگی',
-        'در جدول هفتگی رتبهٔ ${toPersianDigits(item.detail)} شدی! $coins سکه هدیه بگیر.',
-      );
-    case 'daily_rank':
-      return (
-        'جایزهٔ چالش روزانه',
-        'در چالش دیروز رتبهٔ ${toPersianDigits(item.detail)} شدی! $coins سکه هدیه بگیر.',
-      );
-    case 'daily_done':
-      return (
-        'پاداش چالش روزانه',
-        'برای شرکت در چالش دیروز $coins سکه هدیه بگیر.',
-      );
-    case 'admin_gift':
-      return ('هدیهٔ زنجیر', 'تیم زنجیر برایت $coins سکه هدیه فرستاده است.');
-    case 'daily_login':
-      return ('پاداش ورود روزانه', 'برای سر زدن امروز $coins سکه هدیه بگیر.');
-    default:
-      final name = item.detail.isEmpty ? 'دوستت' : item.detail;
-      return (
-        'هدیهٔ دعوت',
-        '$name با کد دعوت تو وارد بازی شد. $coins سکه هدیه بگیر!',
-      );
-  }
-}
-
-class _RewardTile extends StatefulWidget {
-  final RewardItem item;
-
-  const _RewardTile({required this.item});
-
-  @override
-  State<_RewardTile> createState() => _RewardTileState();
-}
-
-class _RewardTileState extends State<_RewardTile> {
-  bool _claiming = false;
-
-  Future<void> _claim() async {
-    setState(() => _claiming = true);
+  Future<void> _claim(RewardItem item) async {
+    if (!_claiming.add(item.id)) return;
+    setState(() {});
     final overlay = Overlay.of(context, rootOverlay: true);
     try {
-      final coins = await getIt<RewardsCubit>().claim(widget.item.id);
+      final coins = await getIt<RewardsCubit>().claim(item.id);
       ZToast.showOn(
         overlay,
         coinsAwardedMessage(coins),
@@ -252,45 +76,142 @@ class _RewardTileState extends State<_RewardTile> {
         ZToast.showOn(overlay, errorMessageFor(e.code), kind: ZToastKind.error);
       }
     }
-    if (mounted) setState(() => _claiming = false);
+    _claiming.remove(item.id);
+    if (mounted) setState(() {});
   }
+
+  Future<void> _watchAd() async {
+    setState(() => _watching = true);
+    final overlay = Overlay.of(context, rootOverlay: true);
+    try {
+      final watched = await getIt<AdService>().showRewardedAd();
+      if (!watched) {
+        ZToast.showOn(overlay, adUnavailableMessage, kind: ZToastKind.error);
+        return;
+      }
+      final coins = await getIt<GameRepository>().claimRewardedAd();
+      await getIt<AuthCubit>().setCoins(coins);
+      ZToast.showOn(
+        overlay,
+        coinsAwardedMessage(GameConstants.rewardedAdCoins),
+        kind: ZToastKind.success,
+      );
+    } catch (_) {
+      ZToast.showOn(overlay, networkErrorMessage, kind: ZToastKind.error);
+    } finally {
+      if (mounted) setState(() => _watching = false);
+    }
+  }
+
+  bool get _adsOffered =>
+      getIt<AdService>().rewardedEnabled && !getIt<AuthCubit>().isGuest;
 
   @override
   Widget build(BuildContext context) {
-    final z = context.z;
-    final item = widget.item;
-    final (title, body) = _messageFor(item);
-    return SolidCard(
-      padding: const EdgeInsets.all(ZSpacing.lg),
-      radius: ZRadius.cardMax,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: context.zs.sky3,
+      body: Stack(
+        fit: StackFit.expand,
         children: [
-          Text(
-            title,
-            style: ZTypography.cardTitle.copyWith(
-              color: item.claimed ? z.ink40 : z.ink,
+          const HomeSceneBackground(),
+          SafeArea(
+            child: BlocBuilder<RewardsCubit, RewardsState>(
+              bloc: getIt<RewardsCubit>(),
+              builder: (context, state) {
+                return Column(
+                  children: [
+                    ZOverEnter(
+                      kind: ZOverEnterKind.up,
+                      delayMs: 0,
+                      child: BlocBuilder<AuthCubit, AuthState>(
+                        bloc: getIt<AuthCubit>(),
+                        builder:
+                            (context, auth) => RewardsHeader(
+                              coins: auth is AuthAuthenticated ? auth.coins : 0,
+                              onBack: _back,
+                            ),
+                      ),
+                    ),
+                    Expanded(child: _body(context, state)),
+                  ],
+                );
+              },
             ),
           ),
-          const SizedBox(height: 4),
-          Text(body, style: ZTypography.body.copyWith(color: z.ink60)),
-          const SizedBox(height: ZSpacing.md),
-          if (item.claimed)
-            Text(
-              'دریافت شد ✓',
-              style: ZTypography.metaLabel.copyWith(color: z.teal),
-            )
-          else
-            AccentButton(
-              label:
-                  _claiming
-                      ? '...'
-                      : 'دریافت ${toPersianDigits(item.coins)} سکه',
-              accent: ZAccentColor.amber,
-              onPressed: _claiming ? null : _claim,
-            ),
         ],
       ),
     );
   }
+
+  Widget _body(BuildContext context, RewardsState state) {
+    if (!state.loaded) {
+      final error = state.error;
+      return _stateCard(
+        error == null
+            ? const ZLoadState.loading()
+            : ZLoadState.error(
+              message: error,
+              onRetry: () => getIt<RewardsCubit>().refresh(),
+            ),
+      );
+    }
+    final items = sortRewards(state.items);
+    final ready = items.where((i) => !i.claimed).length;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+      children: [
+        if (items.isNotEmpty)
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 120,
+            child: RewardsSummary(
+              ready: ready,
+              coins: readyCoins(items),
+              anyClaimed: ready < items.length,
+            ),
+          ),
+        if (_adsOffered) ...[
+          const SizedBox(height: 16),
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 160,
+            child: RewardsFreeCoinsCard(
+              body:
+                  'با دیدن یک تبلیغ کوتاه ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
+              busy: _watching,
+              onWatch: _watchAd,
+            ),
+          ),
+        ],
+        if (items.isEmpty) ...[
+          if (_adsOffered) const SizedBox(height: 16),
+          const ZStateCard(
+            child: ZEmptyState(
+              title: 'هدیه‌ای نداری',
+              body: 'چالش روزانه، بازی پیاپی و دعوت دوستان برایت هدیه می‌آورد.',
+              mood: ZMascotMood.idle,
+            ),
+          ),
+        ],
+        for (var i = 0; i < items.length; i++) ...[
+          SizedBox(height: i == 0 && !_adsOffered ? 16 : 12),
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 200 + 50 * (i < 6 ? i : 6),
+            child: RewardTile(
+              key: ValueKey(items[i].id),
+              item: items[i],
+              claiming: _claiming.contains(items[i].id),
+              onClaim: () => _claim(items[i]),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _stateCard(Widget child) => SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+    child: ZStateCard(child: child),
+  );
 }

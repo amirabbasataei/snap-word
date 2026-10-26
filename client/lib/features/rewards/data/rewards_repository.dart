@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/utils/error_messages.dart';
 
 class RewardsException implements Exception {
   final String code;
@@ -70,9 +71,7 @@ class RewardsRepository {
         coins: data['coins'] as int? ?? 0,
       );
     } on DioException catch (e) {
-      throw RewardsException(
-        e.response?.data?['error']?['code'] as String? ?? 'network',
-      );
+      throw RewardsException(apiErrorCode(e));
     }
   }
 
@@ -83,9 +82,7 @@ class RewardsRepository {
       return (response.data['data'] as Map<String, dynamic>)['coins_awarded']
           as int;
     } on DioException catch (e) {
-      throw RewardsException(
-        e.response?.data?['error']?['code'] as String? ?? 'network',
-      );
+      throw RewardsException(apiErrorCode(e));
     }
   }
 }
