@@ -17,6 +17,7 @@ enum ProductType { coins, removeAds, premium }
 class Product {
   final String id;
   final String title;
+
   /// Store price in Toman (Bazaar/Myket bill in Rial = Toman × 10).
   final int priceToman;
   final ProductType type;

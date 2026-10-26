@@ -66,6 +66,9 @@ class _Auth extends FakeAuthCubit {
 }
 
 class _FakeFriends extends Fake implements FriendsRepository {
+  @override
+  Stream<String> get challengeAccepted => const Stream.empty();
+
   List<FriendModel> friends = _friends;
   List<PendingRequest> requests = const [];
   List<PendingChallenge> challenges = const [];

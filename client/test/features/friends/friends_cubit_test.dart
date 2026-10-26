@@ -288,6 +288,24 @@ void main() {
       await end(tester);
     });
 
+    testWidgets('the friend accepting clears their mark only', (tester) async {
+      final accepted = StreamController<String>();
+      final repo = _Repo();
+      final c = FriendsCubit(repository: repo, accepted: accepted.stream);
+      await run(tester, c.load());
+      await run(tester, c.sendChallenge('f1', 'classic'));
+      await run(tester, c.sendChallenge('f2', 'classic'));
+      expect((c.state as FriendsLoaded).invited, {'f1', 'f2'});
+
+      accepted.add('f1');
+      await tester.pump();
+      expect((c.state as FriendsLoaded).invited, {'f2'});
+
+      unawaited(c.close());
+      unawaited(accepted.close());
+      await tester.pump();
+    });
+
     testWidgets('closing the cubit cancels the timer', (tester) async {
       await run(tester, cubit.load());
       await run(tester, cubit.sendChallenge('f1', 'classic'));

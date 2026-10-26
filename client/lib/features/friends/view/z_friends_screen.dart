@@ -61,9 +61,10 @@ class ZFriendsScreen extends StatelessWidget {
           providers: [
             BlocProvider(
               create:
-                  (_) =>
-                      FriendsCubit(repository: getIt<FriendsRepository>())
-                        ..load(),
+                  (_) => FriendsCubit(
+                    repository: getIt<FriendsRepository>(),
+                    accepted: getIt<FriendsRepository>().challengeAccepted,
+                  )..load(),
             ),
             BlocProvider(
               create:

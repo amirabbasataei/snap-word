@@ -69,6 +69,9 @@ Future<void> _open(WidgetTester tester) async {
 }
 
 class _FakeFriends extends Fake implements FriendsRepository {
+  @override
+  Stream<String> get challengeAccepted => const Stream.empty();
+
   final sent = <(String, String)>[];
 
   @override

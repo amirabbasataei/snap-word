@@ -11,9 +11,17 @@ part 'friends_state.dart';
 class FriendsCubit extends Cubit<FriendsState> {
   final FriendsRepository _repo;
 
-  FriendsCubit({required FriendsRepository repository})
-    : _repo = repository,
-      super(const FriendsInitial());
+  /// [accepted] emits the id of a friend who accepted our challenge; their
+  /// «دعوت شد» mark is dropped then, since that invitation is spent.
+  FriendsCubit({
+    required FriendsRepository repository,
+    Stream<String>? accepted,
+  }) : _repo = repository,
+       super(const FriendsInitial()) {
+    _acceptedSub = accepted?.listen(_clearInvited);
+  }
+
+  StreamSubscription<String>? _acceptedSub;
 
   bool _hasLoaded = false;
 
@@ -155,6 +163,16 @@ class FriendsCubit extends Cubit<FriendsState> {
     }
   }
 
+  void _clearInvited(String friendId) {
+    final timer = _invitedTimers.remove(friendId);
+    if (timer == null) return;
+    timer.cancel();
+    final current = state;
+    if (!isClosed && current is FriendsLoaded) {
+      emit(current.copyWith(invited: _invitedNow));
+    }
+  }
+
   void _markInvited(String friendId) {
     _invitedTimers[friendId]?.cancel();
     _invitedTimers[friendId] = Timer(
@@ -171,6 +189,7 @@ class FriendsCubit extends Cubit<FriendsState> {
 
   @override
   Future<void> close() {
+    _acceptedSub?.cancel();
     for (final t in _invitedTimers.values) {
       t.cancel();
     }

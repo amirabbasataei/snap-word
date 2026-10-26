@@ -19,7 +19,12 @@ class FriendsInviteCard extends StatelessWidget {
   final VoidCallback onShare;
   final VoidCallback onRetry;
 
-  const FriendsInviteCard({super.key, required this.state, required this.onShare, required this.onRetry});
+  const FriendsInviteCard({
+    super.key,
+    required this.state,
+    required this.onShare,
+    required this.onRetry,
+  });
 
   static const title = 'با کد دعوت، ۵۰ سکه بگیر';
 
@@ -29,7 +34,12 @@ class FriendsInviteCard extends StatelessWidget {
     final ready = state.status == InviteCodeStatus.ready;
     final failed = state.status == InviteCodeStatus.failed;
     final onAmber = z.onAmber;
-    final sub = ZTypography.metaLabel.copyWith(fontSize: 12, fontWeight: FontWeight.w800, height: 1.3, color: onAmber);
+    final sub = ZTypography.metaLabel.copyWith(
+      fontSize: 12,
+      fontWeight: FontWeight.w800,
+      height: 1.3,
+      color: onAmber,
+    );
     return ChunkyBox(
       fill: z.amber,
       deep: z.amberDeep,
@@ -50,7 +60,14 @@ class FriendsInviteCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: ZTypography.button.copyWith(fontSize: 14, height: 1.3, color: onAmber)),
+                Text(
+                  title,
+                  style: ZTypography.button.copyWith(
+                    fontSize: 14,
+                    height: 1.3,
+                    color: onAmber,
+                  ),
+                ),
                 if (failed)
                   Text('کد دعوت بارگذاری نشد', style: sub)
                 else if (!ready)
@@ -72,7 +89,10 @@ class FriendsInviteCard extends StatelessWidget {
                         const TextSpan(text: 'کد تو: '),
                         // A friend types this code: left-to-right, isolated from
                         // the Persian around it, characters left as they are.
-                        TextSpan(text: '\u2066${state.code}\u2069', style: const TextStyle(letterSpacing: 1)),
+                        TextSpan(
+                          text: '\u2066${state.code}\u2069',
+                          style: const TextStyle(letterSpacing: 1),
+                        ),
                       ],
                     ),
                     style: sub,
@@ -86,7 +106,8 @@ class FriendsInviteCard extends StatelessWidget {
           else
             _ShareButton(
               label: failed ? 'تلاش دوباره' : 'اشتراک‌گذاری',
-              semanticLabel: failed ? 'بارگذاری دوبارهٔ کد دعوت' : 'اشتراک‌گذاری کد دعوت',
+              semanticLabel:
+                  failed ? 'بارگذاری دوبارهٔ کد دعوت' : 'اشتراک‌گذاری کد دعوت',
               onTap: failed ? onRetry : onShare,
             ),
         ],
@@ -100,7 +121,11 @@ class _ShareButton extends StatelessWidget {
   final String semanticLabel;
   final VoidCallback onTap;
 
-  const _ShareButton({required this.label, required this.semanticLabel, required this.onTap});
+  const _ShareButton({
+    required this.label,
+    required this.semanticLabel,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +149,11 @@ class _ShareButton extends StatelessWidget {
               child: Text(
                 label,
                 maxLines: 1,
-                style: ZTypography.button.copyWith(fontSize: 13, height: 1, color: z.ink),
+                style: ZTypography.button.copyWith(
+                  fontSize: 13,
+                  height: 1,
+                  color: z.ink,
+                ),
               ),
             ),
       ),

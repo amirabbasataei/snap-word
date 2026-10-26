@@ -53,6 +53,8 @@ class ChallengeWatcher with WidgetsBindingObserver {
       final joinable = await _repo.fetchJoinableChallenges();
       for (final c in joinable) {
         if (!_handled.add(c.id)) continue;
+        final challengedId = c.challengedId;
+        if (challengedId != null) _repo.notifyChallengeAccepted(challengedId);
         _router.push(
           '/game',
           extra: GameRouteArgs(

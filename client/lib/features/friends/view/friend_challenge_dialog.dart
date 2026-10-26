@@ -188,11 +188,7 @@ class _Pair extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         letter,
-        style: ZTypography.button.copyWith(
-          fontSize: 26,
-          height: 1,
-          color: ink,
-        ),
+        style: ZTypography.button.copyWith(fontSize: 26, height: 1, color: ink),
       ),
     );
     return ExcludeSemantics(

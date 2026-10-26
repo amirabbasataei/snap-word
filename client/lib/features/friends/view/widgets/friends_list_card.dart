@@ -61,7 +61,11 @@ class FriendsListCard extends StatelessWidget {
                     ? null
                     : Text(
                       '${toPersianDigits(friends.length)} نفر',
-                      style: ZTypography.metaLabel.copyWith(fontSize: 12, fontWeight: FontWeight.w800, color: z.ink60),
+                      style: ZTypography.metaLabel.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: z.ink60,
+                      ),
                     ),
           ),
           if (totalFriends == 0)
@@ -69,7 +73,8 @@ class FriendsListCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: ZEmptyState(
                 title: 'هنوز دوستی نداری',
-                body: 'نام کاربری دقیق دوستت را وارد کن، یا کد دعوتت را برایش بفرست.',
+                body:
+                    'نام کاربری دقیق دوستت را وارد کن، یا کد دعوتت را برایش بفرست.',
                 actionLabel: 'افزودن دوست',
                 onAction: onAddFriend,
               ),
@@ -99,7 +104,11 @@ class FriendsListCard extends StatelessWidget {
               child: Text(
                 removeHint,
                 textAlign: TextAlign.center,
-                style: ZTypography.metaLabel.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: z.ink60),
+                style: ZTypography.metaLabel.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: z.ink60,
+                ),
               ),
             ),
           ],
@@ -130,7 +139,9 @@ class _FriendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     return Semantics(
-      customSemanticsActions: {const CustomSemanticsAction(label: 'حذف از دوستان'): onRemove},
+      customSemanticsActions: {
+        const CustomSemanticsAction(label: 'حذف از دوستان'): onRemove,
+      },
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onLongPress: onRemove,
@@ -139,7 +150,12 @@ class _FriendRow extends StatelessWidget {
           decoration: rowDecoration(context, divider: divider),
           child: Row(
             children: [
-              FriendDisc(name: friend.username, index: index, size: 42, avatarId: friend.avatarId),
+              FriendDisc(
+                name: friend.username,
+                index: index,
+                size: 42,
+                avatarId: friend.avatarId,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -149,7 +165,11 @@ class _FriendRow extends StatelessWidget {
                       friend.username,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: ZTypography.button.copyWith(fontSize: 14, height: 1.3, color: z.ink),
+                      style: ZTypography.button.copyWith(
+                        fontSize: 14,
+                        height: 1.3,
+                        color: z.ink,
+                      ),
                     ),
                     Text(
                       friend.weeklyScore > 0
@@ -168,7 +188,12 @@ class _FriendRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              ZInviteButton(name: friend.username, invited: invited, busy: false, onTap: onInvite),
+              ZInviteButton(
+                name: friend.username,
+                invited: invited,
+                busy: false,
+                onTap: onInvite,
+              ),
             ],
           ),
         ),

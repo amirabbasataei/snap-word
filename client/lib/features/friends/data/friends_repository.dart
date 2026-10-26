@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
@@ -197,9 +199,27 @@ class FriendsRepository {
     }
   }
 
+  final _accepted = StreamController<String>.broadcast();
+
+  /// User ids of friends who accepted a challenge this user sent, so the
+  /// Friends tab can re-enable their «دعوت به بازی» button.
+  Stream<String> get challengeAccepted => _accepted.stream;
+
+  void notifyChallengeAccepted(String friendId) => _accepted.add(friendId);
+
   /// Accepted challenges this user sent whose room is waiting for them.
   /// Returns `(challengeId, roomId, mode)` records; empty on any failure.
-  Future<List<({String id, String roomId, String mode, String? opponent})>>
+  Future<
+    List<
+      ({
+        String id,
+        String roomId,
+        String mode,
+        String? opponent,
+        String? challengedId,
+      })
+    >
+  >
   fetchJoinableChallenges() async {
     try {
       final response = await _dio.get(ApiEndpoints.challengesJoinable);
@@ -212,6 +232,7 @@ class FriendsRepository {
               roomId: c['room_id'] as String,
               mode: c['mode'] as String,
               opponent: c['challenged_username'] as String?,
+              challengedId: c['challenged_id'] as String?,
             ),
       ];
     } on DioException {
