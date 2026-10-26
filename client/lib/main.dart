@@ -17,6 +17,7 @@ import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
+import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -96,6 +97,13 @@ class _WordChainAppState extends State<WordChainApp> {
     GetIt.instance<NotificationService>().foregroundStream.listen((message) {
       final n = message.notification;
       if (n == null) return;
+      // A banner over the live game covers the controls and distracts mid-turn:
+      // keep it for the bell (badge + messages screen) instead.
+      final router = GetIt.instance<GoRouter>();
+      if (router.routerDelegate.currentConfiguration.uri.path == '/game') {
+        GetIt.instance<MessagesCubit>().addMissed(n.title ?? '', n.body ?? '');
+        return;
+      }
       _messengerKey.currentState
         ?..hideCurrentSnackBar()
         ..showSnackBar(
@@ -114,6 +122,24 @@ class _WordChainAppState extends State<WordChainApp> {
         GetIt.instance<GoRouter>().go(route);
       }
     });
+    GetIt.instance<GoRouter>().routerDelegate.addListener(_dismissToastInGame);
+  }
+
+  @override
+  void dispose() {
+    GetIt.instance<GoRouter>().routerDelegate.removeListener(
+      _dismissToastInGame,
+    );
+    super.dispose();
+  }
+
+  // The messenger sits above the router, so a toast raised just before the
+  // game opens (e.g. «challenge accepted», which is also what pushes the
+  // challenger into the room) would otherwise linger over the game screen.
+  void _dismissToastInGame() {
+    final path =
+        GetIt.instance<GoRouter>().routerDelegate.currentConfiguration.uri.path;
+    if (path == '/game') _messengerKey.currentState?.clearSnackBars();
   }
 
   @override

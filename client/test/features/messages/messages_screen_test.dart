@@ -21,6 +21,7 @@ import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/messages/view/messages_screen.dart';
 import 'package:wordchain/features/messages/view/widgets/message_format.dart';
 import 'package:wordchain/features/messages/view/widgets/message_tile.dart';
+import 'package:wordchain/features/messages/view/widgets/missed_push_tile.dart';
 
 import '../../helpers/contrast.dart';
 import '../../helpers/game_fakes.dart';
@@ -266,6 +267,25 @@ void main() {
       expect(repo.fetches, 0);
       expect(find.text('اعلانی نداری'), findsOneWidget);
       expect(find.byType(ZLoadState), findsNothing);
+    });
+  });
+
+  group('pushes held back during a game', () {
+    testWidgets('show as a card, count toward the badge, and can be dismissed', (
+      tester,
+    ) async {
+      repo = _Repo();
+      await open(tester);
+      final cubit = GetIt.I<MessagesCubit>();
+      cubit.addMissed('چالش پذیرفته شد', 'وارد بازی شو!');
+      await _settle(tester);
+      expect(cubit.state.count, 1);
+      expect(find.byType(MissedPushTile), findsOneWidget);
+      expect(find.text('چالش پذیرفته شد'), findsOneWidget);
+      await tester.tap(find.text('باشه'));
+      await _settle(tester);
+      expect(cubit.state.count, 0);
+      expect(find.byType(MissedPushTile), findsNothing);
     });
   });
 

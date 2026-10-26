@@ -17,6 +17,7 @@ import 'package:wordchain/features/home/view/widgets/home_scene_background.dart'
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/messages/view/widgets/message_format.dart';
 import 'package:wordchain/features/messages/view/widgets/message_tile.dart';
+import 'package:wordchain/features/messages/view/widgets/missed_push_tile.dart';
 import 'package:wordchain/features/messages/view/widgets/messages_header.dart';
 
 /// «اعلان‌ها» — the actionable invitations (canvas `ZNotifs`, frame 12a):
@@ -170,6 +171,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
       children: [
+        for (final m in state.missed)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+            child: ZOverEnter(
+              kind: ZOverEnterKind.up,
+              delayMs: delay(),
+              child: MissedPushTile(
+                push: m,
+                onDismiss: () => getIt<MessagesCubit>().dismissMissed(m),
+              ),
+            ),
+          ),
         for (final r in state.requests)
           Padding(
             padding: EdgeInsets.only(top: i == 0 ? 0 : 10),

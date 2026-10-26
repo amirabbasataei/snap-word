@@ -5,9 +5,19 @@ import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
 
+/// A push that arrived during a game and was held back so no banner covers
+/// the board; it waits on the messages screen until dismissed.
+class MissedPush {
+  final String title;
+  final String body;
+
+  const MissedPush({required this.title, required this.body});
+}
+
 class MessagesState {
   final List<PendingRequest> requests;
   final List<PendingChallenge> challenges;
+  final List<MissedPush> missed;
   final bool loading;
 
   /// A list (even an empty one) has been received at least once, or there is
@@ -23,12 +33,13 @@ class MessagesState {
   const MessagesState({
     this.requests = const [],
     this.challenges = const [],
+    this.missed = const [],
     this.loading = false,
     this.loaded = false,
     this.error,
   });
 
-  int get count => requests.length + challenges.length;
+  int get count => requests.length + challenges.length + missed.length;
 }
 
 /// App-wide singleton so the home inbox badge and the messages screen share state.
@@ -57,6 +68,7 @@ class MessagesCubit extends Cubit<MessagesState> {
       MessagesState(
         requests: state.requests,
         challenges: state.challenges,
+        missed: state.missed,
         loading: true,
         loaded: state.loaded,
       ),
@@ -70,6 +82,7 @@ class MessagesCubit extends Cubit<MessagesState> {
         MessagesState(
           requests: results[0] as List<PendingRequest>,
           challenges: results[1] as List<PendingChallenge>,
+          missed: state.missed,
           loaded: true,
         ),
       );
@@ -78,6 +91,7 @@ class MessagesCubit extends Cubit<MessagesState> {
         MessagesState(
           requests: state.requests,
           challenges: state.challenges,
+          missed: state.missed,
           loaded: state.loaded,
           error: errorMessageFor(e.code),
         ),
@@ -93,7 +107,42 @@ class MessagesCubit extends Cubit<MessagesState> {
   ) {
     if (_auth.state is! AuthAuthenticated) return;
     emit(
-      MessagesState(requests: requests, challenges: challenges, loaded: true),
+      MessagesState(
+        requests: requests,
+        challenges: challenges,
+        missed: state.missed,
+        loaded: true,
+      ),
+    );
+  }
+
+  /// Keeps a push that arrived mid-game so the bell badge counts it and the
+  /// messages screen can show it. Invitation pushes also reload the real
+  /// lists. Session-only: it is not stored anywhere.
+  void addMissed(String title, String body) {
+    if (_auth.state is! AuthAuthenticated) return;
+    emit(
+      MessagesState(
+        requests: state.requests,
+        challenges: state.challenges,
+        missed: [...state.missed, MissedPush(title: title, body: body)],
+        loaded: state.loaded,
+      ),
+    );
+    refresh();
+  }
+
+  void dismissMissed(MissedPush push) {
+    emit(
+      MessagesState(
+        requests: state.requests,
+        challenges: state.challenges,
+        missed: [
+          for (final m in state.missed)
+            if (!identical(m, push)) m,
+        ],
+        loaded: state.loaded,
+      ),
     );
   }
 
@@ -107,6 +156,7 @@ class MessagesCubit extends Cubit<MessagesState> {
             if (r.requesterId != requesterId) r,
         ],
         challenges: state.challenges,
+        missed: state.missed,
         loaded: true,
       ),
     );
@@ -123,6 +173,7 @@ class MessagesCubit extends Cubit<MessagesState> {
           for (final c in state.challenges)
             if (c.id != id) c,
         ],
+        missed: state.missed,
         loaded: true,
       ),
     );
