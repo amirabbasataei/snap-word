@@ -27,6 +27,7 @@ import 'package:wordchain/features/game/view/widgets/z_over_actions.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_cards.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
+import 'package:wordchain/features/words/view/z_over_report_word.dart';
 
 const _aiLevels = {'ai_easy': 'آسان', 'ai_medium': 'متوسط', 'ai_hard': 'سخت'};
 
@@ -332,6 +333,17 @@ class _LossBody extends StatelessWidget {
         ZOverStat('رکورد تو', '${toPersianDigits(record!)} کلمه'),
     ];
 
+    // A word the dictionary refused is the one thing a player can fix for
+    // everyone: offer to report it as missing. (The word is the player's own;
+    // an AI's mistaken word never reaches the loss body.)
+    final refused = state.rejectedWord;
+    final canReport =
+        iWon != true &&
+        state.rejectionReason == 'not_in_dictionary' &&
+        refused != null &&
+        refused.isNotEmpty &&
+        refused != '???';
+
     return Column(
       children: [
         ZOverLossHero(
@@ -341,6 +353,15 @@ class _LossBody extends StatelessWidget {
           tailStart: chain.length - tail.length,
           requiredLetter: requiredLetter,
         ),
+        if (canReport)
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 450,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 6),
+              child: ZOverReportWord(word: refused),
+            ),
+          ),
         ZOverEnter(
           kind: ZOverEnterKind.up,
           delayMs: 600,
@@ -362,6 +383,7 @@ class _LossBody extends StatelessWidget {
             ),
           ),
         ),
+        if (isDuel) ZOverFlagWordLink(chain: state.wordChain),
       ],
     );
   }
@@ -457,6 +479,7 @@ class _WinBody extends StatelessWidget {
               ),
             ),
           ),
+        ZOverFlagWordLink(chain: state.wordChain),
         const SizedBox(height: 8),
       ],
     );

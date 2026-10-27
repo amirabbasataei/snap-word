@@ -19,21 +19,22 @@ import (
 func SelectAIWord(letter rune, usedWords map[string]bool, minLen int, trapPref float64, preferLongest bool) string {
 	var candidates, trapCandidates []string
 
-	for w := range dictionary {
+	eachWord(func(w string) bool {
 		if utf8.RuneCountInString(w) < minLen {
-			continue
+			return true
 		}
 		if letter != 0 && firstLetter(w) != letter {
-			continue
+			return true
 		}
-		if usedWords[w] {
-			continue
+		if usedWords[w] || IsAIBlocked(w) {
+			return true
 		}
 		candidates = append(candidates, w)
 		if config.AITrapLetters[LastLetter(w)] {
 			trapCandidates = append(trapCandidates, w)
 		}
-	}
+		return true
+	})
 
 	if len(trapCandidates) > 0 && trapPref > 0 && rand.Float64() < trapPref {
 		if preferLongest {

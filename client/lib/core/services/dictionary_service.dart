@@ -2,6 +2,21 @@ import 'dart:collection';
 
 import 'package:flutter/services.dart';
 
+/// One word's desired state from the server's dictionary delta
+/// (`GET /dictionary/delta`): [present] false = removed from the dictionary,
+/// [aiBlocked] = still valid for the player but never played by the AI.
+class DictionaryChange {
+  final String word;
+  final bool present;
+  final bool aiBlocked;
+
+  const DictionaryChange({
+    required this.word,
+    required this.present,
+    required this.aiBlocked,
+  });
+}
+
 class DictionaryService {
   static const _assetPath = 'assets/words/fa.txt';
   static const _minLength = 3;
@@ -23,8 +38,36 @@ class DictionaryService {
   );
 
   late final HashSet<String> _words;
+  final HashSet<String> _aiBlocked = HashSet<String>();
+
+  DictionaryService();
+
+  /// A dictionary over exactly [words] (tests).
+  DictionaryService.withWords(Iterable<String> words) {
+    _words = HashSet<String>.from(words);
+  }
 
   Set<String> get words => _words;
+
+  /// Words the AI must never play (still valid when the player types them).
+  Set<String> get aiBlocked => _aiBlocked;
+
+  /// Folds the server's delta over the bundled list. Later entries for the
+  /// same word win; adding a word the asset already has is harmless.
+  void applyChanges(Iterable<DictionaryChange> changes) {
+    for (final c in changes) {
+      if (c.present) {
+        _words.add(c.word);
+      } else {
+        _words.remove(c.word);
+      }
+      if (c.aiBlocked) {
+        _aiBlocked.add(c.word);
+      } else {
+        _aiBlocked.remove(c.word);
+      }
+    }
+  }
 
   Future<void> load() async {
     final raw = await rootBundle.loadString(_assetPath);

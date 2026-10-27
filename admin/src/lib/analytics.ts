@@ -28,6 +28,7 @@ export const EVENT_LABEL: Record<string, string> = {
   share: 'اشتراک‌گذاری',
   friend_request: 'درخواست دوستی',
   challenge_sent: 'ارسال چالش',
+  word_suggest: 'پیشنهاد کلمه',
 }
 export const EVENT_NAMES = Object.keys(EVENT_LABEL)
 

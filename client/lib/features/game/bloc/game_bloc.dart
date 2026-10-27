@@ -46,6 +46,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   // Multiplayer state at the moment I lost, restored if my continue is accepted
   // (the bloc is in GameOver by then, so the WS handlers can't read it).
   GameActive? _activeBeforeLoss;
+  // The server's last `word_rejected` (it names the word; the following
+  // `loss_event` does not), kept so my own loss can show — and offer to report —
+  // the word that was refused.
+  ({String word, String reason, String playerId})? _lastWsRejection;
   bool _wsConnected = false;
   // Owned power-up inventory (authenticated only), kept in step with the
   // server so rebuilt GameActive states (game start / continue) carry it.
@@ -1072,6 +1076,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   void _handleWsGameStart(Map<String, dynamic> data, Emitter<GameState> emit) {
+    _lastWsRejection = null;
     final gameState = data['state'] as Map<String, dynamic>? ?? data;
     // Backend contract (gameStartState in room.go): `players` is a plain
     // []string of user IDs, and the turn field is `current_turn` — not the
@@ -1163,9 +1168,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     Map<String, dynamic> data,
     Emitter<GameState> emit,
   ) {
-    // word_rejected is followed by loss_event; just log here
+    // word_rejected is followed by loss_event; remember what was refused.
     final reason = data['reason'] as String?;
     _log.d('word_rejected: $reason');
+    _lastWsRejection = (
+      word: data['word'] as String? ?? '',
+      reason: reason ?? '',
+      playerId: data['player_id'] as String? ?? '',
+    );
   }
 
   void _handleWsTurnChange(Map<String, dynamic> data, Emitter<GameState> emit) {
@@ -1201,11 +1211,20 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       // My loss — show continue prompt (Classic only)
       final canContinue = active.mode == 'classic' && !active.continueUsed;
       _activeBeforeLoss = active;
+      final refused = _lastWsRejection;
+      _lastWsRejection = null;
+      final myRefusal =
+          reason == 'invalid_word' &&
+          refused != null &&
+          refused.playerId == _myPlayerId &&
+          refused.word.isNotEmpty;
       emit(
         GameOver(
           localMatchId: -1,
           mode: active.mode,
           reason: reason,
+          rejectedWord: myRefusal ? refused.word : null,
+          rejectionReason: myRefusal ? refused.reason : null,
           score: active.score,
           chainLength: active.wordChain.length,
           wordChain: active.wordChain,
@@ -1335,6 +1354,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         localMatchId: -1,
         mode: active?.mode ?? prevOver?.mode ?? 'classic',
         reason: 'game_over',
+        rejectedWord: prevOver?.rejectedWord,
+        rejectionReason: prevOver?.rejectionReason,
         score: myScore,
         chainLength: active?.wordChain.length ?? prevOver?.chainLength ?? 0,
         wordChain: active?.wordChain ?? prevOver?.wordChain ?? const [],

@@ -83,6 +83,15 @@ func main() {
 	catalogSvc := service.NewCatalogService(repository.NewCatalogRepository(db))
 	perksSvc := service.NewPerksService(userRepo, catalogSvc)
 
+	// Dictionary overlay (Phase 24): admin-approved words on top of fa.txt.
+	wordRepo := repository.NewWordRepository(db)
+	dictSvc := service.NewDictionaryService(wordRepo)
+	if err := dictSvc.Load(context.Background()); err != nil {
+		slog.Error("dictionary overrides load failed", "error", err)
+		os.Exit(1)
+	}
+	wordMissSvc := service.NewWordMissService(rdb)
+
 	hub := ws.NewHub(ws.RoomDeps{
 		MatchRepo:      matchRepo,
 		PowerupSvc:     powerupDeductor{powerupSvc},
@@ -92,6 +101,7 @@ func main() {
 		Coins:          userRepo,
 		Perks:          userRepo,
 		Taunts:         catalogSvc,
+		WordMisses:     wordMissSvc,
 	})
 
 	matchSvc := service.NewMatchmakingService(rdb, hub, userRepo)
@@ -142,6 +152,8 @@ func main() {
 	}
 	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(analyticsRepo, rdb), authSvc)
 	adminAnalyticsHandler := handler.NewAdminAnalyticsHandler(service.NewAdminAnalyticsService(adminRepo, rdb))
+	wordHandler := handler.NewWordHandler(service.NewWordSuggestionService(wordRepo, rdb), dictSvc, authSvc)
+	adminWordsHandler := handler.NewAdminWordsHandler(service.NewAdminWordService(wordRepo, dictSvc, wordMissSvc, notifSvc, auditSvc))
 
 	// Start background scheduler
 	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc, dailySvc, analyticsMaint, rdb)
@@ -174,6 +186,12 @@ func main() {
 	// only fills user_id server-side.
 	api.POST("/analytics/events", analyticsHandler.Ingest)
 
+	// Word suggestions + dictionary delta (Phase 24). Both are public so guests
+	// can report and keep their bundled word list current; a Bearer token only
+	// attributes a report to the account.
+	api.POST("/words/suggestions", wordHandler.Submit)
+	api.GET("/dictionary/delta", wordHandler.Delta)
+
 	// Admin API (Phase 23). Login is public but 404s until an admin exists or
 	// a key is set; everything else needs a panel session or X-Admin-Key.
 	adminAPI := api.Group("/admin", middleware.RequireAdminIP(cfg.AdminIPAllowlist))
@@ -192,6 +210,11 @@ func main() {
 	admin.GET("/analytics/events", adminAnalyticsHandler.Events)
 	admin.GET("/analytics/users/:id/timeline", adminAnalyticsHandler.UserTimeline)
 	admin.GET("/analytics/installs/:id/timeline", adminAnalyticsHandler.InstallTimeline)
+	admin.GET("/words/suggestions", adminWordsHandler.Queue)
+	admin.GET("/words/suggestions/:id", adminWordsHandler.Detail)
+	admin.GET("/dictionary/lookup", adminWordsHandler.Lookup)
+	admin.GET("/dictionary/misses", adminWordsHandler.Misses)
+	admin.GET("/dictionary/export", adminWordsHandler.Export)
 	admin.GET("/taunts", adminContentHandler.Taunts)
 	admin.GET("/avatars", adminContentHandler.Avatars)
 	admin.GET("/avatars/:id/usage", adminContentHandler.AvatarUsage)
@@ -201,6 +224,11 @@ func main() {
 	admin.GET("/leaderboards/alltime", adminContentHandler.AllTimeBoard)
 	admin.GET("/leaderboards/rewards", adminContentHandler.WeeklyRewards)
 	operator := admin.Group("", middleware.RequireRole(service.AdminRoleOperator))
+	operator.POST("/words/suggestions/:id/approve", adminWordsHandler.Approve)
+	operator.POST("/words/suggestions/:id/reject", adminWordsHandler.Reject)
+	operator.POST("/words/bulk", adminWordsHandler.Bulk)
+	operator.POST("/dictionary/words", adminWordsHandler.SetWord)
+	operator.POST("/dictionary/misses/dismiss", adminWordsHandler.DismissMiss)
 	operator.PATCH("/daily/:date", adminContentHandler.SetStartLetter)
 	operator.POST("/taunts/reorder", catalogHandler.ReorderTaunts)
 	operator.POST("/users/:id/coins", adminUsersHandler.Coins)
@@ -228,6 +256,7 @@ func main() {
 	protected.POST("/rewards/:id/claim", authHandler.ClaimReward)
 	protected.POST("/game/solo", gameHandler.CreateSolo)
 	protected.GET("/game/:id", gameHandler.GetGame)
+	protected.GET("/words/suggestions/mine", wordHandler.Mine)
 	protected.GET("/profile/stats", gameHandler.GetStats)
 	protected.PATCH("/profile/username", authHandler.UpdateUsername)
 	protected.GET("/profile/perks", perksHandler.Get)

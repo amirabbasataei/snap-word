@@ -77,6 +77,12 @@ const _faByCode = <String, String>{
   'challenge_expired': 'این چالش دیگر معتبر نیست',
   'challenger_cannot_afford': 'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد',
 
+  // Word suggestions (Phase 24).
+  'invalid_word': 'این کلمه قابل گزارش نیست؛ فقط حروف فارسی و حداقل ۳ حرف',
+  'word_in_dictionary': 'این کلمه از قبل در دیکشنری هست',
+  'word_unknown': 'این کلمه در دیکشنری نیست',
+  'word_already_reviewed': 'این کلمه قبلاً بررسی شده است',
+
   // Leaderboard.
   'leaderboard_error': 'بارگذاری جدول امتیازها ناموفق بود',
 };

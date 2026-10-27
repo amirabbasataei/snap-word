@@ -61,7 +61,7 @@ describe('formatting', () => {
         'app_open', 'session_start', 'session_end', 'screen_view', 'signup', 'login', 'identify',
         'game_start', 'game_end', 'continue_used', 'powerup_used', 'daily_start', 'daily_end',
         'queue_join', 'queue_leave', 'match_found', 'ad_watched', 'purchase_tap', 'share',
-        'friend_request', 'challenge_sent',
+        'friend_request', 'challenge_sent', 'word_suggest',
       ].sort(),
     )
   })

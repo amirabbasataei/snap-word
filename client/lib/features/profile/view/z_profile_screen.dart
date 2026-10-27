@@ -19,6 +19,9 @@ import 'package:wordchain/features/auth/view/widgets/edit_username_dialog.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_dialog.dart';
 import 'package:wordchain/features/friends/cubit/invite_code_cubit.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_word_card.dart';
+import 'package:wordchain/features/words/view/my_word_reports_dialog.dart';
+import 'package:wordchain/features/words/view/suggest_word_dialog.dart';
 import 'package:wordchain/features/profile/cubit/profile_cubit.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_header.dart';
@@ -306,6 +309,14 @@ class _LoadedView extends StatelessWidget {
                   ),
                 ),
               ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: ProfileWordCard(
+                signedIn: signedIn,
+                onSuggest: () => showSuggestWordDialog(context),
+                onMine: () => showMyWordReportsDialog(context),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: BlocBuilder<ThemeCubit, ThemeMode>(

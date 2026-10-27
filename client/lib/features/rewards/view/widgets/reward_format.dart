@@ -59,6 +59,16 @@ RewardFace rewardFace(RewardItem item) {
         glyph: 'ز',
         accent: ZDialogAccent.coral,
       );
+    case 'word_suggestion':
+      // detail = the approved word (may be anything Persian; isolate it).
+      final word = item.detail.isEmpty ? '' : ' «\u2068${item.detail}\u2069»';
+      return RewardFace(
+        title: 'پاداش پیشنهاد کلمه',
+        body:
+            'کلمهٔ$word که پیشنهاد دادی به بازی اضافه شد. $coins سکه هدیه بگیر!',
+        glyph: 'ک',
+        accent: ZDialogAccent.teal,
+      );
     case 'daily_login':
       return RewardFace(
         title: 'پاداش ورود روزانه',

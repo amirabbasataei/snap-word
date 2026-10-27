@@ -12,6 +12,7 @@ import 'package:wordchain/core/router/app_router.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/analytics_service.dart';
 import 'package:wordchain/core/services/challenge_watcher.dart';
+import 'package:wordchain/core/services/dictionary_delta_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
@@ -29,6 +30,10 @@ Future<void> main() async {
 
   // Wire DI
   await configureDependencies(dictionaryService);
+
+  // Admin-approved words/removals over the bundled list: the cached delta is
+  // applied now (synchronous), the refresh runs in the background.
+  getIt<DictionaryDeltaService>().start();
 
   await getIt<AdService>().init();
 

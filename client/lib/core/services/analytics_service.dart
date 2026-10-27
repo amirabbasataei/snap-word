@@ -37,7 +37,8 @@ enum AnalyticsEvent {
   purchaseTap('purchase_tap'),
   share('share'),
   friendRequest('friend_request'),
-  challengeSent('challenge_sent');
+  challengeSent('challenge_sent'),
+  wordSuggest('word_suggest');
 
   final String wire;
   const AnalyticsEvent(this.wire);

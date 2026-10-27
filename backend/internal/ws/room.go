@@ -127,9 +127,16 @@ type RoomDeps struct {
 	StreakSvc      StreakRecorder
 	LeaderboardSvc LeaderboardUpdater
 	XPSvc          XPRecorder
-	Coins          CoinLedger  // nil disables entry fees (tests)
-	Perks          PerkLookup  // nil disables premium perks (tests)
-	Taunts         TauntLookup // nil disables taunts (tests)
+	Coins          CoinLedger       // nil disables entry fees (tests)
+	Perks          PerkLookup       // nil disables premium perks (tests)
+	Taunts         TauntLookup      // nil disables taunts (tests)
+	WordMisses     WordMissRecorder // nil disables the missing-word tally (tests)
+}
+
+// WordMissRecorder tallies words rejected as not_in_dictionary (anonymously,
+// for the admin panel). It must not block. Implemented by service.WordMissService.
+type WordMissRecorder interface {
+	RecordWordMiss(word string)
 }
 
 // TauntLookup resolves a taunt id to its Persian text; false means unknown.
@@ -400,6 +407,9 @@ func (r *Room) processSubmitWord(client *Client, word string) {
 	}
 
 	if err := engine.ValidateMove(prevWord, word, r.usedWords); err != nil {
+		if errors.Is(err, engine.ErrNotInDict) && r.deps.WordMisses != nil {
+			r.deps.WordMisses.RecordWordMiss(word)
+		}
 		r.broadcast(mustMarshal(outMsg{
 			Type:     "word_rejected",
 			Word:     word,

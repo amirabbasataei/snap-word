@@ -311,6 +311,8 @@ const (
 	RewardDailyDone  = "daily_done"
 	RewardDailyRank  = "daily_rank"
 	RewardAdminGift  = "admin_gift" // granted from the admin panel
+
+	RewardWordSuggestion = "word_suggestion" // an approved missing-word report
 )
 
 // InboxReward is a claimable prize message; coins are credited only when it

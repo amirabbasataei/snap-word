@@ -25,6 +25,8 @@ const MESSAGES: Record<string, string> = {
   invalid_letter: 'این حرف برای شروع چالش روزانه مجاز نیست.',
   date_not_editable: 'فقط حرف شروع روزهای آینده قابل تغییر است.',
   no_daily_challenge: 'برای این روز چالشی ساخته نشده است.',
+  invalid_action: 'عملیات یا نتیجهٔ انتخاب‌شده نامعتبر است.',
+  already_reviewed: 'این پیشنهاد قبلاً بررسی شده است.',
   internal_error: 'خطای داخلی سرور. کمی بعد دوباره تلاش کنید.',
   // client-side
   network_error: 'ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.',

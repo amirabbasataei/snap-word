@@ -1,5 +1,5 @@
 import {
-  Activity, Bell, Gamepad2, LayoutDashboard, Medal, Radio, ScrollText, Shield, Smile, Swords, Trophy, UserRound, Users,
+  Activity, Bell, BookA, Gamepad2, LayoutDashboard, Medal, Radio, ScrollText, Shield, Smile, Swords, Trophy, UserRound, Users,
   type LucideIcon,
 } from 'lucide-react'
 import type { AdminRole } from '@/auth/AuthContext'
@@ -30,6 +30,7 @@ export const NAV: NavGroup[] = [
     items: [
       { to: '/content/taunts', label: 'تیکه‌ها', icon: Smile },
       { to: '/content/avatars', label: 'آواتارها', icon: UserRound },
+      { to: '/content/words', label: 'پیشنهاد کلمات', icon: BookA },
       { to: '/content/daily', label: 'چالش روزانه', icon: Trophy },
       { to: '/content/leaderboards', label: 'جدول امتیازات', icon: Medal },
     ],

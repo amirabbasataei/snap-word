@@ -61,7 +61,7 @@ String? selectAIWord({
   for (final w in dictionary.words) {
     if (w.length < difficulty.minWordLength) continue;
     if (letter != null && letter.isNotEmpty && w[0] != letter) continue;
-    if (usedWords.contains(w)) continue;
+    if (usedWords.contains(w) || dictionary.aiBlocked.contains(w)) continue;
     candidates.add(w);
     if (aiTrapLetters.contains(DictionaryService.lastLetterOf(w))) {
       trapCandidates.add(w);

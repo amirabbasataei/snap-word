@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/dio_client.dart';
 import 'package:wordchain/core/services/analytics_service.dart';
+import 'package:wordchain/core/services/dictionary_delta_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/perks_catalog_service.dart';
@@ -24,6 +25,7 @@ import 'package:wordchain/features/rewards/data/rewards_repository.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 import 'package:wordchain/features/lobby/data/lobby_repository.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
+import 'package:wordchain/features/words/data/word_suggestions_repository.dart';
 
 final getIt = GetIt.instance;
 
@@ -123,6 +125,21 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   // Friends
   getIt.registerLazySingleton<FriendsRepository>(
     () => FriendsRepository(dio: getIt<DioClient>().dio),
+  );
+
+  // Dictionary delta + word suggestions (Phase 24)
+  getIt.registerLazySingleton<DictionaryDeltaService>(
+    () => DictionaryDeltaService(
+      dio: getIt<DioClient>().dio,
+      prefs: prefs,
+      dictionary: getIt<DictionaryService>(),
+    ),
+  );
+  getIt.registerLazySingleton<WordSuggestionsRepository>(
+    () => WordSuggestionsRepository(
+      dio: getIt<DioClient>().dio,
+      installId: () => getIt<AnalyticsService>().installId,
+    ),
   );
 
   // Premium taunt / avatar catalogue (server-managed)

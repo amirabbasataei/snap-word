@@ -30,6 +30,11 @@ abstract final class ApiEndpoints {
   // Product analytics (public; the token, when present, only links the install)
   static const String analyticsEvents = '$_base/analytics/events';
 
+  // Word suggestions + dictionary delta (Phase 24)
+  static const String wordSuggestions = '$_base/words/suggestions';
+  static const String myWordSuggestions = '$_base/words/suggestions/mine';
+  static const String dictionaryDelta = '$_base/dictionary/delta';
+
   // Matchmaking
   static const String matchQueue = '$_base/match/queue';
 

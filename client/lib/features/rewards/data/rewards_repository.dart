@@ -11,7 +11,7 @@ class RewardsException implements Exception {
 class RewardItem {
   final String id;
   final String
-  kind; // referral_reward | streak | weekly_rank | daily_login | daily_rank | daily_done | admin_gift
+  kind; // referral_reward | streak | weekly_rank | daily_login | daily_rank | daily_done | admin_gift | word_suggestion
   final String detail; // friend's username / streak days / rank
   final int coins;
   final bool claimed;

@@ -20,6 +20,7 @@ const Taunts = lazy(() => import('@/pages/Taunts').then((m) => ({ default: m.Tau
 const Avatars = lazy(() => import('@/pages/Avatars').then((m) => ({ default: m.Avatars })))
 const Daily = lazy(() => import('@/pages/Daily').then((m) => ({ default: m.Daily })))
 const DailyDetail = lazy(() => import('@/pages/DailyDetail').then((m) => ({ default: m.DailyDetail })))
+const Words = lazy(() => import('@/pages/Words').then((m) => ({ default: m.Words })))
 const Leaderboards = lazy(() => import('@/pages/Leaderboards').then((m) => ({ default: m.Leaderboards })))
 
 // Dev-only: `import.meta.env.DEV` is a build-time constant, so the gallery is dropped from prod bundles.
@@ -38,6 +39,7 @@ export function App() {
           <Route path="/analytics/installs/:id" element={<Suspense fallback={null}><InstallTimeline /></Suspense>} />
           <Route path="/content/taunts" element={<Suspense fallback={null}><Taunts /></Suspense>} />
           <Route path="/content/avatars" element={<Suspense fallback={null}><Avatars /></Suspense>} />
+          <Route path="/content/words" element={<Suspense fallback={null}><Words /></Suspense>} />
           <Route path="/content/daily" element={<Suspense fallback={null}><Daily /></Suspense>} />
           <Route path="/content/daily/:date" element={<Suspense fallback={null}><DailyDetail /></Suspense>} />
           <Route path="/content/leaderboards" element={<Suspense fallback={null}><Leaderboards /></Suspense>} />

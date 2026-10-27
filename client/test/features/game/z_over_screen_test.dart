@@ -20,6 +20,7 @@ import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/z_over_screen.dart';
+import 'package:wordchain/features/words/data/word_suggestions_repository.dart';
 
 import '../../helpers/contrast.dart';
 import '../../helpers/game_fakes.dart';
@@ -115,6 +116,23 @@ class _FakeShare extends Fake implements ShareService {
   Future<void> shareMatch({required int score, required int chainLength}) async => shared.add((score, chainLength));
 }
 
+class _FakeWords extends Fake implements WordSuggestionsRepository {
+  final suggested = <String>[];
+  final flagged = <(String, WordFlagReason)>[];
+
+  @override
+  Future<bool> suggestWord(String word) async {
+    suggested.add(word);
+    return false;
+  }
+
+  @override
+  Future<bool> flagWord(String word, WordFlagReason reason) async {
+    flagged.add((word, reason));
+    return false;
+  }
+}
+
 class _FakeAds extends Fake implements AdService {
   bool available = true;
   int shown = 0;
@@ -146,6 +164,7 @@ class _Harness {
   final share = _FakeShare();
   final ads = _FakeAds();
   final money = _FakeMoney();
+  final words = _FakeWords();
   final routes = <String>[];
   Object? gameExtra;
 
@@ -158,6 +177,7 @@ class _Harness {
     g.registerSingleton<ShareService>(share);
     g.registerSingleton<AdService>(ads);
     g.registerSingleton<MonetizationService>(money);
+    g.registerSingleton<WordSuggestionsRepository>(words);
     if (bestChain != null) g.registerSingleton<StatsDao>(_FakeStats(bestChain));
   }
 
@@ -274,6 +294,65 @@ void main() {
         await show(t, _over(reason: 'invalid_word', opponentType: 'solo', rejectedWord: 'قلم', rejectionReason: e.key));
         expect(find.text(e.value), findsOneWidget, reason: e.key);
       }
+    });
+
+    group('word report (Phase 24)', () {
+      testWidgets('a word the dictionary refused can be reported in one tap', (t) async {
+        h.register();
+        await show(
+          t,
+          _over(reason: 'invalid_word', opponentType: 'solo', rejectedWord: 'قلمم', rejectionReason: 'not_in_dictionary'),
+        );
+        final pill = find.text('«قلمم» درست بود؟ گزارش بده');
+        expect(pill, findsOneWidget);
+        await t.tap(pill);
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 300));
+        expect(h.words.suggested, ['قلمم']);
+        expect(find.text('گزارش شد؛ ممنون'), findsOneWidget);
+        // Sent once: the pill no longer reacts.
+        await t.tap(find.text('گزارش شد؛ ممنون'));
+        await t.pump();
+        expect(h.words.suggested, hasLength(1));
+        await t.pump(const Duration(seconds: 6)); // let the toast go
+      });
+
+      testWidgets('not offered for the player\'s own mistakes or a timeout', (t) async {
+        h.register();
+        for (final reason in ['wrong_letter', 'already_used', 'too_short']) {
+          await show(t, _over(reason: 'invalid_word', opponentType: 'solo', rejectedWord: 'قلم', rejectionReason: reason));
+          expect(find.textContaining('گزارش بده'), findsNothing, reason: reason);
+        }
+        await show(t, _over(opponentType: 'solo'));
+        expect(find.textContaining('گزارش بده'), findsNothing);
+      });
+
+      testWidgets('offered after a 1v1 loss too, and the chain can be flagged', (t) async {
+        h.register();
+        await show(t, _versusLoss());
+        expect(find.text('«قلمم» درست بود؟ گزارش بده'), findsOneWidget);
+        expect(find.text('کلمه‌ای اشتباه یا نامناسب بود؟'), findsOneWidget);
+      });
+
+      testWidgets('solo has no word to flag (every word is the player\'s own)', (t) async {
+        h.register();
+        await show(t, _over(opponentType: 'solo'));
+        expect(find.text('کلمه‌ای اشتباه یا نامناسب بود؟'), findsNothing);
+      });
+
+      testWidgets('flagging a chain word sends the chosen reason', (t) async {
+        h.register();
+        await show(t, _versusLoss());
+        await t.tap(find.text('کلمه‌ای اشتباه یا نامناسب بود؟'));
+        await _settle(t); // the dialog drops in (mascots loop, so no pumpAndSettle)
+        await t.tap(find.text('دریا').last);
+        await t.tap(find.text('نامناسب است'));
+        await t.pump();
+        await t.tap(find.text('ارسال گزارش'));
+        await _settle(t);
+        expect(h.words.flagged, [('دریا', WordFlagReason.inappropriate)]);
+        expect(find.text('ممنون از گزارشت'), findsOneWidget);
+      });
     });
 
     testWidgets('ending the game yourself is not «chain broken»', (t) async {

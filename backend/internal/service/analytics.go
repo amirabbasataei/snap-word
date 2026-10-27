@@ -30,7 +30,7 @@ var AnalyticsEventNames = map[string]bool{
 	"daily_start": true, "daily_end": true,
 	"queue_join": true, "queue_leave": true, "match_found": true,
 	"ad_watched": true, "purchase_tap": true, "share": true,
-	"friend_request": true, "challenge_sent": true,
+	"friend_request": true, "challenge_sent": true, "word_suggest": true,
 }
 
 var (

@@ -160,6 +160,7 @@ const (
 	CoinDailyRank3      = 30
 	CoinWelcome         = 50 // flat bonus for every new account, credited at signup
 	CoinReferralInviter = 50 // referrer, per invited user; claimed from the inbox
+	CoinWordSuggestion  = 25 // first signed-in reporter of an approved missing word; claimed from the inbox
 
 	// Power-up costs
 	CoinHint      = 10
@@ -202,6 +203,19 @@ const (
 	AnalyticsRatePerIPPerMin      = 600 // requests per client IP per minute (mobile carriers NAT many players)
 	AnalyticsRawRetentionMonths   = 6   // raw event partitions older than this are dropped; rollups are kept
 	AnalyticsRollupLookbackDays   = 8   // the daily pass rebuilds this many past days (late offline uploads)
+)
+
+// Word suggestions (Phase 24): players report missing dictionary words or flag
+// unreal / inappropriate ones; an admin decides.
+const (
+	WordSuggestMaxRunes      = 30   // longest word a player may report
+	WordSuggestPerDay        = 10   // new reports per player (account or install) per Iran day
+	WordSuggestPerIPPerDay   = 60   // per client IP per day (carriers NAT many players)
+	WordMissesKeep           = 5000 // distinct multiplayer-rejected words kept in the Redis tally
+	DictDeltaMaxRows         = 5000 // overrides returned by one GET /dictionary/delta call
+	WordAdminBulkMax         = 100  // suggestions one bulk action may touch
+	WordAdminPageSizeDefault = 50
+	WordAdminPageSizeMax     = 200
 )
 
 // RewardClaimedRetention is how long a claimed reward stays listed on the rewards screen.
