@@ -421,7 +421,7 @@ func (r *AdminRepository) missingOrBroke(ctx context.Context, id string) error {
 }
 
 // ExtendPremium adds days on top of any remaining premium time (never shortens
-// it, same rule as scripts/grant_premium.sh) and returns the new expiry.
+// it) and returns the new expiry.
 func (r *AdminRepository) ExtendPremium(ctx context.Context, id string, days int) (time.Time, error) {
 	var until time.Time
 	err := r.db.QueryRowContext(ctx,

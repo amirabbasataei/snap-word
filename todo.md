@@ -96,7 +96,7 @@ Collected 2026-10-17 from the code and from `CLAUDE.md`, `REDESIGN_PLAN.md`, `AD
 - **Files:** `backend/internal/service/friends.go`, `client/lib/features/friends/data/friends_repository.dart`, `CLAUDE.md` § Premium Perks.
 
 ### 2.7 Premium: no billing, no weekly coins
-- **What:** `premium_until` is set only by `scripts/grant_premium.sh`; the 200 coins/week grant and an expiry push are not built; `MockMonetizationService.purchase('premium_monthly')` returns success without granting anything.
+- **What:** `premium_until` is set only from the admin panel (the old `grant_premium.sh` script was deleted); the 200 coins/week grant and an expiry push are not built; `MockMonetizationService.purchase('premium_monthly')` returns success without granting anything.
 - **Files:** `backend/internal/service/`, `client/lib/core/services/monetization_service.dart`, `CLAUDE.md` § Premium Perks.
 
 ### 2.8 Auth
