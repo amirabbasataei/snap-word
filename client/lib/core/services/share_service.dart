@@ -1,4 +1,5 @@
 import 'package:share_plus/share_plus.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 
 class DailyChallengeResult {
   final int dayNumber;
@@ -21,6 +22,7 @@ class ShareService {
 Score: ${result.score} | Chain: ${result.chainLength} words
 $chain
 Play at wordchain.app''';
+    trackEvent(AnalyticsEvent.share, {'kind': 'daily'});
     await Share.share(text);
   }
 
@@ -31,6 +33,7 @@ Play at wordchain.app''';
     final text =
         '''زنجیر رو پاره کردم! امتیاز: $score · طول زنجیر: $chainLength کلمه
 بازی کن: wordchain.app''';
+    trackEvent(AnalyticsEvent.share, {'kind': 'match'});
     await Share.share(text);
   }
 
@@ -40,6 +43,7 @@ Play at wordchain.app''';
     final text = '''بیا با هم زنجیر کلمه بازی کنیم! 🔗
 موقع ثبت‌نام این کد دعوت رو وارد کن و سکهٔ هدیه بگیر: $code
 دانلود و بازی: wordchain.app''';
+    trackEvent(AnalyticsEvent.share, {'kind': 'invite'});
     await Share.share(text);
   }
 }

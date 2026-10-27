@@ -13,6 +13,9 @@ const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default:
 const Users = lazy(() => import('@/pages/Users').then((m) => ({ default: m.Users })))
 const UserDetail = lazy(() => import('@/pages/UserDetail').then((m) => ({ default: m.UserDetail })))
 
+const Analytics = lazy(() => import('@/pages/Analytics').then((m) => ({ default: m.Analytics })))
+const InstallTimeline = lazy(() => import('@/pages/InstallTimeline').then((m) => ({ default: m.InstallTimeline })))
+
 const Taunts = lazy(() => import('@/pages/Taunts').then((m) => ({ default: m.Taunts })))
 const Avatars = lazy(() => import('@/pages/Avatars').then((m) => ({ default: m.Avatars })))
 const Daily = lazy(() => import('@/pages/Daily').then((m) => ({ default: m.Daily })))
@@ -31,6 +34,8 @@ export function App() {
           <Route index element={<Suspense fallback={null}><Dashboard /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={null}><Users /></Suspense>} />
           <Route path="/users/:id" element={<Suspense fallback={null}><UserDetail /></Suspense>} />
+          <Route path="/analytics" element={<Suspense fallback={null}><Analytics /></Suspense>} />
+          <Route path="/analytics/installs/:id" element={<Suspense fallback={null}><InstallTimeline /></Suspense>} />
           <Route path="/content/taunts" element={<Suspense fallback={null}><Taunts /></Suspense>} />
           <Route path="/content/avatars" element={<Suspense fallback={null}><Avatars /></Suspense>} />
           <Route path="/content/daily" element={<Suspense fallback={null}><Daily /></Suspense>} />

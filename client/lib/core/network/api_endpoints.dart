@@ -27,6 +27,9 @@ abstract final class ApiEndpoints {
   static const String powerupUse = '$_base/powerup/use';
   static const String rewardedAdClaim = '$_base/rewarded-ad/claim';
 
+  // Product analytics (public; the token, when present, only links the install)
+  static const String analyticsEvents = '$_base/analytics/events';
+
   // Matchmaking
   static const String matchQueue = '$_base/match/queue';
 

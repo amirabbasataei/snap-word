@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 import 'package:tapsell_mediation/tapsell.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 
 /// Tapsell zone ids (create them in the Tapsell panel for this app's key, which
 /// lives in `android/app/build.gradle.kts`). Pass at build time:
@@ -79,7 +80,12 @@ class AdService {
         if (!done.isCompleted) done.complete(false);
         return null;
       });
-      return await done.future.timeout(_showTimeout, onTimeout: () => rewarded);
+      final earned = await done.future.timeout(
+        _showTimeout,
+        onTimeout: () => rewarded,
+      );
+      if (earned) trackEvent(AnalyticsEvent.adWatched);
+      return earned;
     } on PlatformException catch (e) {
       _log.w('Rewarded ad request failed: ${e.message}');
       return false;

@@ -13,6 +13,7 @@ import { roleAtLeast } from '@/layout/nav'
 import { ApiError, messageOf } from '@/lib/errors'
 import { formatJalaliDate, formatJalaliDateTime, formatJalaliDay, formatNumber, toFa } from '@/lib/fa'
 import { avatarUrl, useUser, type UserDetail as Detail } from '@/lib/users'
+import { Timeline } from './analytics/Timeline'
 import { UserStatus } from './Users'
 import { MATCH_KIND_LABEL, MATCH_STATUS_LABEL, REWARD_KIND_LABEL } from './users/labels'
 import { UserActions, type ActionKind } from './users/UserActions'
@@ -130,11 +131,13 @@ function Loaded({ user }: { user: Detail }) {
           <TabsTrigger value="matches">مسابقه‌ها</TabsTrigger>
           <TabsTrigger value="rewards">پاداش‌ها</TabsTrigger>
           <TabsTrigger value="referrals">معرفی‌ها</TabsTrigger>
+          <TabsTrigger value="behaviour">رفتار</TabsTrigger>
         </TabsList>
         <TabsContent value="summary" className="pt-5"><SummaryTab user={user} /></TabsContent>
         <TabsContent value="matches" className="pt-5"><MatchesTab user={user} /></TabsContent>
         <TabsContent value="rewards" className="pt-5"><RewardsTab user={user} /></TabsContent>
         <TabsContent value="referrals" className="pt-5"><ReferralsTab user={user} /></TabsContent>
+        <TabsContent value="behaviour" className="pt-5"><Timeline kind="users" id={user.id} /></TabsContent>
       </Tabs>
 
       {canAct && <UserActions user={user} action={action} onClose={() => setAction(null)} />}

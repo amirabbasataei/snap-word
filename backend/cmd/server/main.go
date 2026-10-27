@@ -132,8 +132,19 @@ func main() {
 	notificationHandler := handler.NewNotificationHandler(notifRepo)
 	dailyHandler := handler.NewDailyHandler(dailySvc)
 
+	analyticsRepo := repository.NewAnalyticsRepository(db)
+	analyticsMaint := service.NewAnalyticsMaintenanceService(analyticsRepo, rdb)
+	// The first partitions come from migration 014; make sure the current set
+	// exists before serving in case the server was down across a month change.
+	if err := analyticsMaint.EnsurePartitions(context.Background(), time.Now()); err != nil {
+		slog.Error("analytics partitions failed", "error", err)
+		os.Exit(1)
+	}
+	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(analyticsRepo, rdb), authSvc)
+	adminAnalyticsHandler := handler.NewAdminAnalyticsHandler(service.NewAdminAnalyticsService(adminRepo, rdb))
+
 	// Start background scheduler
-	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc, dailySvc, rdb)
+	sched := scheduler.New(leaderboardSvc, statsRepo, notifSvc, challengeSvc, dailySvc, analyticsMaint, rdb)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go sched.Start(ctx)
@@ -159,6 +170,10 @@ func main() {
 	api.GET("/perks/catalog", catalogHandler.Get)
 	api.GET("/avatars/:id/image", catalogHandler.AvatarImage)
 
+	// Product analytics ingest: public so guests are tracked; a Bearer token
+	// only fills user_id server-side.
+	api.POST("/analytics/events", analyticsHandler.Ingest)
+
 	// Admin API (Phase 23). Login is public but 404s until an admin exists or
 	// a key is set; everything else needs a panel session or X-Admin-Key.
 	adminAPI := api.Group("/admin", middleware.RequireAdminIP(cfg.AdminIPAllowlist))
@@ -170,6 +185,13 @@ func main() {
 	admin.GET("/dashboard/timeseries", dashboardHandler.Timeseries)
 	admin.GET("/users", adminUsersHandler.List)
 	admin.GET("/users/:id", adminUsersHandler.Get)
+	admin.GET("/analytics/overview", adminAnalyticsHandler.Overview)
+	admin.GET("/analytics/retention", adminAnalyticsHandler.Retention)
+	admin.GET("/analytics/funnel", adminAnalyticsHandler.Funnel)
+	admin.GET("/analytics/screens", adminAnalyticsHandler.Screens)
+	admin.GET("/analytics/events", adminAnalyticsHandler.Events)
+	admin.GET("/analytics/users/:id/timeline", adminAnalyticsHandler.UserTimeline)
+	admin.GET("/analytics/installs/:id/timeline", adminAnalyticsHandler.InstallTimeline)
 	admin.GET("/taunts", adminContentHandler.Taunts)
 	admin.GET("/avatars", adminContentHandler.Avatars)
 	admin.GET("/avatars/:id/usage", adminContentHandler.AvatarUsage)

@@ -191,6 +191,19 @@ const (
 	AdminCSRFHeaderValue    = "zanjir-admin" // required in X-Requested-With on mutating cookie-authenticated requests
 )
 
+// Product analytics ingest limits (POST /api/v1/analytics/events, public).
+const (
+	AnalyticsMaxBatch             = 100                // events accepted in one request
+	AnalyticsMaxBodyBytes         = 256 << 10          // request body cap
+	AnalyticsMaxPropsBytes        = 1024               // serialized size cap of one event's props
+	AnalyticsMaxPastSkew          = 7 * 24 * time.Hour // older client timestamps are replaced by the server's clock
+	AnalyticsMaxFutureSkew        = 5 * time.Minute
+	AnalyticsRatePerInstallPerMin = 30  // requests per install_id per minute
+	AnalyticsRatePerIPPerMin      = 600 // requests per client IP per minute (mobile carriers NAT many players)
+	AnalyticsRawRetentionMonths   = 6   // raw event partitions older than this are dropped; rollups are kept
+	AnalyticsRollupLookbackDays   = 8   // the daily pass rebuilds this many past days (late offline uploads)
+)
+
 // RewardClaimedRetention is how long a claimed reward stays listed on the rewards screen.
 const RewardClaimedRetention = 24 * time.Hour
 

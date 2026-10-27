@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 
 class FriendsException implements Exception {
   final String code;
@@ -160,6 +161,7 @@ class FriendsRepository {
         ApiEndpoints.friendsRequest,
         data: {'username': username},
       );
+      trackEvent(AnalyticsEvent.friendRequest);
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -193,6 +195,7 @@ class FriendsRepository {
         ApiEndpoints.challenges,
         data: {'challenged_id': friendId, 'mode': mode},
       );
+      trackEvent(AnalyticsEvent.challengeSent, {'mode': mode});
       return response.data['data']?['id'] as String?;
     } on DioException catch (e) {
       throw _mapError(e);

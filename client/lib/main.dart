@@ -10,6 +10,7 @@ import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/firebase_options.dart';
 import 'package:wordchain/core/router/app_router.dart';
 import 'package:wordchain/core/services/ad_service.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 import 'package:wordchain/core/services/challenge_watcher.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
@@ -37,6 +38,12 @@ Future<void> main() async {
 
   // Build router after DI + auth are fully ready
   getIt.registerSingleton<GoRouter>(buildAppRouter());
+
+  // Product analytics: buffered locally, uploaded in batches (never awaited
+  // here — it must not gate the first frame).
+  final analytics = getIt<AnalyticsService>();
+  RouterScreenTracker(getIt<GoRouter>(), analytics);
+  unawaited(analytics.start());
 
   ChallengeWatcher(
     repository: getIt<FriendsRepository>(),

@@ -13,6 +13,7 @@ Read this (and CLAUDE.md) at the start of every admin-panel session. Run one sta
 | A5 | Content & catalogue (taunts, avatars, daily, leaderboards) | [x] Complete |
 | A6 | Live ops, matches & notifications | [ ] Not Started |
 | A7 | Admins, 2FA, audit log, hardening, release | [ ] Not Started |
+| A8 | Product analytics (events, retention, funnels, timelines) | [x] Complete (code) — client tracker not yet verified on-device |
 
 Theme reference image: `~/Downloads/panel.png` (copy it to `admin/design/reference.png` in A2 so it lives in the repo).
 
@@ -90,6 +91,9 @@ Theme reference image: `~/Downloads/panel.png` (copy it to `admin/design/referen
 - Release: prod setup (`/opt/wordchain/.env` new vars, first owner via `scripts/admin_user.sh`), deploy, end-to-end check on prod; CLAUDE.md + ADMIN_PLAN.md final update.
 
 ---
+
+## Stage A8 — Product analytics
+Self-hosted events + retention (design, verdict on ClickHouse and privacy notes: **ANALYTICS_PLAN.md**; the implemented contract is in CLAUDE.md § Product Analytics). Backend ingest + rollups, Flutter tracker, and the page «تحلیل رفتار» (overview · retention heat map · funnel · screens · events) plus a per-user/per-install timeline.
 
 ## Critical files
 - New: `admin/**`, `backend/internal/adminui/`, `backend/cmd/adminctl/`, `backend/internal/{handler,service,repository}/admin_*.go`, `backend/migrations/012_admin.*`, `013_user_ban.*`, `scripts/admin_user.sh`, `ADMIN_PLAN.md`.
@@ -173,6 +177,17 @@ Backend + the four `/content/*` pages built as specified, with these decisions/d
 - **Drag-to-reorder:** new dependency `@dnd-kit/core 6.3.1`, `@dnd-kit/sortable 10.0.0`, `@dnd-kit/utilities 3.2.2` (pinned exact). Keyboard-operable (focus the handle → Space to lift, arrows, Space to drop; Persian live-region announcements) **and** explicit up/down buttons per row. Reordering is local until «ذخیرهٔ ترتیب» (one reason, one request); other edits are locked while an unsaved order exists. Avatars have no reorder UI (their `sort_order` stays as uploaded; the API still accepts `sort_order` on the multipart PUT).
 - **Verified:** `go test ./internal/...` (new `service/admin_content_test.go`, `handler/admin_content_test.go`), `pnpm typecheck/lint/test` (99 tests, +26). Live against Docker (curl + headless Chrome 153 on the **production bundle**; the Chrome extension had no connected browser): taunt add / edit / reorder (DB order and audit payloads checked), avatar upload (client rejects gif and 264 KB; server rejects gif, oversize, bad id, missing reason), replace, delete with a usage count of 2 → both users' `avatar_id` cleared, daily letter change for tomorrow through the dialog and for a not-yet-generated day (DB seed/letter + audit), today/past → 409, ineligible letter → 400, stale reorder → 409, daily detail with attempts/retries/banned badge, weekly/all-time/rewards tabs, viewer sees no buttons and gets 403 on every mutation (no audit rows), operator can mutate, dark + light, 390px (no page overflow, dialogs fit), keyboard and pointer drag. No console errors except the pre-login `me` 401. The dev DB test data (extra taunt/avatar/daily rows, attempts, a temporary ban of `tttt`, weekly rewards) was removed afterwards; audit rows of the test run remain.
 - **Flagged, not fixed:** (1) the key-script path (no reason) could not be exercised live — `ADMIN_API_KEY` is unset in the local container — only by unit tests; (2) the daily board and `RunDailyPayout` do not exclude banned players (pre-existing; the admin view badges them); (3) the native «Choose file / No file chosen» text of the avatar file input follows the browser locale, not Persian; (4) `taunt.reorder` audit rows have an empty target id (the payload carries the id list); (5) avatars cannot be reordered from the panel.
+
+### A8 — Product analytics (2026-10-27) — complete in code
+Built in three parts, as ANALYTICS_PLAN.md staged it, with these decisions/deviations:
+- **Partition key is `ts` (clamped event time), not `server_ts`:** a unique index on a partitioned table must include the partition key, and `(client_event_id, ts)` is the only pair that is the same on a client retry, so ingest is idempotent via `ON CONFLICT DO NOTHING`. The plan's `unique on (client_event_id, …)` with `server_ts` could not dedupe.
+- **No testcontainers:** it is not a dependency (the older note in CLAUDE.md was aspirational). Repository tests use `testutil.NewPostgres` (fresh migrated database on `TEST_DATABASE_URL`, skipped when unset).
+- **Screen tracking listens to the GoRouter delegate**, not a `NavigatorObserver`: the delegate sees tab switches (`goBranch`) and `go()` stack replacement; an observer sees neither reliably, so no `ZBottomNav` hook was needed.
+- **App version from `package_info_plus`** (`version+build`), resolved in `AnalyticsService.start()`; falls back to `unknown`.
+- **Daily games emit `daily_start/end` instead of `game_start/end`**; the event set is otherwise the plan's, plus `screen_view`.
+- **Rollups run every 15 min for today+yesterday** (panel is up to 15 min behind) and once a day for the previous 8 days (late offline uploads); raw partitions older than 6 months are dropped.
+- **Verified:** `go test ./internal/...` (new: repository tests against real Postgres for idempotent insert, install linking, first_seen moving earlier, partition ensure/drop, rollup + overview/retention/funnel/screens/timeline SQL; service tests for validation, clock/duration clamping, rate limit, daily-pass-once; handler tests for guest/JWT/bad-token/limits/429 and the admin endpoints' 400s), `flutter test` for `AnalyticsService` (12 tests: flush/retry/400-drop/batching/cap/install id/screen timing/lifecycle), `pnpm typecheck/lint/test` (109 tests) and `pnpm build`. Live against Docker: ingest + retry dedup via curl, 60 synthetic installs seeded through the API, the panel's analytics page in Chrome.
+- **Flagged, not fixed / not done:** (1) the Flutter tracker has **not been run on a device** (no Android/iOS device here) — check that `analytics_events` rows appear, a guest install links to the account after login, and the Drift v1→v2 upgrade keeps `local_matches`; (2) no opt-out switch or privacy-text mention yet; (3) 5 unrelated Flutter widget tests fail on this checkout (login screen copy, exit-confirm title) plus the known golden diffs — not touched by this work; (4) `ADMIN_PLAN` A6/A7 are still open; the audit viewer (A7) will not show analytics reads, which are not audited (read-only).
 
 ## Deployment note (2026-10-11)
 

@@ -44,6 +44,8 @@ dependencies:
   tapsell_mediation_legacy: ^1.4.0-alpha03
   flutter_svg: ^2.3.0
 
+  package_info_plus: ^9.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

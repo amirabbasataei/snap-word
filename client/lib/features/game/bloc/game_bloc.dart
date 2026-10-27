@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/dio_client.dart';
 import 'package:wordchain/core/services/ai_opponent.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
@@ -49,6 +50,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   // Owned power-up inventory (authenticated only), kept in step with the
   // server so rebuilt GameActive states (game start / continue) carry it.
   Map<String, int> _powerupCounts = const {};
+
+  // Analytics: one game_start/game_end pair per match (end is guarded because
+  // several paths — loss, forfeit, server game_over — can reach the result).
+  final Stopwatch _gameWatch = Stopwatch();
+  bool _endTracked = true;
+  String _trackedOpponent = 'solo';
 
   // Reports entry-fee charges / payouts so the app-wide coin balance follows.
   final void Function(int delta)? _onCoinsChanged;
@@ -247,6 +254,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       );
 
       _startTurnTimer();
+      _trackGameStart(mode, opponentType, resumed: event.resumeMatchId != null);
     } catch (e) {
       _log.e('GameStarted failed', error: e);
       emit(const GameError(gameStartFailedMessage));
@@ -559,6 +567,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (cur is! GameActive) {
       return; // game ended while the request was in flight
     }
+    trackEvent(AnalyticsEvent.powerupUsed, {'powerup': type});
 
     switch (type) {
       case 'hint':
@@ -817,6 +826,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (over is! GameOver || !over.canContinue) return;
 
     _stopContinueTimer();
+    trackEvent(AnalyticsEvent.continueUsed, {'method': event.method});
 
     if (_isMultiplayer) {
       _wsService.send({'type': 'continue', 'method': event.method});
@@ -994,6 +1004,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     // A second shield event for me is the shield firing, not another purchase.
     final shieldFired =
         type == 'shield' && active.usedPowerups.contains('shield');
+    if (!shieldFired) trackEvent(AnalyticsEvent.powerupUsed, {'powerup': type});
     final remaining = data['remaining'] as int?;
     var counts = active.powerupCounts;
     if (remaining != null) {
@@ -1114,6 +1125,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         opponentAvatarId: avatars[opponentId] as String?,
       ),
     );
+    _trackGameStart(mode, 'multiplayer');
   }
 
   void _handleWsWordAccepted(
@@ -1310,6 +1322,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     _entryFee = 0;
     if (credited > 0) _onCoinsChanged?.call(credited);
 
+    _trackGameEnd(
+      mode: active?.mode ?? prevOver?.mode ?? 'classic',
+      reason: 'game_over',
+      iWon: iWon,
+      words: active?.wordChain.length ?? prevOver?.chainLength ?? 0,
+      score: myScore,
+    );
+
     emit(
       GameOver(
         localMatchId: -1,
@@ -1409,6 +1429,51 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
   }
 
+  void _trackGameStart(String mode, String opponentType, {bool? resumed}) {
+    _gameWatch
+      ..reset()
+      ..start();
+    _endTracked = false;
+    _trackedOpponent = _analyticsOpponent(opponentType);
+    trackEvent(
+      mode == 'daily' ? AnalyticsEvent.dailyStart : AnalyticsEvent.gameStart,
+      {
+        'mode': mode,
+        'opponent': _trackedOpponent,
+        if (isVsAI(opponentType)) 'ai_level': resolveAIDifficulty(opponentType),
+        if (resumed == true) 'resumed': true,
+      },
+    );
+  }
+
+  void _trackGameEnd({
+    required String mode,
+    required String reason,
+    required bool? iWon,
+    required int words,
+    required int score,
+  }) {
+    if (_endTracked) return;
+    _endTracked = true;
+    _gameWatch.stop();
+    trackEvent(
+      mode == 'daily' ? AnalyticsEvent.dailyEnd : AnalyticsEvent.gameEnd,
+      {
+        'mode': mode,
+        'opponent': _trackedOpponent,
+        'result': iWon == null ? 'finished' : (iWon ? 'win' : 'loss'),
+        'reason': reason,
+        'words': words,
+        'score': score,
+        'duration_ms': _gameWatch.elapsedMilliseconds,
+      },
+    );
+    flushAnalytics();
+  }
+
+  static String _analyticsOpponent(String opponentType) =>
+      isVsAI(opponentType) ? 'ai' : opponentType;
+
   Future<void> _finalizeGame({
     required Emitter<GameState> emit,
     required int localMatchId,
@@ -1444,6 +1509,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   Future<void> _saveAndEmitFinal(Emitter<GameState> emit, GameOver over) async {
+    _trackGameEnd(
+      mode: over.mode,
+      reason: over.reason,
+      iWon: over.iWon,
+      words: over.chainLength,
+      score: over.score,
+    );
     if (_isMultiplayer) {
       // Server handles persistence for multiplayer games
       if (!over.isSaved) emit(over.copyWith(isSaved: true));

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -20,7 +21,9 @@ type Scheduler struct {
 	notifSvc       *service.NotificationService
 	challengeSvc   *service.ChallengeService
 	dailySvc       *service.DailyService
+	analyticsSvc   *service.AnalyticsMaintenanceService
 	rdb            *redis.Client
+	analyticsBusy  atomic.Bool // one analytics maintenance pass at a time
 }
 
 // New creates a Scheduler. Call Start to run it.
@@ -30,6 +33,7 @@ func New(
 	notifSvc *service.NotificationService,
 	challengeSvc *service.ChallengeService,
 	dailySvc *service.DailyService,
+	analyticsSvc *service.AnalyticsMaintenanceService,
 	rdb *redis.Client,
 ) *Scheduler {
 	return &Scheduler{
@@ -38,6 +42,7 @@ func New(
 		notifSvc:       notifSvc,
 		challengeSvc:   challengeSvc,
 		dailySvc:       dailySvc,
+		analyticsSvc:   analyticsSvc,
 		rdb:            rdb,
 	}
 }
@@ -88,6 +93,36 @@ func (s *Scheduler) tick(ctx context.Context, now time.Time) {
 		s.ensureDailyChallenges(ctx, now)
 		s.payoutYesterday(ctx, now)
 	}
+
+	// Analytics partitions every 5 minutes (so a month rollover never finds the
+	// table without a partition); rollups every 15. Both run off the ticker
+	// goroutine because the rollup scans a day of events.
+	if now.Minute()%5 == 0 {
+		s.runAnalytics(ctx, now, now.Minute()%15 == 0)
+	}
+}
+
+func (s *Scheduler) runAnalytics(ctx context.Context, now time.Time, rollup bool) {
+	if !s.analyticsBusy.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer s.analyticsBusy.Store(false)
+		if err := s.analyticsSvc.EnsurePartitions(ctx, now); err != nil {
+			slog.Error("scheduler: analytics partitions failed", "error", err)
+			return
+		}
+		if !rollup {
+			return
+		}
+		if err := s.analyticsSvc.RefreshRecent(ctx, now); err != nil {
+			slog.Error("scheduler: analytics rollup failed", "error", err)
+			return
+		}
+		if err := s.analyticsSvc.RunDailyPass(ctx, now); err != nil {
+			slog.Error("scheduler: analytics daily pass failed", "error", err)
+		}
+	}()
 }
 
 // payoutYesterday pays the Daily Challenge prizes for the day that just ended

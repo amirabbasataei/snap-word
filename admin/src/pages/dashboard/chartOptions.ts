@@ -32,7 +32,7 @@ export function modeTotals(days: DashboardDay[]): Record<ModeKey, number> {
 
 const FONT = 'Estedad, system-ui, sans-serif'
 
-function tooltipBase(c: ChartColors) {
+export function tooltipBase(c: ChartColors) {
   return {
     backgroundColor: c.raised,
     borderColor: c.border,
@@ -43,7 +43,7 @@ function tooltipBase(c: ChartColors) {
   }
 }
 
-function tooltipRow(color: string, label: string, value: number): string {
+export function tooltipRow(color: string, label: string, value: number): string {
   return (
     `<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;min-width:150px">` +
     `<span style="display:inline-flex;align-items:center;gap:6px">` +
@@ -55,7 +55,7 @@ function tooltipRow(color: string, label: string, value: number): string {
 // ECharts only has physical `left`/`right` keys; they are quoted so the
 // logical-CSS lint (which targets CSS/Tailwind) does not mistake them for styles.
 // The time axis is reversed for RTL reading, so the value axis sits on the reading-start side.
-function axes(c: ChartColors, days: DashboardDay[]) {
+export function axes(c: ChartColors, days: { date: string }[]) {
   return {
     grid: { top: 12, bottom: 28, 'left': 8, 'right': 44 },
     xAxis: {

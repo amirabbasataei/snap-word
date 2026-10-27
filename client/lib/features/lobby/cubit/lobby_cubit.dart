@@ -6,6 +6,7 @@ import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/features/lobby/cubit/lobby_state.dart';
 import 'package:wordchain/features/lobby/data/lobby_repository.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 
 export 'lobby_state.dart';
 
@@ -36,6 +37,7 @@ class LobbyCubit extends Cubit<LobbyState> {
     if (state is LobbySearching) return;
 
     emit(LobbySearching(mode: mode, elapsedSeconds: 0));
+    trackEvent(AnalyticsEvent.queueJoin, {'mode': mode});
     // Backup signal only (per CLAUDE.md's "Match found" push trigger) —
     // covers the app being backgrounded mid-wait, where iOS can suspend the
     // in-flight HTTP call. In the normal foreground case below, `joinQueue`
@@ -54,6 +56,7 @@ class LobbyCubit extends Cubit<LobbyState> {
       final result = await _repo.joinQueue(mode);
       _cancelTimers();
       if (state is LobbySearching) {
+        trackEvent(AnalyticsEvent.matchFound, {'mode': mode});
         emit(LobbyMatchFound(roomId: result.roomId, mode: mode));
       }
     } on LobbyException catch (e) {
@@ -67,6 +70,7 @@ class LobbyCubit extends Cubit<LobbyState> {
 
   Future<void> cancelSearch() async {
     _cancelTimers();
+    trackEvent(AnalyticsEvent.queueLeave);
     await _repo.cancelQueue();
     emit(const LobbyIdle());
   }
@@ -82,6 +86,7 @@ class LobbyCubit extends Cubit<LobbyState> {
         final roomId = route.substring('/game/'.length);
         if (roomId.isNotEmpty) {
           _cancelTimers();
+          trackEvent(AnalyticsEvent.matchFound, {'mode': mode});
           emit(LobbyMatchFound(roomId: roomId, mode: mode));
         }
       }

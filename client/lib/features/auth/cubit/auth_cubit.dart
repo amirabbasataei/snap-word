@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 
 part 'auth_state.dart';
 
@@ -97,6 +98,11 @@ class AuthCubit extends Cubit<AuthState> {
       ),
     );
     unawaited(_syncService.sync());
+    // `identify` goes out with the fresh token, so the server links this
+    // install (and the guest history before signup) to the account.
+    trackEvent(result.isNewUser ? AnalyticsEvent.signup : AnalyticsEvent.login);
+    trackEvent(AnalyticsEvent.identify);
+    flushAnalytics();
     return result;
   }
 

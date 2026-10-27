@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:wordchain/core/services/analytics_store.dart';
 
 part 'app_database.g.dart';
 part 'daos/match_dao.dart';
 part 'daos/used_word_dao.dart';
 part 'daos/stats_dao.dart';
 part 'daos/powerup_cache_dao.dart';
+part 'daos/analytics_dao.dart';
 
 class LocalMatches extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -57,9 +59,27 @@ class LocalPowerupCache extends Table {
   Set<Column> get primaryKey => {powerupType};
 }
 
+/// Product-analytics events waiting to be uploaded (`AnalyticsService`). Rows
+/// are deleted once the server acknowledges them; capped at a few thousand.
+class LocalAnalyticsEvents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get clientEventId => text()();
+  TextColumn get name => text()();
+  IntColumn get tsMs => integer()(); // Unix milliseconds, client clock
+  TextColumn get sessionId => text().nullable()();
+  TextColumn get screen => text().nullable()();
+  TextColumn get props => text().nullable()(); // JSON object
+}
+
 @DriftDatabase(
-  tables: [LocalMatches, LocalUsedWords, LocalPlayerStats, LocalPowerupCache],
-  daos: [MatchDao, UsedWordDao, StatsDao, PowerupCacheDao],
+  tables: [
+    LocalMatches,
+    LocalUsedWords,
+    LocalPlayerStats,
+    LocalPowerupCache,
+    LocalAnalyticsEvents,
+  ],
+  daos: [MatchDao, UsedWordDao, StatsDao, PowerupCacheDao, AnalyticsDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openDatabase());
@@ -69,5 +89,13 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      // v2 only adds a table; the match/stats tables are never touched.
+      if (from < 2) await m.createTable(localAnalyticsEvents);
+    },
+  );
 }

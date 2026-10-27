@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/dio_client.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/perks_catalog_service.dart';
@@ -48,6 +49,9 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   getIt.registerLazySingleton<PowerupCacheDao>(
     () => getIt<AppDatabase>().powerupCacheDao,
   );
+  getIt.registerLazySingleton<AnalyticsDao>(
+    () => getIt<AppDatabase>().analyticsDao,
+  );
 
   // Network
   getIt.registerLazySingleton<DioClient>(
@@ -55,6 +59,13 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   );
 
   // Services
+  getIt.registerLazySingleton<AnalyticsService>(
+    () => AnalyticsService(
+      store: getIt<AnalyticsDao>(),
+      dio: getIt<DioClient>().dio,
+      prefs: prefs,
+    ),
+  );
   getIt.registerLazySingleton<WebSocketService>(() => WebSocketService());
   getIt.registerLazySingleton<NotificationService>(
     () => NotificationService(getIt<DioClient>().dio),

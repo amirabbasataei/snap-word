@@ -28,6 +28,7 @@ import 'package:wordchain/features/profile/view/widgets/profile_settings.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_sheets.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_stats_grid.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_xp_bar.dart';
+import 'package:wordchain/core/services/analytics_service.dart';
 
 /// «پروفایل» — the profile tab, "A · mascot-led" (canvas `ZProfileA`): sky
 /// scene, the player's disc in an XP ring, level bar, stat tiles, the invite
@@ -175,6 +176,7 @@ class _LoadedView extends StatelessWidget {
   const _LoadedView({required this.state});
 
   void _purchase(BuildContext context, String productId) async {
+    trackEvent(AnalyticsEvent.purchaseTap, {'product': productId});
     final result = await getIt<MonetizationService>().purchase(productId);
     if (!context.mounted) return;
     final msg = switch (result.status) {
