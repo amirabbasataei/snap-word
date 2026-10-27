@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wordchain/core/services/app_version.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/motion.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
@@ -24,7 +26,10 @@ import 'package:wordchain/features/splash/view/widgets/splash_timeline.dart';
 /// the finished composition is shown still for
 /// [GameConstants.splashReducedMs].
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  /// The version line under the hint; defaults to the installed app's.
+  final Future<String?>? version;
+
+  const SplashScreen({super.key, this.version});
 
   static const next = '/home';
 
@@ -37,6 +42,15 @@ class _SplashScreenState extends State<SplashScreen>
   AnimationController? _c;
   late GoRouter _router;
   bool _reduced = false;
+  String? _version;
+
+  @override
+  void initState() {
+    super.initState();
+    (widget.version ?? AppVersion.load()).then((v) {
+      if (mounted && v != null) setState(() => _version = v);
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -120,7 +134,10 @@ class _SplashScreenState extends State<SplashScreen>
                               ),
                               child: MediaQuery.withClampedTextScaling(
                                 maxScaleFactor: 1.3,
-                                child: _Foot(t: SplashTimeline.foot(ms)),
+                                child: _Foot(
+                                  t: SplashTimeline.foot(ms),
+                                  version: _version,
+                                ),
                               ),
                             ),
                           ),
@@ -138,13 +155,27 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// The rule in one sentence, rising in under the chain. The canvas also draws
-/// a progress bar and «نسخهٔ ۱٫۰» here; nothing loads and the app does not
-/// read its version, so neither is shown.
+/// «نسخهٔ ۰٫۱٫۳ (۴)» from `0.1.3+4`: Persian digits and decimal point, the
+/// build number in parentheses.
+@visibleForTesting
+String splashVersionLabel(String version) {
+  final parts = version.split('+');
+  final name = toPersianDigits(parts.first.replaceAll('.', '٫'));
+  final build =
+      parts.length > 1 && parts[1].isNotEmpty
+          ? ' (${toPersianDigits(parts[1])})'
+          : '';
+  return 'نسخهٔ $name$build';
+}
+
+/// The rule in one sentence, rising in under the chain, with the installed
+/// version below it. The canvas also draws a progress bar; nothing loads
+/// during the splash, so it is not shown.
 class _Foot extends StatelessWidget {
   final double t;
+  final String? version;
 
-  const _Foot({required this.t});
+  const _Foot({required this.t, this.version});
 
   @override
   Widget build(BuildContext context) {
@@ -160,29 +191,45 @@ class _Foot extends StatelessWidget {
       opacity: t.clamp(0.0, 1.0),
       child: Transform.translate(
         offset: Offset(0, 30 * (1 - t)),
-        child: ChunkyBox(
-          fill: z.surface,
-          depth: ZGame.depthSm,
-          radius: 14,
-          highlight: false,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          child: Text.rich(
-            TextSpan(
-              style: style,
-              children: [
-                const TextSpan(text: 'هر کلمه با '),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ChunkyBox(
+              fill: z.surface,
+              depth: ZGame.depthSm,
+              radius: 14,
+              highlight: false,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              child: Text.rich(
                 TextSpan(
-                  text: 'حرف آخرِ',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: zs.coralInk,
-                  ),
+                  style: style,
+                  children: [
+                    const TextSpan(text: 'هر کلمه با '),
+                    TextSpan(
+                      text: 'حرف آخرِ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: zs.coralInk,
+                      ),
+                    ),
+                    const TextSpan(text: ' کلمهٔ قبلی شروع می‌شود'),
+                  ],
                 ),
-                const TextSpan(text: ' کلمهٔ قبلی شروع می‌شود'),
-              ],
+                textAlign: TextAlign.center,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
+            if (version != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                splashVersionLabel(version!),
+                style: ZTypography.body.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: z.ink60,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

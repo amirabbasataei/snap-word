@@ -23,7 +23,7 @@ const _hint = 'کلمهٔ قبلی';
 
 /// The app's own `/splash` + redirect rule with plain stand-ins for the
 /// pages a splash can hand over to.
-GoRouter _router() {
+GoRouter _router({Future<String?>? version}) {
   Widget page(String name) => Scaffold(body: Center(child: Text('page:$name')));
   return GoRouter(
     initialLocation: '/splash',
@@ -37,7 +37,10 @@ GoRouter _router() {
       return to;
     },
     routes: [
-      GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
+      GoRoute(
+        path: '/splash',
+        builder: (_, _) => SplashScreen(version: version),
+      ),
       GoRoute(path: '/home', builder: (_, _) => page('home')),
       GoRoute(path: '/friends', builder: (_, _) => page('friends')),
       GoRoute(path: '/login', builder: (_, _) => page('login')),
@@ -51,12 +54,13 @@ Future<GoRouter> pumpSplash(
   double textScale = 1,
   Size size = const Size(393, 852),
   bool reduceMotion = false,
+  Future<String?>? version,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   visited = [];
-  final router = _router();
+  final router = _router(version: version);
   await tester.pumpWidget(
     loginApp(
       router,
@@ -80,6 +84,16 @@ Finder get _tag => find.text(HomeLogo.tagline);
 
 void main() {
   setUpAll(loadVazirmatn);
+
+  test(
+    'splashVersionLabel uses Persian digits and the build in parentheses',
+    () {
+      expect(splashVersionLabel('0.1.3+4'), 'نسخهٔ ۰٫۱٫۳ (۴)');
+      expect(splashVersionLabel('1.0.0'), 'نسخهٔ ۱٫۰٫۰');
+      expect(splashVersionLabel('2.5+'), 'نسخهٔ ۲٫۵');
+    },
+  );
+
   setUp(() => auth = FakeAuth());
   tearDown(() => auth.dispose());
 
@@ -111,6 +125,19 @@ void main() {
       await tester.pump(_total);
     });
 
+    testWidgets('the installed version is shown under the hint', (
+      tester,
+    ) async {
+      await pumpSplash(
+        tester,
+        reduceMotion: true,
+        version: Future.value('0.1.3+4'),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('نسخهٔ ۰٫۱٫۳ (۴)'), findsOneWidget);
+      await tester.pump(_total);
+    });
+
     testWidgets('the canvas copy is there and nothing the app cannot back', (
       tester,
     ) async {
@@ -121,7 +148,7 @@ void main() {
       expect(
         find.textContaining('نسخه'),
         findsNothing,
-        reason: 'no version string: package_info_plus is not a dependency',
+        reason: 'no version line when the platform cannot report one',
       );
       expect(find.byType(LinearProgressIndicator), findsNothing);
       expect(find.textContaining('٪'), findsNothing);

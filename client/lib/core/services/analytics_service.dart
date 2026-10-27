@@ -7,10 +7,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/core/services/app_version.dart';
 import 'package:wordchain/core/services/analytics_store.dart';
 
 /// The fixed event vocabulary. Mirrors `service.AnalyticsEventNames` on the
@@ -138,19 +138,6 @@ class AnalyticsService with WidgetsBindingObserver {
     return 'other';
   }
 
-  /// `version+build` from the installed package, e.g. `0.1.3+4`.
-  Future<String> _readAppVersion() async {
-    try {
-      final info = await PackageInfo.fromPlatform();
-      return info.buildNumber.isEmpty
-          ? info.version
-          : '${info.version}+${info.buildNumber}';
-    } catch (e) {
-      _log.w('analytics: could not read the app version: $e');
-      return fallbackVersion;
-    }
-  }
-
   String _loadInstallId() {
     try {
       final saved = _prefs.getString(installIdKey);
@@ -168,7 +155,7 @@ class AnalyticsService with WidgetsBindingObserver {
   Future<void> start() async {
     if (_started) return;
     _started = true;
-    _appVersion ??= await _readAppVersion();
+    _appVersion ??= await AppVersion.load() ?? fallbackVersion;
     WidgetsBinding.instance.addObserver(this);
     await track(AnalyticsEvent.appOpen);
     await _beginSession();
