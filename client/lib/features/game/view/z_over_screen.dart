@@ -7,13 +7,14 @@ import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
-import 'package:wordchain/core/theme/app_spacing.dart';
+import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
-import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/avatar_initial.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/insufficient_coins_dialog.dart';
 import 'package:wordchain/core/widgets/z_hud_coin_pill.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
+import 'package:wordchain/core/widgets/z_state_card.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
@@ -25,6 +26,7 @@ import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_actions.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_cards.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
+import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 
 const _aiLevels = {'ai_easy': 'آسان', 'ai_medium': 'متوسط', 'ai_hard': 'سخت'};
 
@@ -119,32 +121,29 @@ class _ZOverScreenState extends State<ZOverScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
-    final z = context.z;
 
     // Daily challenge auto-navigates to /daily once saved (see game_screen's
     // BlocConsumer listener) — this is a brief transitional frame, not a
     // real result screen. ZDailyAfter (Stage 3) owns the real design.
     if (state.mode == 'daily') {
       return Scaffold(
-        backgroundColor: z.paper,
-        body: Center(
-          child:
-              state.isSaved
-                  ? const SizedBox.shrink()
-                  : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: z.indigo,
+        backgroundColor: context.zs.sky3,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const HomeSceneBackground(calm: true),
+            SafeArea(
+              child:
+                  state.isSaved
+                      ? const SizedBox.shrink()
+                      : const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: ZStateCard(child: ZLoadState.loading()),
+                        ),
                       ),
-                      const SizedBox(height: ZSpacing.md),
-                      Text(
-                        'در حال ذخیره…',
-                        style: ZTypography.body.copyWith(color: z.ink60),
-                      ),
-                    ],
-                  ),
+            ),
+          ],
         ),
       );
     }

@@ -155,17 +155,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-/// «نسخهٔ ۰٫۱٫۳ (۴)» from `0.1.3+4`: Persian digits and decimal point, the
-/// build number in parentheses.
 @visibleForTesting
 String splashVersionLabel(String version) {
   final parts = version.split('+');
-  final name = toPersianDigits(parts.first.replaceAll('.', '٫'));
-  final build =
-      parts.length > 1 && parts[1].isNotEmpty
-          ? ' (${toPersianDigits(parts[1])})'
-          : '';
-  return 'نسخهٔ $name$build';
+  final name = toPersianDigits(parts.first);
+  return 'نسخهٔ $name';
 }
 
 /// The rule in one sentence, rising in under the chain, with the installed

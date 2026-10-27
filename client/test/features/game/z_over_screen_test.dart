@@ -12,7 +12,9 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/z_hud_coin_pill.dart';
 import 'package:wordchain/core/widgets/z_disc_avatar.dart';
+import 'package:wordchain/core/widgets/z_load_state.dart';
 import 'package:wordchain/core/widgets/z_mascot.dart';
+import 'package:wordchain/core/widgets/z_state_card.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
@@ -577,7 +579,9 @@ void main() {
     testWidgets('still only the saving frame (ZDailyAfter owns the result)', (t) async {
       h.register();
       await show(t, _over(mode: 'daily', opponentType: 'solo', isSaved: false));
-      expect(find.text('در حال ذخیره…'), findsOneWidget);
+      expect(find.byType(ZLoadState), findsOneWidget);
+      expect(find.byType(ZStateCard), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('زنجیر پاره شد!'), findsNothing);
     });
   });
