@@ -10,6 +10,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
+import 'package:wordchain/core/services/legal_links.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
@@ -211,6 +212,8 @@ class _Harness {
   Object? codeError;
   String code = 'K7M2QX';
   final clipboard = <String>[];
+  final openedLinks = <Uri>[];
+  bool linksLaunch = true;
 
   Future<void> register({AuthState state = _signedIn, ThemeMode mode = ThemeMode.light}) async {
     SharedPreferences.setMockInitialValues({'theme_mode': mode == ThemeMode.dark ? 'dark' : 'light'});
@@ -228,7 +231,16 @@ class _Harness {
       ..registerSingleton<MonetizationService>(money)
       ..registerSingleton<PerksCatalogService>(_FakeCatalog())
       ..registerSingleton<ThemeCubit>(theme)
-      ..registerSingleton<TabRefreshBus>(bus);
+      ..registerSingleton<TabRefreshBus>(bus)
+      ..registerSingleton<LegalLinks>(
+        LegalLinks(
+          baseUrl: 'https://zanjir.test',
+          opener: (u) async {
+            openedLinks.add(u);
+            return linksLaunch;
+          },
+        ),
+      );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
       (call) async {
@@ -1113,6 +1125,48 @@ void main() {
       h.repo.statsGate = Completer<ProfileStats>();
       await open(tester);
       await shot(tester, 'z_profile_loading_light');
+    });
+  });
+
+  group('legal links', () {
+    for (final guest in [false, true]) {
+      testWidgets('${guest ? 'guest' : 'signed in'}: both pages open in the browser', (tester) async {
+        await open(tester, auth: guest ? const AuthGuest() : _signedIn);
+        await scrollTo(tester, find.text('قوانین و مقررات'));
+        await tester.tap(find.text('قوانین و مقررات'));
+        await _settle(tester);
+        await tester.tap(find.text('حریم خصوصی'));
+        await _settle(tester);
+        expect(h.openedLinks.map((u) => u.toString()), [
+          'https://zanjir.test/terms',
+          'https://zanjir.test/privacy',
+        ]);
+      });
+    }
+
+    testWidgets('the buttons are at least 44dp and labelled', (tester) async {
+      final handle = tester.ensureSemantics();
+      await open(tester);
+      await scrollTo(tester, find.text('قوانین و مقررات'));
+      for (final label in ['قوانین و مقررات', 'حریم خصوصی']) {
+        final box = find.ancestor(
+          of: find.text(label),
+          matching: find.byType(ProfileChunkButton),
+        );
+        expect(tester.getSize(box).height, greaterThanOrEqualTo(44), reason: label);
+        expect(find.bySemanticsLabel('$label، باز کردن در مرورگر'), findsOneWidget);
+      }
+      handle.dispose();
+    });
+
+    testWidgets('a browser that will not open shows the Persian toast', (tester) async {
+      h.linksLaunch = false;
+      await open(tester);
+      await scrollTo(tester, find.text('قوانین و مقررات'));
+      await tester.tap(find.text('قوانین و مقررات'));
+      await _settle(tester);
+      expect(find.text(legalPageOpenFailedMessage), findsOneWidget);
+      await _waitForToastToGo(tester);
     });
   });
 }

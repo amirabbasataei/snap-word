@@ -37,6 +37,7 @@ dependencies:
   logger: ^2.5.0
   connectivity_plus: ^6.1.4
   share_plus: ^10.1.4
+  url_launcher: ^6.3.1
   shamsi_date: ^1.1.1
 
   # Ads

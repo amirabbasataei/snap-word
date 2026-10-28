@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
-import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
@@ -12,6 +11,7 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/cubit/phone_entry_cubit.dart';
 import 'package:wordchain/features/auth/view/widgets/auth_button.dart';
 import 'package:wordchain/features/auth/view/widgets/login_cards.dart';
+import 'package:wordchain/features/auth/view/widgets/legal_consent_text.dart';
 import 'package:wordchain/features/auth/view/widgets/login_hero.dart';
 import 'package:wordchain/features/auth/view/widgets/otp_parts.dart'
     show AuthStatusLine;
@@ -215,30 +215,7 @@ class _PhoneCard extends StatelessWidget {
                     : const SizedBox.shrink(),
           ),
           const SizedBox(height: 6),
-          MediaQuery.withClampedTextScaling(
-            maxScaleFactor: 1.6,
-            child: Text.rich(
-              TextSpan(
-                style: ZTypography.metaLabel.copyWith(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 1.6,
-                  color: z.ink60,
-                ),
-                children: [
-                  const TextSpan(text: 'با ورود، '),
-                  TextSpan(
-                    text: 'قوانین و حریم خصوصی',
-                    style: TextStyle(
-                      color: context.zs.indigoInk,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const TextSpan(text: ' زنجیر را می‌پذیرم.'),
-                ],
-              ),
-            ),
-          ),
+          const LegalConsentText(),
           const SizedBox(height: 12),
           ZAuthButton(
             label: 'فرستادن کد',

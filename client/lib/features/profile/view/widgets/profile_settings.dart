@@ -12,7 +12,8 @@ import 'package:wordchain/features/profile/view/widgets/profile_parts.dart';
 /// «صدا و لرزش», «یادآور»). Only controls that do something are drawn:
 ///  * «حالت شب» — the theme switch (`ThemeCubit`), also for guests;
 ///  * «کد دعوت داری؟» — redeem someone else's code, once (signed in);
-///  * «خروج از حساب» (signed in), on its own row.
+///  * «خروج از حساب» (signed in), on its own row;
+///  * «قوانین و مقررات» / «حریم خصوصی» — the public pages, opened in the browser.
 /// «صدا و لرزش» and «یادآور چالش روزانه» are not drawn: no setting is stored
 /// and no reminder is scheduled, so a toggle would only pretend.
 class ProfileSettings extends StatelessWidget {
@@ -21,6 +22,8 @@ class ProfileSettings extends StatelessWidget {
   final bool signedIn;
   final VoidCallback onRedeem;
   final VoidCallback onLogout;
+  final VoidCallback onTerms;
+  final VoidCallback onPrivacy;
 
   const ProfileSettings({
     super.key,
@@ -29,6 +32,8 @@ class ProfileSettings extends StatelessWidget {
     required this.signedIn,
     required this.onRedeem,
     required this.onLogout,
+    required this.onTerms,
+    required this.onPrivacy,
   });
 
   @override
@@ -61,6 +66,26 @@ class ProfileSettings extends StatelessWidget {
             onTap: onLogout,
           ),
         ],
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: ProfileChunkButton(
+                label: 'قوانین و مقررات',
+                semanticLabel: 'قوانین و مقررات، باز کردن در مرورگر',
+                onTap: onTerms,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ProfileChunkButton(
+                label: 'حریم خصوصی',
+                semanticLabel: 'حریم خصوصی، باز کردن در مرورگر',
+                onTap: onPrivacy,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

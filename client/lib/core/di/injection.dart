@@ -8,6 +8,7 @@ import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/services/ad_service.dart';
+import 'package:wordchain/core/services/legal_links.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
@@ -73,6 +74,7 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
     () => NotificationService(getIt<DioClient>().dio),
   );
   getIt.registerLazySingleton<ShareService>(() => ShareService());
+  getIt.registerLazySingleton<LegalLinks>(() => LegalLinks());
   getIt.registerLazySingleton<AdService>(() => AdService());
   getIt.registerLazySingleton<MonetizationService>(
     () => MockMonetizationService(initialCoins: 100),

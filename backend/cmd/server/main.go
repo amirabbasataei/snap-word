@@ -20,6 +20,7 @@ import (
 	"wordchain/backend/internal/adminui"
 	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/handler"
+	"wordchain/backend/internal/legal"
 	"wordchain/backend/internal/middleware"
 	"wordchain/backend/internal/repository"
 	"wordchain/backend/internal/scheduler"
@@ -61,6 +62,14 @@ func main() {
 	router.Use(gin.Recovery())
 
 	router.GET("/health", healthHandler(db, rdb))
+
+	// Public Terms and Privacy pages (/terms, /privacy), embedded in the binary.
+	legalSite, err := legal.New()
+	if err != nil {
+		slog.Error("render legal pages", "error", err)
+		os.Exit(1)
+	}
+	handler.LegalRoutes(router, handler.NewLegalHandler(legalSite))
 
 	// Dependency wiring
 	userRepo := repository.NewUserRepository(db)

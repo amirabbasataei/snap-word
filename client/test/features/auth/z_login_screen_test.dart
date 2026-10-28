@@ -1,13 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:wordchain/core/services/legal_links.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/auth/data/auth_repository.dart';
+import 'package:wordchain/features/auth/view/widgets/legal_consent_text.dart';
 import 'package:wordchain/features/auth/view/widgets/referral_dialog.dart';
 
 import '../../helpers/contrast.dart';
@@ -90,6 +94,87 @@ void main() {
   tearDown(() async {
     await auth.dispose();
     unregisterAuth();
+  });
+
+  group('terms and privacy links', () {
+    late List<Uri> opened;
+
+    void registerLinks({bool launches = true}) {
+      opened = [];
+      GetIt.I.registerSingleton<LegalLinks>(
+        LegalLinks(
+          baseUrl: 'https://zanjir.test',
+          opener: (u) async {
+            opened.add(u);
+            return launches;
+          },
+        ),
+      );
+    }
+
+    Future<void> tapWord(WidgetTester tester, String word) async {
+      await tester.tapOnText(find.textRange.ofSubstring(word));
+      await flush(tester);
+    }
+
+    testWidgets('the sentence keeps its wording', (tester) async {
+      registerLinks();
+      await pumpLogin(tester);
+      expect(
+        find.textContaining('با ورود، قوانین و حریم خصوصی زنجیر را می‌پذیرم.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('قوانین opens the terms page', (tester) async {
+      registerLinks();
+      await pumpLogin(tester);
+      await tapWord(tester, 'قوانین');
+      expect(opened.map((u) => u.toString()), ['https://zanjir.test/terms']);
+    });
+
+    testWidgets('حریم خصوصی opens the privacy page', (tester) async {
+      registerLinks();
+      await pumpLogin(tester);
+      await tapWord(tester, 'حریم خصوصی');
+      expect(opened.map((u) => u.toString()), ['https://zanjir.test/privacy']);
+    });
+
+    testWidgets('a browser that will not open shows the Persian toast', (
+      tester,
+    ) async {
+      registerLinks(launches: false);
+      await pumpLogin(tester);
+      await tapWord(tester, 'قوانین');
+      expect(find.text(legalPageOpenFailedMessage), findsOneWidget);
+      await waitOutToast(tester);
+    });
+
+    testWidgets('both links are tappable semantics nodes', (tester) async {
+      registerLinks();
+      final handle = tester.ensureSemantics();
+      await pumpLogin(tester);
+      final nodes = <SemanticsNode>[];
+      void walk(SemanticsNode n) {
+        nodes.add(n);
+        n.visitChildren((c) {
+          walk(c);
+          return true;
+        });
+      }
+
+      walk(tester.getSemantics(find.byType(LegalConsentText)));
+      for (final word in ['قوانین', 'حریم خصوصی']) {
+        final node = nodes.where((n) => n.label == word).toList();
+        expect(node, hasLength(1), reason: word);
+        expect(
+          node.single.getSemanticsData().hasAction(SemanticsAction.tap),
+          isTrue,
+          reason: word,
+        );
+      }
+      handle.dispose();
+    });
   });
 
   group('idle', () {

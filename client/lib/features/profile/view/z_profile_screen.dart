@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/services/legal_links.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
@@ -10,6 +11,7 @@ import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
+import 'package:wordchain/core/widgets/legal_doc_opener.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/z_empty_state.dart';
 import 'package:wordchain/core/widgets/z_load_state.dart';
@@ -331,6 +333,8 @@ class _LoadedView extends StatelessWidget {
                     signedIn: signedIn,
                     onRedeem: () => showReferralDialog(context),
                     onLogout: () => getIt<AuthCubit>().logout(),
+                    onTerms: () => openLegalDoc(context, LegalDoc.terms),
+                    onPrivacy: () => openLegalDoc(context, LegalDoc.privacy),
                   );
                 },
               ),

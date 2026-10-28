@@ -1,0 +1,56 @@
+{{define "layout"}}<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · زنجیر</title>
+<meta name="description" content="{{.Description}}">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:,">
+<link rel="preload" href="/legal/assets/vazirmatn-400.woff2" as="font" type="font/woff2" crossorigin>
+<style>{{.CSS}}</style>
+</head>
+<body>
+<a class="skip" href="#content">رفتن به متن</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/terms"><span class="tile" aria-hidden="true">ز</span>زنجیر</a>
+    <nav class="switch" aria-label="اسناد حقوقی">
+      <a href="/terms"{{if eq .Slug "terms"}} aria-current="page"{{end}}>قوانین و مقررات</a>
+      <a href="/privacy"{{if eq .Slug "privacy"}} aria-current="page"{{end}}>حریم خصوصی</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+  <div class="head">
+    <h1>{{.Heading}}</h1>
+    <p class="meta"><span>نسخهٔ <b>{{.VersionFa}}</b></span><span>آخرین به‌روزرسانی: <time datetime="{{.UpdatedISO}}"><b>{{.UpdatedFa}}</b></time></span></p>
+  </div>
+  <div class="layout">
+    <details class="toc toc-mobile">
+      <summary>فهرست مطالب</summary>
+      <nav aria-label="فهرست مطالب">{{.TOC}}</nav>
+    </details>
+    <aside class="toc toc-side" aria-label="فهرست مطالب">
+      <h2>فهرست مطالب</h2>
+      <nav>{{.TOC}}</nav>
+    </aside>
+    <article id="content">
+{{.Body}}
+    </article>
+  </div>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <nav aria-label="اسناد حقوقی">
+      <a href="/terms">قوانین و مقررات</a>
+      <a href="/privacy">حریم خصوصی</a>
+      <a href="mailto:{{.Email}}">تماس با ما</a>
+    </nav>
+    <span>زنجیر · نسخهٔ {{.VersionFa}} · {{.UpdatedFa}}</span>
+  </div>
+</footer>
+</body>
+</html>
+{{end}}
