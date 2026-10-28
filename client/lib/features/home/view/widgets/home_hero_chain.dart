@@ -7,8 +7,8 @@ import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
-import 'package:wordchain/features/home/view/widgets/home_mascot.dart';
 import 'package:wordchain/core/widgets/motion.dart';
+import 'package:wordchain/core/widgets/z_mascot.dart';
 
 /// The hero: a chain of word tiles hanging from a peg, the mascot gripping it
 /// in the middle, and the next word dropping in at the far end.
@@ -18,17 +18,14 @@ import 'package:wordchain/core/widgets/motion.dart';
 /// start/right side), the last one is the *incoming* word that bobs at the
 /// end. Linking letters are accent-coloured to show the hand-off.
 ///
-/// Self-contained for a later Rive swap: it only needs [words], [mascotMood]
-/// and [animate], and always occupies [canvas] (the hero's design frame).
+/// Self-contained for a later Rive swap: it only needs [words] and [animate], and always occupies [canvas] (the hero's design frame).
 class HomeHeroChain extends StatefulWidget {
   final List<String> words;
-  final HomeMascotMood mascotMood;
   final bool animate;
 
   const HomeHeroChain({
     super.key,
     required this.words,
-    this.mascotMood = HomeMascotMood.idle,
     this.animate = true,
   }) : assert(words.length >= 3 && words.length <= 5);
 
@@ -54,6 +51,10 @@ const _anchors = [
 const _peg = Offset(372, 30);
 const _tail = Offset(52, 60);
 const _swayOrigin = Offset(198, 30);
+
+/// Top-left of the mascot's 130×152 box (canvas 7a); its raised hand
+/// ([ZMascot.hangingGrip]) is where the chain passes through.
+const _mascotAt = Offset(109, 192);
 const _tileHeight = 46.0;
 
 class _Tile {
@@ -163,7 +164,7 @@ class _HomeHeroChainState extends State<HomeHeroChain> {
               null,
             );
 
-    final grip = const Offset(130, 192) + HomeMascot.gripPoint;
+    final grip = _mascotAt + ZMascot.hangingGrip;
     Color acc(int k) => accents[k % accents.length];
     final links = <_Link>[
       ..._links([_peg, tiles.first.right], zs.chain),
@@ -245,10 +246,10 @@ class _HomeHeroChainState extends State<HomeHeroChain> {
                               ),
                             ),
                           Positioned(
-                            left: 130,
-                            top: 192,
-                            child: HomeMascot(
-                              mood: widget.mascotMood,
+                            left: _mascotAt.dx,
+                            top: _mascotAt.dy,
+                            child: ZMascot(
+                              mood: ZMascotMood.hanging,
                               animate: animate,
                             ),
                           ),

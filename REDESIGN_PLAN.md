@@ -362,7 +362,7 @@ Both prior open items are settled (see §1 Decisions and the header note above):
 **Source:** canvas turn 6 (`Zanjir.dc.html` frames **6a light / 6b dark**, "A · mascot-led"), component `ZHome3A.dc.html`. Variant B (`ZHome4`, world-led), `ZHome3` and the old 5a `ZHome2` are ignored. ZHome (v1, Stage 2) is fully replaced.
 
 **Code (ZHome only):** `features/home/view/home_screen.dart` is now just the loader (stats / daily / level fetch, navigation, difficulty sheet); everything visual lives in `features/home/view/widgets/`:
-`home_view.dart` (layout + `HomeViewData`), `home_scene_background.dart`, `home_hud.dart`, `home_logo.dart`, `home_hero.dart`, **`home_hero_chain.dart`** (self-contained: `words` + `mascotMood` + `animate`), **`home_mascot.dart`** (self-contained: `mood` + `animate`, exposes `size` / `gripPoint` — a Rive artboard can replace both without touching ZHome), `home_daily_ribbon.dart`, `home_chest.dart`, `home_progress_path.dart`, `home_buttons.dart`, `home_nav.dart`, `home_icons.dart` (token-coloured inline SVGs), `home_motion.dart` (`HomeClock` ticker + loop curves; reduced-motion aware), `chunky.dart` (`ChunkyBox` — outline + hi highlight + solid depth edge).
+`home_view.dart` (layout + `HomeViewData`), `home_scene_background.dart`, `home_hud.dart`, `home_logo.dart`, `home_hero.dart`, **`home_hero_chain.dart`** (self-contained: `words` + `mascotMood` + `animate`), `home_daily_ribbon.dart`, `home_chest.dart`, `home_progress_path.dart`, `home_buttons.dart`, `home_nav.dart`, `home_icons.dart` (token-coloured inline SVGs), `home_motion.dart` (`HomeClock` ticker + loop curves; reduced-motion aware), `chunky.dart` (`ChunkyBox` — outline + hi highlight + solid depth edge).
 The hero is authored on a 396×352 canvas and scaled to the screen (0.8–1.1×); the page scrolls on very short phones.
 
 **New tokens (added, nothing overwritten):** `core/theme/app_scene_tokens.dart` → `ZScene` ThemeExtension (`context.zs`): `outline, hi, sky1-3, blobIndigo, blobTeal, ring, particle, particleNear, vignette, tile, tileDeep, indigoInk, tealInk, coralInk, chain, glow, rays, track`, light + dark values from frames 6a/6b. `core/theme/app_game_metrics.dart` → `ZGame` (outline 3/2.5, depth 3/5/6/8, pressed edge 2, HUD 36/48/44, Play 76·r26, online 58·r22, logo 60·stroke 7·shadow 6, hero canvas, nav tile 60×48 lift 30, min label 11.5) and `ZGameMotion` (all loop periods). `AppTheme._build` registers `ZScene`.
@@ -377,7 +377,7 @@ The hero is authored on a 396×352 canvas and scaled to the screen (0.8–1.1×)
 - Milestones ۱۳/۱۴/۱۵ are derived (`level + 1…3`); the chest/crown have no reward behind them yet. Level rewards need backend work.
 - The two decorative avatar chips on the online button («م», «س») are not real players.
 - Mascot moods `cheer` / `sad` exist but nothing sets them yet (always `idle`).
-- Rive: `HomeHeroChain` + `HomeMascot` are the swap points ("home_hang" artboard in the canvas notes).
+- Rive: `HomeHeroChain` + `ZMascot(hanging)` are the swap points ("home_hang" artboard in the canvas notes).
 
 **Deliberate deviations from the canvas (flag for review):**
 - **Nav:** resolved by the dock below — one shared bar on all four tabs (the earlier split of `HomeNav` on Home + flat `ZBottomNav` elsewhere is gone).
@@ -493,7 +493,7 @@ The numbered "items 1, 2, 5" the brief refers to are not written down in this fi
 
 **Still open:**
 - ~~ZVersus still has its own header, bubbles and pill~~ — adopted the shared pieces in the ZVersus session (below).
-- Two mascots: `HomeMascot` (hanging from the chain, home only) and the new standing `ZMascot`. They are different drawings; keep both, do not merge.
+- ~~Two mascots~~ — superseded 2026-10-28: canvas frame 7a now draws the same mascot as the other screens, so `HomeMascot` was deleted and Home uses `ZMascot(mood: ZMascotMood.hanging)`.
 - `ZBackButton` (legacy 34px, `z_game_shared.dart`) is now used by no screen (Daily moved to `ZGameBackButton`, 44px, in the ZDaily session, 2026-10-25) — dead code, safe to delete with the lobby test line that asserts its absence.
 - `ZEmptyState` and `ZLoadState` (loading + failed load) exist (ZFriends session, 2026-10-25) with `ZStateCard` (the surface card around them, hoisted in the ZDaily session). The Friends, Board, Profile and both Daily screens use them. **Still duplicated, not migrated:** the private `_StateCard` copies in `z_friends_screen.dart` / `z_profile_screen.dart`, (`rewards_screen.dart` migrated 2026-10-26, § ZAwards; `messages_screen.dart` migrated 2026-10-26, § ZNotifs).
 - ~~The ribbon title (swallow-tail) is not a shared widget yet~~ — `ZRibbonTitle` (`core/widgets/z_ribbon_title.dart`) landed with ZLobby (below).
@@ -511,7 +511,7 @@ The numbered "items 1, 2, 5" the brief refers to are not written down in this fi
 - `showZDialog(context, builder:)` — every non-screen modal goes through it: centred card, `scrim` token backdrop (flat, no blur), 12px side inset, max 372 wide, scrolls when tall, keeps the caller's text direction. Entrance = `dropin` (−48px, canvas spring, 520ms); reduced motion = 200ms fade.
 - `ZDialogCard` — 3px outline, r28, solid 6px edge, optional `mascot` standing on the top edge.
 - `ZDialogButton.primary` (58 / r20 / 5px edge, accent) and `.secondary` (50 / r18 / 4px edge, coloured label + icon), both on `ChunkyPressable`.
-- `core/widgets/z_mascot.dart` — `ZMascot(mood: idle|happy|sad|thinking|surprised, size, shadow, animate)`, the canvas's **standing** mascot drawn in code (no letter on it — checked in `ZMascot.dc.html`: the body is a plain amber box). Built here because the exit dialog needs it (sad / surprised); ZOver will reuse it. All five moods are drawn so ZOver/ZLobby/ZDaily don't reopen it. `HomeMascot` is untouched.
+- `core/widgets/z_mascot.dart` — `ZMascot(mood: idle|happy|sad|thinking|surprised, size, shadow, animate)`, the canvas's **standing** mascot drawn in code (no letter on it — checked in `ZMascot.dc.html`: the body is a plain amber box). Built here because the exit dialog needs it (sad / surprised); ZOver will reuse it. All five moods are drawn so ZOver/ZLobby/ZDaily don't reopen it. (`HomeMascot` was later merged into it as the `hanging` mood, 2026-10-28.)
 
 **Exit confirm** — `features/game/view/widgets/z_exit_confirm.dart`: one `ZExitConfirm` with `ZExitMode { solo, ai, online, daily }`; `zShowEndGameDialog(context)` (same name/signature, callers unchanged: `ZGameBackButton` in `z_game_scaffold.dart` for ZSolo/ZPlay, and ZVersus' back button) derives the mode from the running `GameActive` (`zExitModeOf`) and ends the game with `GameEnded` on leave. Primary = stay (also scrim tap), leave is secondary in `coralInk`. The dialog closes itself if the game ends underneath it.
 
@@ -1163,3 +1163,11 @@ Canvas: `ZToast.dc.html` + turn 16 of `Zanjir.dc.html`. The old toast (a small `
 - **Visual pass:** an HTML replica of the canvas markup (canvas tokens, vendored Vazirmatn) was rendered in headless Chrome at 1× and diffed against the Flutter goldens. Layout, colours, radii, edges, glyphs, chip and bar line up; what remains is anti-aliasing and two engine differences: (1) Flutter rounds line boxes to whole pixels (22/21 instead of 21.6/20.8), so a two-line card is ~0.6dp taller than in a browser — the reference was rendered with the same rounded lines to compare the rest; (2) the canvas uses `text-wrap: pretty`, so a long title breaks differently (Flutter fills the first line).
 - **Tests:** `test/core/widgets/z_toast_test.dart` (11: content, one-liner, 52/12/372 placement, spring drop-in, auto-dismiss, ✕ 44dp target, replacement, touch pass-through, live region, token colours) and `z_toast_golden_test.dart` (16b: all five variants light + dark; 16a: floating over a sky screen light + dark — the real game screen was not used, only the toast region is compared). `z_lobby_invited_320_dark.png` was regenerated (it contained the old toast). The 28 golden failures that exist on a clean Linux checkout are unchanged.
 - **Behaviour note:** the toast now sits over the top bar of the screen it appears on (canvas placement), where the old one sat 16dp from the top.
+
+
+### Home mascot unified with `ZMascot` (2026-10-28, canvas `ZHome3A` frame 7a)
+
+The canvas redrew the Home mascot to match the other screens; the app still had the old `HomeMascot` (body 88×92, different arms/legs). Source of truth: the mascot block in `ZHome3A.dc.html` (box 130×152 at left 109 / top 192 of the 396×352 hero, swing origin (86, 8), ±7° / 1400 ms; waving arm pivot (24, 80), 0 → −22° / 380 ms; kicking leg −3,−3 / 350 ms; raised hand at (86, 8) = where the chain passes through (195, 200)).
+- `ZMascotMood.hanging` in `core/widgets/z_mascot.dart` reuses the standing mascot's body (88×86), idle face, legs and antenna; only the arms differ. `ZMascot.hangingSize` / `hangingGrip` replace `HomeMascot.size` / `gripPoint`. At rest (reduced motion) it is upright — the old widget rested at −7°.
+- Deleted `home_mascot.dart` and the never-used `mascotMood` plumbing (`HomeHero`, `HomeHeroChain`).
+- Verification: `test/features/home/home_mascot_golden_test.dart` renders the pose (light/dark) and the whole hero; the pose PNG was diffed against a Chrome render of the canvas markup (light 10 px / dark 33 px differ by > 24/255 of 36 040 — anti-aliasing only). The `home_hud_*` goldens include the mascot and must be regenerated on a machine where they pass (they fail on this Linux box on a clean HEAD). Not yet checked on a device.

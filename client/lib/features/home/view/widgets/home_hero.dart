@@ -4,7 +4,6 @@ import 'package:wordchain/features/home/view/widgets/home_buttons.dart';
 import 'package:wordchain/features/home/view/widgets/home_chest.dart';
 import 'package:wordchain/features/home/view/widgets/home_daily_ribbon.dart';
 import 'package:wordchain/features/home/view/widgets/home_hero_chain.dart';
-import 'package:wordchain/features/home/view/widgets/home_mascot.dart';
 
 /// The home hero on its 396×352 design canvas: daily ribbon, reward chest and
 /// the AI button around the swinging word chain. The caller scales the whole
@@ -12,7 +11,6 @@ import 'package:wordchain/features/home/view/widgets/home_mascot.dart';
 class HomeHero extends StatelessWidget {
   final List<String> words;
   final bool animate;
-  final HomeMascotMood mascotMood;
   final bool chestReady;
   final bool dailyDot;
   final VoidCallback onDaily;
@@ -28,7 +26,6 @@ class HomeHero extends StatelessWidget {
     required this.onDaily,
     required this.onChest,
     required this.onAi,
-    this.mascotMood = HomeMascotMood.idle,
   });
 
   @override
@@ -65,7 +62,6 @@ class HomeHero extends StatelessWidget {
             child: HomeHeroChain(
               words: words,
               animate: animate,
-              mascotMood: mascotMood,
             ),
           ),
         ],

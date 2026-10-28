@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/widgets/motion.dart';
 
-/// What the standing mascot is feeling. Matches the canvas `ZMascot` states.
-enum ZMascotMood { idle, happy, sad, thinking, surprised }
+/// What the mascot is feeling. Matches the canvas `ZMascot` states, plus
+/// [hanging]: the idle face, one hand raised on the home chain (canvas
+/// `ZHome3A`, frame 7a), the other waving.
+enum ZMascotMood { idle, happy, sad, thinking, surprised, hanging }
 
-/// The standing amber mascot (canvas `ZMascot.dc.html`): a plain rounded
-/// body — no letter on it — with antenna, two arms, two feet and a face that
-/// changes with [mood]. Distinct from `HomeMascot`, the one hanging from the
-/// chain on the home screen.
+/// The amber mascot (canvas `ZMascot.dc.html`): a plain rounded body — no
+/// letter on it — with antenna, two arms, two feet and a face that changes
+/// with [mood]. Every screen uses this one drawing, the home screen's chain
+/// grip included ([ZMascotMood.hanging]).
 ///
-/// Drawn on the canvas's 130×150 design grid and scaled to [size] (width).
-/// Self-contained like `HomeMascot`: a Rive artboard can replace it later
-/// without touching a screen. With [animate] false (reduced motion) every
-/// loop rests in its base pose.
+/// Drawn on the canvas's 130×150 design grid (130×152 when hanging) and
+/// scaled to [size] (width). A Rive artboard can replace it later without
+/// touching a screen. With [animate] false (reduced motion) every loop rests
+/// in its base pose.
 class ZMascot extends StatelessWidget {
   final ZMascotMood mood;
 
@@ -34,7 +37,15 @@ class ZMascot extends StatelessWidget {
   });
 
   static const _gridW = 130.0;
-  static const _gridH = 150.0;
+
+  /// Layout box of [ZMascotMood.hanging] at `size: 130` (canvas 130×152).
+  static const hangingSize = Size(130, 152);
+
+  /// Where the raised hand holds the chain, inside the [hangingSize] box; the
+  /// whole body swings about this point.
+  static const hangingGrip = Offset(86, 8);
+
+  double get _gridH => mood == ZMascotMood.hanging ? 152 : 150;
 
   /// Height of the layout box for a given [size] (canvas: `size*155/130`).
   static double heightFor(double size) => (size * 155 / 130).roundToDouble();
@@ -50,7 +61,10 @@ class ZMascot extends StatelessWidget {
       child: ExcludeSemantics(
         child: SizedBox(
           width: size,
-          height: heightFor(size),
+          height:
+              mood == ZMascotMood.hanging
+                  ? (size * hangingSize.height / _gridW)
+                  : heightFor(size),
           child: HomeClock(
             enabled: run,
             builder:
@@ -75,6 +89,7 @@ class ZMascot extends StatelessWidget {
     ZMascotMood.sad => 'شخصیت زنجیر، ناراحت',
     ZMascotMood.thinking => 'شخصیت زنجیر، در فکر',
     ZMascotMood.surprised => 'شخصیت زنجیر، متعجب',
+    ZMascotMood.hanging => 'شخصیت زنجیر',
   };
 
   Widget _build(BuildContext context, double ms, bool run) {
@@ -84,7 +99,19 @@ class ZMascot extends StatelessWidget {
     // Whole-body loop, pivoting on the feet (canvas `transform-origin:
     // 65px 146px`).
     var sx = 1.0, sy = 1.0, dy = 0.0, rot = 0.0;
+    var wave = 0.0, kick = 0.0;
+    var pivot = const Alignment(0, 146 / 75 - 1);
     switch (mood) {
+      case ZMascotMood.hanging:
+        // Swings from the raised hand; the other arm waves, one leg kicks.
+        // Reduced motion rests upright (the loop's first keyframe is -7°).
+        rot = run ? HomeLoop.swing(ms, ZGameMotion.hang, -7, 7) : 0;
+        wave = HomeLoop.swing(ms, ZGameMotion.wave, 0, -22);
+        kick = HomeLoop.pingPong(ms, ZGameMotion.kick);
+        pivot = Alignment(
+          hangingGrip.dx / (_gridW / 2) - 1,
+          hangingGrip.dy / (_gridH / 2) - 1,
+        );
       case ZMascotMood.idle:
         final k = HomeLoop.pingPong(ms, 1300);
         sx = 1 + .025 * k;
@@ -119,7 +146,7 @@ class ZMascot extends StatelessWidget {
     }
 
     final paint = CustomPaint(
-      size: const Size(_gridW, _gridH),
+      size: Size(_gridW, _gridH),
       painter: _MascotPainter(
         mood: mood,
         outline: zs.outline,
@@ -129,7 +156,12 @@ class ZMascot extends StatelessWidget {
         coral: z.coral,
         teal: z.teal,
         white: z.surface.computeLuminance() > .5 ? z.surface : z.ink,
-        blink: mood == ZMascotMood.idle ? HomeLoop.blink(ms) : 1,
+        blink:
+            mood == ZMascotMood.idle || mood == ZMascotMood.hanging
+                ? HomeLoop.blink(ms)
+                : 1,
+        wave: wave,
+        kick: kick,
         tear: mood == ZMascotMood.sad ? _tear(ms) : 0,
         dots: [
           for (var i = 0; i < 3; i++)
@@ -141,7 +173,7 @@ class ZMascot extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        if (shadow)
+        if (shadow && mood != ZMascotMood.hanging)
           Positioned(
             left: 23,
             top: 139,
@@ -156,7 +188,7 @@ class ZMascot extends StatelessWidget {
           ),
         Positioned.fill(
           child: Transform(
-            alignment: const Alignment(0, 146 / 75 - 1),
+            alignment: pivot,
             transform:
                 Matrix4.identity()
                   ..translateByDouble(0, dy, 0, 1)
@@ -196,7 +228,9 @@ class _MascotPainter extends CustomPainter {
   final Color coral;
   final Color teal;
   final Color white;
-  final double blink; // eye scale-Y (idle)
+  final double blink; // eye scale-Y (idle, hanging)
+  final double wave; // waving arm angle in degrees (hanging)
+  final double kick; // 0..1 kicking-leg progress (hanging)
   final double tear; // 0..1 drip progress (sad)
   final List<double> dots; // thought-bubble opacities (thinking)
 
@@ -210,6 +244,8 @@ class _MascotPainter extends CustomPainter {
     required this.teal,
     required this.white,
     required this.blink,
+    required this.wave,
+    required this.kick,
     required this.tear,
     required this.dots,
   });
@@ -247,6 +283,12 @@ class _MascotPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (mood == ZMascotMood.hanging) {
+      _hangingLimbs(canvas);
+      _body(canvas);
+      _face(canvas);
+      return;
+    }
     // Legs and feet.
     _limb(canvas, _line(52, 124, 49, 141));
     _limb(canvas, _line(78, 124, 81, 141));
@@ -258,6 +300,8 @@ class _MascotPainter extends CustomPainter {
 
     // Antenna and arms (behind the body).
     switch (mood) {
+      case ZMascotMood.hanging:
+        break; // returned early above
       case ZMascotMood.idle:
       case ZMascotMood.thinking:
         _antenna(canvas, _line(65, 42, 65, 23), const Offset(65, 17));
@@ -322,6 +366,37 @@ class _MascotPainter extends CustomPainter {
     }
   }
 
+  void _foot(Canvas canvas, double x) {
+    final r = Rect.fromCenter(center: Offset(x, 143), width: 19, height: 10);
+    canvas.drawOval(r, _fill(amberDeep));
+    canvas.drawOval(r, _stroke(outline, 3));
+  }
+
+  /// Canvas 7a, back to front: planted leg, antenna, the hand holding the
+  /// chain, the kicking leg, the waving arm (pivot at its shoulder).
+  void _hangingLimbs(Canvas canvas) {
+    _limb(canvas, _line(78, 124, 81, 141));
+    _foot(canvas, 84);
+    _antenna(canvas, _line(65, 42, 65, 23), const Offset(65, 17));
+    _limb(canvas, _curve(106, 80, 122, 44, 90, 12));
+    canvas.drawCircle(const Offset(86, 8), 7, _fill(amber));
+    canvas.drawCircle(const Offset(86, 8), 7, _stroke(outline, 3));
+
+    canvas.save();
+    canvas.translate(-3 * kick, -3 * kick);
+    _limb(canvas, _line(52, 124, 49, 141));
+    _foot(canvas, 46);
+    canvas.restore();
+
+    canvas.save();
+    canvas.translate(24, 80);
+    canvas.rotate(HomeLoop.deg(wave));
+    canvas.translate(-24, -80);
+    _limb(canvas, _curve(24, 80, 8, 66, 10, 42));
+    _hand(canvas, 10, 37, amber);
+    canvas.restore();
+  }
+
   void _antenna(Canvas canvas, Path stem, Offset ball) {
     _limb(canvas, stem);
     canvas.drawCircle(ball, 7, _fill(coral));
@@ -384,6 +459,7 @@ class _MascotPainter extends CustomPainter {
   void _face(Canvas canvas) {
     switch (mood) {
       case ZMascotMood.idle:
+      case ZMascotMood.hanging:
         _eye(canvas, 50, 72, 6, 8.5);
         _eye(canvas, 80, 72, 6, 8.5);
         if (blink > .5) {
@@ -505,6 +581,8 @@ class _MascotPainter extends CustomPainter {
   bool shouldRepaint(_MascotPainter old) =>
       old.mood != mood ||
       old.blink != blink ||
+      old.wave != wave ||
+      old.kick != kick ||
       old.tear != tear ||
       old.outline != outline ||
       old.amber != amber ||

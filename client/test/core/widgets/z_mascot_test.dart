@@ -18,7 +18,7 @@ Widget _sheet(Brightness b, {bool reduceMotion = true}) => zTestApp(
                   child: Wrap(
                     spacing: 8,
                     children: [
-                      for (final m in ZMascotMood.values)
+                      for (final m in _standing)
                         ZMascot(mood: m, size: 100, animate: !reduceMotion),
                     ],
                   ),
@@ -32,6 +32,10 @@ Widget _sheet(Brightness b, {bool reduceMotion = true}) => zTestApp(
   reduceMotion: reduceMotion,
 );
 
+/// The standing moods; `hanging` (Home) has its own golden in
+/// `test/features/home/home_mascot_golden_test.dart`.
+final _standing = ZMascotMood.values.where((m) => m != ZMascotMood.hanging);
+
 void main() {
   setUpAll(loadVazirmatn);
 
@@ -44,7 +48,7 @@ void main() {
           Scaffold(
             body: Wrap(
               children: [
-                for (final m in ZMascotMood.values)
+                for (final m in _standing)
                   ZMascot(mood: m, size: size, shadow: size > 100),
               ],
             ),
