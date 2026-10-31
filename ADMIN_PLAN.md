@@ -11,7 +11,7 @@ Read this (and CLAUDE.md) at the start of every admin-panel session. Run one sta
 | A3 | Dashboard (real data only) | [x] Complete |
 | A4 | Users & economy (incl. ban) | [x] Complete |
 | A5 | Content & catalogue (taunts, avatars, daily, leaderboards) | [x] Complete |
-| A6 | Live ops, matches & notifications | [ ] Not Started |
+| A6 | Live ops, matches & notifications | [ ] In Progress — **notifications done** (2026-10-31, see log); live rooms and matches pages not started |
 | A7 | Admins, 2FA, audit log, hardening, release | [ ] Not Started |
 | A8 | Product analytics (events, retention, funnels, timelines) | [x] Complete (code) — client tracker not yet verified on-device |
 
@@ -192,3 +192,13 @@ Built in three parts, as ANALYTICS_PLAN.md staged it, with these decisions/devia
 ## Deployment note (2026-10-11)
 
 The `/zanjir` URL prefix (`PANEL_PREFIX`, `lib/base.ts`) was removed: Zanjir now owns `amirabbasataei.ir`, so the panel is served at `/admin/` on the backend's own origin (`https://amirabbasataei.ir/admin/`, legacy `:8080/admin/`). Production deploys build the image locally (`scripts/deploy_backend.sh`); host layout in `docs/server-runbook.md`.
+
+
+## A6 — Notifications (2026-10-31)
+
+Done: the «اعلان‌ها» page (compose · history · push-permission overview), admin API, `017_admin_notifications`, the player inbox endpoints and the Flutter side (permission report, inbox on `/messages`). Contract and rules: **CLAUDE.md § Admin Notifications**.
+
+- **Decisions:** in-app messages are fanned out one row per recipient (per-user read state, cheap at this scale) rather than evaluated at read time; guests cannot receive in-app messages (no account); `device_tokens.permission` is reported by the client and re-sent on resume, because a token row never meant "allowed"; push goes to `granted` + `unknown` devices only; a bare FCM 404 never deletes tokens; sending to everyone needs a typed confirmation; sends are not editable/recallable, no scheduling.
+- **Plan deviations:** no "active in last N days" segment on app opens (uses `last_played_date`, the only activity the server stores per user — analytics installs are not joined in); history comes from `notification_campaigns`, not the audit log (the audit row only links to it).
+- **Incidents while verifying (local dev DB):** a first live call sent a real push campaign to the dev DB's registered devices, and that run deleted their 5 tokens as "unregistered" using a looser 404 rule — tightened to `404 + UNREGISTERED` afterwards; the emulator re-registered by itself. A login attempt for an HTTP check called `send-otp` with local SMS switched on, which may have texted a real number. Test campaigns/tokens were removed.
+- **Flagged, not done:** nothing here has run on a device (push arrival, `permissionState()` on Android 13+/iOS); A6's live-rooms and matches pages remain; the permission prompt still appears only on the Friends tab, which will keep `granted` low.

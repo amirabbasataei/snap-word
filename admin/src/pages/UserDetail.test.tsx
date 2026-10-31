@@ -17,6 +17,7 @@ const USER: Detail = {
   referral_code: 'ABC234', ban_reason: '', joined_at: '2026-09-20T08:00:00Z', xp_in_level: 500, xp_for_next: 3000,
   stats: { total_matches: 42, wins: 20, longest_word: 'کتابخانه', best_match_streak: 6, daily_streak: 2, longest_daily_streak: 9, last_played_date: '2026-10-09T00:00:00Z', total_score: 8000 },
   friends_count: 4, device_tokens: 1,
+  push: { state: 'granted', devices: [{ platform: 'android', permission: 'granted', updated_at: '2026-10-09T10:00:00Z' }] },
   referrer: { id: '33333333-3333-3333-3333-333333333333', username: 'inviter' },
   referred_count: 1, referred: [{ id: '44444444-4444-4444-4444-444444444444', username: 'friend1', created_at: '2026-10-01T00:00:00Z' }],
   rewards: [

@@ -218,6 +218,24 @@ const (
 	WordAdminPageSizeMax     = 200
 )
 
+// Admin notifications (stage A6): pushes and in-app messages sent from the panel.
+const (
+	NotifTitleMaxRunes   = 60  // push/message title
+	NotifBodyMaxRunes    = 240 // push/message body
+	NotifMaxTargetUsers  = 200 // accounts one "specific users" send may name
+	NotifPushWorkers     = 8   // concurrent FCM requests while delivering a campaign
+	NotifPushTimeout     = 15 * time.Minute
+	NotifDuplicateWindow = 2 * time.Minute // an identical title+body inside this window is refused
+	NotifPageSizeDefault = 20
+	NotifPageSizeMax     = 100
+	InboxMessageTTL      = 30 * 24 * time.Hour // unread in-app messages older than this are no longer shown
+	InboxMessageListMax  = 50
+)
+
+// NotifRoutes are the deep links a push or in-app message may carry (the
+// client's go_router paths); empty means "just open the app".
+var NotifRoutes = []string{"/home", "/daily", "/friends", "/leaderboard", "/rewards", "/profile", "/messages"}
+
 // RewardClaimedRetention is how long a claimed reward stays listed on the rewards screen.
 const RewardClaimedRetention = 24 * time.Hour
 

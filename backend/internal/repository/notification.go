@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/lib/pq"
 )
 
 // DeviceToken is a single FCM registration record.
@@ -22,13 +24,32 @@ func NewNotificationRepository(db *sql.DB) *NotificationRepository {
 	return &NotificationRepository{db: db}
 }
 
-// RegisterToken upserts a device token for the given user.
-func (r *NotificationRepository) RegisterToken(ctx context.Context, userID, token, platform string) error {
+// Notification permission as reported by the client (device_tokens.permission).
+// PermUnknown marks rows registered before the column existed.
+const (
+	PermGranted       = "granted"
+	PermDenied        = "denied"
+	PermNotDetermined = "not_determined"
+	PermUnknown       = "unknown"
+)
+
+// ValidPermission reports whether p is a value a client may send.
+func ValidPermission(p string) bool {
+	return p == PermGranted || p == PermDenied || p == PermNotDetermined
+}
+
+// RegisterToken upserts a device token for the given user. permission is what
+// the OS currently allows for this app (see Perm*); an old client that does
+// not report it passes PermUnknown, which never overwrites a known value.
+func (r *NotificationRepository) RegisterToken(ctx context.Context, userID, token, platform, permission string) error {
 	const q = `
-		INSERT INTO device_tokens (user_id, token, platform, updated_at)
-		VALUES ($1, $2, $3, now())
-		ON CONFLICT (user_id, token) DO UPDATE SET platform = EXCLUDED.platform, updated_at = now()`
-	_, err := r.db.ExecContext(ctx, q, userID, token, platform)
+		INSERT INTO device_tokens (user_id, token, platform, permission, updated_at)
+		VALUES ($1, $2, $3, $4, now())
+		ON CONFLICT (user_id, token) DO UPDATE SET
+			platform   = EXCLUDED.platform,
+			permission = CASE WHEN EXCLUDED.permission = 'unknown' THEN device_tokens.permission ELSE EXCLUDED.permission END,
+			updated_at = now()`
+	_, err := r.db.ExecContext(ctx, q, userID, token, platform, permission)
 	if err != nil {
 		return fmt.Errorf("RegisterToken: %w", err)
 	}
@@ -84,4 +105,16 @@ func (r *NotificationRepository) GetAllTokens(ctx context.Context) ([]DeviceToke
 		result = append(result, dt)
 	}
 	return result, rows.Err()
+}
+
+// DeleteTokens removes device tokens FCM reported as dead (uninstalled app,
+// rotated token), for every user that held them.
+func (r *NotificationRepository) DeleteTokens(ctx context.Context, tokens []string) error {
+	if len(tokens) == 0 {
+		return nil
+	}
+	if _, err := r.db.ExecContext(ctx, `DELETE FROM device_tokens WHERE token = ANY($1)`, pq.Array(tokens)); err != nil {
+		return fmt.Errorf("DeleteTokens: %w", err)
+	}
+	return nil
 }

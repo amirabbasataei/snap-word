@@ -302,7 +302,7 @@ function LiveCard({ summary }: { summary: Query<DashboardSummary> }) {
             <Row label="بازیکنان متصل" value={formatNumber(s.live.connected_players)} />
             <Row label="صف جست‌وجوی حریف" value={formatNumber(s.live.queue_length)} />
             <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
-              <dt className="text-muted">اعلان‌های فشاری (FCM)</dt>
+              <dt className="text-muted">پوش نوتیفیکیشن (FCM)</dt>
               <dd>
                 <Badge tone={s.fcm_configured ? 'green' : 'yellow'}>{s.fcm_configured ? 'پیکربندی شده' : 'پیکربندی نشده'}</Badge>
               </dd>

@@ -22,6 +22,9 @@ func NewNotificationHandler(repo *repository.NotificationRepository) *Notificati
 type registerTokenReq struct {
 	Token    string `json:"token"    binding:"required"`
 	Platform string `json:"platform" binding:"required,oneof=ios android"`
+	// Permission is what the OS allows right now (granted | denied |
+	// not_determined). Older clients omit it.
+	Permission string `json:"permission"`
 }
 
 type deregisterTokenReq struct {
@@ -38,7 +41,15 @@ func (h *NotificationHandler) RegisterToken(c *gin.Context) {
 		return
 	}
 
-	if err := h.repo.RegisterToken(c.Request.Context(), userID, req.Token, req.Platform); err != nil {
+	permission := repository.PermUnknown
+	if repository.ValidPermission(req.Permission) {
+		permission = req.Permission
+	} else if req.Permission != "" {
+		respondError(c, http.StatusBadRequest, "invalid_body", "unknown permission value")
+		return
+	}
+
+	if err := h.repo.RegisterToken(c.Request.Context(), userID, req.Token, req.Platform, permission); err != nil {
 		slog.Error("RegisterToken failed", "userID", userID, "error", err)
 		respondError(c, http.StatusInternalServerError, "internal_error", "failed to register token")
 		return

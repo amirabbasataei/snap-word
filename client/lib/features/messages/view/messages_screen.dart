@@ -15,6 +15,8 @@ import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
+import 'package:wordchain/features/messages/data/inbox_repository.dart';
+import 'package:wordchain/features/messages/view/widgets/announcement_tile.dart';
 import 'package:wordchain/features/messages/view/widgets/message_format.dart';
 import 'package:wordchain/features/messages/view/widgets/message_tile.dart';
 import 'package:wordchain/features/messages/view/widgets/missed_push_tile.dart';
@@ -25,6 +27,9 @@ import 'package:wordchain/features/messages/view/widgets/messages_header.dart';
 /// place. Accept / decline reuse the friends endpoints (through
 /// [MessagesCubit]); accepting a challenge enters the room. Claimable coin
 /// prizes live on the rewards screen.
+///
+/// Notices an admin sent from the panel appear above the invitations; their
+/// «باشه» marks them read on the server.
 ///
 /// A pushed route, not a tab. The canvas is a general notification feed (tabs,
 /// read state, day groups); the product only has these two kinds of pending
@@ -64,6 +69,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
       _busy.remove(key);
       if (mounted) setState(() {});
     }
+  }
+
+  void _openAnnouncement(InboxMessage a) {
+    getIt<MessagesCubit>().dismissAnnouncement(a);
+    context.go(a.route);
   }
 
   Future<void> _respondRequest(PendingRequest r, bool accept) {
@@ -171,6 +181,20 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
       children: [
+        for (final a in state.announcements)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+            child: ZOverEnter(
+              key: ValueKey('a:${a.id}'),
+              kind: ZOverEnterKind.up,
+              delayMs: delay(),
+              child: AnnouncementTile(
+                message: a,
+                onDismiss: () => getIt<MessagesCubit>().dismissAnnouncement(a),
+                onOpen: a.route.isEmpty ? null : () => _openAnnouncement(a),
+              ),
+            ),
+          ),
         for (final m in state.missed)
           Padding(
             padding: EdgeInsets.only(top: i == 0 ? 0 : 10),

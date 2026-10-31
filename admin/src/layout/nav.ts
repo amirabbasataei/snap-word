@@ -57,7 +57,6 @@ export const NAV: NavGroup[] = [
 export const PLACEHOLDERS: { to: string; title: string; stage: string; icon: LucideIcon }[] = [
   { to: '/live', title: 'اتاق‌های زنده', stage: 'A6', icon: Radio },
   { to: '/matches', title: 'مسابقه‌ها', stage: 'A6', icon: Gamepad2 },
-  { to: '/notifications', title: 'اعلان‌ها', stage: 'A6', icon: Bell },
   { to: '/admins', title: 'مدیران', stage: 'A7', icon: Shield },
   { to: '/audit', title: 'گزارش فعالیت', stage: 'A7', icon: ScrollText },
 ]

@@ -167,6 +167,13 @@ func main() {
 	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(analyticsRepo, rdb), authSvc)
 	adminAnalyticsHandler := handler.NewAdminAnalyticsHandler(service.NewAdminAnalyticsService(adminRepo, rdb))
 	wordHandler := handler.NewWordHandler(service.NewWordSuggestionService(wordRepo, rdb), dictSvc, authSvc)
+	adminNotifSvc := service.NewAdminNotificationService(adminRepo, notifSvc, auditSvc)
+	adminNotifHandler := handler.NewAdminNotificationsHandler(adminNotifSvc)
+	inboxHandler := handler.NewInboxHandler(service.NewInboxService(repository.NewInboxRepository(db)))
+	// A push still "sending" belongs to a process that stopped mid-delivery.
+	if err := adminRepo.FailStaleCampaigns(context.Background()); err != nil {
+		slog.Warn("could not close stale notification campaigns", "error", err)
+	}
 	adminWordsHandler := handler.NewAdminWordsHandler(service.NewAdminWordService(wordRepo, dictSvc, wordMissSvc, notifSvc, auditSvc))
 
 	// Start background scheduler
@@ -229,6 +236,10 @@ func main() {
 	admin.GET("/dictionary/lookup", adminWordsHandler.Lookup)
 	admin.GET("/dictionary/misses", adminWordsHandler.Misses)
 	admin.GET("/dictionary/export", adminWordsHandler.Export)
+	admin.GET("/notifications", adminNotifHandler.List)
+	admin.GET("/notifications/reach", adminNotifHandler.Reach)
+	admin.GET("/notifications/:id", adminNotifHandler.Get)
+	admin.POST("/notifications/preview", adminNotifHandler.Preview)
 	admin.GET("/settings/otp", adminSettingsHandler.OTP)
 	admin.GET("/taunts", adminContentHandler.Taunts)
 	admin.GET("/avatars", adminContentHandler.Avatars)
@@ -242,6 +253,7 @@ func main() {
 	operator := admin.Group("", middleware.RequireRole(service.AdminRoleOperator))
 	operator.POST("/words/suggestions/:id/approve", adminWordsHandler.Approve)
 	operator.POST("/words/suggestions/:id/reject", adminWordsHandler.Reject)
+	operator.POST("/notifications", adminNotifHandler.Send)
 	operator.POST("/words/bulk", adminWordsHandler.Bulk)
 	operator.POST("/dictionary/words", adminWordsHandler.SetWord)
 	operator.POST("/dictionary/misses/dismiss", adminWordsHandler.DismissMiss)
@@ -302,6 +314,10 @@ func main() {
 	protected.GET("/daily", dailyHandler.GetDaily)
 	protected.POST("/daily/retry", dailyHandler.Retry)
 	protected.GET("/daily/leaderboard", dailyHandler.GetLeaderboard)
+
+	// Admin in-app messages
+	protected.GET("/inbox", inboxHandler.List)
+	protected.POST("/inbox/:id/read", inboxHandler.MarkRead)
 
 	// Push notification token management
 	protected.POST("/notifications/token", notificationHandler.RegisterToken)

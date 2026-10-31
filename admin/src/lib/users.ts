@@ -58,6 +58,8 @@ export interface UserDetail extends UserItem {
   }
   friends_count: number
   device_tokens: number
+  /** Whether this account can be pushed, by its best device. */
+  push: { state: 'granted' | 'unknown' | 'denied' | 'not_determined' | 'none'; devices: { platform: 'android' | 'ios'; permission: string; updated_at: string }[] }
   referrer: { id: string; username: string } | null
   referred_count: number
   referred: { id: string; username: string; created_at: string }[]
@@ -100,16 +102,18 @@ function listQuery(p: UserListParams): string {
   return qs.toString()
 }
 
-export function useUsers(params: UserListParams) {
+export function useUsers(params: UserListParams, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ['admin', 'users', 'list', params],
     queryFn: ({ signal }) => api<UserPage>(`/users?${listQuery(params)}`, { signal }),
     placeholderData: keepPreviousData,
   })
 }
 
-export function useUser(id: string) {
+export function useUser(id: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ['admin', 'users', 'detail', id],
     queryFn: ({ signal }) => api<UserDetail>(`/users/${encodeURIComponent(id)}`, { signal }),
   })

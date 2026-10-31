@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
@@ -12,7 +13,7 @@ import 'package:wordchain/core/network/api_endpoints.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
-class NotificationService {
+class NotificationService with WidgetsBindingObserver {
   final Dio _dio;
   final Logger _log = Logger();
 
@@ -29,6 +30,10 @@ class NotificationService {
   static const _maxToastAge = Duration(minutes: 2);
 
   bool _tokenRefreshWired = false;
+
+  /// A player is signed in and this device is registered. Gates the resume
+  /// re-report, so a signed-out device never posts its token.
+  bool _registered = false;
 
   NotificationService(this._dio);
 
@@ -59,6 +64,27 @@ class NotificationService {
     }
   }
 
+  /// What the OS currently lets this app do, in the words the server stores
+  /// (`device_tokens.permission`): `granted`, `denied` (refused or switched off
+  /// in system settings) or `not_determined` (never asked). The admin panel
+  /// reads it to tell who a push can actually reach — a registered token alone
+  /// does not mean the player allowed notifications.
+  Future<String> permissionState() async {
+    try {
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
+      return switch (settings.authorizationStatus) {
+        AuthorizationStatus.authorized ||
+        AuthorizationStatus.provisional => 'granted',
+        AuthorizationStatus.denied => 'denied',
+        AuthorizationStatus.notDetermined => 'not_determined',
+      };
+    } catch (e) {
+      _log.w('FCM getNotificationSettings failed: $e');
+      return 'not_determined';
+    }
+  }
+
   Future<void> requestPermission() async {
     try {
       await FirebaseMessaging.instance.requestPermission(
@@ -85,6 +111,10 @@ class NotificationService {
   Future<void> registerToken() async {
     final token = await getToken();
     if (token == null) return;
+    if (!_registered) {
+      _registered = true;
+      WidgetsBinding.instance.addObserver(this);
+    }
     await _postToken(token);
     if (_tokenRefreshWired) return;
     _tokenRefreshWired = true;
@@ -99,14 +129,29 @@ class NotificationService {
     try {
       await _dio.post(
         ApiEndpoints.notificationToken,
-        data: {'token': token, 'platform': _platform()},
+        data: {
+          'token': token,
+          'platform': _platform(),
+          'permission': await permissionState(),
+        },
       );
     } catch (e) {
       _log.w('FCM token registration failed: $e');
     }
   }
 
+  /// The player may have changed the permission in system settings while the
+  /// app was away; tell the server so reach numbers stay true.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _registered) {
+      unawaited(registerToken());
+    }
+  }
+
   Future<void> deregisterToken() async {
+    _registered = false;
+    WidgetsBinding.instance.removeObserver(this);
     final token = await getToken();
     if (token == null) return;
     try {
@@ -151,6 +196,7 @@ class NotificationService {
       defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
 
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _payloadController.close();
     _foregroundController.close();
   }

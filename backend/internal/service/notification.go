@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -113,7 +114,14 @@ func (s *NotificationService) configured() bool {
 	return s.saKey != nil && s.cfg.FCMProjectID != ""
 }
 
+// errTokenGone means FCM no longer knows the token (app uninstalled, token rotated).
+var errTokenGone = errors.New("fcm token unregistered")
+
 func (s *NotificationService) sendToToken(ctx context.Context, token, title, body string) error {
+	return s.sendMessage(ctx, token, title, body, nil)
+}
+
+func (s *NotificationService) sendMessage(ctx context.Context, token, title, body string, data map[string]string) error {
 	accessToken, err := s.getAccessToken(ctx)
 	if err != nil {
 		return fmt.Errorf("sendToToken: get access token: %w", err)
@@ -124,8 +132,9 @@ func (s *NotificationService) sendToToken(ctx context.Context, token, title, bod
 		Body  string `json:"body"`
 	}
 	type fcmMessage struct {
-		Token        string           `json:"token"`
-		Notification *fcmNotification `json:"notification"`
+		Token        string            `json:"token"`
+		Notification *fcmNotification  `json:"notification"`
+		Data         map[string]string `json:"data,omitempty"`
 	}
 	type fcmRequest struct {
 		Message *fcmMessage `json:"message"`
@@ -134,6 +143,7 @@ func (s *NotificationService) sendToToken(ctx context.Context, token, title, bod
 	payload := fcmRequest{Message: &fcmMessage{
 		Token:        token,
 		Notification: &fcmNotification{Title: title, Body: body},
+		Data:         data,
 	}}
 
 	raw, err := json.Marshal(payload)
@@ -157,9 +167,100 @@ func (s *NotificationService) sendToToken(ctx context.Context, token, title, bod
 
 	if resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(resp.Body)
+		// Only FCM's explicit UNREGISTERED code means the token is dead. A bare
+		// 404 can also mean a wrong project id, which must never wipe the tokens.
+		if resp.StatusCode == http.StatusNotFound && bytes.Contains(respBody, []byte("UNREGISTERED")) {
+			return fmt.Errorf("%w: FCM %d", errTokenGone, resp.StatusCode)
+		}
 		return fmt.Errorf("FCM error %d: %s", resp.StatusCode, string(respBody))
 	}
 	return nil
+}
+
+// PushTarget is one device a campaign push goes to.
+type PushTarget struct {
+	UserID string
+	Token  string
+}
+
+// PushResult summarises a SendBatch.
+type PushResult struct {
+	Users   int // distinct accounts targeted
+	Devices int // devices attempted
+	Sent    int // accepted by FCM
+	Failed  int
+	Removed int // dead tokens deleted
+}
+
+// SendBatch pushes one message to many devices with a small worker pool and
+// deletes the tokens FCM reports as unregistered, so the device list (and the
+// reach numbers built on it) stays honest. It blocks until done; callers run
+// it off the request goroutine. A no-op result when FCM is not configured.
+func (s *NotificationService) SendBatch(ctx context.Context, targets []PushTarget, title, body, route string) PushResult {
+	users := map[string]struct{}{}
+	for _, t := range targets {
+		users[t.UserID] = struct{}{}
+	}
+	res := PushResult{Users: len(users), Devices: len(targets)}
+	if !s.configured() || len(targets) == 0 {
+		return res
+	}
+	var data map[string]string
+	if route != "" {
+		data = map[string]string{"route": route}
+	}
+
+	var (
+		mu   sync.Mutex
+		gone []string
+		wg   sync.WaitGroup
+		jobs = make(chan PushTarget)
+	)
+	for i := 0; i < config.NotifPushWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for t := range jobs {
+				err := s.sendMessage(ctx, t.Token, title, body, data)
+				mu.Lock()
+				switch {
+				case err == nil:
+					res.Sent++
+				case errors.Is(err, errTokenGone):
+					res.Failed++
+					gone = append(gone, t.Token)
+					slog.Info("notification: dropping unregistered device token", "userID", t.UserID)
+				default:
+					res.Failed++
+					slog.Warn("notification: campaign send failed", "userID", t.UserID, "error", err)
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+loop:
+	for _, t := range targets {
+		select {
+		case jobs <- t:
+		case <-ctx.Done():
+			break loop
+		}
+	}
+	close(jobs)
+	wg.Wait()
+
+	// Anything not attempted because the context ended counts as failed.
+	res.Failed = res.Devices - res.Sent
+	if len(gone) > 0 {
+		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		defer cancel()
+		if err := s.notifRepo.DeleteTokens(cleanup, gone); err != nil {
+			slog.Warn("notification: could not delete dead tokens", "error", err)
+		} else {
+			res.Removed = len(gone)
+		}
+	}
+	return res
 }
 
 // getAccessToken returns a valid OAuth2 access token, re-fetching when the cached one expires.

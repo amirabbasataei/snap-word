@@ -10,6 +10,9 @@ const CODES = [
   // A5 — content & catalogue
   'invalid_id', 'invalid_text', 'invalid_image', 'catalog_changed', 'invalid_date',
   'invalid_letter', 'date_not_editable', 'no_daily_challenge',
+  // A6 — notifications
+  'invalid_title', 'invalid_body', 'invalid_channels', 'invalid_route', 'invalid_audience', 'unknown_user',
+  'fcm_not_configured', 'no_recipients', 'no_push_recipients', 'duplicate_recent',
 ]
 
 describe('errorMessageFor', () => {

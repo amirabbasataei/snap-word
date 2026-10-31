@@ -21,6 +21,7 @@ import 'package:wordchain/features/friends/data/friends_repository.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
+import 'package:wordchain/features/messages/data/inbox_repository.dart';
 import 'package:wordchain/features/rewards/cubit/rewards_cubit.dart';
 import 'package:wordchain/features/rewards/data/rewards_repository.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
@@ -180,9 +181,13 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   getIt.registerLazySingleton<TabRefreshBus>(TabRefreshBus.new);
 
   // Messages (friend requests + challenges)
+  getIt.registerLazySingleton<InboxRepository>(
+    () => InboxRepository(dio: getIt<DioClient>().dio),
+  );
   getIt.registerLazySingleton<MessagesCubit>(
     () => MessagesCubit(
       repo: getIt<FriendsRepository>(),
+      inbox: getIt<InboxRepository>(),
       auth: getIt<AuthCubit>(),
     ),
   );

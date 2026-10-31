@@ -22,6 +22,7 @@ const Avatars = lazy(() => import('@/pages/Avatars').then((m) => ({ default: m.A
 const Daily = lazy(() => import('@/pages/Daily').then((m) => ({ default: m.Daily })))
 const DailyDetail = lazy(() => import('@/pages/DailyDetail').then((m) => ({ default: m.DailyDetail })))
 const Words = lazy(() => import('@/pages/Words').then((m) => ({ default: m.Words })))
+const Notifications = lazy(() => import('@/pages/Notifications').then((m) => ({ default: m.Notifications })))
 const Leaderboards = lazy(() => import('@/pages/Leaderboards').then((m) => ({ default: m.Leaderboards })))
 
 // Dev-only: `import.meta.env.DEV` is a build-time constant, so the gallery is dropped from prod bundles.
@@ -45,6 +46,7 @@ export function App() {
           <Route path="/content/daily" element={<Suspense fallback={null}><Daily /></Suspense>} />
           <Route path="/content/daily/:date" element={<Suspense fallback={null}><DailyDetail /></Suspense>} />
           <Route path="/content/leaderboards" element={<Suspense fallback={null}><Leaderboards /></Suspense>} />
+          <Route path="/notifications" element={<Suspense fallback={null}><Notifications /></Suspense>} />
           {PLACEHOLDERS.map((p) => (
             <Route key={p.to} path={p.to} element={<Placeholder title={p.title} stage={p.stage} icon={p.icon} />} />
           ))}

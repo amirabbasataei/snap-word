@@ -60,6 +60,10 @@ abstract final class ApiEndpoints {
   static const String challengesPending = '$_base/challenges/pending';
   static const String challengesJoinable = '$_base/challenges/joinable';
 
+  // Admin in-app messages
+  static const String inbox = '$_base/inbox';
+  static String inboxRead(String id) => '$_base/inbox/$id/read';
+
   // Push notifications
   static const String notificationToken = '$_base/notifications/token';
 }

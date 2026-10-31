@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/friends/data/friends_repository.dart';
+import 'package:wordchain/features/messages/data/inbox_repository.dart';
 
 /// A push that arrived during a game and was held back so no banner covers
 /// the board; it waits on the messages screen until dismissed.
@@ -18,6 +19,9 @@ class MessagesState {
   final List<PendingRequest> requests;
   final List<PendingChallenge> challenges;
   final List<MissedPush> missed;
+
+  /// Unread messages an admin sent from the panel.
+  final List<InboxMessage> announcements;
   final bool loading;
 
   /// A list (even an empty one) has been received at least once, or there is
@@ -34,18 +38,46 @@ class MessagesState {
     this.requests = const [],
     this.challenges = const [],
     this.missed = const [],
+    this.announcements = const [],
     this.loading = false,
     this.loaded = false,
     this.error,
   });
 
-  int get count => requests.length + challenges.length + missed.length;
+  int get count =>
+      requests.length +
+      challenges.length +
+      missed.length +
+      announcements.length;
+
+  /// Copy with some lists replaced. [loading] and [error] describe one
+  /// refresh, so they are never carried over: a copy is idle and error-free
+  /// unless told otherwise.
+  MessagesState copyWith({
+    List<PendingRequest>? requests,
+    List<PendingChallenge>? challenges,
+    List<MissedPush>? missed,
+    List<InboxMessage>? announcements,
+    bool? loading,
+    bool? loaded,
+    String? error,
+  }) => MessagesState(
+    requests: requests ?? this.requests,
+    challenges: challenges ?? this.challenges,
+    missed: missed ?? this.missed,
+    announcements: announcements ?? this.announcements,
+    loading: loading ?? false,
+    loaded: loaded ?? this.loaded,
+    error: error,
+  );
 }
 
 /// App-wide singleton so the home inbox badge and the messages screen share state.
-/// Messages are actionable invitations: friend requests and friend challenges.
+/// Messages are actionable invitations (friend requests and friend challenges)
+/// plus the notices an admin sent from the panel.
 class MessagesCubit extends Cubit<MessagesState> {
   final FriendsRepository _repo;
+  final InboxRepository? _inbox;
   final AuthCubit _auth;
   final _friendsChanged = StreamController<void>.broadcast();
 
@@ -53,10 +85,14 @@ class MessagesCubit extends Cubit<MessagesState> {
   /// Friends tab can reload instead of showing stale rows.
   Stream<void> get friendsChanged => _friendsChanged.stream;
 
-  MessagesCubit({required FriendsRepository repo, required AuthCubit auth})
-    : _repo = repo,
-      _auth = auth,
-      super(const MessagesState());
+  MessagesCubit({
+    required FriendsRepository repo,
+    required AuthCubit auth,
+    InboxRepository? inbox,
+  }) : _repo = repo,
+       _inbox = inbox,
+       _auth = auth,
+       super(const MessagesState());
 
   /// Best-effort: on failure the previous list (and badge) is kept.
   Future<void> refresh() async {
@@ -64,38 +100,35 @@ class MessagesCubit extends Cubit<MessagesState> {
       emit(const MessagesState(loaded: true));
       return;
     }
-    emit(
-      MessagesState(
-        requests: state.requests,
-        challenges: state.challenges,
-        missed: state.missed,
-        loading: true,
-        loaded: state.loaded,
-      ),
-    );
+    emit(state.copyWith(loading: true));
     try {
       final results = await Future.wait([
         _repo.fetchPendingRequests(),
         _repo.fetchPendingChallenges(),
+        _fetchAnnouncements(),
       ]);
       emit(
-        MessagesState(
+        state.copyWith(
           requests: results[0] as List<PendingRequest>,
           challenges: results[1] as List<PendingChallenge>,
-          missed: state.missed,
+          announcements: results[2] as List<InboxMessage>,
           loaded: true,
         ),
       );
     } on FriendsException catch (e) {
-      emit(
-        MessagesState(
-          requests: state.requests,
-          challenges: state.challenges,
-          missed: state.missed,
-          loaded: state.loaded,
-          error: errorMessageFor(e.code),
-        ),
-      );
+      emit(state.copyWith(error: errorMessageFor(e.code)));
+    }
+  }
+
+  /// A failing notice list must not hide the invitations, so it falls back to
+  /// what was already loaded.
+  Future<List<InboxMessage>> _fetchAnnouncements() async {
+    final inbox = _inbox;
+    if (inbox == null) return state.announcements;
+    try {
+      return await inbox.fetchUnread();
+    } on InboxException {
+      return state.announcements;
     }
   }
 
@@ -107,12 +140,7 @@ class MessagesCubit extends Cubit<MessagesState> {
   ) {
     if (_auth.state is! AuthAuthenticated) return;
     emit(
-      MessagesState(
-        requests: requests,
-        challenges: challenges,
-        missed: state.missed,
-        loaded: true,
-      ),
+      state.copyWith(requests: requests, challenges: challenges, loaded: true),
     );
   }
 
@@ -122,11 +150,8 @@ class MessagesCubit extends Cubit<MessagesState> {
   void addMissed(String title, String body) {
     if (_auth.state is! AuthAuthenticated) return;
     emit(
-      MessagesState(
-        requests: state.requests,
-        challenges: state.challenges,
+      state.copyWith(
         missed: [...state.missed, MissedPush(title: title, body: body)],
-        loaded: state.loaded,
       ),
     );
     refresh();
@@ -134,29 +159,42 @@ class MessagesCubit extends Cubit<MessagesState> {
 
   void dismissMissed(MissedPush push) {
     emit(
-      MessagesState(
-        requests: state.requests,
-        challenges: state.challenges,
+      state.copyWith(
         missed: [
           for (final m in state.missed)
             if (!identical(m, push)) m,
         ],
-        loaded: state.loaded,
       ),
     );
+  }
+
+  /// Hides an admin notice at once and tells the server it was read; if that
+  /// call fails the notice simply comes back on the next refresh.
+  Future<void> dismissAnnouncement(InboxMessage message) async {
+    emit(
+      state.copyWith(
+        announcements: [
+          for (final m in state.announcements)
+            if (m.id != message.id) m,
+        ],
+      ),
+    );
+    try {
+      await _inbox?.markRead(message.id);
+    } on InboxException {
+      // Best-effort; see above.
+    }
   }
 
   Future<void> respondToRequest(String requesterId, bool accept) async {
     await _repo.respondToRequest(requesterId, accept);
     _friendsChanged.add(null);
     emit(
-      MessagesState(
+      state.copyWith(
         requests: [
           for (final r in state.requests)
             if (r.requesterId != requesterId) r,
         ],
-        challenges: state.challenges,
-        missed: state.missed,
         loaded: true,
       ),
     );
@@ -167,13 +205,11 @@ class MessagesCubit extends Cubit<MessagesState> {
     final roomId = await _repo.respondToChallenge(id, accept);
     _friendsChanged.add(null);
     emit(
-      MessagesState(
-        requests: state.requests,
+      state.copyWith(
         challenges: [
           for (final c in state.challenges)
             if (c.id != id) c,
         ],
-        missed: state.missed,
         loaded: true,
       ),
     );

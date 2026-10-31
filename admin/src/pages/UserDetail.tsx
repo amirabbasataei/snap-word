@@ -1,6 +1,6 @@
-import { ArrowRight, Ban, Coins, Crown, ImageOff, Pencil, ShieldCheck, ShieldOff, Sparkles } from 'lucide-react'
+import { ArrowRight, Ban, Bell, Coins, Crown, ImageOff, Pencil, ShieldCheck, ShieldOff, Sparkles } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { roleAtLeast } from '@/layout/nav'
 import { ApiError, messageOf } from '@/lib/errors'
 import { formatJalaliDate, formatJalaliDateTime, formatJalaliDay, formatNumber, toFa } from '@/lib/fa'
+import { PUSH_STATE_LABEL } from '@/lib/notifications'
 import { avatarUrl, useUser, type UserDetail as Detail } from '@/lib/users'
 import { Timeline } from './analytics/Timeline'
 import { UserStatus } from './Users'
@@ -66,6 +67,7 @@ function Loaded({ user }: { user: Detail }) {
   const { admin } = useAuth()
   const canAct = admin ? roleAtLeast(admin.role, 'operator') : false
   const [action, setAction] = useState<ActionKind | null>(null)
+  const navigate = useNavigate()
 
   return (
     <div className="space-y-6">
@@ -96,6 +98,7 @@ function Loaded({ user }: { user: Detail }) {
               {user.premium && (
                 <ActionButton icon={<Sparkles className="size-4" aria-hidden />} onClick={() => setAction('premium_revoke')}>لغو اشتراک</ActionButton>
               )}
+              <ActionButton icon={<Bell className="size-4" aria-hidden />} onClick={() => navigate(`/notifications?user=${user.id}`)}>ارسال پیام</ActionButton>
               <ActionButton icon={<Pencil className="size-4" aria-hidden />} onClick={() => setAction('rename')}>تغییر نام</ActionButton>
               {user.avatar_id && (
                 <ActionButton icon={<ImageOff className="size-4" aria-hidden />} onClick={() => setAction('avatar_clear')}>حذف آواتار</ActionButton>
@@ -179,7 +182,16 @@ function SummaryTab({ user }: { user: Detail }) {
             </Fact>
             <Fact label="آواتار"><span dir="ltr">{user.avatar_id || '—'}</span></Fact>
             <Fact label="دوستان">{formatNumber(user.friends_count)}</Fact>
-            <Fact label="دستگاه‌های اعلان">{formatNumber(user.device_tokens)}</Fact>
+            <Fact label="اجازهٔ اعلان فوری">
+              <Badge tone={user.push.state === 'granted' ? 'green' : user.push.state === 'denied' ? 'pink' : user.push.state === 'none' ? 'neutral' : 'orange'}>
+                {PUSH_STATE_LABEL[user.push.state]}
+              </Badge>
+            </Fact>
+            <Fact label="دستگاه‌ها">
+              {user.push.devices.length === 0
+                ? '—'
+                : user.push.devices.map((d) => `${d.platform === 'ios' ? 'iOS' : 'اندروید'} (${d.permission === 'granted' ? 'مجاز' : d.permission === 'denied' ? 'ردشده' : d.permission === 'not_determined' ? 'پرسیده نشده' : 'نامشخص'})`).join('، ')}
+            </Fact>
           </dl>
         </CardBody>
       </Card>

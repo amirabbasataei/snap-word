@@ -56,6 +56,7 @@ type adminUserStore interface {
 	UserRewards(ctx context.Context, id string, limit int) ([]repository.AdminReward, error)
 	UserMatches(ctx context.Context, id string, limit int) ([]repository.AdminUserMatch, error)
 	UserDailyAttempts(ctx context.Context, id string, limit int) ([]repository.AdminDailyAttempt, error)
+	UserPushDevices(ctx context.Context, id string) ([]repository.PushDevice, error)
 	AdjustCoins(ctx context.Context, id string, delta int) (int, error)
 	ExtendPremium(ctx context.Context, id string, days int) (time.Time, error)
 	RevokePremium(ctx context.Context, id string) error
@@ -222,12 +223,26 @@ type AdminUserDetail struct {
 	Stats         userStatsView  `json:"stats"`
 	FriendsCount  int            `json:"friends_count"`
 	DeviceTokens  int            `json:"device_tokens"`
+	Push          pushView       `json:"push"`
 	Referrer      *userRef       `json:"referrer"`
 	ReferredCount int            `json:"referred_count"`
 	Referred      []referredView `json:"referred"`
 	Rewards       []rewardView   `json:"rewards"`
 	Matches       []matchView    `json:"matches"`
 	DailyAttempts []dailyView    `json:"daily_attempts"`
+}
+
+// pushView says whether this account can be pushed: the best permission state
+// over its devices, and each device (platform + permission, never the token).
+type pushView struct {
+	State   string           `json:"state"` // granted | unknown | denied | not_determined | none
+	Devices []pushDeviceView `json:"devices"`
+}
+
+type pushDeviceView struct {
+	Platform   string    `json:"platform"`
+	Permission string    `json:"permission"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type userStatsView struct {
@@ -314,6 +329,11 @@ func (s *AdminUserService) Detail(ctx context.Context, role, id string) (*AdminU
 		return nil, fmt.Errorf("AdminUserService.Detail: %w", err)
 	}
 
+	devices, err := s.store.UserPushDevices(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("AdminUserService.Detail: %w", err)
+	}
+
 	level := config.LevelFromXP(d.XP)
 	out := &AdminUserDetail{
 		AdminUserItem: s.item(d.AdminUserRow, role),
@@ -328,6 +348,10 @@ func (s *AdminUserService) Detail(ctx context.Context, role, id string) (*AdminU
 		FriendsCount: d.FriendsCount, DeviceTokens: d.DeviceTokens, ReferredCount: d.ReferredCount,
 		Referred: make([]referredView, len(referred)), Rewards: make([]rewardView, len(rewards)),
 		Matches: make([]matchView, len(matches)), DailyAttempts: make([]dailyView, len(daily)),
+	}
+	out.Push = pushView{State: PushStateOf(devices), Devices: make([]pushDeviceView, len(devices))}
+	for i, dv := range devices {
+		out.Push.Devices[i] = pushDeviceView{Platform: dv.Platform, Permission: dv.Permission, UpdatedAt: dv.UpdatedAt}
 	}
 	if d.ReferrerID != "" {
 		out.Referrer = &userRef{ID: d.ReferrerID, Username: d.ReferrerUsername}
