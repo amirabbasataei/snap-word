@@ -1,5 +1,5 @@
 import {
-  Activity, Bell, BookA, Gamepad2, LayoutDashboard, Medal, Radio, ScrollText, Shield, Smile, Swords, Trophy, UserRound, Users,
+  Activity, Bell, BookA, Gamepad2, LayoutDashboard, Medal, Radio, ScrollText, Settings, Shield, Smile, Swords, Trophy, UserRound, Users,
   type LucideIcon,
 } from 'lucide-react'
 import type { AdminRole } from '@/auth/AuthContext'
@@ -48,6 +48,7 @@ export const NAV: NavGroup[] = [
     items: [
       { to: '/admins', label: 'مدیران', icon: Shield, minRole: 'owner' },
       { to: '/audit', label: 'گزارش فعالیت', icon: ScrollText },
+      { to: '/settings', label: 'تنظیمات', icon: Settings },
     ],
   },
 ]

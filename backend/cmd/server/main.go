@@ -133,6 +133,11 @@ func main() {
 	adminRepo := repository.NewAdminRepository(db)
 	adminAuthSvc := service.NewAdminAuthService(adminRepo, rdb, cfg)
 	auditSvc := service.NewAuditService(adminRepo)
+	// Runtime switches (panel): while the OTP SMS switch is off, send-otp
+	// delivers nothing and verify-otp accepts the fixed dev code 1111.
+	settingsSvc := service.NewSettingsService(repository.NewSettingsRepository(db), auditSvc, kavenegarClient.Configured)
+	authSvc.WithSettings(settingsSvc)
+	adminSettingsHandler := handler.NewAdminSettingsHandler(settingsSvc)
 	catalogHandler := handler.NewCatalogHandler(catalogSvc, auditSvc)
 	adminAuthHandler := handler.NewAdminAuthHandler(adminAuthSvc, auditSvc, cfg.AdminAPIKey)
 	dashboardHandler := handler.NewAdminDashboardHandler(service.NewAdminDashboardService(adminRepo, hub, rdb, notifSvc))
@@ -224,6 +229,7 @@ func main() {
 	admin.GET("/dictionary/lookup", adminWordsHandler.Lookup)
 	admin.GET("/dictionary/misses", adminWordsHandler.Misses)
 	admin.GET("/dictionary/export", adminWordsHandler.Export)
+	admin.GET("/settings/otp", adminSettingsHandler.OTP)
 	admin.GET("/taunts", adminContentHandler.Taunts)
 	admin.GET("/avatars", adminContentHandler.Avatars)
 	admin.GET("/avatars/:id/usage", adminContentHandler.AvatarUsage)
@@ -232,6 +238,7 @@ func main() {
 	admin.GET("/leaderboards/weekly", adminContentHandler.WeeklyBoard)
 	admin.GET("/leaderboards/alltime", adminContentHandler.AllTimeBoard)
 	admin.GET("/leaderboards/rewards", adminContentHandler.WeeklyRewards)
+	admin.PUT("/settings/otp", middleware.RequireRole(service.AdminRoleOwner), adminSettingsHandler.SetOTP)
 	operator := admin.Group("", middleware.RequireRole(service.AdminRoleOperator))
 	operator.POST("/words/suggestions/:id/approve", adminWordsHandler.Approve)
 	operator.POST("/words/suggestions/:id/reject", adminWordsHandler.Reject)

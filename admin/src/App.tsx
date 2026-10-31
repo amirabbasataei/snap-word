@@ -16,6 +16,7 @@ const UserDetail = lazy(() => import('@/pages/UserDetail').then((m) => ({ defaul
 const Analytics = lazy(() => import('@/pages/Analytics').then((m) => ({ default: m.Analytics })))
 const InstallTimeline = lazy(() => import('@/pages/InstallTimeline').then((m) => ({ default: m.InstallTimeline })))
 
+const Settings = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.Settings })))
 const Taunts = lazy(() => import('@/pages/Taunts').then((m) => ({ default: m.Taunts })))
 const Avatars = lazy(() => import('@/pages/Avatars').then((m) => ({ default: m.Avatars })))
 const Daily = lazy(() => import('@/pages/Daily').then((m) => ({ default: m.Daily })))
@@ -37,6 +38,7 @@ export function App() {
           <Route path="/users/:id" element={<Suspense fallback={null}><UserDetail /></Suspense>} />
           <Route path="/analytics" element={<Suspense fallback={null}><Analytics /></Suspense>} />
           <Route path="/analytics/installs/:id" element={<Suspense fallback={null}><InstallTimeline /></Suspense>} />
+          <Route path="/settings" element={<Suspense fallback={null}><Settings /></Suspense>} />
           <Route path="/content/taunts" element={<Suspense fallback={null}><Taunts /></Suspense>} />
           <Route path="/content/avatars" element={<Suspense fallback={null}><Avatars /></Suspense>} />
           <Route path="/content/words" element={<Suspense fallback={null}><Words /></Suspense>} />

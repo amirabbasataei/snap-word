@@ -171,6 +171,16 @@ func (r *UserRepository) SetOTP(ctx context.Context, userID, code string, expire
 	return nil
 }
 
+// ClearOTP drops the pending code and resend cooldown, used when the SMS could
+// not be delivered so the player may retry at once.
+func (r *UserRepository) ClearOTP(ctx context.Context, userID string) error {
+	const q = `UPDATE users SET otp_code = NULL, otp_expires_at = NULL, otp_sent_at = NULL WHERE id = $1`
+	if _, err := r.db.ExecContext(ctx, q, userID); err != nil {
+		return fmt.Errorf("ClearOTP: %w", err)
+	}
+	return nil
+}
+
 // IncrementOTPAttempts records one failed verify attempt and returns the new count.
 func (r *UserRepository) IncrementOTPAttempts(ctx context.Context, userID string) (int, error) {
 	const q = `UPDATE users SET otp_attempts = otp_attempts + 1 WHERE id = $1 RETURNING otp_attempts`

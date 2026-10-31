@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"regexp"
 	"strings"
@@ -22,6 +23,7 @@ var (
 	ErrInvalidToken     = errors.New("invalid_token")
 	ErrResendCooldown   = errors.New("resend_cooldown")
 	ErrOTPRateLimited   = errors.New("rate_limited")
+	ErrSMSFailed        = errors.New("sms_failed") // the provider did not accept the message
 	ErrOTPNotRequested  = errors.New("otp_not_requested")
 	ErrInvalidOTP       = errors.New("invalid_code")
 	ErrOTPExpired       = errors.New("code_expired")
@@ -69,14 +71,32 @@ type AuthService struct {
 	kavenegar *KavenegarClient
 	rdb       *redis.Client // nil-safe: daily send-rate cap no-ops if unset/unreachable
 	cfg       *config.Config
+	settings  *SettingsService // nil = the SMS switch is always on
 }
 
 func NewAuthService(userRepo *repository.UserRepository, kavenegar *KavenegarClient, rdb *redis.Client, cfg *config.Config) *AuthService {
 	return &AuthService{userRepo: userRepo, kavenegar: kavenegar, rdb: rdb, cfg: cfg}
 }
 
+// WithSettings attaches the runtime switches (the panel's SMS on/off).
+func (s *AuthService) WithSettings(settings *SettingsService) *AuthService {
+	s.settings = settings
+	return s
+}
+
+// smsBypass reports whether real SMS delivery is off: either no Kavenegar API
+// key is configured or an admin turned the SMS switch off. While it is on, no
+// message is sent and DevOTPCode is accepted for any phone that requested a code.
+func (s *AuthService) smsBypass(ctx context.Context) bool {
+	if !s.kavenegar.Configured() {
+		return true
+	}
+	return s.settings != nil && !s.settings.OTPSMSEnabled(ctx)
+}
+
 // SendOTP normalizes and validates phone, enforces the resend cooldown and a
-// daily send cap, generates a fresh 4-digit code, and delivers it via Kavenegar.
+// daily send cap, generates a fresh 4-digit code, and delivers it via Kavenegar
+// (or, while SMS is off, stores the fixed dev code and sends nothing).
 func (s *AuthService) SendOTP(ctx context.Context, rawPhone string) error {
 	phone, err := normalizePhone(rawPhone)
 	if err != nil {
@@ -95,24 +115,29 @@ func (s *AuthService) SendOTP(ctx context.Context, rawPhone string) error {
 		return err
 	}
 
-	var code string
-	if s.kavenegar.Configured() {
+	bypass := s.smsBypass(ctx)
+	code := DevOTPCode
+	if !bypass {
 		code, err = randomDigits(4)
 		if err != nil {
 			return fmt.Errorf("SendOTP generate code: %w", err)
 		}
-	} else {
-		// Dev fallback: no SMS provider configured, so use a fixed code
-		// (1111) instead of a random one nobody could ever read.
-		code = "1111"
 	}
 	now := time.Now()
 	if err := s.userRepo.SetOTP(ctx, user.ID, code, now.Add(s.cfg.OTPCodeTTL), now); err != nil {
 		return fmt.Errorf("SendOTP: %w", err)
 	}
 
+	if bypass {
+		slog.Info("otp sms disabled, dev code issued", "phone", maskPhone(phone))
+		return nil
+	}
 	if err := s.kavenegar.SendOTP(ctx, phone, code); err != nil {
-		return fmt.Errorf("SendOTP deliver: %w", err)
+		// Nothing reached the player, so do not make them wait out the cooldown.
+		if cerr := s.userRepo.ClearOTP(ctx, user.ID); cerr != nil {
+			slog.Error("clear otp after failed sms", "error", cerr)
+		}
+		return fmt.Errorf("SendOTP deliver: %w", errors.Join(ErrSMSFailed, err))
 	}
 	return nil
 }
@@ -139,20 +164,24 @@ func (s *AuthService) VerifyOTP(ctx context.Context, rawPhone, code, referralCod
 		return nil, VerifyResult{}, ErrAccountBanned
 	}
 
-	if user.OTPCode == nil || user.OTPExpiresAt == nil {
-		return nil, VerifyResult{}, ErrOTPNotRequested
-	}
-	if user.OTPAttempts >= config.OTPMaxAttempts {
-		return nil, VerifyResult{}, ErrOTPMaxAttempts
-	}
-	if time.Now().After(*user.OTPExpiresAt) {
-		return nil, VerifyResult{}, ErrOTPExpired
-	}
-	if *user.OTPCode != code {
-		if _, ierr := s.userRepo.IncrementOTPAttempts(ctx, user.ID); ierr != nil {
-			return nil, VerifyResult{}, fmt.Errorf("VerifyOTP: %w", ierr)
+	// While SMS is off the fixed dev code is valid on its own: no stored code,
+	// expiry or attempt lockout applies to it (it is public by design).
+	if !(code == DevOTPCode && s.smsBypass(ctx)) {
+		if user.OTPCode == nil || user.OTPExpiresAt == nil {
+			return nil, VerifyResult{}, ErrOTPNotRequested
 		}
-		return nil, VerifyResult{}, ErrInvalidOTP
+		if user.OTPAttempts >= config.OTPMaxAttempts {
+			return nil, VerifyResult{}, ErrOTPMaxAttempts
+		}
+		if time.Now().After(*user.OTPExpiresAt) {
+			return nil, VerifyResult{}, ErrOTPExpired
+		}
+		if *user.OTPCode != code {
+			if _, ierr := s.userRepo.IncrementOTPAttempts(ctx, user.ID); ierr != nil {
+				return nil, VerifyResult{}, fmt.Errorf("VerifyOTP: %w", ierr)
+			}
+			return nil, VerifyResult{}, ErrInvalidOTP
+		}
 	}
 
 	result := VerifyResult{UserID: user.ID, IsNewUser: user.PhoneVerifiedAt == nil}

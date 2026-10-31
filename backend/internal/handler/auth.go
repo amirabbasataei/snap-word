@@ -251,6 +251,9 @@ func respondAuthError(c *gin.Context, err error) {
 		respondError(c, http.StatusTooManyRequests, "resend_cooldown", "please wait before requesting another code")
 	case errors.Is(err, service.ErrOTPRateLimited):
 		respondError(c, http.StatusTooManyRequests, "rate_limited", "too many code requests for this number today")
+	case errors.Is(err, service.ErrSMSFailed):
+		slog.Error("send-otp: sms delivery failed", "error", err)
+		respondError(c, http.StatusBadGateway, "sms_failed", "the verification SMS could not be sent")
 	case errors.Is(err, service.ErrOTPNotRequested):
 		respondError(c, http.StatusBadRequest, "otp_not_requested", "no code was requested for this number")
 	case errors.Is(err, service.ErrInvalidOTP):
