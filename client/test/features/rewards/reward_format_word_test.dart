@@ -24,7 +24,14 @@ void main() {
 
   test('a prize without its word still reads sensibly', () {
     final face = rewardFace(
-      RewardItem(id: 'r2', kind: 'word_suggestion', detail: '', coins: 25, claimed: false, createdAt: DateTime(2026, 10, 27)),
+      RewardItem(
+        id: 'r2',
+        kind: 'word_suggestion',
+        detail: '',
+        coins: 25,
+        claimed: false,
+        createdAt: DateTime(2026, 10, 27),
+      ),
     );
     expect(face.body, contains('پیشنهاد دادی'));
     expect(face.body, isNot(contains('«')));

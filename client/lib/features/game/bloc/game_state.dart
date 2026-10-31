@@ -40,6 +40,9 @@ class GameActive extends GameState {
   // always report 0 (unused).
   final int livesRemaining;
   final String? lastMistakeReason; // transient — cleared on next word/tick
+  // The refused word behind [lastMistakeReason] (null for a timeout), so the
+  // view can offer to report a `not_in_dictionary` word.
+  final String? lastMistakeWord;
 
   // Multiplayer-specific (solo/AI: isMyTurn=true, rest=default)
   final bool isMyTurn;
@@ -96,6 +99,7 @@ class GameActive extends GameState {
     required this.continueUsed,
     this.livesRemaining = 0,
     this.lastMistakeReason,
+    this.lastMistakeWord,
     this.isMyTurn = true,
     this.myPlayerId,
     this.opponentId,
@@ -135,6 +139,7 @@ class GameActive extends GameState {
     bool? continueUsed,
     int? livesRemaining,
     Object? lastMistakeReason = _sentinel,
+    Object? lastMistakeWord = _sentinel,
     bool? isMyTurn,
     int? opponentScore,
     bool? opponentContinueWindowActive,
@@ -172,6 +177,10 @@ class GameActive extends GameState {
           lastMistakeReason == _sentinel
               ? this.lastMistakeReason
               : lastMistakeReason as String?,
+      lastMistakeWord:
+          lastMistakeWord == _sentinel
+              ? this.lastMistakeWord
+              : lastMistakeWord as String?,
       isMyTurn: isMyTurn ?? this.isMyTurn,
       myPlayerId: myPlayerId,
       opponentId: opponentId,
@@ -223,6 +232,7 @@ class GameActive extends GameState {
     continueUsed,
     livesRemaining,
     lastMistakeReason,
+    lastMistakeWord,
     isMyTurn,
     myPlayerId,
     opponentId,

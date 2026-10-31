@@ -29,7 +29,7 @@ class WordReportState extends Equatable {
 
 /// One report to the server (add a missing word, or flag a bad one). Scoped to
 /// the widget that sends it; [source] is where in the app it came from, for
-/// analytics (`game_over`, `chain`, `profile`).
+/// analytics (`game_over`, `chain`, `profile`, `life_lost`).
 class WordReportCubit extends Cubit<WordReportState> {
   final WordSuggestionsRepository _repository;
   final String source;

@@ -281,15 +281,12 @@ void main() {
             'no overflow ${mode.name} ${size.width.toInt()}×${size.height.toInt()} ${brightness.name}',
             (tester) async {
               _size(tester, size.width, size.height);
-              final bloc = ScriptedGameBloc(
-                switch (mode) {
-                  ZExitMode.solo => _active(),
-                  ZExitMode.ai => _active(opponent: 'ai_hard'),
-                  ZExitMode.online => _active(opponent: 'multiplayer'),
-                  ZExitMode.daily => _active(mode: 'daily', words: 120),
-                },
-                entryFee: 20,
-              );
+              final bloc = ScriptedGameBloc(switch (mode) {
+                ZExitMode.solo => _active(),
+                ZExitMode.ai => _active(opponent: 'ai_hard'),
+                ZExitMode.online => _active(opponent: 'multiplayer'),
+                ZExitMode.daily => _active(mode: 'daily', words: 120),
+              }, entryFee: 20);
               await tester.pumpWidget(
                 _host(bloc, brightness: brightness, reduceMotion: true),
               );
@@ -298,10 +295,7 @@ void main() {
               expect(find.byType(ZExitConfirm), findsOneWidget);
               // Both buttons reachable and tall enough to tap.
               for (final label in [
-                if (mode == ZExitMode.online)
-                  'برمی‌گردم'
-                else
-                  'ادامه می‌دم',
+                if (mode == ZExitMode.online) 'برمی‌گردم' else 'ادامه می‌دم',
                 if (mode == ZExitMode.solo || mode == ZExitMode.daily)
                   'خروج'
                 else
@@ -358,7 +352,10 @@ void main() {
         final z = b == Brightness.light ? ZColors.light : ZColors.dark;
         final zs = b == Brightness.light ? ZScene.light : ZScene.dark;
         // Leave label and icon on the secondary button.
-        expect(contrastRatio(zs.coralInk, z.surface), greaterThanOrEqualTo(4.5));
+        expect(
+          contrastRatio(zs.coralInk, z.surface),
+          greaterThanOrEqualTo(4.5),
+        );
         // Body copy, header and stake labels sit on surface / wash.
         expect(contrastRatio(z.ink60, z.surface), greaterThanOrEqualTo(4.5));
         expect(contrastRatio(z.ink60, z.wash), greaterThanOrEqualTo(4.5));
@@ -391,10 +388,20 @@ void main() {
     }
 
     testWidgets('solo light', (t) async {
-      await shoot(t, ScriptedGameBloc(_active()), Brightness.light, 'z_exit_solo_light');
+      await shoot(
+        t,
+        ScriptedGameBloc(_active()),
+        Brightness.light,
+        'z_exit_solo_light',
+      );
     });
     testWidgets('solo dark', (t) async {
-      await shoot(t, ScriptedGameBloc(_active()), Brightness.dark, 'z_exit_solo_dark');
+      await shoot(
+        t,
+        ScriptedGameBloc(_active()),
+        Brightness.dark,
+        'z_exit_solo_dark',
+      );
     });
     testWidgets('ai light', (t) async {
       await shoot(

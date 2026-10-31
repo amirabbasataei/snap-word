@@ -12,7 +12,14 @@ bool _fontsLoaded = false;
 Future<void> loadVazirmatn() async {
   if (_fontsLoaded) return;
   final loader = FontLoader('Vazirmatn');
-  for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold', 'Black']) {
+  for (final weight in [
+    'Regular',
+    'Medium',
+    'SemiBold',
+    'Bold',
+    'ExtraBold',
+    'Black',
+  ]) {
     final bytes = File('assets/fonts/Vazirmatn-$weight.ttf').readAsBytesSync();
     loader.addFont(Future.value(ByteData.view(bytes.buffer)));
   }

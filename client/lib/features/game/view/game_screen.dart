@@ -19,6 +19,7 @@ import 'package:wordchain/features/game/view/z_play_screen.dart';
 import 'package:wordchain/features/game/view/z_solo_screen.dart';
 import 'package:wordchain/features/game/view/z_versus_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_opp_deciding.dart';
+import 'package:wordchain/features/words/view/missing_word_toast.dart';
 
 class GameRouteArgs {
   final String mode; // classic | daily
@@ -107,8 +108,37 @@ class _GameView extends StatelessWidget {
           ZToast.show(context, notice);
         }
       },
-      child: _buildGame(context),
+      child: BlocListener<GameBloc, GameState>(
+        // A life lost to a word the dictionary refused: offer to report it.
+        // Solo's last life ends on ZOver, which has its own report pill; the
+        // Daily Challenge has no result screen, so its final loss is covered
+        // here too.
+        listenWhen: _isMissedWordMistake,
+        listener: (context, state) {
+          final word =
+              state is GameActive
+                  ? state.lastMistakeWord
+                  : (state as GameOver).rejectedWord;
+          if (word != null) showMissingWordToast(context, word);
+        },
+        child: _buildGame(context),
+      ),
     );
+  }
+
+  /// True at the moment a solo/daily mistake with a refused dictionary word
+  /// happens, i.e. [prev] → [curr] lost a life or ended the Daily Challenge.
+  static bool _isMissedWordMistake(GameState prev, GameState curr) {
+    if (prev is! GameActive) return false;
+    if (curr is GameActive) {
+      return curr.livesRemaining < prev.livesRemaining &&
+          curr.lastMistakeReason == 'not_in_dictionary' &&
+          curr.lastMistakeWord != null;
+    }
+    return curr is GameOver &&
+        curr.mode == 'daily' &&
+        curr.rejectionReason == 'not_in_dictionary' &&
+        curr.rejectedWord != null;
   }
 
   Widget _buildGame(BuildContext context) {

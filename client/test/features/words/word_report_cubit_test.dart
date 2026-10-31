@@ -52,7 +52,8 @@ void main() {
 
   test('a failure carries the Persian message and can be retried', () async {
     final repo =
-        _FakeRepo()..fail = const WordSuggestionException('پیام فارسی', code: 'x');
+        _FakeRepo()
+          ..fail = const WordSuggestionException('پیام فارسی', code: 'x');
     final cubit = WordReportCubit(repo, source: 'chain');
     await cubit.flag('بدواژه', WordFlagReason.notAWord);
     expect(cubit.state.status, WordReportStatus.failed);

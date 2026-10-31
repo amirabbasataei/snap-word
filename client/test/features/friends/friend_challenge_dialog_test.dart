@@ -28,9 +28,9 @@ Widget _opener(
   Builder(
     builder:
         (context) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(textScale),
-          ),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
           child: Scaffold(
             body: Center(
               child: TextButton(
@@ -97,7 +97,10 @@ class _FakeMessages extends Fake implements MessagesCubit {
   Stream<void> get friendsChanged => const Stream.empty();
 
   @override
-  void setPending(List<PendingRequest> requests, List<PendingChallenge> challenges) {}
+  void setPending(
+    List<PendingRequest> requests,
+    List<PendingChallenge> challenges,
+  ) {}
 }
 
 void main() {
@@ -208,7 +211,9 @@ void main() {
         ..registerSingleton<MessagesCubit>(_FakeMessages())
         ..registerSingleton<TabRefreshBus>(TabRefreshBus());
       _size(tester, 396, 812);
-      await tester.pumpWidget(zTestApp(const ZFriendsScreen(), reduceMotion: true));
+      await tester.pumpWidget(
+        zTestApp(const ZFriendsScreen(), reduceMotion: true),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
     }

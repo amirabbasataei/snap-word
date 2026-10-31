@@ -18,7 +18,9 @@ abstract final class ZToast {
   static OverlayEntry? _entry;
 
   /// [title] is the one-liner; [message] adds the grey second line and
-  /// [amount] the coin chip (both optional).
+  /// [amount] the coin chip (both optional). [actionLabel] (screen-reader
+  /// label) + [onAction] add a ✓ beside the ✕; tapping it runs [onAction] and
+  /// dismisses the toast.
   static void show(
     BuildContext context,
     String title, {
@@ -26,6 +28,8 @@ abstract final class ZToast {
     String? amount,
     ZToastKind kind = ZToastKind.info,
     Duration duration = defaultDuration,
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     showOn(
       Overlay.of(context, rootOverlay: true),
@@ -34,6 +38,8 @@ abstract final class ZToast {
       amount: amount,
       kind: kind,
       duration: duration,
+      actionLabel: actionLabel,
+      onAction: onAction,
     );
   }
 
@@ -46,6 +52,8 @@ abstract final class ZToast {
     String? amount,
     ZToastKind kind = ZToastKind.info,
     Duration duration = defaultDuration,
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     _dismiss();
     late final OverlayEntry entry;
@@ -58,6 +66,8 @@ abstract final class ZToast {
               amount: amount,
               kind: kind,
               duration: duration,
+              actionLabel: actionLabel,
+              onAction: onAction,
               onDismissed: () {
                 if (_entry == entry) _dismiss();
               },
@@ -88,6 +98,10 @@ class ZToastCard extends StatefulWidget {
   final Duration duration;
   final VoidCallback? onDismissed;
 
+  /// Optional ✓ beside the ✕; [onAction] runs, then the toast closes.
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
   /// Pinned `safe-area + 52` from the top with 12 side gutters (canvas
   /// `floating`), instead of laid out in flow.
   final bool _floating;
@@ -100,6 +114,8 @@ class ZToastCard extends StatefulWidget {
     this.kind = ZToastKind.success,
     this.duration = ZToast.defaultDuration,
     this.onDismissed,
+    this.actionLabel,
+    this.onAction,
   }) : _floating = false;
 
   const ZToastCard.floating({
@@ -110,6 +126,8 @@ class ZToastCard extends StatefulWidget {
     this.kind = ZToastKind.success,
     this.duration = ZToast.defaultDuration,
     this.onDismissed,
+    this.actionLabel,
+    this.onAction,
   }) : _floating = true;
 
   @override
@@ -174,6 +192,8 @@ class _ZToastCardState extends State<ZToastCard> with TickerProviderStateMixin {
         kind: widget.kind,
         drain: _drain,
         onClose: _close,
+        actionLabel: widget.actionLabel,
+        onAction: widget.onAction,
       ),
       builder: (context, child) {
         final t = _spring.transform(_enter.value);
@@ -221,6 +241,8 @@ class _Card extends StatelessWidget {
   final ZToastKind kind;
   final Animation<double> drain;
   final VoidCallback onClose;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const _Card({
     required this.title,
@@ -229,6 +251,8 @@ class _Card extends StatelessWidget {
     required this.kind,
     required this.drain,
     required this.onClose,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
@@ -263,50 +287,67 @@ class _Card extends StatelessWidget {
                   _Badge(kind: kind, accent: accent),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Semantics(
-                      container: true,
-                      liveRegion: true,
-                      label: text,
-                      excludeSemantics: true,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontFamily: 'Vazirmatn',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              height: 1.35,
-                              leadingDistribution: TextLeadingDistribution.even,
-                              color: z.ink,
-                            ),
-                          ),
-                          if (hasMessage) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              message!,
-                              style: TextStyle(
-                                fontFamily: 'Vazirmatn',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                height: 1.6,
-                                leadingDistribution:
-                                    TextLeadingDistribution.even,
-                                color: z.ink60,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Semantics(
+                          container: true,
+                          liveRegion: true,
+                          label: text,
+                          excludeSemantics: true,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  fontFamily: 'Vazirmatn',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.35,
+                                  leadingDistribution:
+                                      TextLeadingDistribution.even,
+                                  color: z.ink,
+                                ),
                               ),
-                            ),
-                          ],
-                        ],
-                      ),
+                              if (hasMessage) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  message!,
+                                  style: TextStyle(
+                                    fontFamily: 'Vazirmatn',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.6,
+                                    leadingDistribution:
+                                        TextLeadingDistribution.even,
+                                    color: z.ink60,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (hasAmount) ...[
                     const SizedBox(width: 12),
                     _AmountChip(amount: amount!),
                   ],
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 4),
+                  if (actionLabel != null && onAction != null)
+                    _ActionButton(
+                      key: const ValueKey('z-toast-action'),
+                      label: actionLabel!,
+                      color: z.teal,
+                      onTap: () {
+                        onAction!();
+                        onClose();
+                      },
+                    ),
                   _CloseButton(onTap: onClose),
                 ],
               ),
@@ -431,6 +472,44 @@ class _GlyphPainter extends CustomPainter {
   @override
   bool shouldRepaint(_GlyphPainter old) =>
       old.glyph != glyph || old.color != color;
+}
+
+/// The toast's optional action: a ✓ beside the ✕. [label] is only for screen
+/// readers.
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    super.key,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+            child: CustomPaint(
+              size: const Size(20, 20),
+              painter: _GlyphPainter(_Glyph.check, color),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AmountChip extends StatelessWidget {

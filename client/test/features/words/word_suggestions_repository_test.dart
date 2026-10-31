@@ -18,7 +18,8 @@ class _Adapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     paths.add('${options.method} ${options.uri.path}');
-    if (options.data is Map) bodies.add(Map<String, dynamic>.from(options.data as Map));
+    if (options.data is Map)
+      bodies.add(Map<String, dynamic>.from(options.data as Map));
     return ResponseBody.fromString(
       jsonEncode(body),
       status,
@@ -49,7 +50,9 @@ void main() {
   });
 
   test('suggestWord posts an add with the install id', () async {
-    adapter.body = {'data': {'status': 'pending', 'already_reported': false}};
+    adapter.body = {
+      'data': {'status': 'pending', 'already_reported': false},
+    };
     final already = await repo.suggestWord('آزمونک');
     expect(already, isFalse);
     expect(adapter.paths.single, 'POST /api/v1/words/suggestions');
@@ -61,7 +64,9 @@ void main() {
   });
 
   test('a repeat report is flagged', () async {
-    adapter.body = {'data': {'status': 'pending', 'already_reported': true}};
+    adapter.body = {
+      'data': {'status': 'pending', 'already_reported': true},
+    };
     expect(await repo.suggestWord('آزمونک'), isTrue);
   });
 
@@ -75,27 +80,30 @@ void main() {
     });
   });
 
-  test('server errors become Persian messages, never the English text', () async {
-    for (final code in [
-      'word_in_dictionary',
-      'word_already_reviewed',
-      'invalid_word',
-      'word_unknown',
-      'rate_limited',
-    ]) {
-      adapter
-        ..status = 409
-        ..body = _err(code);
-      try {
-        await repo.suggestWord('کلمه');
-        fail('should throw');
-      } on WordSuggestionException catch (e) {
-        expect(e.code, code);
-        expect(e.message, errorMessageFor(code));
-        expect(e.message, isNot(contains('english')));
+  test(
+    'server errors become Persian messages, never the English text',
+    () async {
+      for (final code in [
+        'word_in_dictionary',
+        'word_already_reviewed',
+        'invalid_word',
+        'word_unknown',
+        'rate_limited',
+      ]) {
+        adapter
+          ..status = 409
+          ..body = _err(code);
+        try {
+          await repo.suggestWord('کلمه');
+          fail('should throw');
+        } on WordSuggestionException catch (e) {
+          expect(e.code, code);
+          expect(e.message, errorMessageFor(code));
+          expect(e.message, isNot(contains('english')));
+        }
       }
-    }
-  });
+    },
+  );
 
   test('mine parses the player\'s reports', () async {
     adapter.body = {
@@ -108,7 +116,12 @@ void main() {
             'rewarded': true,
             'created_at': '2026-10-27T12:00:00Z',
           },
-          {'word': 'بدواژه', 'kind': 'remove', 'status': 'pending', 'rewarded': false},
+          {
+            'word': 'بدواژه',
+            'kind': 'remove',
+            'status': 'pending',
+            'rewarded': false,
+          },
         ],
       },
     };

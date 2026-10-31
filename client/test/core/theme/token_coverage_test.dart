@@ -12,13 +12,16 @@ void main() {
     );
     final offenders = <String>[];
     for (final dir in ['lib/features', 'lib/core/widgets', 'lib/core/router']) {
-      for (final file in Directory(dir).listSync(recursive: true).whereType<File>()) {
-        if (!file.path.endsWith('.dart') || file.path.endsWith('.g.dart')) continue;
+      for (final file
+          in Directory(dir).listSync(recursive: true).whereType<File>()) {
+        if (!file.path.endsWith('.dart') || file.path.endsWith('.g.dart'))
+          continue;
         final lines = file.readAsLinesSync();
         for (var i = 0; i < lines.length; i++) {
           final line = lines[i].trimLeft();
           if (line.startsWith('//')) continue;
-          if (forbidden.hasMatch(line)) offenders.add('${file.path}:${i + 1}: $line');
+          if (forbidden.hasMatch(line))
+            offenders.add('${file.path}:${i + 1}: $line');
         }
       }
     }

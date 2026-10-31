@@ -337,6 +337,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             livesRemaining: active.livesRemaining - 1,
             turnTimeRemaining: _timeLimitSec,
             lastMistakeReason: rejectionReason,
+            lastMistakeWord: word,
           ),
         );
         return;
@@ -421,6 +422,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         nextStartLetter: word[word.length - 1],
         hintWord: null,
         lastMistakeReason: null,
+        lastMistakeWord: null,
       ),
     );
   }
@@ -774,6 +776,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             livesRemaining: active.livesRemaining - 1,
             turnTimeRemaining: _timeLimitSec,
             lastMistakeReason: 'timeout',
+            lastMistakeWord: null,
           ),
         );
         return;

@@ -71,26 +71,33 @@ void main() {
     now = DateTime(2026, 10, 27, 12);
   });
 
-  test('applies additions, removals and AI blocks over the bundled list', () async {
-    adapter.pages.add(
-      _page(
-        seq: 3,
-        changes: [
-          _c('تازهکلمه'),
-          _c('درخت', present: false),
-          _c('کتاب', ai: true),
-        ],
-      ),
-    );
-    final service = make();
-    await service.refresh(force: true);
+  test(
+    'applies additions, removals and AI blocks over the bundled list',
+    () async {
+      adapter.pages.add(
+        _page(
+          seq: 3,
+          changes: [
+            _c('تازهکلمه'),
+            _c('درخت', present: false),
+            _c('کتاب', ai: true),
+          ],
+        ),
+      );
+      final service = make();
+      await service.refresh(force: true);
 
-    expect(dictionary.isValid('تازهکلمه'), isTrue);
-    expect(dictionary.isValid('درخت'), isFalse);
-    expect(dictionary.isValid('کتاب'), isTrue, reason: 'AI-blocked stays valid');
-    expect(dictionary.aiBlocked, {'کتاب'});
-    expect(service.seq, 3);
-  });
+      expect(dictionary.isValid('تازهکلمه'), isTrue);
+      expect(dictionary.isValid('درخت'), isFalse);
+      expect(
+        dictionary.isValid('کتاب'),
+        isTrue,
+        reason: 'AI-blocked stays valid',
+      );
+      expect(dictionary.aiBlocked, {'کتاب'});
+      expect(service.seq, 3);
+    },
+  );
 
   test('pages through `more` and asks from the last seq', () async {
     adapter.pages
@@ -106,7 +113,9 @@ void main() {
   });
 
   test('a later start applies the cached delta before any network', () async {
-    adapter.pages.add(_page(seq: 4, changes: [_c('ماندگار'), _c('سیب', present: false)]));
+    adapter.pages.add(
+      _page(seq: 4, changes: [_c('ماندگار'), _c('سیب', present: false)]),
+    );
     await make().refresh(force: true);
 
     // A new run: fresh dictionary, same prefs, no network.
@@ -195,7 +204,12 @@ void main() {
     );
     for (var i = 0; i < 20; i++) {
       expect(
-        selectAIWord(letter: 'ک', usedWords: {}, dictionary: dict, difficulty: easy),
+        selectAIWord(
+          letter: 'ک',
+          usedWords: {},
+          dictionary: dict,
+          difficulty: easy,
+        ),
         'کبوتر',
       );
     }

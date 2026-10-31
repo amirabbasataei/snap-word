@@ -20,7 +20,8 @@ class _HostState extends State<_Host> {
   Widget build(BuildContext context) => Scaffold(
     body: Center(
       child: TextButton(
-        onPressed: () async => widget.onResult(await showAiLevelDialog(context)),
+        onPressed:
+            () async => widget.onResult(await showAiLevelDialog(context)),
         child: const Text('open'),
       ),
     ),
@@ -39,11 +40,7 @@ Future<void> _open(
   Brightness brightness = Brightness.light,
 }) async {
   await tester.pumpWidget(
-    zTestApp(
-      _Host(onResult),
-      brightness: brightness,
-      reduceMotion: true,
-    ),
+    zTestApp(_Host(onResult), brightness: brightness, reduceMotion: true),
   );
   await tester.tap(find.text('open'));
   await _settle(tester);
@@ -58,13 +55,16 @@ void _size(WidgetTester tester, double w, double h) {
 void main() {
   setUpAll(loadVazirmatn);
 
-  test('levels are the real ones, keyed by the opponent types the game takes', () {
-    expect(aiLevels.map((l) => l.id), ['ai_easy', 'ai_medium', 'ai_hard']);
-    expect(aiLevels.map((l) => l.title), ['آسان', 'متوسط', 'سخت']);
-    expect(aiLevels.map((l) => l.name), ['خواب‌آلود', 'هوشیار', 'بدقلق']);
-    expect(aiLevels.map((l) => l.speed), [1, 2, 3]);
-    expect(aiDefaultLevel, 'ai_medium');
-  });
+  test(
+    'levels are the real ones, keyed by the opponent types the game takes',
+    () {
+      expect(aiLevels.map((l) => l.id), ['ai_easy', 'ai_medium', 'ai_hard']);
+      expect(aiLevels.map((l) => l.title), ['آسان', 'متوسط', 'سخت']);
+      expect(aiLevels.map((l) => l.name), ['خواب‌آلود', 'هوشیار', 'بدقلق']);
+      expect(aiLevels.map((l) => l.speed), [1, 2, 3]);
+      expect(aiDefaultLevel, 'ai_medium');
+    },
+  );
 
   testWidgets('shows the canvas copy and no seconds', (tester) async {
     _size(tester, 396, 812);

@@ -177,6 +177,25 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('the action runs once, then dismisses the toast', (tester) async {
+    await tester.pumpWidget(_app(reduceMotion: true));
+    var taps = 0;
+    ZToast.show(_ctx, 'سؤال', actionLabel: 'گزارش بده', onAction: () => taps++);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('z-toast-action')));
+    await tester.pump();
+    expect(taps, 1);
+    expect(find.byType(ZToastCard), findsNothing);
+  });
+
+  testWidgets('no action label means no button', (tester) async {
+    await tester.pumpWidget(_app(reduceMotion: true));
+    ZToast.show(_ctx, 'سلام', onAction: () {});
+    await tester.pump();
+    expect(find.byType(Text), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   for (final b in Brightness.values) {
     testWidgets('kind colours come from the tokens — ${b.name}', (
       tester,

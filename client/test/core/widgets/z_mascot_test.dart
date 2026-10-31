@@ -113,7 +113,9 @@ void main() {
   testWidgets('is described to screen readers', (tester) async {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(
-      zTestApp(const Scaffold(body: Align(child: ZMascot(mood: ZMascotMood.sad)))),
+      zTestApp(
+        const Scaffold(body: Align(child: ZMascot(mood: ZMascotMood.sad))),
+      ),
     );
     expect(find.bySemanticsLabel('شخصیت زنجیر، ناراحت'), findsOneWidget);
     handle.dispose();

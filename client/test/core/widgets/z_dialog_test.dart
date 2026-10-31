@@ -91,7 +91,8 @@ void main() {
         await tester.tap(find.text('open'));
         await _settle(tester);
 
-        final scrim = (b == Brightness.light ? ZScene.light : ZScene.dark).scrim;
+        final scrim =
+            (b == Brightness.light ? ZScene.light : ZScene.dark).scrim;
         final barrier = tester.widget<ModalBarrier>(
           find.byType(ModalBarrier).last,
         );
@@ -143,8 +144,7 @@ void main() {
         _host(
           (c) => showZDialog<void>(
             c,
-            builder:
-                (_) => const ZDialogCard(child: SizedBox(height: 900)),
+            builder: (_) => const ZDialogCard(child: SizedBox(height: 900)),
           ),
         ),
       );
@@ -215,7 +215,9 @@ void main() {
       );
       final mascotTop = tester.getTopLeft(find.byType(ZMascot)).dy;
       final mascotBottom = tester.getBottomLeft(find.byType(ZMascot)).dy;
-      final cardTop = tester.getTopLeft(find.byType(ZDialogCard)).dy + ZGame.dialogMascotLift;
+      final cardTop =
+          tester.getTopLeft(find.byType(ZDialogCard)).dy +
+          ZGame.dialogMascotLift;
       expect(cardTop, greaterThan(mascotTop));
       expect(cardTop, lessThan(mascotBottom));
     });
@@ -295,17 +297,21 @@ void main() {
 
     for (final b in Brightness.values) {
       for (final size in const [Size(320, 568), Size(396, 812)]) {
-        testWidgets('no overflow ${size.width.toInt()}×${size.height.toInt()} ${b.name}', (
-          tester,
-        ) async {
-          _size(tester, size.width, size.height);
-          await tester.pumpWidget(
-            _host((c) => showInsufficientCoinsDialog(c, cost: 25), brightness: b),
-          );
-          await tester.tap(find.text('open'));
-          await _settle(tester);
-          expect(tester.takeException(), isNull);
-        });
+        testWidgets(
+          'no overflow ${size.width.toInt()}×${size.height.toInt()} ${b.name}',
+          (tester) async {
+            _size(tester, size.width, size.height);
+            await tester.pumpWidget(
+              _host(
+                (c) => showInsufficientCoinsDialog(c, cost: 25),
+                brightness: b,
+              ),
+            );
+            await tester.tap(find.text('open'));
+            await _settle(tester);
+            expect(tester.takeException(), isNull);
+          },
+        );
       }
 
       testWidgets('golden ${b.name}', (tester) async {

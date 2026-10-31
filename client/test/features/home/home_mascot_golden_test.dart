@@ -31,10 +31,7 @@ void main() {
                   Positioned(
                     left: 20,
                     top: 20,
-                    child: ZMascot(
-                      mood: ZMascotMood.hanging,
-                      animate: false,
-                    ),
+                    child: ZMascot(mood: ZMascotMood.hanging, animate: false),
                   ),
                 ],
               ),

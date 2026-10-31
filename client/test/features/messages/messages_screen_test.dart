@@ -271,22 +271,23 @@ void main() {
   });
 
   group('pushes held back during a game', () {
-    testWidgets('show as a card, count toward the badge, and can be dismissed', (
-      tester,
-    ) async {
-      repo = _Repo();
-      await open(tester);
-      final cubit = GetIt.I<MessagesCubit>();
-      cubit.addMissed('چالش پذیرفته شد', 'وارد بازی شو!');
-      await _settle(tester);
-      expect(cubit.state.count, 1);
-      expect(find.byType(MissedPushTile), findsOneWidget);
-      expect(find.text('چالش پذیرفته شد'), findsOneWidget);
-      await tester.tap(find.text('باشه'));
-      await _settle(tester);
-      expect(cubit.state.count, 0);
-      expect(find.byType(MissedPushTile), findsNothing);
-    });
+    testWidgets(
+      'show as a card, count toward the badge, and can be dismissed',
+      (tester) async {
+        repo = _Repo();
+        await open(tester);
+        final cubit = GetIt.I<MessagesCubit>();
+        cubit.addMissed('چالش پذیرفته شد', 'وارد بازی شو!');
+        await _settle(tester);
+        expect(cubit.state.count, 1);
+        expect(find.byType(MissedPushTile), findsOneWidget);
+        expect(find.text('چالش پذیرفته شد'), findsOneWidget);
+        await tester.tap(find.text('باشه'));
+        await _settle(tester);
+        expect(cubit.state.count, 0);
+        expect(find.byType(MissedPushTile), findsNothing);
+      },
+    );
   });
 
   group('the list', () {

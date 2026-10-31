@@ -38,7 +38,11 @@ import '../../helpers/z_test_app.dart';
 final _lri = String.fromCharCode(0x2066);
 final _pdi = String.fromCharCode(0x2069);
 
-const _signedIn = AuthAuthenticated(userId: 'me-1', username: 'آرش', coins: 1240);
+const _signedIn = AuthAuthenticated(
+  userId: 'me-1',
+  username: 'آرش',
+  coins: 1240,
+);
 
 const _stats = ProfileStats(
   totalMatches: 87,
@@ -215,8 +219,13 @@ class _Harness {
   final openedLinks = <Uri>[];
   bool linksLaunch = true;
 
-  Future<void> register({AuthState state = _signedIn, ThemeMode mode = ThemeMode.light}) async {
-    SharedPreferences.setMockInitialValues({'theme_mode': mode == ThemeMode.dark ? 'dark' : 'light'});
+  Future<void> register({
+    AuthState state = _signedIn,
+    ThemeMode mode = ThemeMode.light,
+  }) async {
+    SharedPreferences.setMockInitialValues({
+      'theme_mode': mode == ThemeMode.dark ? 'dark' : 'light',
+    });
     auth =
         _Auth(state)
           ..codeError = codeError
@@ -241,15 +250,13 @@ class _Harness {
           },
         ),
       );
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      (call) async {
-        if (call.method == 'Clipboard.setData') {
-          clipboard.add((call.arguments as Map)['text'] as String);
-        }
-        return null;
-      },
-    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboard.add((call.arguments as Map)['text'] as String);
+          }
+          return null;
+        });
   }
 
   Widget app({bool reduceMotion = true, double textScale = 1}) {
@@ -277,10 +284,14 @@ class _Harness {
             themeMode: mode,
             builder:
                 (context, child) => MediaQuery(
-                  data: MediaQuery.of(
-                    context,
-                  ).copyWith(disableAnimations: reduceMotion, textScaler: TextScaler.linear(textScale)),
-                  child: Directionality(textDirection: TextDirection.rtl, child: child!),
+                  data: MediaQuery.of(context).copyWith(
+                    disableAnimations: reduceMotion,
+                    textScaler: TextScaler.linear(textScale),
+                  ),
+                  child: Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: child!,
+                  ),
                 ),
           ),
     );
@@ -319,10 +330,8 @@ void main() {
   });
 
   tearDown(() async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      null,
-    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
     await GetIt.I.reset();
   });
 
@@ -337,12 +346,18 @@ void main() {
   }) async {
     _size(tester, w, hgt);
     await h.register(state: auth, mode: mode);
-    await tester.pumpWidget(h.app(reduceMotion: reduceMotion, textScale: textScale));
+    await tester.pumpWidget(
+      h.app(reduceMotion: reduceMotion, textScale: textScale),
+    );
     await _settle(tester);
   }
 
   Future<void> scrollTo(WidgetTester tester, Finder f) async {
-    await tester.scrollUntilVisible(f, 200, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      f,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pump();
   }
 
@@ -400,19 +415,24 @@ void main() {
 
     testWidgets('the XP ring fills to the level progress', (tester) async {
       await open(tester);
-      final ring = tester.widgetList<Container>(find.byType(Container)).where((c) {
+      final ring = tester.widgetList<Container>(find.byType(Container)).where((
+        c,
+      ) {
         final d = c.decoration;
         return d is BoxDecoration && d.gradient is SweepGradient;
       });
       expect(ring, hasLength(1));
-      final gradient = (ring.single.decoration as BoxDecoration).gradient as SweepGradient;
+      final gradient =
+          (ring.single.decoration as BoxDecoration).gradient as SweepGradient;
       expect(gradient.stops, [0, .62, .62, 1]);
       final z = tester.element(find.byType(ProfileHeader)).z;
       expect(gradient.colors.first, z.amber);
       expect(gradient.colors.last, z.wash);
     });
 
-    testWidgets('an empty level shows an empty ring and a zero bar', (tester) async {
+    testWidgets('an empty level shows an empty ring and a zero bar', (
+      tester,
+    ) async {
       h.repo.stats = const ProfileStats(
         totalMatches: 0,
         wins: 0,
@@ -443,7 +463,11 @@ void main() {
 
   group('signed in, premium', () {
     setUp(() {
-      h.repo.perks = PremiumPerks(isPremium: true, premiumUntil: DateTime.utc(2026, 11, 3, 12), avatarId: 'fox');
+      h.repo.perks = PremiumPerks(
+        isPremium: true,
+        premiumUntil: DateTime.utc(2026, 11, 3, 12),
+        avatarId: 'fox',
+      );
     });
 
     testWidgets('crown, the date and the picked avatar', (tester) async {
@@ -457,10 +481,15 @@ void main() {
       expect(find.textContaining('ارسال پیام‌های سریع'), findsNothing);
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
       await tester.pump();
-      expect(tester.widget<ZDiscAvatar>(find.byType(ZDiscAvatar)).avatarId, 'fox');
+      expect(
+        tester.widget<ZDiscAvatar>(find.byType(ZDiscAvatar)).avatarId,
+        'fox',
+      );
     });
 
-    testWidgets('picking an avatar saves it and updates the disc', (tester) async {
+    testWidgets('picking an avatar saves it and updates the disc', (
+      tester,
+    ) async {
       await open(tester);
       await scrollTo(tester, find.text('تغییر آواتار'));
       await tester.tap(find.text('تغییر آواتار'));
@@ -474,11 +503,16 @@ void main() {
       expect(find.text('انتخاب آواتار'), findsNothing);
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
       await tester.pump();
-      expect(tester.widget<ZDiscAvatar>(find.byType(ZDiscAvatar)).avatarId, 'owl');
+      expect(
+        tester.widget<ZDiscAvatar>(find.byType(ZDiscAvatar)).avatarId,
+        'owl',
+      );
     });
 
     testWidgets('a rejected avatar toasts the Persian reason', (tester) async {
-      h.repo.avatarError = const ProfileException('این امکان فقط برای اشتراک ویژه فعال است');
+      h.repo.avatarError = const ProfileException(
+        'این امکان فقط برای اشتراک ویژه فعال است',
+      );
       await open(tester);
       await scrollTo(tester, find.text('تغییر آواتار'));
       await tester.tap(find.text('تغییر آواتار'));
@@ -486,11 +520,17 @@ void main() {
       await tester.tap(find.byType(AvatarTile).at(1));
       await _settle(tester);
       expect(h.repo.avatarsSet, ['owl']);
-      expect(find.text('این امکان فقط برای اشتراک ویژه فعال است'), findsOneWidget);
+      expect(
+        find.text('این امکان فقط برای اشتراک ویژه فعال است'),
+        findsOneWidget,
+      );
       // The disc keeps the old avatar.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
       await tester.pump();
-      expect(tester.widget<ZDiscAvatar>(find.byType(ZDiscAvatar)).avatarId, 'fox');
+      expect(
+        tester.widget<ZDiscAvatar>(find.byType(ZDiscAvatar)).avatarId,
+        'fox',
+      );
       await _waitForToastToGo(tester);
     });
   });
@@ -499,7 +539,10 @@ void main() {
     testWidgets('lists the real perks and starts the purchase', (tester) async {
       await open(tester);
       await scrollTo(tester, find.text('اشتراک ویژه').last);
-      expect(find.text('• ارسال پیام‌های سریع حین بازی دو نفره'), findsOneWidget);
+      expect(
+        find.text('• ارسال پیام‌های سریع حین بازی دو نفره'),
+        findsOneWidget,
+      );
       expect(find.text('• آواتارهای ویژه و نشان تاج کنار نام'), findsOneWidget);
       expect(find.text('تغییر آواتار'), findsNothing);
       await tester.tap(find.text('اشتراک ویژه').last);
@@ -524,12 +567,17 @@ void main() {
       expect(find.text('آرش'), findsOneWidget);
     });
 
-    testWidgets('a failed load shows the reason and retry works', (tester) async {
+    testWidgets('a failed load shows the reason and retry works', (
+      tester,
+    ) async {
       h.repo.statsError = const ProfileException('بارگذاری پروفایل ناموفق بود');
       await open(tester);
       expect(find.text('بارگذاری پروفایل ناموفق بود'), findsOneWidget);
       expect(find.text('آرش'), findsNothing);
-      expect(tester.widget<ZMascot>(find.byType(ZMascot)).mood, ZMascotMood.sad);
+      expect(
+        tester.widget<ZMascot>(find.byType(ZMascot)).mood,
+        ZMascotMood.sad,
+      );
       h.repo.statsError = null;
       await tester.tap(find.text(ZLoadState.retryLabel));
       await _settle(tester);
@@ -537,13 +585,17 @@ void main() {
       expect(h.repo.statsFetches, 2);
     });
 
-    testWidgets('an unexpected error shows the generic Persian line', (tester) async {
+    testWidgets('an unexpected error shows the generic Persian line', (
+      tester,
+    ) async {
       h.repo.statsError = StateError('boom');
       await open(tester);
       expect(find.text('بارگذاری پروفایل ناموفق بود'), findsOneWidget);
     });
 
-    testWidgets('a failed perks lookup does not break the profile', (tester) async {
+    testWidgets('a failed perks lookup does not break the profile', (
+      tester,
+    ) async {
       h.repo.perksError = const ProfileException('x');
       await open(tester);
       expect(find.text('آرش'), findsOneWidget);
@@ -565,7 +617,9 @@ void main() {
       );
     });
 
-    testWidgets('local stats, nothing fetched, no account pieces', (tester) async {
+    testWidgets('local stats, nothing fetched, no account pieces', (
+      tester,
+    ) async {
       await open(tester, auth: const AuthGuest());
       expect(h.repo.statsFetches, 0);
       expect(h.auth.codeFetches, 0);
@@ -586,7 +640,9 @@ void main() {
       expect(find.text('خروج از حساب'), findsNothing);
     });
 
-    testWidgets('the sign-up card goes to login and back to the profile', (tester) async {
+    testWidgets('the sign-up card goes to login and back to the profile', (
+      tester,
+    ) async {
       await open(tester, auth: const AuthGuest());
       await scrollTo(tester, find.text('ثبت‌نام رایگان'));
       await tester.tap(find.text('ثبت‌نام رایگان'));
@@ -603,7 +659,9 @@ void main() {
   });
 
   group('actions', () {
-    testWidgets('rename: pencil → dialog → saved state and the new name', (tester) async {
+    testWidgets('rename: pencil → dialog → saved state and the new name', (
+      tester,
+    ) async {
       await open(tester);
       await tester.tap(find.bySemanticsLabel('ویرایش نام کاربری'));
       await _settle(tester);
@@ -623,7 +681,9 @@ void main() {
       expect(find.text('آرش'), findsNothing);
     });
 
-    testWidgets('rename: save stays off until the name is new and valid', (tester) async {
+    testWidgets('rename: save stays off until the name is new and valid', (
+      tester,
+    ) async {
       await open(tester);
       await tester.tap(find.bySemanticsLabel('ویرایش نام کاربری'));
       await _settle(tester);
@@ -642,9 +702,14 @@ void main() {
       expect(find.text('فقط حرف، عدد و _ مجاز است'), findsOneWidget);
     });
 
-    testWidgets('rename: a taken name keeps the dialog and says why', (tester) async {
+    testWidgets('rename: a taken name keeps the dialog and says why', (
+      tester,
+    ) async {
       await open(tester);
-      h.auth.renameError = const AuthException(code: 'username_taken', message: 'x');
+      h.auth.renameError = const AuthException(
+        code: 'username_taken',
+        message: 'x',
+      );
       await tester.tap(find.bySemanticsLabel('ویرایش نام کاربری'));
       await _settle(tester);
       await tester.enterText(find.byType(TextField), 'مریم');
@@ -657,7 +722,9 @@ void main() {
       expect(find.text('آرش'), findsOneWidget);
     });
 
-    testWidgets('coins: the pill opens the shop and a bundle is bought', (tester) async {
+    testWidgets('coins: the pill opens the shop and a bundle is bought', (
+      tester,
+    ) async {
       await open(tester);
       await tester.tap(find.byType(ZHudCoinPill));
       await _settle(tester);
@@ -690,7 +757,9 @@ void main() {
       await _waitForToastToGo(tester);
     });
 
-    testWidgets('redeem: a code is sent and the balance follows', (tester) async {
+    testWidgets('redeem: a code is sent and the balance follows', (
+      tester,
+    ) async {
       await open(tester);
       await scrollTo(tester, find.text('کد دعوت داری؟'));
       await tester.tap(find.text('کد دعوت داری؟'));
@@ -711,9 +780,14 @@ void main() {
       await _waitForToastToGo(tester);
     });
 
-    testWidgets('redeem: a refused code says why and stays open', (tester) async {
+    testWidgets('redeem: a refused code says why and stays open', (
+      tester,
+    ) async {
       await open(tester);
-      h.auth.redeemError = const AuthException(code: 'referral_already_used', message: 'x');
+      h.auth.redeemError = const AuthException(
+        code: 'referral_already_used',
+        message: 'x',
+      );
       await scrollTo(tester, find.text('کد دعوت داری؟'));
       await tester.tap(find.text('کد دعوت داری؟'));
       await _settle(tester);
@@ -722,11 +796,16 @@ void main() {
       await tester.tap(find.text('ثبت کد'));
       await _settle(tester);
       expect(find.text('ثبت کد'), findsOneWidget);
-      expect(find.text(errorMessageFor('referral_already_used')), findsOneWidget);
+      expect(
+        find.text(errorMessageFor('referral_already_used')),
+        findsOneWidget,
+      );
       expect((h.auth.state as AuthAuthenticated).coins, 1240);
     });
 
-    testWidgets('redeem: the dialog states what the server pays', (tester) async {
+    testWidgets('redeem: the dialog states what the server pays', (
+      tester,
+    ) async {
       await open(tester);
       await scrollTo(tester, find.text('کد دعوت داری؟'));
       await tester.tap(find.text('کد دعوت داری؟'));
@@ -743,7 +822,9 @@ void main() {
       expect(find.text('برای دوستت'), findsNothing);
     });
 
-    testWidgets('logout asks the auth cubit and the screen turns guest', (tester) async {
+    testWidgets('logout asks the auth cubit and the screen turns guest', (
+      tester,
+    ) async {
       await open(tester);
       await scrollTo(tester, find.text('خروج از حساب'));
       await tester.tap(find.text('خروج از حساب'));
@@ -769,7 +850,9 @@ void main() {
         xpInLevel: 10,
         xpForNext: 1000,
       );
-      h.auth.emitState(const AuthAuthenticated(userId: 'u2', username: 'سارا', coins: 7));
+      h.auth.emitState(
+        const AuthAuthenticated(userId: 'u2', username: 'سارا', coins: 7),
+      );
       await _settle(tester);
       expect(h.repo.statsFetches, 2);
       expect(find.text('سارا'), findsOneWidget);
@@ -806,7 +889,9 @@ void main() {
       await _waitForToastToGo(tester);
     });
 
-    testWidgets('a failed code is a retry, the profile is untouched', (tester) async {
+    testWidgets('a failed code is a retry, the profile is untouched', (
+      tester,
+    ) async {
       h.codeError = StateError('x');
       await open(tester);
       await scrollTo(tester, find.text('کد دعوت بارگذاری نشد'));
@@ -841,7 +926,9 @@ void main() {
   });
 
   group('theme switch', () {
-    testWidgets('toggles night mode and the whole screen follows', (tester) async {
+    testWidgets('toggles night mode and the whole screen follows', (
+      tester,
+    ) async {
       await open(tester);
       await scrollTo(tester, find.text('حالت شب'));
       final ctx = tester.element(find.text('حالت شب'));
@@ -853,7 +940,10 @@ void main() {
       await tester.tap(find.text('حالت شب'));
       await _settle(tester);
       expect(h.theme.state, ThemeMode.dark);
-      expect(Theme.of(tester.element(find.text('حالت شب'))).brightness, Brightness.dark);
+      expect(
+        Theme.of(tester.element(find.text('حالت شب'))).brightness,
+        Brightness.dark,
+      );
       // And back.
       await tester.tap(find.text('حالت شب'));
       await _settle(tester);
@@ -908,7 +998,9 @@ void main() {
       expect(find.byType(ZLoadState), findsNothing);
     });
 
-    testWidgets('other tabs\' taps are ignored; a failed code is retried', (tester) async {
+    testWidgets('other tabs\' taps are ignored; a failed code is retried', (
+      tester,
+    ) async {
       h.codeError = StateError('x');
       await open(tester);
       h.bus.notify(MainTab.board);
@@ -937,19 +1029,38 @@ void main() {
   });
 
   group('semantics', () {
-    testWidgets('each control is named once, numbers read in full', (tester) async {
+    testWidgets('each control is named once, numbers read in full', (
+      tester,
+    ) async {
       final handle = tester.ensureSemantics();
       await open(tester);
       expect(find.bySemanticsLabel('ویرایش نام کاربری'), findsOneWidget);
       // The shared pill also reads its balance after its action.
-      expect(find.bySemanticsLabel(RegExp(r'^سکه‌ها؛ خرید سکه')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ امتیاز$')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ امتیاز تا سطح ۱۳$')), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp(r'^سکه‌ها؛ خرید سکه')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ امتیاز$')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ امتیاز تا سطح ۱۳$'),
+        ),
+        findsOneWidget,
+      );
       expect(find.bySemanticsLabel('بلندترین زنجیر: ۲۳ کلمه'), findsOneWidget);
       expect(find.bySemanticsLabel('بازی‌شده: ۸۷'), findsOneWidget);
       expect(find.bySemanticsLabel('روز پیاپی: ۵'), findsOneWidget);
       await scrollTo(tester, find.text('خروج از حساب'));
-      for (final label in ['حالت شب', 'کد دعوت داری؟', 'خروج از حساب', 'اشتراک‌گذاری کد دعوت', 'کپی کد دعوت']) {
+      for (final label in [
+        'حالت شب',
+        'کد دعوت داری؟',
+        'خروج از حساب',
+        'اشتراک‌گذاری کد دعوت',
+        'کپی کد دعوت',
+      ]) {
         expect(find.bySemanticsLabel(label), findsOneWidget, reason: label);
       }
       handle.dispose();
@@ -965,7 +1076,12 @@ void main() {
   });
 
   group('layout', () {
-    const sizes = [Size(320, 568), Size(360, 640), Size(393, 852), Size(430, 932)];
+    const sizes = [
+      Size(320, 568),
+      Size(360, 640),
+      Size(393, 852),
+      Size(430, 932),
+    ];
 
     void busy() {
       h.repo.stats = const ProfileStats(
@@ -981,71 +1097,106 @@ void main() {
         xpInLevel: 999999,
         xpForNext: 999999,
       );
-      h.repo.perks = PremiumPerks(isPremium: true, premiumUntil: DateTime.utc(2030, 1, 1), avatarId: 'fox');
+      h.repo.perks = PremiumPerks(
+        isPremium: true,
+        premiumUntil: DateTime.utc(2030, 1, 1),
+        avatarId: 'fox',
+      );
     }
 
     const longName = 'یک_نام_کاربری_خیلی_خیلی_خیلی_بلند_فارسی';
-    const rich = AuthAuthenticated(userId: 'me-1', username: longName, coins: 999999);
+    const rich = AuthAuthenticated(
+      userId: 'me-1',
+      username: longName,
+      coins: 999999,
+    );
 
     for (final size in sizes) {
       for (final mode in [ThemeMode.light, ThemeMode.dark]) {
-        testWidgets('busy profile ${size.width.toInt()}×${size.height.toInt()} ${mode.name}', (tester) async {
-          busy();
-          await open(tester, auth: rich, mode: mode, w: size.width, hgt: size.height);
-          expect(tester.takeException(), isNull);
-          final list = find.byType(Scrollable).first;
-          await tester.drag(list, const Offset(0, -4000));
-          await tester.pump();
-          expect(tester.takeException(), isNull);
-          // The last control is reachable.
-          expect(find.text('خروج از حساب'), findsOneWidget);
-          final bottom = tester.getRect(find.text('خروج از حساب')).bottom;
-          expect(bottom, lessThanOrEqualTo(size.height));
-        });
+        testWidgets(
+          'busy profile ${size.width.toInt()}×${size.height.toInt()} ${mode.name}',
+          (tester) async {
+            busy();
+            await open(
+              tester,
+              auth: rich,
+              mode: mode,
+              w: size.width,
+              hgt: size.height,
+            );
+            expect(tester.takeException(), isNull);
+            final list = find.byType(Scrollable).first;
+            await tester.drag(list, const Offset(0, -4000));
+            await tester.pump();
+            expect(tester.takeException(), isNull);
+            // The last control is reachable.
+            expect(find.text('خروج از حساب'), findsOneWidget);
+            final bottom = tester.getRect(find.text('خروج از حساب')).bottom;
+            expect(bottom, lessThanOrEqualTo(size.height));
+          },
+        );
 
-        testWidgets('plain / guest / loading / error ${size.width.toInt()}×${size.height.toInt()} ${mode.name}', (
-          tester,
-        ) async {
-          await open(tester, mode: mode, w: size.width, hgt: size.height);
-          expect(tester.takeException(), isNull);
-          await tester.drag(find.byType(Scrollable).first, const Offset(0, -4000));
-          await tester.pump();
-          expect(tester.takeException(), isNull);
+        testWidgets(
+          'plain / guest / loading / error ${size.width.toInt()}×${size.height.toInt()} ${mode.name}',
+          (tester) async {
+            await open(tester, mode: mode, w: size.width, hgt: size.height);
+            expect(tester.takeException(), isNull);
+            await tester.drag(
+              find.byType(Scrollable).first,
+              const Offset(0, -4000),
+            );
+            await tester.pump();
+            expect(tester.takeException(), isNull);
 
-          await GetIt.I.reset();
-          h = _Harness();
-          await open(tester, auth: const AuthGuest(), mode: mode, w: size.width, hgt: size.height);
-          expect(tester.takeException(), isNull);
-          await tester.drag(find.byType(Scrollable).first, const Offset(0, -4000));
-          await tester.pump();
-          expect(tester.takeException(), isNull);
+            await GetIt.I.reset();
+            h = _Harness();
+            await open(
+              tester,
+              auth: const AuthGuest(),
+              mode: mode,
+              w: size.width,
+              hgt: size.height,
+            );
+            expect(tester.takeException(), isNull);
+            await tester.drag(
+              find.byType(Scrollable).first,
+              const Offset(0, -4000),
+            );
+            await tester.pump();
+            expect(tester.takeException(), isNull);
 
-          await GetIt.I.reset();
-          h = _Harness()..repo.statsError = const ProfileException('خطا');
-          await open(tester, mode: mode, w: size.width, hgt: size.height);
-          expect(tester.takeException(), isNull);
+            await GetIt.I.reset();
+            h = _Harness()..repo.statsError = const ProfileException('خطا');
+            await open(tester, mode: mode, w: size.width, hgt: size.height);
+            expect(tester.takeException(), isNull);
 
-          await GetIt.I.reset();
-          h = _Harness()..repo.statsGate = Completer<ProfileStats>();
-          await open(tester, mode: mode, w: size.width, hgt: size.height);
-          expect(tester.takeException(), isNull);
-        });
+            await GetIt.I.reset();
+            h = _Harness()..repo.statsGate = Completer<ProfileStats>();
+            await open(tester, mode: mode, w: size.width, hgt: size.height);
+            expect(tester.takeException(), isNull);
+          },
+        );
       }
     }
 
     for (final scale in [1.3, 1.6, 2.0]) {
-      testWidgets('text ×$scale: no overflow, fixed controls capped at 1.3', (tester) async {
+      testWidgets('text ×$scale: no overflow, fixed controls capped at 1.3', (
+        tester,
+      ) async {
         busy();
         await open(tester, auth: rich, textScale: scale, w: 320, hgt: 568);
         expect(tester.takeException(), isNull);
 
-        double scaleOf(String label) =>
-            tester.renderObject<RenderParagraph>(find.text(label).first).textScaler.scale(10);
+        double scaleOf(String label) => tester
+            .renderObject<RenderParagraph>(find.text(label).first)
+            .textScaler
+            .scale(10);
         // The level bar, the title chip and the name keep their own rules.
         expect(scaleOf('استاد واژه'), closeTo(10 * scale, .01));
         expect(scaleOf(longName), closeTo(10 * scale, .01));
         final word = h.repo.stats.longestWord!;
-        final wordLabel = 'بلندترین کلمه · ${toPersianDigits(letterCount(word))} حرف';
+        final wordLabel =
+            'بلندترین کلمه · ${toPersianDigits(letterCount(word))} حرف';
         await scrollTo(tester, find.text(wordLabel));
         expect(scaleOf(wordLabel), closeTo(10 * scale, .01));
 
@@ -1059,7 +1210,9 @@ void main() {
       });
     }
 
-    testWidgets('the coin pill never crowds the avatar on a 320 phone', (tester) async {
+    testWidgets('the coin pill never crowds the avatar on a 320 phone', (
+      tester,
+    ) async {
       busy();
       await open(tester, auth: rich, w: 320, hgt: 568);
       final pill = tester.getRect(find.byType(ZHudCoinPill));
@@ -1071,7 +1224,9 @@ void main() {
 
   group('colours', () {
     for (final mode in [ThemeMode.light, ThemeMode.dark]) {
-      testWidgets('text on its fill is readable (${mode.name})', (tester) async {
+      testWidgets('text on its fill is readable (${mode.name})', (
+        tester,
+      ) async {
         await open(tester, mode: mode);
         final z = tester.element(find.byType(ZProfileScreen)).z;
         expect(contrastRatio(z.onAmber, z.amber), greaterThanOrEqualTo(4.5));
@@ -1079,7 +1234,10 @@ void main() {
         expect(contrastRatio(z.ink, z.surface), greaterThanOrEqualTo(4.5));
         expect(contrastRatio(z.ink60, z.surface), greaterThanOrEqualTo(4.5));
         expect(contrastRatio(z.ink, z.wash), greaterThanOrEqualTo(4.5));
-        expect(contrastRatio(z.onInkSurface, z.inkSurface), greaterThanOrEqualTo(4.5));
+        expect(
+          contrastRatio(z.onInkSurface, z.inkSurface),
+          greaterThanOrEqualTo(4.5),
+        );
         expect(contrastRatio(z.coral, z.surface), greaterThanOrEqualTo(3));
         // The bar label is drawn in onAmber over the fill, ink over the track.
         expect(contrastRatio(z.ink, z.wash), greaterThanOrEqualTo(4.5));
@@ -1089,7 +1247,10 @@ void main() {
 
   group('goldens', () {
     Future<void> shot(WidgetTester tester, String name) async {
-      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/$name.png'));
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/$name.png'),
+      );
     }
 
     testWidgets('free light', (tester) async {
@@ -1098,7 +1259,10 @@ void main() {
     });
 
     testWidgets('premium dark', (tester) async {
-      h.repo.perks = PremiumPerks(isPremium: true, premiumUntil: DateTime.utc(2026, 11, 3, 12));
+      h.repo.perks = PremiumPerks(
+        isPremium: true,
+        premiumUntil: DateTime.utc(2026, 11, 3, 12),
+      );
       await open(tester, mode: ThemeMode.dark);
       await shot(tester, 'z_profile_premium_dark');
     });
@@ -1130,18 +1294,21 @@ void main() {
 
   group('legal links', () {
     for (final guest in [false, true]) {
-      testWidgets('${guest ? 'guest' : 'signed in'}: both pages open in the browser', (tester) async {
-        await open(tester, auth: guest ? const AuthGuest() : _signedIn);
-        await scrollTo(tester, find.text('قوانین و مقررات'));
-        await tester.tap(find.text('قوانین و مقررات'));
-        await _settle(tester);
-        await tester.tap(find.text('حریم خصوصی'));
-        await _settle(tester);
-        expect(h.openedLinks.map((u) => u.toString()), [
-          'https://zanjir.test/terms',
-          'https://zanjir.test/privacy',
-        ]);
-      });
+      testWidgets(
+        '${guest ? 'guest' : 'signed in'}: both pages open in the browser',
+        (tester) async {
+          await open(tester, auth: guest ? const AuthGuest() : _signedIn);
+          await scrollTo(tester, find.text('قوانین و مقررات'));
+          await tester.tap(find.text('قوانین و مقررات'));
+          await _settle(tester);
+          await tester.tap(find.text('حریم خصوصی'));
+          await _settle(tester);
+          expect(h.openedLinks.map((u) => u.toString()), [
+            'https://zanjir.test/terms',
+            'https://zanjir.test/privacy',
+          ]);
+        },
+      );
     }
 
     testWidgets('the buttons are at least 44dp and labelled', (tester) async {
@@ -1153,13 +1320,22 @@ void main() {
           of: find.text(label),
           matching: find.byType(ProfileChunkButton),
         );
-        expect(tester.getSize(box).height, greaterThanOrEqualTo(44), reason: label);
-        expect(find.bySemanticsLabel('$label، باز کردن در مرورگر'), findsOneWidget);
+        expect(
+          tester.getSize(box).height,
+          greaterThanOrEqualTo(44),
+          reason: label,
+        );
+        expect(
+          find.bySemanticsLabel('$label، باز کردن در مرورگر'),
+          findsOneWidget,
+        );
       }
       handle.dispose();
     });
 
-    testWidgets('a browser that will not open shows the Persian toast', (tester) async {
+    testWidgets('a browser that will not open shows the Persian toast', (
+      tester,
+    ) async {
       h.linksLaunch = false;
       await open(tester);
       await scrollTo(tester, find.text('قوانین و مقررات'));

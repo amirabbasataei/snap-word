@@ -99,39 +99,45 @@ void main() {
 
   tearDown(() => bloc.close());
 
-  test('my refused word reaches the result screen (so it can be reported)', () async {
-    ws.emit('word_rejected', {
-      'word': 'قلمم',
-      'reason': 'not_in_dictionary',
-      'player_id': _me,
-    });
-    ws.emit('loss_event', {'player_id': _me, 'reason': 'invalid_word'});
-    await _settle();
+  test(
+    'my refused word reaches the result screen (so it can be reported)',
+    () async {
+      ws.emit('word_rejected', {
+        'word': 'قلمم',
+        'reason': 'not_in_dictionary',
+        'player_id': _me,
+      });
+      ws.emit('loss_event', {'player_id': _me, 'reason': 'invalid_word'});
+      await _settle();
 
-    final over = bloc.state as GameOver;
-    expect(over.rejectedWord, 'قلمم');
-    expect(over.rejectionReason, 'not_in_dictionary');
-  });
+      final over = bloc.state as GameOver;
+      expect(over.rejectedWord, 'قلمم');
+      expect(over.rejectionReason, 'not_in_dictionary');
+    },
+  );
 
-  test('the word survives the server game_over that follows a declined continue', () async {
-    ws.emit('word_rejected', {
-      'word': 'قلمم',
-      'reason': 'not_in_dictionary',
-      'player_id': _me,
-    });
-    ws.emit('loss_event', {'player_id': _me, 'reason': 'invalid_word'});
-    await _settle();
-    ws.emit('game_over', {
-      'winner': _them,
-      'scores': {_me: 0, _them: 0},
-    });
-    await _settle();
+  test(
+    'the word survives the server game_over that follows a declined continue',
+    () async {
+      ws.emit('word_rejected', {
+        'word': 'قلمم',
+        'reason': 'not_in_dictionary',
+        'player_id': _me,
+      });
+      ws.emit('loss_event', {'player_id': _me, 'reason': 'invalid_word'});
+      await _settle();
+      ws.emit('game_over', {
+        'winner': _them,
+        'scores': {_me: 0, _them: 0},
+      });
+      await _settle();
 
-    final over = bloc.state as GameOver;
-    expect(over.reason, 'game_over');
-    expect(over.rejectedWord, 'قلمم');
-    expect(over.iWon, isFalse);
-  });
+      final over = bloc.state as GameOver;
+      expect(over.reason, 'game_over');
+      expect(over.rejectedWord, 'قلمم');
+      expect(over.iWon, isFalse);
+    },
+  );
 
   test('the opponent\'s refused word is not mine to report', () async {
     ws.emit('word_rejected', {

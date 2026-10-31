@@ -30,14 +30,23 @@ class _FakeWords extends Fake implements WordSuggestionsRepository {
   Future<List<MyWordReport>> mine() async => reports;
 }
 
-Future<void> _open(WidgetTester t, Future<void> Function(BuildContext) opener) async {
+Future<void> _open(
+  WidgetTester t,
+  Future<void> Function(BuildContext) opener,
+) async {
   t.view.devicePixelRatio = 1;
   t.view.physicalSize = const Size(396, 812);
   addTearDown(t.view.reset);
   await t.pumpWidget(
     zTestApp(
       Builder(
-        builder: (context) => Center(child: TextButton(onPressed: () => opener(context), child: const Text('open'))),
+        builder:
+            (context) => Center(
+              child: TextButton(
+                onPressed: () => opener(context),
+                child: const Text('open'),
+              ),
+            ),
       ),
     ),
   );
@@ -53,14 +62,20 @@ void main() {
   setUp(() {
     words = _FakeWords();
     GetIt.I.registerSingleton<WordSuggestionsRepository>(words);
-    GetIt.I.registerSingleton<DictionaryService>(DictionaryService.withWords(['کتاب', 'درخت']));
+    GetIt.I.registerSingleton<DictionaryService>(
+      DictionaryService.withWords(['کتاب', 'درخت']),
+    );
   });
   tearDown(() => GetIt.I.reset());
 
   Finder send() => find.text('ارسال');
 
   void signedIn(bool v) => GetIt.I.registerSingleton<AuthCubit>(
-    FakeAuthCubit(v ? const AuthAuthenticated(userId: 'u', username: 'Maryam', coins: 10) : const AuthGuest()),
+    FakeAuthCubit(
+      v
+          ? const AuthAuthenticated(userId: 'u', username: 'Maryam', coins: 10)
+          : const AuthGuest(),
+    ),
   );
 
   group('SuggestWordDialog', () {
@@ -91,59 +106,86 @@ void main() {
       expect(words.suggested, isEmpty);
     });
 
-    testWidgets('sends a new word and tells a signed-in player about the reward', (t) async {
-      signedIn(true);
-      await _open(t, showSuggestWordDialog);
-      await t.enterText(find.byType(TextField), '  آزمونک ');
-      await t.pump();
-      await t.tap(send());
-      await t.pump();
-      await t.pump(const Duration(milliseconds: 600));
+    testWidgets(
+      'sends a new word and tells a signed-in player about the reward',
+      (t) async {
+        signedIn(true);
+        await _open(t, showSuggestWordDialog);
+        await t.enterText(find.byType(TextField), '  آزمونک ');
+        await t.pump();
+        await t.tap(send());
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 600));
 
-      expect(words.suggested, ['آزمونک']);
-      expect(find.text('ممنون از کمکت!'), findsOneWidget);
-      expect(find.textContaining(toPersianDigits(GameConstants.wordSuggestionCoins)), findsOneWidget);
-      expect(find.text('کلمهٔ دیگر'), findsOneWidget);
-    });
+        expect(words.suggested, ['آزمونک']);
+        expect(find.text('ممنون از کمکت!'), findsOneWidget);
+        expect(
+          find.textContaining(
+            toPersianDigits(GameConstants.wordSuggestionCoins),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('کلمهٔ دیگر'), findsOneWidget);
+      },
+    );
 
-    testWidgets('a guest can send but is pointed at signing in for the reward', (t) async {
-      signedIn(false);
-      await _open(t, showSuggestWordDialog);
-      await t.enterText(find.byType(TextField), 'آزمونک');
-      await t.pump();
-      await t.tap(send());
-      await t.pump();
-      await t.pump(const Duration(milliseconds: 600));
+    testWidgets(
+      'a guest can send but is pointed at signing in for the reward',
+      (t) async {
+        signedIn(false);
+        await _open(t, showSuggestWordDialog);
+        await t.enterText(find.byType(TextField), 'آزمونک');
+        await t.pump();
+        await t.tap(send());
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 600));
 
-      expect(words.suggested, ['آزمونک']);
-      expect(find.textContaining('وارد شو'), findsOneWidget);
-    });
+        expect(words.suggested, ['آزمونک']);
+        expect(find.textContaining('وارد شو'), findsOneWidget);
+      },
+    );
 
-    testWidgets('a server refusal is shown in Persian and the word can be corrected', (t) async {
-      signedIn(true);
-      words.fail = const WordSuggestionException('این کلمه قبلاً بررسی شده است', code: 'word_already_reviewed');
-      await _open(t, showSuggestWordDialog);
-      await t.enterText(find.byType(TextField), 'آزمونک');
-      await t.pump();
-      await t.tap(send());
-      await t.pump();
-      await t.pump(const Duration(milliseconds: 300));
-      expect(find.text('این کلمه قبلاً بررسی شده است'), findsOneWidget);
+    testWidgets(
+      'a server refusal is shown in Persian and the word can be corrected',
+      (t) async {
+        signedIn(true);
+        words.fail = const WordSuggestionException(
+          'این کلمه قبلاً بررسی شده است',
+          code: 'word_already_reviewed',
+        );
+        await _open(t, showSuggestWordDialog);
+        await t.enterText(find.byType(TextField), 'آزمونک');
+        await t.pump();
+        await t.tap(send());
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 300));
+        expect(find.text('این کلمه قبلاً بررسی شده است'), findsOneWidget);
 
-      words.fail = null;
-      await t.enterText(find.byType(TextField), 'آزمونکی');
-      await t.pump();
-      expect(find.text('این کلمه قبلاً بررسی شده است'), findsNothing);
-    });
+        words.fail = null;
+        await t.enterText(find.byType(TextField), 'آزمونکی');
+        await t.pump();
+        expect(find.text('این کلمه قبلاً بررسی شده است'), findsNothing);
+      },
+    );
   });
 
   group('MyWordReportsDialog', () {
     testWidgets('lists each report with what became of it', (t) async {
       signedIn(true);
       words.reports = const [
-        MyWordReport(word: 'آزمونک', kind: 'add', status: 'approved', rewarded: true),
+        MyWordReport(
+          word: 'آزمونک',
+          kind: 'add',
+          status: 'approved',
+          rewarded: true,
+        ),
         MyWordReport(word: 'نوآموزی', kind: 'add', status: 'pending'),
-        MyWordReport(word: 'بدواژه', kind: 'remove', status: 'approved', outcome: 'ai_block'),
+        MyWordReport(
+          word: 'بدواژه',
+          kind: 'remove',
+          status: 'approved',
+          outcome: 'ai_block',
+        ),
         MyWordReport(word: 'رد', kind: 'add', status: 'rejected'),
       ];
       await _open(t, showMyWordReportsDialog);
@@ -165,6 +207,16 @@ void main() {
   });
 
   test('status labels', () {
-    expect(wordReportStatusLabel(const MyWordReport(word: 'a', kind: 'remove', status: 'approved', outcome: 'remove')), 'حذف شد');
+    expect(
+      wordReportStatusLabel(
+        const MyWordReport(
+          word: 'a',
+          kind: 'remove',
+          status: 'approved',
+          outcome: 'remove',
+        ),
+      ),
+      'حذف شد',
+    );
   });
 }
