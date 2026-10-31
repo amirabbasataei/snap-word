@@ -8,11 +8,13 @@ import 'package:tapsell_mediation/tapsell.dart';
 import 'package:wordchain/core/services/analytics_service.dart';
 
 /// Tapsell zone ids (create them in the Tapsell panel for this app's key, which
-/// lives in `android/app/build.gradle.kts`). Pass at build time:
-/// `--dart-define=TAPSELL_REWARDED_ZONE=...`. An empty id disables ads.
+/// lives in `android/app/build.gradle.kts`). The default below is built in, so a
+/// plain `flutter build apk` works; `--dart-define=TAPSELL_REWARDED_ZONE=...`
+/// still overrides it (an empty value disables ads).
 abstract final class AdZones {
   static const String rewarded = String.fromEnvironment(
     'TAPSELL_REWARDED_ZONE',
+    defaultValue: '6abcff8b4f1d857015032942',
   );
 }
 
