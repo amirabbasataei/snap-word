@@ -43,8 +43,9 @@ class _Inbox extends Fake implements InboxRepository {
 
   @override
   Future<void> markRead(String id) async {
-    if (failRead)
+    if (failRead) {
       throw const InboxException(code: 'network_error', message: 'x');
+    }
     read.add(id);
   }
 }

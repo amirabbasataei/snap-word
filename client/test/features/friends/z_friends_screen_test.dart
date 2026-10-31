@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -866,14 +865,11 @@ void main() {
 
       final node = tester.getSemantics(find.text('حسین ط.'));
       expect(node.getSemanticsData().customSemanticsActionIds, isNotEmpty);
-      SemanticsBinding.instance.performSemanticsAction(
-        SemanticsActionEvent(
-          type: SemanticsAction.customAction,
-          viewId: tester.view.viewId,
-          nodeId: node.id,
-          arguments: CustomSemanticsAction.getIdentifier(
-            const CustomSemanticsAction(label: 'حذف از دوستان'),
-          ),
+      tester.binding.rootPipelineOwner.semanticsOwner!.performAction(
+        node.id,
+        SemanticsAction.customAction,
+        CustomSemanticsAction.getIdentifier(
+          const CustomSemanticsAction(label: 'حذف از دوستان'),
         ),
       );
       await _settle(tester);

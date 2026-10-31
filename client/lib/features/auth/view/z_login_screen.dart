@@ -228,34 +228,3 @@ class _PhoneCard extends StatelessWidget {
     );
   }
 }
-
-/// «شمارهٔ ایران»: shown once the number is complete. Every number the server
-/// accepts is an Iran mobile, which is all this claims — no carrier is named
-/// (the prefix cannot tell once numbers are portable, and the API sends none).
-class _IranChip extends StatelessWidget {
-  const _IranChip();
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return MediaQuery.withClampedTextScaling(
-      maxScaleFactor: 1.3,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: z.inkSurface,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          'شمارهٔ ایران',
-          style: ZTypography.metaLabel.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            height: 1.4,
-            color: z.onInkSurface,
-          ),
-        ),
-      ),
-    );
-  }
-}

@@ -18,8 +18,9 @@ class _Adapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     paths.add('${options.method} ${options.uri.path}');
-    if (options.data is Map)
+    if (options.data is Map) {
       bodies.add(Map<String, dynamic>.from(options.data as Map));
+    }
     return ResponseBody.fromString(
       jsonEncode(body),
       status,
