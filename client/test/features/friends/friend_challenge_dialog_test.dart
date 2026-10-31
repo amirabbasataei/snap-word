@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
@@ -206,7 +207,15 @@ void main() {
 
     Future<void> pumpScreen(WidgetTester tester) async {
       repo = _FakeFriends();
+      // The Friends screen offers the push-permission prompt on first build;
+      // mark it as already shown so it does not cover the screen under test.
+      SharedPreferences.setMockInitialValues({
+        'notification_permission_asked': true,
+      });
       GetIt.I
+        ..registerSingleton<SharedPreferences>(
+          await SharedPreferences.getInstance(),
+        )
         ..registerSingleton<FriendsRepository>(repo)
         ..registerSingleton<MessagesCubit>(_FakeMessages())
         ..registerSingleton<TabRefreshBus>(TabRefreshBus());

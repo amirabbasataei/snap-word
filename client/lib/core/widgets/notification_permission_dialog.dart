@@ -14,8 +14,22 @@ const _askedKey = 'notification_permission_asked';
 /// the OS permission prompt. Shown at most once (when the Friends tab is first
 /// opened) and never when the permission is already granted.
 Future<void> maybeAskNotificationPermission(BuildContext context) async {
+  if (_asking) return;
   final prefs = getIt<SharedPreferences>();
   if (prefs.getBool(_askedKey) ?? false) return;
+  _asking = true;
+  try {
+    await _ask(context, prefs);
+  } finally {
+    _asking = false;
+  }
+}
+
+/// Guards against two triggers (first build + a quick tab tap) racing past the
+/// `asked` flag, which is only written after an async permission check.
+bool _asking = false;
+
+Future<void> _ask(BuildContext context, SharedPreferences prefs) async {
   final notifications = getIt<NotificationService>();
   if (await notifications.isAuthorized()) return;
   await prefs.setBool(_askedKey, true);

@@ -207,6 +207,17 @@ class _FriendsViewState extends State<_FriendsView> {
     _messagesSub = getIt<MessagesCubit>().friendsChanged.listen((_) {
       if (mounted) context.read<FriendsCubit>().load(silent: true);
     });
+    // The shell builds a branch lazily, on the first visit: the bottom-nav tap
+    // that opens Friends for the first time publishes on `TabRefreshBus`
+    // before this tab's `TabRefreshListener` exists, so the permission prompt
+    // would only show on a later tap. Ask once the first frame is up — but
+    // only if the tab is actually on screen (it is also rebuilt in the
+    // background on a sign-in/out).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && TickerMode.valuesOf(context).enabled) {
+        maybeAskNotificationPermission(context);
+      }
+    });
   }
 
   @override
