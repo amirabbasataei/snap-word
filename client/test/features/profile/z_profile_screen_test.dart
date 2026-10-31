@@ -11,7 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/services/legal_links.dart';
-import 'package:wordchain/core/services/monetization_service.dart';
+import 'package:wordchain/core/services/store_purchase_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
@@ -187,12 +187,15 @@ class _FakeShare extends Fake implements ShareService {
   Future<void> shareInvite({required String code}) async => codes.add(code);
 }
 
-class _FakeMoney extends Fake implements MonetizationService {
-  PurchaseResult result = const PurchaseResult(status: PurchaseStatus.success);
+class _FakeMoney extends Fake implements StorePurchaseService {
+  StorePurchaseResult result = const StorePurchaseResult(
+    StorePurchaseStatus.success,
+    'خرید با موفقیت انجام شد!',
+  );
   final bought = <String>[];
 
   @override
-  Future<PurchaseResult> purchase(String productId) async {
+  Future<StorePurchaseResult> buy(String productId) async {
     bought.add(productId);
     return result;
   }
@@ -277,7 +280,7 @@ class _Harness {
       ..registerSingleton<StatsDao>(dao)
       ..registerSingleton<PowerupCacheDao>(_FakePowerups())
       ..registerSingleton<ShareService>(share)
-      ..registerSingleton<MonetizationService>(money)
+      ..registerSingleton<StorePurchaseService>(money)
       ..registerSingleton<PerksCatalogService>(_FakeCatalog())
       ..registerSingleton<ThemeCubit>(theme)
       ..registerSingleton<TabRefreshBus>(bus)
@@ -781,7 +784,10 @@ void main() {
 
     testWidgets('coins: cancelled and failed purchases toast', (tester) async {
       await open(tester);
-      h.money.result = const PurchaseResult(status: PurchaseStatus.cancelled);
+      h.money.result = const StorePurchaseResult(
+        StorePurchaseStatus.cancelled,
+        'خرید لغو شد.',
+      );
       await tester.tap(find.byType(ZHudCoinPill));
       await _settle(tester);
       await tester.tap(find.text('۱۰۰ سکه'));
@@ -789,7 +795,10 @@ void main() {
       expect(find.text('خرید لغو شد.'), findsOneWidget);
       await _waitForToastToGo(tester);
 
-      h.money.result = const PurchaseResult(status: PurchaseStatus.failed);
+      h.money.result = const StorePurchaseResult(
+        StorePurchaseStatus.failed,
+        'خرید ناموفق بود.',
+      );
       await tester.tap(find.byType(ZHudCoinPill));
       await _settle(tester);
       await tester.tap(find.text('۱۰۰ سکه'));

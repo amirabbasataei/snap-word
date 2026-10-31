@@ -29,6 +29,15 @@ type Config struct {
 	KavenegarOTPTemplate string
 	OTPCodeTTL           time.Duration
 	OTPResendCooldown    time.Duration
+
+	// Cafe Bazaar developer API (purchase verification). Payments are off
+	// until all three credentials are set. Create the API client at
+	// pishkhan.cafebazaar.ir/settings/api and run the one-time OAuth consent
+	// to get the refresh token.
+	BazaarPackageName  string
+	BazaarClientID     string
+	BazaarClientSecret string
+	BazaarRefreshToken string
 }
 
 // Load reads all values from environment variables, falling back to safe defaults.
@@ -54,6 +63,11 @@ func Load() *Config {
 		KavenegarOTPTemplate: getEnv("KAVENEGAR_OTP_TEMPLATE", "wordchain-otp"),
 		OTPCodeTTL:           parseDuration("OTP_CODE_TTL", 2*time.Minute),
 		OTPResendCooldown:    parseDuration("OTP_RESEND_COOLDOWN", 120*time.Second),
+
+		BazaarPackageName:  getEnv("BAZAAR_PACKAGE_NAME", "com.ataei.zanjir"),
+		BazaarClientID:     getEnv("BAZAAR_CLIENT_ID", ""),
+		BazaarClientSecret: getEnv("BAZAAR_CLIENT_SECRET", ""),
+		BazaarRefreshToken: getEnv("BAZAAR_REFRESH_TOKEN", ""),
 	}
 }
 
@@ -276,3 +290,32 @@ func LevelFromXP(xp int64) int {
 	}
 	return level
 }
+
+// StoreProductKind says what a store product delivers.
+type StoreProductKind string
+
+const (
+	StoreProductCoins   StoreProductKind = "coins"
+	StoreProductPremium StoreProductKind = "premium"
+)
+
+// StoreProduct is one SKU created in the Bazaar panel. The ids here must match
+// the panel and the client (`GameConstants`/profile sheet). Prices live in the
+// store, not here. «Remove ads» is deliberately absent: the app has no
+// ad-free state yet, so it must not be sold.
+type StoreProduct struct {
+	ID    string
+	Kind  StoreProductKind
+	Coins int // StoreProductCoins only
+}
+
+// StoreProducts is the sellable catalogue.
+var StoreProducts = map[string]StoreProduct{
+	"coins_100":       {ID: "coins_100", Kind: StoreProductCoins, Coins: 100},
+	"coins_350":       {ID: "coins_350", Kind: StoreProductCoins, Coins: 350},
+	"coins_1500":      {ID: "coins_1500", Kind: StoreProductCoins, Coins: 1500},
+	"premium_monthly": {ID: "premium_monthly", Kind: StoreProductPremium},
+}
+
+// StoreBazaar is the `store_purchases.store` value for Cafe Bazaar.
+const StoreBazaar = "bazaar"

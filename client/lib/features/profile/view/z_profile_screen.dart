@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/services/legal_links.dart';
-import 'package:wordchain/core/services/monetization_service.dart';
+import 'package:wordchain/core/services/store_purchase_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
@@ -182,18 +184,22 @@ class _LoadedView extends StatelessWidget {
 
   void _purchase(BuildContext context, String productId) async {
     trackEvent(AnalyticsEvent.purchaseTap, {'product': productId});
-    final result = await getIt<MonetizationService>().purchase(productId);
+    final profile = context.read<ProfileCubit>();
+    if (getIt<AuthCubit>().isGuest) {
+      context.push('/login?return=/profile');
+      return;
+    }
+    final result = await getIt<StorePurchaseService>().buy(productId);
+    if (result.status == StorePurchaseStatus.success) {
+      // Premium state (and the balance) come from the server.
+      unawaited(profile.load(silent: true));
+    }
     if (!context.mounted) return;
-    final msg = switch (result.status) {
-      PurchaseStatus.success => 'خرید با موفقیت انجام شد!',
-      PurchaseStatus.cancelled => 'خرید لغو شد.',
-      PurchaseStatus.failed => result.error ?? 'خرید ناموفق بود.',
-    };
     ZToast.show(
       context,
-      msg,
+      result.message,
       kind:
-          result.status == PurchaseStatus.success
+          result.status == StorePurchaseStatus.success
               ? ZToastKind.success
               : ZToastKind.error,
     );

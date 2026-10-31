@@ -9,7 +9,9 @@ import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/legal_links.dart';
+import 'package:wordchain/core/services/billing_gateway.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
+import 'package:wordchain/core/services/store_purchase_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/services/sync_service.dart';
 import 'package:wordchain/core/services/websocket_service.dart';
@@ -86,6 +88,17 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   getIt.registerLazySingleton<AdService>(() => AdService());
   getIt.registerLazySingleton<MonetizationService>(
     () => MockMonetizationService(initialCoins: 100),
+  );
+  getIt.registerLazySingleton<StorePurchaseService>(
+    () => StorePurchaseService(
+      gateway: PoolakeyGateway(),
+      dio: getIt<DioClient>().dio,
+      userId: () {
+        final s = getIt<AuthCubit>().state;
+        return s is AuthAuthenticated ? s.userId : null;
+      },
+      onCoins: (coins) => getIt<AuthCubit>().setCoins(coins),
+    ),
   );
   getIt.registerLazySingleton<SyncService>(
     () => SyncService(

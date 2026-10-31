@@ -2,6 +2,8 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Poolakey (Cafe Bazaar billing SDK) is published on JitPack.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

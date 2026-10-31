@@ -89,6 +89,7 @@ func main() {
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc, repository.NewDailyRepository(db))
 	powerupSvc := service.NewPowerupService(powerupRepo, userRepo)
 	monetizationSvc := service.NewMonetizationService(userRepo)
+	purchaseSvc := service.NewPurchaseService(repository.NewPurchaseRepository(db), service.NewBazaarClient(cfg))
 	catalogSvc := service.NewCatalogService(repository.NewCatalogRepository(db))
 	perksSvc := service.NewPerksService(userRepo, catalogSvc)
 
@@ -129,6 +130,7 @@ func main() {
 	gameHandler := handler.NewGameHandler(gameSvc)
 	powerupHandler := handler.NewPowerupHandler(powerupSvc)
 	monetizationHandler := handler.NewMonetizationHandler(monetizationSvc)
+	purchaseHandler := handler.NewPurchaseHandler(purchaseSvc)
 	perksHandler := handler.NewPerksHandler(perksSvc)
 	adminRepo := repository.NewAdminRepository(db)
 	adminAuthSvc := service.NewAdminAuthService(adminRepo, rdb, cfg)
@@ -292,6 +294,7 @@ func main() {
 	protected.GET("/powerup/inventory", powerupHandler.GetInventory)
 	protected.POST("/powerup/use", powerupHandler.Use)
 	protected.POST("/rewarded-ad/claim", monetizationHandler.RewardedAd)
+	protected.POST("/payments/bazaar/verify", purchaseHandler.VerifyBazaar)
 	protected.POST("/match/queue", matchHandler.JoinQueue)
 	protected.DELETE("/match/queue", matchHandler.CancelQueue)
 	protected.GET("/leaderboard", leaderboardHandler.Get)

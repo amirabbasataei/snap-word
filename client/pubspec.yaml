@@ -1,7 +1,7 @@
 name: wordchain
 description: "WordChain — a Shiritori-style word chain mobile game."
 publish_to: 'none'
-version: 0.1.3+4
+version: 1.0.0+5
 
 environment:
   sdk: ^3.7.0
@@ -45,6 +45,10 @@ dependencies:
   tapsell_mediation: ^1.4.0-alpha03
   tapsell_mediation_legacy: ^1.4.0-alpha03
   flutter_svg: ^2.3.0
+
+  # In-app billing (Cafe Bazaar). Android only; needs the Bazaar app installed.
+  flutter_poolakey:
+    path: third_party/flutter_poolakey
 
   package_info_plus: ^9.0.1
 

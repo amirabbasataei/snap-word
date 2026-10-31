@@ -15,6 +15,7 @@ import 'package:wordchain/core/services/challenge_watcher.dart';
 import 'package:wordchain/core/services/dictionary_delta_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
+import 'package:wordchain/core/services/store_purchase_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
 import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
@@ -49,6 +50,17 @@ Future<void> main() async {
   final analytics = getIt<AnalyticsService>();
   RouterScreenTracker(getIt<GoRouter>(), analytics);
   unawaited(analytics.start());
+
+  // Finishes Bazaar purchases that were paid but not delivered/consumed.
+  final auth = getIt<AuthCubit>();
+  getIt<StorePurchaseService>().start(
+    Stream.multi((c) {
+      String? id(AuthState s) => s is AuthAuthenticated ? s.userId : null;
+      c.add(id(auth.state));
+      final sub = auth.stream.map(id).distinct().listen(c.add);
+      c.onCancel = sub.cancel;
+    }),
+  );
 
   ChallengeWatcher(
     repository: getIt<FriendsRepository>(),

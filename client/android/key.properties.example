@@ -1,0 +1,6 @@
+# Copy to key.properties (gitignored). Back up the keystore: losing it means
+# the app can never be updated on Cafe Bazaar.
+storePassword=
+keyPassword=
+keyAlias=zanjir
+storeFile=/absolute/path/to/zanjir-release.jks

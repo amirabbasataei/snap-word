@@ -53,6 +53,18 @@ const _faByCode = <String, String>{
   'invalid_powerup_type': 'آیتم نامعتبر است',
   'reward_not_found': 'این جایزه پیدا نشد یا قبلاً دریافت شده',
 
+  // Store purchases (Cafe Bazaar).
+  'login_required': 'برای خرید باید وارد حسابت شوی',
+  'store_missing': 'برای خرید، برنامهٔ کافه‌بازار باید روی گوشی نصب باشد',
+  'purchase_failed': 'خرید انجام نشد؛ دوباره تلاش کن',
+  'purchase_invalid': 'این خرید معتبر نبود',
+  'purchase_already_claimed': 'این خرید قبلاً برای حساب دیگری ثبت شده است',
+  'unknown_product': 'این بسته در دسترس نیست',
+  'payments_unavailable': 'خرید فعلاً در دسترس نیست؛ بعداً امتحان کن',
+  'store_unavailable': 'بررسی خرید ناموفق بود؛ کمی بعد دوباره تلاش کن',
+  'purchase_not_delivered':
+      'پرداخت انجام شد ولی هنوز ثبت نشده؛ با اینترنت وصل برنامه را دوباره باز کن تا ثبت شود',
+
   // Match / lobby.
   'no_match': 'حریفی پیدا نشد. دوباره تلاش کن.',
   'invalid_mode': 'نوع بازی نامعتبر است',
@@ -150,6 +162,9 @@ String friendInviteSentMessage(String username) =>
     'دعوت‌نامه برای \u2068$username\u2069 ارسال شد';
 
 const usernameChangedMessage = 'نام کاربری تغییر کرد';
+
+const purchaseCancelledMessage = 'خرید لغو شد.';
+const premiumActivatedMessage = 'اشتراک ویژه فعال شد!';
 
 String coinsAwardedMessage(int coins) =>
     '${toPersianDigits(coins)} سکه به حسابت اضافه شد!';
