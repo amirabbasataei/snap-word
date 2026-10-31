@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/services/share_service.dart';
@@ -97,7 +98,10 @@ class FakeShare extends Fake implements ShareService {
   final shared = <DailyChallengeResult>[];
 
   @override
-  Future<void> shareDaily(DailyChallengeResult result) async =>
+  Future<void> shareDaily(
+    BuildContext context,
+    DailyChallengeResult result,
+  ) async =>
       shared.add(result);
 }
 

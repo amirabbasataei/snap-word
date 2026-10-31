@@ -124,9 +124,12 @@ class _FakeShare extends Fake implements ShareService {
   final shared = <(int, int)>[];
 
   @override
-  Future<void> shareMatch({
+  Future<void> shareMatch(
+    BuildContext context, {
     required int score,
     required int chainLength,
+    List<String> words = const [],
+    bool? won,
   }) async => shared.add((score, chainLength));
 }
 

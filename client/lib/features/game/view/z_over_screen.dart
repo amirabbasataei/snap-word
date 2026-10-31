@@ -70,10 +70,14 @@ class _ZOverScreenState extends State<ZOverScreen> {
 
   void _home(BuildContext context) => context.go('/home');
 
-  void _share(GameOver s) => getIt<ShareService>().shareMatch(
-    score: s.score,
-    chainLength: s.chainLength,
-  );
+  void _share(BuildContext context, GameOver s) =>
+      getIt<ShareService>().shareMatch(
+        context,
+        score: s.score,
+        chainLength: s.chainLength,
+        words: s.wordChain,
+        won: s.iWon,
+      );
 
   /// Same opponent again for solo / vs-AI; multiplayer has no rematch, so it
   /// goes back to the lobby for a new one.
@@ -196,7 +200,7 @@ class _ZOverScreenState extends State<ZOverScreen> {
                     secondsLeft: state.continueTimeRemaining,
                     onVideo: () => _handleContinue(context, 'ad'),
                     onCoins: () => _handleContinue(context, 'coins'),
-                    onShare: () => _share(state),
+                    onShare: () => _share(context, state),
                     onDecline:
                         () =>
                             context.read<GameBloc>().add(const AcceptDefeat()),
@@ -206,7 +210,7 @@ class _ZOverScreenState extends State<ZOverScreen> {
                     onPlay:
                         state.isSaved ? () => _playAgain(context, state) : null,
                     onHome: () => _home(context),
-                    onShare: () => _share(state),
+                    onShare: () => _share(context, state),
                     big: won,
                   ),
         ),

@@ -396,6 +396,7 @@ class _DailyAfter extends StatelessWidget {
                   retrying: retrying,
                   onShare:
                       () => getIt<ShareService>().shareDaily(
+                        context,
                         DailyChallengeResult(
                           dayNumber: challenge.dayNumber,
                           score: attempt.score,

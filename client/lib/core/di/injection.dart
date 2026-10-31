@@ -73,7 +73,14 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
   getIt.registerLazySingleton<NotificationService>(
     () => NotificationService(getIt<DioClient>().dio),
   );
-  getIt.registerLazySingleton<ShareService>(() => ShareService());
+  getIt.registerLazySingleton<ShareService>(
+    () => ShareService(
+      inviteCode: () async {
+        final auth = getIt<AuthCubit>();
+        return auth.isGuest ? null : await auth.fetchMyReferralCode();
+      },
+    ),
+  );
   getIt.registerLazySingleton<LegalLinks>(() => LegalLinks());
   getIt.registerLazySingleton<AdService>(() => AdService());
   getIt.registerLazySingleton<MonetizationService>(
