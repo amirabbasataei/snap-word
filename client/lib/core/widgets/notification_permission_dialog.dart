@@ -12,11 +12,13 @@ const _askedKey = 'notification_permission_asked';
 
 /// Explains why notifications matter and, only if the player agrees, triggers
 /// the OS permission prompt. Shown at most once (when the Friends tab is first
-/// opened) and never when the permission is already granted.
+/// opened), never when the permission is already granted and never after the
+/// player switched notifications off in the profile.
 Future<void> maybeAskNotificationPermission(BuildContext context) async {
   if (_asking) return;
   final prefs = getIt<SharedPreferences>();
   if (prefs.getBool(_askedKey) ?? false) return;
+  if (!(prefs.getBool(notificationsEnabledPrefKey) ?? true)) return;
   _asking = true;
   try {
     await _ask(context, prefs);
@@ -34,17 +36,30 @@ Future<void> _ask(BuildContext context, SharedPreferences prefs) async {
   if (await notifications.isAuthorized()) return;
   await prefs.setBool(_askedKey, true);
   if (!context.mounted) return;
+  await askNotificationPermissionWithExplainer(context);
+}
+
+/// The explainer dialog, then — only if the player agrees — the OS prompt and
+/// token registration. The one path to the permission prompt, shared by the
+/// Friends tab and ZProfile's «اعلان‌ها» switch. Returns whether notifications
+/// ended up allowed; `false` for «بعداً» or an OS refusal (the OS shows its
+/// prompt only once or twice, after which the system settings are the only way).
+Future<bool> askNotificationPermissionWithExplainer(
+  BuildContext context,
+) async {
+  final notifications = getIt<NotificationService>();
   final agreed = await showZDialog<bool>(
     context,
-    builder: (dialogContext) => _NotificationPermissionDialog(
-      onAgree: () => Navigator.of(dialogContext).pop(true),
-      onLater: () => Navigator.of(dialogContext).pop(false),
-    ),
+    builder:
+        (dialogContext) => _NotificationPermissionDialog(
+          onAgree: () => Navigator.of(dialogContext).pop(true),
+          onLater: () => Navigator.of(dialogContext).pop(false),
+        ),
   );
-  if (agreed == true) {
-    await notifications.requestPermission();
-    await notifications.registerToken();
-  }
+  if (agreed != true) return false;
+  await notifications.requestPermission();
+  await notifications.registerToken();
+  return notifications.isAuthorized();
 }
 
 class _NotificationPermissionDialog extends StatelessWidget {

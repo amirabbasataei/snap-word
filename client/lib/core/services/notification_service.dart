@@ -13,6 +13,11 @@ import 'package:wordchain/core/network/api_endpoints.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
+/// `shared_preferences` key of the player's own on/off choice (ZProfile's
+/// «اعلان‌ها» switch). Absent = on. Separate from the OS permission, which an
+/// app can only ask for, never revoke.
+const notificationsEnabledPrefKey = 'notifications_enabled';
+
 class NotificationService with WidgetsBindingObserver {
   final Dio _dio;
   final Logger _log = Logger();
@@ -50,6 +55,41 @@ class NotificationService with WidgetsBindingObserver {
       if (initial != null) _routeFromMessage(initial);
     } catch (e) {
       _log.w('NotificationService init skipped (Firebase not configured): $e');
+    }
+  }
+
+  /// The player's in-app choice (default on). When off, this device is not
+  /// registered with the server, FCM's token is deleted and foreground pushes
+  /// are dropped; in-app messages are unaffected.
+  Future<bool> isEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(notificationsEnabledPrefKey) ?? true;
+    } catch (e) {
+      _log.w('notification preference unreadable: $e');
+      return true;
+    }
+  }
+
+  /// Stores the choice and returns at once. Turning off then unregisters the
+  /// device on the server and deletes the FCM token **in the background** (FCM
+  /// can be unreachable for seconds; the stored flag already stops every push
+  /// path, so nothing waits for it). Turning on only stores the choice — the
+  /// caller registers the token once the OS permission is granted.
+  Future<void> setEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(notificationsEnabledPrefKey, enabled);
+    if (!enabled) unawaited(_stopPush());
+  }
+
+  Future<void> _stopPush() async {
+    await deregisterToken();
+    try {
+      await FirebaseMessaging.instance.deleteToken().timeout(
+        const Duration(seconds: 5),
+      );
+    } catch (e) {
+      _log.w('FCM deleteToken failed: $e');
     }
   }
 
@@ -109,6 +149,7 @@ class NotificationService with WidgetsBindingObserver {
   /// Registers this device's token with the backend. Call only while signed
   /// in; also re-registers automatically when FCM rotates the token.
   Future<void> registerToken() async {
+    if (!await isEnabled()) return;
     final token = await getToken();
     if (token == null) return;
     if (!_registered) {
@@ -126,6 +167,9 @@ class NotificationService with WidgetsBindingObserver {
   }
 
   Future<void> _postToken(String token) async {
+    // FCM can mint a fresh token right after `deleteToken`; it must not
+    // re-register a device the player switched off.
+    if (!await isEnabled()) return;
     try {
       await _dio.post(
         ApiEndpoints.notificationToken,
@@ -163,6 +207,7 @@ class NotificationService with WidgetsBindingObserver {
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     _log.d('FCM foreground: ${message.notification?.title}');
+    if (!await isEnabled()) return;
     // FCM can hand the same (or a long-queued) push to the app again on a later
     // launch; showing it as a toast each time looks like a repeating bug.
     final sent = message.sentTime;

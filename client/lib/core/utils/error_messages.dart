@@ -133,6 +133,15 @@ const challengeSentMessage = 'چالش ارسال شد';
 /// Toast when the rewarded-ad SDK has nothing to show right now.
 const legalPageOpenFailedMessage = 'باز کردن صفحه ناموفق بود؛ دوباره تلاش کن';
 
+/// Profile → «اعلان‌ها» switch.
+const notificationsEnabledTitle = 'اعلان‌ها فعال شد';
+const notificationsEnabledMessage =
+    'از این به بعد درخواست دوستی، چالش و جایزه‌هایت را فوری می‌فهمی.';
+const notificationsOffTitle = 'اعلان‌ها خاموش شد';
+const notificationsBlockedTitle = 'اعلان‌ها هنوز خاموش است';
+const notificationsBlockedMessage =
+    'از تنظیمات گوشی، اعلان‌های زنجیر را روشن کن و دوباره برگرد.';
+
 const adUnavailableMessage = 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن';
 
 /// Lobby invite toast. The name sits in a bidi isolate so a Latin username

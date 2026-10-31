@@ -35,13 +35,15 @@ class ProfileCard extends StatelessWidget {
   }
 }
 
-/// A 44dp chunky button of the profile: [primary] is the amber action, the
-/// default the neutral surface button. The label ignores text scale above 1.3×
+/// A 44dp chunky button of the profile: [primary] is the amber action,
+/// [destructive] the solid coral one (log out), the default the neutral surface
+/// button. The label ignores text scale above 1.3×
 /// (fixed height) and shrinks rather than wraps.
 class ProfileChunkButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool primary;
+  final bool destructive;
   final Color? labelColor;
   final String? semanticLabel;
 
@@ -50,6 +52,7 @@ class ProfileChunkButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.primary = false,
+    this.destructive = false,
     this.labelColor,
     this.semanticLabel,
   });
@@ -67,11 +70,11 @@ class ProfileChunkButton extends StatelessWidget {
         semanticLabel: semanticLabel ?? label,
         builder:
             (context, depth, _) => ChunkyBox(
-              fill: primary ? z.amber : z.surface,
-              deep: primary ? z.amberDeep : null,
+              fill: destructive ? z.coral : (primary ? z.amber : z.surface),
+              deep: destructive ? z.coralDeep : (primary ? z.amberDeep : null),
               depth: depth,
               radius: 14,
-              highlight: primary,
+              highlight: primary || destructive,
               height: height,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               alignment: Alignment.center,
@@ -83,7 +86,11 @@ class ProfileChunkButton extends StatelessWidget {
                     maxLines: 1,
                     style: ZTypography.button.copyWith(
                       fontSize: 12.5,
-                      color: labelColor ?? (primary ? z.onAmber : z.ink),
+                      color:
+                          labelColor ??
+                          (destructive
+                              ? z.onCoral
+                              : (primary ? z.onAmber : z.ink)),
                     ),
                   ),
                 ),

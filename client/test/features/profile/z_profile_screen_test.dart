@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/services/legal_links.dart';
 import 'package:wordchain/core/services/monetization_service.dart';
+import 'package:wordchain/core/services/notification_service.dart';
 import 'package:wordchain/core/services/perks_catalog_service.dart';
 import 'package:wordchain/core/services/share_service.dart';
 import 'package:wordchain/core/theme/app_theme.dart';
@@ -30,6 +31,7 @@ import 'package:wordchain/features/auth/data/auth_repository.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_header.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_parts.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_settings.dart';
 import 'package:wordchain/features/profile/view/z_profile_screen.dart';
 
 import '../../helpers/contrast.dart';
@@ -204,7 +206,45 @@ class _FakeCatalog extends Fake implements PerksCatalogService {
   Future<PerksCatalog> refresh() async => cached;
 }
 
+/// Allowed and granted by default, so the «اعلان‌ها» switch starts on.
+/// [grantsOnRequest] decides what the OS prompt answers.
+class _FakeNotifications extends Fake implements NotificationService {
+  bool enabled = true;
+  String state = 'granted';
+  bool grantsOnRequest = true;
+  int requests = 0;
+  int registrations = 0;
+
+  /// When set, `registerToken` waits for it — a slow network.
+  Completer<void>? registerGate;
+
+  @override
+  Future<bool> isEnabled() async => enabled;
+
+  @override
+  Future<void> setEnabled(bool value) async => enabled = value;
+
+  @override
+  Future<bool> isAuthorized() async => state == 'granted';
+
+  @override
+  Future<String> permissionState() async => state;
+
+  @override
+  Future<void> requestPermission() async {
+    requests++;
+    if (grantsOnRequest) state = 'granted';
+  }
+
+  @override
+  Future<void> registerToken() async {
+    registrations++;
+    await registerGate?.future;
+  }
+}
+
 class _Harness {
+  final notifications = _FakeNotifications();
   final repo = _FakeRepo();
   final dao = _FakeStatsDao();
   final share = _FakeShare();
@@ -241,6 +281,7 @@ class _Harness {
       ..registerSingleton<PerksCatalogService>(_FakeCatalog())
       ..registerSingleton<ThemeCubit>(theme)
       ..registerSingleton<TabRefreshBus>(bus)
+      ..registerSingleton<NotificationService>(notifications)
       ..registerSingleton<LegalLinks>(
         LegalLinks(
           baseUrl: 'https://zanjir.test',
@@ -1238,7 +1279,8 @@ void main() {
           contrastRatio(z.onInkSurface, z.inkSurface),
           greaterThanOrEqualTo(4.5),
         );
-        expect(contrastRatio(z.coral, z.surface), greaterThanOrEqualTo(3));
+        // «خروج از حساب» is solid coral with the theme's onCoral label.
+        expect(contrastRatio(z.onCoral, z.coral), greaterThanOrEqualTo(3));
         // The bar label is drawn in onAmber over the fill, ink over the track.
         expect(contrastRatio(z.ink, z.wash), greaterThanOrEqualTo(4.5));
       });
@@ -1289,6 +1331,150 @@ void main() {
       h.repo.statsGate = Completer<ProfileStats>();
       await open(tester);
       await shot(tester, 'z_profile_loading_light');
+    });
+  });
+
+  group('notifications switch', () {
+    const label = 'اعلان‌ها';
+    const explainer = 'از دوستانت جا نمون!';
+
+    bool isOn(WidgetTester tester) => tester
+        .getSemantics(find.bySemanticsLabel(label))
+        // ignore: deprecated_member_use
+        .hasFlag(SemanticsFlag.isToggled);
+
+    testWidgets('on when allowed and the OS permission is granted', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await open(tester);
+      await scrollTo(tester, find.text(label));
+      expect(isOn(tester), isTrue);
+      handle.dispose();
+    });
+
+    testWidgets('a guest has no switch', (tester) async {
+      await open(tester, auth: const AuthGuest());
+      expect(find.text(label), findsNothing);
+    });
+
+    testWidgets('switching off opts out and unregisters', (tester) async {
+      final handle = tester.ensureSemantics();
+      await open(tester);
+      await scrollTo(tester, find.text(label));
+      await tester.tap(find.text(label));
+      await _settle(tester);
+      expect(h.notifications.enabled, isFalse);
+      expect(find.text(notificationsOffTitle), findsOneWidget);
+      expect(isOn(tester), isFalse);
+      expect(h.notifications.requests, 0);
+      handle.dispose();
+    });
+
+    testWidgets(
+      'a slow change shows a spinner in the switch and ignores taps',
+      (tester) async {
+        h.notifications.enabled = false;
+        h.notifications.registerGate = Completer<void>();
+        await open(tester);
+        await scrollTo(tester, find.text(label));
+        final spinner = find.descendant(
+          of: find.ancestor(
+            of: find.text(label),
+            matching: find.byType(ProfileSwitchButton),
+          ),
+          matching: find.byType(CircularProgressIndicator),
+        );
+        expect(spinner, findsNothing);
+
+        await tester.tap(find.text(label));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(spinner, findsOneWidget);
+
+        await tester.tap(find.text(label));
+        await tester.pump();
+        expect(h.notifications.registrations, 1, reason: 'second tap ignored');
+
+        h.notifications.registerGate!.complete();
+        await _settle(tester);
+        expect(spinner, findsNothing);
+        expect(find.text(notificationsEnabledTitle), findsOneWidget);
+      },
+    );
+
+    testWidgets('switching back on when the OS already allows it just '
+        'registers, with no explainer', (tester) async {
+      h.notifications.enabled = false;
+      await open(tester);
+      await scrollTo(tester, find.text(label));
+      await tester.tap(find.text(label));
+      await _settle(tester);
+      expect(h.notifications.enabled, isTrue);
+      expect(h.notifications.registrations, 1);
+      expect(find.text(explainer), findsNothing);
+      expect(find.text(notificationsEnabledTitle), findsOneWidget);
+    });
+
+    for (final state in ['not_determined', 'denied']) {
+      testWidgets('$state: the explainer comes before the OS prompt', (
+        tester,
+      ) async {
+        h.notifications.state = state;
+        await open(tester);
+        await scrollTo(tester, find.text(label));
+        await tester.tap(find.text(label));
+        await _settle(tester);
+        expect(find.text(explainer), findsOneWidget);
+        expect(h.notifications.requests, 0, reason: 'not asked yet');
+
+        await tester.tap(find.text('فعال‌سازی اعلان‌ها'));
+        await _settle(tester);
+        expect(h.notifications.requests, 1);
+        expect(h.notifications.registrations, 1);
+        expect(find.text(notificationsEnabledTitle), findsOneWidget);
+      });
+    }
+
+    testWidgets('«بعداً» on the explainer asks nothing and stays off', (
+      tester,
+    ) async {
+      h.notifications.state = 'not_determined';
+      await open(tester);
+      await scrollTo(tester, find.text(label));
+      await tester.tap(find.text(label));
+      await _settle(tester);
+      await tester.tap(find.text('بعداً'));
+      await _settle(tester);
+      expect(h.notifications.requests, 0);
+      expect(find.text(notificationsEnabledTitle), findsNothing);
+      expect(find.text(notificationsBlockedTitle), findsNothing);
+    });
+
+    testWidgets('OS still refuses: points to system settings', (tester) async {
+      h.notifications.state = 'denied';
+      h.notifications.grantsOnRequest = false;
+      await open(tester);
+      await scrollTo(tester, find.text(label));
+      await tester.tap(find.text(label));
+      await _settle(tester);
+      await tester.tap(find.text('فعال‌سازی اعلان‌ها'));
+      await _settle(tester);
+      expect(find.text(notificationsBlockedTitle), findsOneWidget);
+      expect(find.text(notificationsEnabledTitle), findsNothing);
+    });
+
+    testWidgets('permission switched off in system settings turns it off on '
+        'the next profile-tab tap', (tester) async {
+      final handle = tester.ensureSemantics();
+      await open(tester);
+      await scrollTo(tester, find.text(label));
+      expect(isOn(tester), isTrue);
+      h.notifications.state = 'denied';
+      h.bus.notify(MainTab.profile);
+      await _settle(tester);
+      expect(isOn(tester), isFalse);
+      handle.dispose();
     });
   });
 
