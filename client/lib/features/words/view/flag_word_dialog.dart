@@ -104,23 +104,28 @@ class _FlagWordDialogState extends State<FlagWordDialog> {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              Divider(height: 1, thickness: 2, color: context.zs.outline),
               const SizedBox(height: 10),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final r in WordFlagReason.values)
-                    _Choice(
-                      label: r.label,
-                      selected: r == _reason,
-                      onTap:
-                          state.sending
-                              ? null
-                              : () => setState(() => _reason = r),
-                    ),
-                ],
+              Text(
+                'مشکل کلمه چیست؟',
+                textAlign: TextAlign.center,
+                style: ZTypography.metaLabel.copyWith(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: context.z.ink60,
+                ),
               ),
+              const SizedBox(height: 8),
+              for (final r in WordFlagReason.values) ...[
+                _ReasonOption(
+                  label: r.label,
+                  selected: r == _reason,
+                  onTap:
+                      state.sending ? null : () => setState(() => _reason = r),
+                ),
+                if (r != WordFlagReason.values.last) const SizedBox(height: 6),
+              ],
               if (state.message != null) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -145,6 +150,85 @@ class _FlagWordDialogState extends State<FlagWordDialog> {
           onSecondary: () => Navigator.of(context).pop(),
         );
       },
+    );
+  }
+}
+
+/// A reason row: a radio mark + label in a rounded rectangle, deliberately
+/// unlike the pill [_Choice] used for the words above it.
+class _ReasonOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _ReasonOption({
+    required this.label,
+    required this.selected,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    final fg = selected ? z.onIndigo : z.ink;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: selected ? z.indigo : z.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.zs.outline, width: 2),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? z.onIndigo : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? z.onIndigo : context.zs.outline,
+                    width: 2,
+                  ),
+                ),
+                child:
+                    selected
+                        ? Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: z.indigo,
+                          ),
+                        )
+                        : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: ZTypography.metaLabel.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    color: fg,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

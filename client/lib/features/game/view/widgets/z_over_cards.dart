@@ -442,6 +442,9 @@ class ZOverChip extends StatelessWidget {
         radius: 18,
         highlight: kind != ZOverChipKind.surface,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        // The row stretches every chip to the tallest one; centre the text
+        // so a short chip doesn't leave an empty band underneath.
+        alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
