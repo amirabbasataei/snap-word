@@ -39,6 +39,9 @@ class ZStrokedText extends StatelessWidget {
     Widget layer(TextStyle style) => RichText(
       textAlign: TextAlign.center,
       textDirection: Directionality.of(context),
+      // RichText defaults to no scaling while `Text` follows the OS font
+      // size; without this the outline and the fill differ in size.
+      textScaler: MediaQuery.textScalerOf(context),
       text: TextSpan(text: text, style: style),
     );
 
