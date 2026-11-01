@@ -78,6 +78,9 @@ abstract final class ZToast {
     overlay.insert(entry);
   }
 
+  /// Removes the toast on screen, if any.
+  static void dismiss() => _dismiss();
+
   static void _dismiss() {
     final e = _entry;
     _entry = null;

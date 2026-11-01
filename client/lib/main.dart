@@ -9,6 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/firebase_options.dart';
 import 'package:wordchain/core/router/app_router.dart';
+import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/analytics_service.dart';
 import 'package:wordchain/core/services/challenge_watcher.dart';
@@ -128,18 +129,20 @@ class _WordChainAppState extends State<WordChainApp> {
         GetIt.instance<MessagesCubit>().addMissed(n.title ?? '', n.body ?? '');
         return;
       }
-      _messengerKey.currentState
-        ?..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              [
-                if (n.title != null) n.title!,
-                if (n.body != null) n.body!,
-              ].join('\n'),
-            ),
-          ),
-        );
+      // The push may be an invitation: reload so the bell and the Friends
+      // badge count it now rather than at the next tab tap.
+      unawaited(GetIt.instance<MessagesCubit>().refresh());
+      // Same chunky toast as every in-app notice, not a Material SnackBar.
+      final overlay = rootNavigatorKey.currentState?.overlay;
+      if (overlay == null) return;
+      final title = (n.title ?? '').trim();
+      final body = (n.body ?? '').trim();
+      ZToast.showOn(
+        overlay,
+        title.isNotEmpty ? title : body,
+        message: title.isNotEmpty && body.isNotEmpty ? body : null,
+        duration: const Duration(seconds: 6),
+      );
     });
     GetIt.instance<NotificationService>().payloadStream.listen((route) {
       if (route != null && route.isNotEmpty) {
@@ -163,7 +166,10 @@ class _WordChainAppState extends State<WordChainApp> {
   void _dismissToastInGame() {
     final path =
         GetIt.instance<GoRouter>().routerDelegate.currentConfiguration.uri.path;
-    if (path == '/game') _messengerKey.currentState?.clearSnackBars();
+    if (path == '/game') {
+      _messengerKey.currentState?.clearSnackBars();
+      ZToast.dismiss();
+    }
   }
 
   @override

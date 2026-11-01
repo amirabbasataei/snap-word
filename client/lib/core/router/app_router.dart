@@ -87,9 +87,14 @@ String? authRedirect({
   return null;
 }
 
+/// The root navigator's key — lets code above the router (e.g. foreground
+/// push handling in `main.dart`) reach the root overlay for a `ZToast`.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// Called from main() after DI + AuthCubit.init() are complete.
 GoRouter buildAppRouter() {
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: _AuthStateNotifier(getIt<AuthCubit>()),
     redirect:
