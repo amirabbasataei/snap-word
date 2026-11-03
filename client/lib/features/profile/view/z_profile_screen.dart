@@ -31,6 +31,7 @@ import 'package:wordchain/features/profile/data/profile_repository.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_header.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_invite_card.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_premium_card.dart';
+import 'package:wordchain/features/profile/view/widgets/purchase_progress_dialog.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_settings.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_sheets.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_stats_grid.dart';
@@ -182,6 +183,9 @@ class _LoadedView extends StatelessWidget {
 
   const _LoadedView({required this.state});
 
+  /// One purchase at a time, even across rebuilds of this screen.
+  static bool _purchasing = false;
+
   void _purchase(BuildContext context, String productId) async {
     trackEvent(AnalyticsEvent.purchaseTap, {'product': productId});
     final profile = context.read<ProfileCubit>();
@@ -189,7 +193,16 @@ class _LoadedView extends StatelessWidget {
       context.push('/login?return=/profile');
       return;
     }
-    final result = await getIt<StorePurchaseService>().buy(productId);
+    if (_purchasing) return;
+    _purchasing = true;
+    final closeProgress = showPurchaseProgress(context);
+    final StorePurchaseResult result;
+    try {
+      result = await getIt<StorePurchaseService>().buy(productId);
+    } finally {
+      closeProgress();
+      _purchasing = false;
+    }
     if (result.status == StorePurchaseStatus.success) {
       // Premium state (and the balance) come from the server.
       unawaited(profile.load(silent: true));

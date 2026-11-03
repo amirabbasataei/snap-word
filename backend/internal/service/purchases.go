@@ -85,10 +85,20 @@ func (s *PurchaseService) VerifyBazaar(ctx context.Context, userID, productID, s
 		return res, nil
 
 	case config.StoreProductPremium:
-		// The receipt has no expiry. The app only reports subscriptions Bazaar
-		// still lists as active, so premium runs a short window past each
-		// report (see config.PremiumReverifyWindow).
-		until, err := s.repo.ApplyPremium(ctx, config.StoreBazaar, token, userID, productID, s.now().Add(config.PremiumReverifyWindow))
+		// The receipt has no expiry: one purchase is worth PremiumPeriod from
+		// its (signed) purchase time. The app also re-reports subscriptions
+		// Bazaar still lists as active, and each report keeps premium at least
+		// PremiumReverifyWindow ahead, which carries renewals.
+		now := s.now()
+		start := rc.PurchaseTime
+		if start.After(now) {
+			start = now
+		}
+		until := start.Add(config.PremiumPeriod)
+		if floor := now.Add(config.PremiumReverifyWindow); until.Before(floor) {
+			until = floor
+		}
+		until, err = s.repo.ApplyPremium(ctx, config.StoreBazaar, token, userID, productID, until)
 		if errors.Is(err, repository.ErrPurchaseOwnedByOther) {
 			return nil, ErrPurchaseOwnedByOther
 		}

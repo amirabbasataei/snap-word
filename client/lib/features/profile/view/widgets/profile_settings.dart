@@ -46,11 +46,19 @@ class ProfileSettings extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: ProfileThemeSwitch(isDark: isDark, onTap: onToggleTheme)),
-            if (signedIn) ...[const SizedBox(width: 8), const Expanded(child: ProfileNotificationsSwitch())],
+            Expanded(
+              child: ProfileThemeSwitch(isDark: isDark, onTap: onToggleTheme),
+            ),
+            if (signedIn) ...[
+              const SizedBox(width: 8),
+              const Expanded(child: ProfileNotificationsSwitch()),
+            ],
           ],
         ),
-        if (signedIn) ...[const SizedBox(height: 4), ProfileChunkButton(label: 'کد دعوت داری؟', onTap: onRedeem)],
+        if (signedIn) ...[
+          const SizedBox(height: 4),
+          ProfileChunkButton(label: 'کد دعوت داری؟', onTap: onRedeem),
+        ],
         const SizedBox(height: 4),
         Row(
           children: [
@@ -73,7 +81,11 @@ class ProfileSettings extends StatelessWidget {
         ),
         if (signedIn) ...[
           const SizedBox(height: 4),
-          ProfileChunkButton(label: 'خروج از حساب', destructive: true, onTap: onLogout),
+          ProfileChunkButton(
+            label: 'خروج از حساب',
+            destructive: true,
+            onTap: onLogout,
+          ),
         ],
         const SizedBox(height: 4),
       ],
@@ -86,10 +98,15 @@ class ProfileThemeSwitch extends StatelessWidget {
   final bool isDark;
   final VoidCallback onTap;
 
-  const ProfileThemeSwitch({super.key, required this.isDark, required this.onTap});
+  const ProfileThemeSwitch({
+    super.key,
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
-  Widget build(BuildContext context) => ProfileSwitchButton(label: 'حالت شب', value: isDark, onTap: onTap);
+  Widget build(BuildContext context) =>
+      ProfileSwitchButton(label: 'حالت شب', value: isDark, onTap: onTap);
 }
 
 /// A chunky button with a label and a mini switch (canvas: 30×18 track, 12
@@ -143,22 +160,34 @@ class ProfileSwitchButton extends StatelessWidget {
                           child: Text(
                             label,
                             maxLines: 1,
-                            style: ZTypography.button.copyWith(fontSize: 12.5, color: z.ink),
+                            style: ZTypography.button.copyWith(
+                              fontSize: 12.5,
+                              color: z.ink,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 6),
                       ExcludeSemantics(
                         child: AnimatedContainer(
-                          duration: reduced ? Duration.zero : const Duration(milliseconds: 160),
+                          duration:
+                              reduced
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 160),
                           width: 30,
                           height: 18,
                           padding: const EdgeInsets.all(1),
-                          alignment: value ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+                          alignment:
+                              value
+                                  ? AlignmentDirectional.centerEnd
+                                  : AlignmentDirectional.centerStart,
                           decoration: BoxDecoration(
                             color: value ? z.teal : z.wash,
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: context.zs.outline, width: 2),
+                            border: Border.all(
+                              color: context.zs.outline,
+                              width: 2,
+                            ),
                           ),
                           child:
                               busy
@@ -175,7 +204,10 @@ class ProfileSwitchButton extends StatelessWidget {
                                   : Container(
                                     width: 12,
                                     height: 12,
-                                    decoration: BoxDecoration(shape: BoxShape.circle, color: value ? z.surface : z.ink),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: value ? z.surface : z.ink,
+                                    ),
                                   ),
                         ),
                       ),

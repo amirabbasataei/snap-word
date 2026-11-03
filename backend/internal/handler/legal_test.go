@@ -44,8 +44,8 @@ func TestLegal_PagesServedPublicly(t *testing.T) {
 		path string
 		want []string
 	}{
-		{"/terms", []string{"قوانین و مقررات استفاده از زنجیر", "سکه اعتبار مجازی", legal.ContactMail}},
-		{"/privacy", []string{"سیاست حریم خصوصی زنجیر", "تپسل", "Kavenegar", "هنوز دکمهٔ «حذف حساب»", legal.ContactMail}},
+		{"/terms", []string{"قوانین و مقررات استفاده از زنجیر", "سکه اعتبار مجازی", "کافه‌بازار", legal.ContactMail}},
+		{"/privacy", []string{"سیاست حریم خصوصی زنجیر", "تپسل", "Kavenegar", "کافه‌بازار", "هنوز دکمهٔ «حذف حساب»", legal.ContactMail}},
 	}
 	for _, tc := range cases {
 		w := legalGet(r, http.MethodGet, tc.path)

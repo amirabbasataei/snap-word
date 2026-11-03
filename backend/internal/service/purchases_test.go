@@ -178,27 +178,42 @@ func TestVerifyBazaar_Unconfigured(t *testing.T) {
 	}
 }
 
-func TestVerifyBazaar_SubscriptionWindowNeverShortens(t *testing.T) {
+func TestVerifyBazaar_SubscriptionPeriod(t *testing.T) {
 	svc, keys, read := newPurchaseSvc(t)
 	ctx := context.Background()
-	data, sig := keys.sign(t, receipt{ProductID: "premium_monthly", PurchaseToken: "sub-1", DeveloperPayload: payA})
+	near := func(got time.Time, want time.Duration) bool {
+		d := time.Until(got) - want
+		return d > -time.Minute && d < time.Minute
+	}
 
-	before := time.Now()
+	// A fresh purchase is worth the full period from its purchase time.
+	data, sig := keys.sign(t, receipt{ProductID: "premium_monthly", PurchaseToken: "sub-1", DeveloperPayload: payA})
 	r, err := svc.VerifyBazaar(ctx, payA, "premium_monthly", data, sig)
-	if err != nil || r.PremiumUntil == nil {
+	if err != nil || r.PremiumUntil == nil || !near(*r.PremiumUntil, config.PremiumPeriod) {
 		t.Fatalf("first = %+v, %v", r, err)
 	}
-	if d := r.PremiumUntil.Sub(before); d < config.PremiumReverifyWindow-time.Minute || d > config.PremiumReverifyWindow+time.Minute {
-		t.Fatalf("premium window = %v, want about %v", d, config.PremiumReverifyWindow)
-	}
-	// Reporting it again (the next resume) slides the window forward, never back.
 	first := *r.PremiumUntil
+	// Re-reporting it (the next resume) never shortens it.
 	time.Sleep(10 * time.Millisecond)
 	if r, err = svc.VerifyBazaar(ctx, payA, "premium_monthly", data, sig); err != nil || r.PremiumUntil.Before(first) {
 		t.Fatalf("repeat = %+v, %v", r, err)
 	}
 	if _, u := read(payA); u == nil || u.Before(first) {
 		t.Fatalf("premium_until = %v", u)
+	}
+
+	// An old receipt of a still-listed subscription (a renewal that kept the
+	// old purchase time) keeps premium only the short re-verify window ahead.
+	old := time.Now().Add(-40 * 24 * time.Hour).UnixMilli()
+	data, sig = keys.sign(t, receipt{ProductID: "premium_monthly", PurchaseToken: "sub-old", DeveloperPayload: payB, PurchaseTime: old})
+	if r, err = svc.VerifyBazaar(ctx, payB, "premium_monthly", data, sig); err != nil || !near(*r.PremiumUntil, config.PremiumReverifyWindow) {
+		t.Fatalf("old receipt = %+v, %v", r, err)
+	}
+	// A purchase time in the future (clock skew) is capped at now.
+	future := time.Now().Add(10 * 24 * time.Hour).UnixMilli()
+	data, sig = keys.sign(t, receipt{ProductID: "premium_monthly", PurchaseToken: "sub-future", DeveloperPayload: payB, PurchaseTime: future})
+	if r, err = svc.VerifyBazaar(ctx, payB, "premium_monthly", data, sig); err != nil || r.PremiumUntil.After(time.Now().Add(config.PremiumPeriod+time.Minute)) {
+		t.Fatalf("future receipt = %+v, %v", r, err)
 	}
 	// Someone else's subscription token.
 	data2, sig2 := keys.sign(t, receipt{ProductID: "premium_monthly", PurchaseToken: "sub-1"})

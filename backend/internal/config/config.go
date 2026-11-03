@@ -313,11 +313,15 @@ var StoreProducts = map[string]StoreProduct{
 	"premium_monthly": {ID: "premium_monthly", Kind: StoreProductPremium},
 }
 
-// PremiumReverifyWindow is how long a verified, still-listed subscription
-// keeps premium_until ahead of now. Bazaar's signed receipt carries no expiry
-// (that needs the developer API), so the app re-reports its active
-// subscriptions at sign-in and on every resume; a lapsed one stops being
-// reported and premium ends within this window.
+// PremiumPeriod is what one `premium_monthly` purchase is worth, counted from
+// the purchase time in Bazaar's signed receipt.
+const PremiumPeriod = 30 * 24 * time.Hour
+
+// PremiumReverifyWindow keeps premium_until at least this far ahead of now each
+// time the app re-reports a still-listed subscription. The signed receipt has
+// no expiry (that needs the developer API), so this carries a renewal whose
+// receipt still shows the old purchase time; a lapsed subscription stops being
+// reported and premium ends once PremiumPeriod has passed.
 const PremiumReverifyWindow = 72 * time.Hour
 
 // StoreBazaar is the `store_purchases.store` value for Cafe Bazaar.

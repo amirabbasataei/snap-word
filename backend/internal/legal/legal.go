@@ -23,11 +23,11 @@ import (
 // either page changes in a way users should notice; a future re-acceptance
 // flow can compare against Version. Updated is the same day in both calendars.
 const (
-	Version     = "1.0"
-	VersionFa   = "۱٫۰"
-	UpdatedISO  = "2026-10-27"
-	UpdatedJal  = "1405/08/05"
-	UpdatedFa   = "۱۴۰۵/۰۸/۰۵"
+	Version     = "1.1"
+	VersionFa   = "۱٫۱"
+	UpdatedISO  = "2026-11-03"
+	UpdatedJal  = "1405/08/12"
+	UpdatedFa   = "۱۴۰۵/۰۸/۱۲"
 	OwnerFa     = "امیرعباس عطائی"
 	OwnerEn     = "AmirAbbas Ataei"
 	ContactMail = "a.ataei1991@gmail.com"
