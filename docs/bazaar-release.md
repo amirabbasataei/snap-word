@@ -7,7 +7,7 @@ State as of 2026-10-31. Items marked **YOU** need the Bazaar panel, the producti
 - **Release signing.** `client/android/app/build.gradle.kts` reads `client/android/key.properties` (gitignored). A release build **fails** without it instead of falling back to the debug key. Keystore: `~/keystores/zanjir-release.jks`, alias `zanjir`, valid ~33 years, SHA-256 `DF:F3:28:C2:DF:96:6A:25:FE:AC:C8:6F:3E:24:E8:54:D2:06:BE:ED:04:DF:89:35:13:C5:FF:60:CA:5C:8B:CE`.
   **Back up the `.jks` and `key.properties` somewhere off this machine.** Bazaar only accepts updates signed with the same key; if it is lost the app can never be updated.
 - **Version** `1.0.0+5` (`pubspec.yaml`). Every upload to Bazaar needs a higher `+N`.
-- **Real billing** (replaces the mock that showed «خرید با موفقیت انجام شد!» without charging): Poolakey on the client, server-side verification against Bazaar's developer API, idempotent crediting. See CLAUDE.md § Cafe Bazaar billing.
+- **Real billing** (replaces the mock that showed «خرید با موفقیت انجام شد!» without charging): Poolakey on the client, the server verifies Bazaar's RSA signature on the purchase receipt, idempotent crediting. See CLAUDE.md § Cafe Bazaar billing.
 - «Remove ads» is **not for sale** (the app has no ad-free state). Do not create that product.
 - Legal pages (`/terms`, `/privacy`) already exist and are linked in the app.
 
@@ -24,19 +24,13 @@ State as of 2026-10-31. Items marked **YOU** need the Bazaar panel, the producti
    | `premium_monthly` | اشتراک (subscription), monthly | ۱۹٬۰۰۰ |
 
    Bazaar prices are in Rial (×10). The in-app buy sheet shows the prices from `profile_sheets.dart`; keep them equal to the panel.
-3. **Developer API client** (panel → تنظیمات → API): create a client, register an `https` redirect URI you control (localhost is rejected). Note the client id and secret.
-4. **One-time refresh token** (the server refreshes access tokens itself afterwards):
-   1. Open in a browser, logged in as the app owner:
-      `https://pardakht.cafebazaar.ir/devapi/v2/auth/authorize/?response_type=code&access_type=offline&redirect_uri=<REDIRECT_URI>&client_id=<CLIENT_ID>`
-   2. Approve; copy `code` from the redirect URL.
-   3. `curl -s -X POST https://pardakht.cafebazaar.ir/devapi/v2/auth/token/ -d grant_type=authorization_code -d code=<CODE> -d client_id=<CLIENT_ID> -d client_secret=<SECRET> -d redirect_uri=<REDIRECT_URI>` → keep `refresh_token`.
-5. Put these in `/opt/wordchain/.env` on the server (root-only), then redeploy:
+3. **RSA public key** (panel → درون‌برنامه‌ای → کلید RSA / RSA key): copy the base64 key. It is the app's *public* key, not a secret. There is no OAuth client to create; the key is all that is needed.
+4. Put it on the server in `/opt/wordchain/.env` (root-only), then redeploy:
    ```
-   BAZAAR_CLIENT_ID=…
-   BAZAAR_CLIENT_SECRET=…
-   BAZAAR_REFRESH_TOKEN=…
+   BAZAAR_RSA_PUBLIC_KEY=MIIBIjANBgkq…
    ```
-   `BAZAAR_PACKAGE_NAME` defaults to `com.ataei.zanjir`. Until all three are set `POST /payments/bazaar/verify` answers `503 payments_unavailable` and nothing is credited.
+   `BAZAAR_PACKAGE_NAME` defaults to `com.ataei.zanjir`. Until the key is set `POST /payments/bazaar/verify` answers `503 payments_unavailable` and nothing is credited.
+5. Paste the same key into `PoolakeyGateway.rsaKey` (`client/lib/core/services/billing_gateway.dart`) so Poolakey also rejects forged results on the device (optional; the server checks regardless). It must be the key of **this** app (`com.ataei.zanjir`).
 
 ## 3. Server — YOU
 
@@ -61,9 +55,9 @@ Bazaar only lets Poolakey buy for apps it knows, so upload the APK as a draft/be
 1. Sign in, Profile → coin pill → buy `coins_100`. Expect: Bazaar sheet → «۱۰۰ سکه به حسابت اضافه شد!», balance up by 100, purchase consumed (you can buy it again immediately).
 2. Kill the app right after paying (before the toast) and reopen: the coins must still arrive (`restore`).
 3. Buy `premium_monthly`: the crown + «اشتراک ویژه فعال است» appear.
-4. On the server: `docker compose logs app | grep "store purchase"`. A `store_unavailable` / `purchase_invalid` for a payment you really made means one of the unverified API details below is wrong.
+4. On the server: `docker compose logs app | grep "store purchase"`. A `purchase_invalid` (400) for a payment you really made means the RSA key on the server is not the one of this app, or the receipt JSON field names differ from the ones below.
 
-**Unverified assumptions** (taken from a community client; Bazaar's own docs are not machine-readable): the token endpoint, `GET …/devapi/v2/api/validate/{pkg}/inapp/{product}/purchases/{token}/` with a `purchaseState` field (0 = purchased), and `GET …/devapi/v2/api/applications/{pkg}/subscriptions/{product}/purchases/{token}/` with the expiry in `validUntilTimestampMsec`. If step 1 or 3 fails, compare with the official page <https://developers.cafebazaar.ir/en/guidelines/in-app-billing/api> and adjust `backend/internal/service/bazaar.go` (tests in `purchases_test.go` use a fake server that mirrors the same assumptions).
+**How verification works / unverified assumptions:** Bazaar signs each purchase (`originalJson` + `dataSignature`, SHA1withRSA). The app sends both to the server, which checks the signature with `BAZAAR_RSA_PUBLIC_KEY` and reads `productId`, `purchaseToken`, `packageName`, `purchaseState` (0 = purchased), `developerPayload` and `purchaseTime` from the signed JSON (`backend/internal/service/bazaar.go`). Those JSON field names are Poolakey's/Bazaar's documented receipt fields but have not been seen against a real purchase. The receipt carries **no subscription expiry**: while Bazaar's app still lists the subscription as active the client re-reports it at sign-in and every resume, and each report keeps `premium_until` 72 h ahead (`config.PremiumReverifyWindow`); a lapsed subscription stops being reported and premium ends within 72 h. A modified client could replay an old signed receipt to keep premium (a cosmetic-only perk) — closing that needs Bazaar's developer API.
 
 ## 6. Store listing
 

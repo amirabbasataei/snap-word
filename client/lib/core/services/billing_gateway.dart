@@ -10,6 +10,12 @@ class BillingItem {
   final String token;
   final String payload;
 
+  /// Bazaar's signed receipt (Poolakey `originalJson`) and its base64
+  /// signature (`dataSignature`); the server verifies them with the app's RSA
+  /// public key.
+  final String receiptJson;
+  final String signature;
+
   /// Bazaar reports refunded purchases too; they must not be redeemed.
   final bool refunded;
 
@@ -17,6 +23,8 @@ class BillingItem {
     required this.productId,
     required this.token,
     this.payload = '',
+    this.receiptJson = '',
+    this.signature = '',
     this.refunded = false,
   });
 }
@@ -47,10 +55,15 @@ abstract class BillingGateway {
   Future<List<BillingItem>> ownedSubscriptions();
 }
 
-/// Cafe Bazaar through Poolakey. The local RSA signature check is switched off
-/// (key `null`): every purchase is verified by our server against Bazaar's
-/// developer API instead, which is the authoritative check.
+/// Cafe Bazaar through Poolakey. The app's public RSA key (Bazaar panel →
+/// in-app payments) is handed to Poolakey so it rejects forged purchase
+/// results on the device; the server repeats the check on the signed receipt
+/// and is the authoritative one. The key is public (it ships in every APK), so
+/// it lives in the code. Empty = no on-device check, the server still checks.
 class PoolakeyGateway implements BillingGateway {
+  static const rsaKey =
+      'MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwCw8xIuy4pER4wLgmO9ohpSLVg3WmeA6bUqD1QzwOsPymHXEQVs0fcklAFA0SJGgwUJ1mLfD5oYbDRwa3vwuYkuoyLcBdiRVC5+OwZg8P9sf8rB2TDWPo1Vw5RhTMMBsTfP6ch7bbJ0LzNLreCb9epOIyE1ekdAVu1CDqaYRR6zmiKq74vAyt12bKxj0RbcY5AmgZ0hjaLaObRm2RWs0Fcv/7NbyOnh/HeGTrSFx1UCAwEAAQ==';
+
   static const _connectTimeout = Duration(seconds: 8);
   bool _connected = false;
 
@@ -59,20 +72,21 @@ class PoolakeyGateway implements BillingGateway {
     if (_connected) return;
     if (!Platform.isAndroid) throw const BillingUnavailable();
     final done = Completer<bool>();
-    try {
-      await FlutterPoolakey.connect(
-        null,
-        onSucceed: () {
-          if (!done.isCompleted) done.complete(true);
-        },
-        onFailed: () {
-          if (!done.isCompleted) done.complete(false);
-        },
-        onDisconnected: () => _connected = false,
-      );
-    } on PlatformException {
-      throw const BillingUnavailable();
+    void finish(bool ok) {
+      if (!done.isCompleted) done.complete(ok);
     }
+
+    // The plugin's native `connect` never answers the method call itself (the
+    // outcome arrives through the callbacks), so awaiting the returned future
+    // would hang forever. Only its errors matter.
+    unawaited(
+      FlutterPoolakey.connect(
+        rsaKey.isEmpty ? null : rsaKey,
+        onSucceed: () => finish(true),
+        onFailed: () => finish(false),
+        onDisconnected: () => _connected = false,
+      ).then<void>((_) {}, onError: (Object _) => finish(false)),
+    );
     final ok = await done.future.timeout(
       _connectTimeout,
       onTimeout: () => false,
@@ -90,6 +104,8 @@ class PoolakeyGateway implements BillingGateway {
     productId: p.productId,
     token: p.purchaseToken,
     payload: p.payload,
+    receiptJson: p.originalJson,
+    signature: p.dataSignature,
     refunded: p.purchaseState == PurchaseState.REFUNDED,
   );
 

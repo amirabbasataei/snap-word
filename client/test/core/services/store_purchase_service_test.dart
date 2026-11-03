@@ -121,7 +121,12 @@ void main() {
   test(
     'buys, verifies on the server, updates the balance, then consumes',
     () async {
-      gateway.next = const BillingItem(productId: 'coins_350', token: 'tok');
+      gateway.next = const BillingItem(
+        productId: 'coins_350',
+        token: 'tok',
+        receiptJson: '{"purchaseToken":"tok"}',
+        signature: 'sig-tok',
+      );
       server.replies.add(_ok(awarded: 350, coins: 410));
 
       final r = await service.buy('coins_350');
@@ -133,7 +138,8 @@ void main() {
       expect(gateway.boughtPayload, 'user-1');
       expect(server.sent.single, {
         'product_id': 'coins_350',
-        'purchase_token': 'tok',
+        'purchase_data': '{"purchaseToken":"tok"}',
+        'signature': 'sig-tok',
       });
     },
   );
@@ -211,7 +217,11 @@ void main() {
       'verifies and consumes a pack left unconsumed; skips refunds and unknown ids',
       () async {
         gateway.owned = const [
-          BillingItem(productId: 'coins_350', token: 'left'),
+          BillingItem(
+            productId: 'coins_350',
+            token: 'left',
+            signature: 'sig-left',
+          ),
           BillingItem(
             productId: 'coins_100',
             token: 'refunded',
@@ -223,7 +233,7 @@ void main() {
 
         await service.restore(force: true);
 
-        expect(server.sent.map((m) => m['purchase_token']), ['left']);
+        expect(server.sent.map((m) => m['signature']), ['sig-left']);
         expect(gateway.consumed, ['left']);
         expect(balances, [500]);
       },

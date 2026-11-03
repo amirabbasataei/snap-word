@@ -21,8 +21,11 @@ func NewPurchaseHandler(svc *service.PurchaseService) *PurchaseHandler {
 }
 
 type verifyPurchaseRequest struct {
-	ProductID     string `json:"product_id" binding:"required"`
-	PurchaseToken string `json:"purchase_token" binding:"required"`
+	ProductID string `json:"product_id" binding:"required"`
+	// PurchaseData is Bazaar's signed receipt JSON (Poolakey `originalJson`),
+	// Signature its base64 signature (`dataSignature`).
+	PurchaseData string `json:"purchase_data" binding:"required"`
+	Signature    string `json:"signature" binding:"required"`
 }
 
 // VerifyBazaar handles POST /api/v1/payments/bazaar/verify.
@@ -33,19 +36,17 @@ func (h *PurchaseHandler) VerifyBazaar(c *gin.Context) {
 		respondError(c, http.StatusBadRequest, "validation_error", err.Error())
 		return
 	}
-	res, err := h.svc.VerifyBazaar(c.Request.Context(), userID, req.ProductID, req.PurchaseToken)
+	res, err := h.svc.VerifyBazaar(c.Request.Context(), userID, req.ProductID, req.PurchaseData, req.Signature)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrUnknownProduct):
 			respondError(c, http.StatusBadRequest, "unknown_product", "unknown product")
-		case errors.Is(err, service.ErrPurchaseInvalid), errors.Is(err, service.ErrSubscriptionExpired):
+		case errors.Is(err, service.ErrPurchaseInvalid):
 			respondError(c, http.StatusBadRequest, "purchase_invalid", "purchase not valid")
 		case errors.Is(err, service.ErrPurchaseOwnedByOther), errors.Is(err, service.ErrPurchaseWrongRecipient):
 			respondError(c, http.StatusConflict, "purchase_already_claimed", "purchase belongs to another account")
 		case errors.Is(err, service.ErrPaymentsUnavailable):
 			respondError(c, http.StatusServiceUnavailable, "payments_unavailable", "payments are not available")
-		case errors.Is(err, service.ErrStoreUnavailable):
-			respondError(c, http.StatusBadGateway, "store_unavailable", "store verification failed, retry")
 		default:
 			slog.Error("VerifyBazaar failed", "userID", userID, "product", req.ProductID, "error", err)
 			respondError(c, http.StatusInternalServerError, "internal_error", "failed to verify purchase")

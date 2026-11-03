@@ -2,12 +2,14 @@ package service_test
 
 import (
 	"context"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha1" //nolint:gosec
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,27 +19,60 @@ import (
 	"wordchain/backend/internal/testutil"
 )
 
-type fakeBazaar struct {
-	purchase *service.BazaarPurchase
-	sub      *service.BazaarSubscription
-	err      error
-	off      bool
-}
-
-func (f *fakeBazaar) Configured() bool { return !f.off }
-func (f *fakeBazaar) ValidatePurchase(context.Context, string, string) (*service.BazaarPurchase, error) {
-	return f.purchase, f.err
-}
-func (f *fakeBazaar) ValidateSubscription(context.Context, string, string) (*service.BazaarSubscription, error) {
-	return f.sub, f.err
-}
-
 const (
 	payA = "eeeeeeee-0000-4000-8000-00000000000a"
 	payB = "eeeeeeee-0000-4000-8000-00000000000b"
+	pkg  = "com.ataei.zanjir"
 )
 
-func newPurchaseSvc(t *testing.T, f *fakeBazaar) (*service.PurchaseService, func(id string) (int, *time.Time)) {
+// bazaarKeys plays Cafe Bazaar: it signs receipts with a private key whose
+// public half is what the server is configured with.
+type bazaarKeys struct {
+	priv   *rsa.PrivateKey
+	pubB64 string
+}
+
+func newBazaarKeys(t *testing.T) *bazaarKeys {
+	t.Helper()
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &bazaarKeys{priv: priv, pubB64: base64.StdEncoding.EncodeToString(der)}
+}
+
+type receipt struct {
+	ProductID        string `json:"productId"`
+	PurchaseToken    string `json:"purchaseToken"`
+	DeveloperPayload string `json:"developerPayload"`
+	PackageName      string `json:"packageName"`
+	PurchaseState    int    `json:"purchaseState"`
+	PurchaseTime     int64  `json:"purchaseTime"`
+	OrderID          string `json:"orderId"`
+}
+
+func (k *bazaarKeys) sign(t *testing.T, r receipt) (data, sig string) {
+	t.Helper()
+	if r.PackageName == "" {
+		r.PackageName = pkg
+	}
+	if r.PurchaseTime == 0 {
+		r.PurchaseTime = time.Now().UnixMilli()
+	}
+	b, _ := json.Marshal(r)
+	sum := sha1.Sum(b) //nolint:gosec
+	raw, err := rsa.SignPKCS1v15(rand.Reader, k.priv, crypto.SHA1, sum[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b), base64.StdEncoding.EncodeToString(raw)
+}
+
+func newPurchaseSvc(t *testing.T) (*service.PurchaseService, *bazaarKeys, func(id string) (int, *time.Time)) {
 	t.Helper()
 	db := testutil.NewPostgres(t)
 	for i, id := range []string{payA, payB} {
@@ -53,29 +88,31 @@ func newPurchaseSvc(t *testing.T, f *fakeBazaar) (*service.PurchaseService, func
 		}
 		return coins, until
 	}
-	return service.NewPurchaseService(repository.NewPurchaseRepository(db), f), read
+	keys := newBazaarKeys(t)
+	verifier := service.NewBazaarVerifier(&config.Config{BazaarPackageName: pkg, BazaarRSAPublicKey: keys.pubB64})
+	return service.NewPurchaseService(repository.NewPurchaseRepository(db), verifier), keys, read
 }
 
 func TestVerifyBazaar_CoinsCreditedOnce(t *testing.T) {
-	f := &fakeBazaar{purchase: &service.BazaarPurchase{Purchased: true, DeveloperPayload: payA}}
-	svc, read := newPurchaseSvc(t, f)
+	svc, keys, read := newPurchaseSvc(t)
 	ctx := context.Background()
+	data, sig := keys.sign(t, receipt{ProductID: "coins_350", PurchaseToken: "tok-1", DeveloperPayload: payA})
 
-	r, err := svc.VerifyBazaar(ctx, payA, "coins_350", "tok-1")
+	r, err := svc.VerifyBazaar(ctx, payA, "coins_350", data, sig)
 	if err != nil || r.CoinsAwarded != 350 || r.Coins != 360 || r.AlreadyProcessed {
 		t.Fatalf("first = %+v, %v", r, err)
 	}
-	// A retry of the same token pays nothing but succeeds, so the client can consume.
-	r, err = svc.VerifyBazaar(ctx, payA, "coins_350", "tok-1")
+	// A retry of the same receipt pays nothing but succeeds, so the client can consume.
+	r, err = svc.VerifyBazaar(ctx, payA, "coins_350", data, sig)
 	if err != nil || r.CoinsAwarded != 0 || !r.AlreadyProcessed || r.Coins != 360 {
 		t.Fatalf("retry = %+v, %v", r, err)
 	}
 	if c, _ := read(payA); c != 360 {
 		t.Fatalf("balance = %d, want 360", c)
 	}
-	// Another account cannot redeem that token (payload binds it to A too).
-	f.purchase.DeveloperPayload = ""
-	if _, err = svc.VerifyBazaar(ctx, payB, "coins_350", "tok-1"); !errors.Is(err, service.ErrPurchaseOwnedByOther) {
+	// The payload binds the receipt to A; with no payload the token ledger still stops B.
+	data2, sig2 := keys.sign(t, receipt{ProductID: "coins_350", PurchaseToken: "tok-1"})
+	if _, err = svc.VerifyBazaar(ctx, payB, "coins_350", data2, sig2); !errors.Is(err, service.ErrPurchaseOwnedByOther) {
 		t.Fatalf("other account err = %v", err)
 	}
 	if c, _ := read(payB); c != 10 {
@@ -84,154 +121,88 @@ func TestVerifyBazaar_CoinsCreditedOnce(t *testing.T) {
 }
 
 func TestVerifyBazaar_Rejections(t *testing.T) {
-	f := &fakeBazaar{purchase: &service.BazaarPurchase{Purchased: true}}
-	svc, read := newPurchaseSvc(t, f)
+	svc, keys, read := newPurchaseSvc(t)
 	ctx := context.Background()
+	good := receipt{ProductID: "coins_100", PurchaseToken: "t", DeveloperPayload: payA}
 
-	if _, err := svc.VerifyBazaar(ctx, payA, "remove_ads", "t"); !errors.Is(err, service.ErrUnknownProduct) {
+	if _, err := svc.VerifyBazaar(ctx, payA, "remove_ads", "x", "y"); !errors.Is(err, service.ErrUnknownProduct) {
 		t.Fatalf("remove_ads must not be sellable, err = %v", err)
 	}
-	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", " "); !errors.Is(err, service.ErrPurchaseInvalid) {
-		t.Fatalf("blank token err = %v", err)
+	// Forged: signed by someone else's key.
+	other := newBazaarKeys(t)
+	d, s := other.sign(t, good)
+	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", d, s); !errors.Is(err, service.ErrPurchaseInvalid) {
+		t.Fatalf("forged err = %v", err)
 	}
-	f.purchase = &service.BazaarPurchase{Purchased: false} // refunded
-	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", "t2"); !errors.Is(err, service.ErrPurchaseInvalid) {
-		t.Fatalf("refunded err = %v", err)
+	// Tampered: valid signature, edited body.
+	d, s = keys.sign(t, good)
+	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", d+" ", s); !errors.Is(err, service.ErrPurchaseInvalid) {
+		t.Fatalf("tampered err = %v", err)
 	}
-	f.purchase = &service.BazaarPurchase{Purchased: true, DeveloperPayload: payB}
-	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", "t3"); !errors.Is(err, service.ErrPurchaseWrongRecipient) {
+	for name, mutate := range map[string]func(*receipt){
+		"refunded":      func(r *receipt) { r.PurchaseState = 1 },
+		"other package": func(r *receipt) { r.PackageName = "com.other.app" },
+		"other product": func(r *receipt) { r.ProductID = "coins_1500" }, // signed for a bigger pack than the request
+		"blank token":   func(r *receipt) { r.PurchaseToken = " " },
+	} {
+		r := good
+		mutate(&r)
+		d, s := keys.sign(t, r)
+		if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", d, s); !errors.Is(err, service.ErrPurchaseInvalid) {
+			t.Fatalf("%s err = %v", name, err)
+		}
+	}
+	r := good
+	r.DeveloperPayload = payB
+	d, s = keys.sign(t, r)
+	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", d, s); !errors.Is(err, service.ErrPurchaseWrongRecipient) {
 		t.Fatalf("wrong payload err = %v", err)
 	}
-	f.err = service.ErrPurchaseInvalid
-	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", "t4"); !errors.Is(err, service.ErrPurchaseInvalid) {
-		t.Fatalf("store 404 err = %v", err)
-	}
-	f.err, f.off = nil, true
-	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", "t5"); !errors.Is(err, service.ErrPaymentsUnavailable) {
-		t.Fatalf("unconfigured err = %v", err)
+	if _, err := svc.VerifyBazaar(ctx, payA, "coins_100", "", ""); !errors.Is(err, service.ErrPurchaseInvalid) {
+		t.Fatalf("empty receipt err = %v", err)
 	}
 	if c, _ := read(payA); c != 10 {
 		t.Fatalf("balance changed on rejected purchases: %d", c)
 	}
 }
 
-func TestVerifyBazaar_SubscriptionExtendsNeverShortens(t *testing.T) {
-	later := time.Now().Add(30 * 24 * time.Hour).Truncate(time.Second)
-	f := &fakeBazaar{sub: &service.BazaarSubscription{ValidUntil: later}}
-	svc, read := newPurchaseSvc(t, f)
-	ctx := context.Background()
+func TestVerifyBazaar_Unconfigured(t *testing.T) {
+	db := testutil.NewPostgres(t)
+	svc := service.NewPurchaseService(repository.NewPurchaseRepository(db), service.NewBazaarVerifier(&config.Config{BazaarPackageName: pkg}))
+	if _, err := svc.VerifyBazaar(context.Background(), payA, "coins_100", "d", "s"); !errors.Is(err, service.ErrPaymentsUnavailable) {
+		t.Fatalf("no key err = %v", err)
+	}
+	bad := service.NewBazaarVerifier(&config.Config{BazaarRSAPublicKey: "not a key"})
+	if bad.Configured() {
+		t.Fatal("garbage key must leave payments off")
+	}
+}
 
-	r, err := svc.VerifyBazaar(ctx, payA, "premium_monthly", "sub-1")
-	if err != nil || r.PremiumUntil == nil || !r.PremiumUntil.Equal(later) {
+func TestVerifyBazaar_SubscriptionWindowNeverShortens(t *testing.T) {
+	svc, keys, read := newPurchaseSvc(t)
+	ctx := context.Background()
+	data, sig := keys.sign(t, receipt{ProductID: "premium_monthly", PurchaseToken: "sub-1", DeveloperPayload: payA})
+
+	before := time.Now()
+	r, err := svc.VerifyBazaar(ctx, payA, "premium_monthly", data, sig)
+	if err != nil || r.PremiumUntil == nil {
 		t.Fatalf("first = %+v, %v", r, err)
 	}
-	// Renewal: same token, later expiry.
-	renewed := later.Add(30 * 24 * time.Hour)
-	f.sub = &service.BazaarSubscription{ValidUntil: renewed}
-	if r, err = svc.VerifyBazaar(ctx, payA, "premium_monthly", "sub-1"); err != nil || !r.PremiumUntil.Equal(renewed) {
-		t.Fatalf("renew = %+v, %v", r, err)
+	if d := r.PremiumUntil.Sub(before); d < config.PremiumReverifyWindow-time.Minute || d > config.PremiumReverifyWindow+time.Minute {
+		t.Fatalf("premium window = %v, want about %v", d, config.PremiumReverifyWindow)
 	}
-	// A stale answer never shortens it.
-	f.sub = &service.BazaarSubscription{ValidUntil: later}
-	if r, err = svc.VerifyBazaar(ctx, payA, "premium_monthly", "sub-1"); err != nil || !r.PremiumUntil.Equal(renewed) {
-		t.Fatalf("stale = %+v, %v", r, err)
+	// Reporting it again (the next resume) slides the window forward, never back.
+	first := *r.PremiumUntil
+	time.Sleep(10 * time.Millisecond)
+	if r, err = svc.VerifyBazaar(ctx, payA, "premium_monthly", data, sig); err != nil || r.PremiumUntil.Before(first) {
+		t.Fatalf("repeat = %+v, %v", r, err)
 	}
-	if _, u := read(payA); u == nil || !u.Equal(renewed) {
+	if _, u := read(payA); u == nil || u.Before(first) {
 		t.Fatalf("premium_until = %v", u)
 	}
-	// Someone else's token, and an already-expired one.
-	if _, err = svc.VerifyBazaar(ctx, payB, "premium_monthly", "sub-1"); !errors.Is(err, service.ErrPurchaseOwnedByOther) {
+	// Someone else's subscription token.
+	data2, sig2 := keys.sign(t, receipt{ProductID: "premium_monthly", PurchaseToken: "sub-1"})
+	if _, err = svc.VerifyBazaar(ctx, payB, "premium_monthly", data2, sig2); !errors.Is(err, service.ErrPurchaseOwnedByOther) {
 		t.Fatalf("other account err = %v", err)
-	}
-	f.sub = &service.BazaarSubscription{ValidUntil: time.Now().Add(-time.Hour)}
-	if _, err = svc.VerifyBazaar(ctx, payB, "premium_monthly", "sub-2"); !errors.Is(err, service.ErrSubscriptionExpired) {
-		t.Fatalf("expired err = %v", err)
-	}
-}
-
-func bazaarServer(t *testing.T, tokenCalls *int32, validate http.HandlerFunc) *service.BazaarClient {
-	t.Helper()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/devapi/v2/auth/token/", func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(tokenCalls, 1)
-		_ = r.ParseForm()
-		if r.Form.Get("grant_type") != "refresh_token" || r.Form.Get("refresh_token") != "rt" || r.Form.Get("client_id") != "cid" {
-			http.Error(w, `{"error":"invalid_grant"}`, http.StatusBadRequest)
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "at", "expires_in": 3600})
-	})
-	mux.HandleFunc("/devapi/v2/api/", validate)
-	srv := httptest.NewServer(mux)
-	t.Cleanup(srv.Close)
-	return service.NewBazaarClientForTest(&config.Config{
-		BazaarPackageName: "com.ataei.zanjir", BazaarClientID: "cid", BazaarClientSecret: "cs", BazaarRefreshToken: "rt",
-	}, srv.URL)
-}
-
-func TestBazaarClient_Validate(t *testing.T) {
-	var tokenCalls int32
-	var gotPath, gotAuth string
-	c := bazaarServer(t, &tokenCalls, func(w http.ResponseWriter, r *http.Request) {
-		gotPath, gotAuth = r.URL.Path, r.Header.Get("Authorization")
-		switch {
-		case strings.Contains(r.URL.Path, "/inapp/coins_100/purchases/good/"):
-			_, _ = w.Write([]byte(`{"purchaseState":0,"consumptionState":1,"developerPayload":"u1"}`))
-		case strings.Contains(r.URL.Path, "/inapp/coins_100/purchases/refunded/"):
-			_, _ = w.Write([]byte(`{"purchaseState":1}`))
-		case strings.Contains(r.URL.Path, "/subscriptions/premium_monthly/purchases/sub/"):
-			_, _ = w.Write([]byte(`{"validUntilTimestampMsec":1900000000000}`))
-		default:
-			http.Error(w, `{"error":"not_found"}`, http.StatusNotFound)
-		}
-	})
-	ctx := context.Background()
-
-	p, err := c.ValidatePurchase(ctx, "coins_100", "good")
-	if err != nil || !p.Purchased || p.DeveloperPayload != "u1" {
-		t.Fatalf("good = %+v, %v", p, err)
-	}
-	if gotPath != "/devapi/v2/api/validate/com.ataei.zanjir/inapp/coins_100/purchases/good/" || gotAuth != "Bearer at" {
-		t.Fatalf("request = %q auth %q", gotPath, gotAuth)
-	}
-	if p, _ = c.ValidatePurchase(ctx, "coins_100", "refunded"); p == nil || p.Purchased {
-		t.Fatalf("refunded = %+v", p)
-	}
-	if _, err = c.ValidatePurchase(ctx, "coins_100", "nope"); !errors.Is(err, service.ErrPurchaseInvalid) {
-		t.Fatalf("404 err = %v", err)
-	}
-	s, err := c.ValidateSubscription(ctx, "premium_monthly", "sub")
-	if err != nil || s.ValidUntil.UnixMilli() != 1900000000000 {
-		t.Fatalf("sub = %+v, %v", s, err)
-	}
-	if n := atomic.LoadInt32(&tokenCalls); n != 1 {
-		t.Fatalf("access token fetched %d times, want 1 (cached)", n)
-	}
-}
-
-func TestBazaarClient_RefreshesOn401AndHandlesBadCredentials(t *testing.T) {
-	var tokenCalls, hits int32
-	c := bazaarServer(t, &tokenCalls, func(w http.ResponseWriter, r *http.Request) {
-		if atomic.AddInt32(&hits, 1) == 1 {
-			http.Error(w, `{}`, http.StatusUnauthorized)
-			return
-		}
-		_, _ = w.Write([]byte(`{"purchaseState":0}`))
-	})
-	if p, err := c.ValidatePurchase(context.Background(), "coins_100", "x"); err != nil || !p.Purchased {
-		t.Fatalf("after 401 retry = %+v, %v", p, err)
-	}
-	if atomic.LoadInt32(&tokenCalls) != 2 {
-		t.Fatalf("token calls = %d, want 2", tokenCalls)
-	}
-
-	bad := service.NewBazaarClientForTest(&config.Config{BazaarClientID: "cid", BazaarClientSecret: "cs", BazaarRefreshToken: "wrong"},
-		"http://127.0.0.1:1")
-	if _, err := bad.ValidatePurchase(context.Background(), "coins_100", "x"); !errors.Is(err, service.ErrStoreUnavailable) {
-		t.Fatalf("unreachable store err = %v", err)
-	}
-	none := service.NewBazaarClient(&config.Config{})
-	if _, err := none.ValidatePurchase(context.Background(), "coins_100", "x"); !errors.Is(err, service.ErrPaymentsUnavailable) {
-		t.Fatalf("unconfigured err = %v", err)
 	}
 }

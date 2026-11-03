@@ -36,8 +36,8 @@ abstract final class StoreProducts {
 
 /// Real-money purchases through Cafe Bazaar.
 ///
-/// Flow: Bazaar's purchase screen → our server verifies the purchase token
-/// with Bazaar and delivers the coins/premium (idempotent per token) → only
+/// Flow: Bazaar's purchase screen → our server verifies Bazaar's RSA signature
+/// on the receipt and delivers the coins/premium (idempotent per token) → only
 /// then the purchase is consumed, so the player can buy the pack again. If the
 /// app dies between payment and delivery, [restore] finishes the job next time.
 class StorePurchaseService with WidgetsBindingObserver {
@@ -125,7 +125,11 @@ class StorePurchaseService with WidgetsBindingObserver {
   Future<StorePurchaseResult> _deliver(BillingItem item) async {
     final res = await _dio.post(
       ApiEndpoints.bazaarVerify,
-      data: {'product_id': item.productId, 'purchase_token': item.token},
+      data: {
+        'product_id': item.productId,
+        'purchase_data': item.receiptJson,
+        'signature': item.signature,
+      },
     );
     final data = (res.data as Map)['data'] as Map;
     final awarded = (data['coins_awarded'] as num?)?.toInt() ?? 0;

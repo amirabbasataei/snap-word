@@ -15,7 +15,6 @@ import (
 var (
 	ErrUnknownProduct         = errors.New("unknown_product")
 	ErrPurchaseOwnedByOther   = errors.New("purchase_owned_by_other")
-	ErrSubscriptionExpired    = errors.New("subscription_expired")
 	ErrPurchaseWrongRecipient = errors.New("purchase_wrong_recipient")
 )
 
@@ -31,46 +30,46 @@ type PurchaseResult struct {
 	PremiumUntil     *time.Time
 }
 
-// PurchaseService verifies store purchases with Bazaar and delivers them.
+// PurchaseService verifies Cafe Bazaar receipts and delivers the purchase.
 type PurchaseService struct {
 	repo  *repository.PurchaseRepository
-	store BazaarAPI
+	store BazaarVerifier
 	now   func() time.Time
 }
 
-func NewPurchaseService(repo *repository.PurchaseRepository, store BazaarAPI) *PurchaseService {
+func NewPurchaseService(repo *repository.PurchaseRepository, store BazaarVerifier) *PurchaseService {
 	return &PurchaseService{repo: repo, store: store, now: time.Now}
 }
 
-// VerifyBazaar checks productID/token against Bazaar and delivers the product.
-// Safe to repeat: coin packs credit once per token, subscriptions only extend.
-func (s *PurchaseService) VerifyBazaar(ctx context.Context, userID, productID, token string) (*PurchaseResult, error) {
+// VerifyBazaar checks the RSA-signed receipt Bazaar gave the app (signedData is
+// the exact JSON string, signature its base64 signature) and delivers the
+// product. Safe to repeat: coin packs credit once per purchase token,
+// subscriptions only ever extend.
+func (s *PurchaseService) VerifyBazaar(ctx context.Context, userID, productID, signedData, signature string) (*PurchaseResult, error) {
 	product, ok := config.StoreProducts[productID]
 	if !ok {
 		return nil, ErrUnknownProduct
 	}
-	token = strings.TrimSpace(token)
-	if token == "" || len(token) > 512 {
-		return nil, ErrPurchaseInvalid
-	}
 	if !s.store.Configured() {
 		return nil, ErrPaymentsUnavailable
+	}
+	rc, err := s.store.VerifyReceipt(signedData, signature)
+	if err != nil {
+		return nil, err
+	}
+	token := strings.TrimSpace(rc.Token)
+	// The signed receipt, not the request, says what was bought.
+	if rc.ProductID != productID || token == "" || len(token) > 512 || !rc.Purchased {
+		return nil, ErrPurchaseInvalid
+	}
+	// The client sets the payload to the account id: a receipt bought while
+	// signed in as someone else is not redeemable here.
+	if rc.Payload != "" && rc.Payload != userID {
+		return nil, ErrPurchaseWrongRecipient
 	}
 
 	switch product.Kind {
 	case config.StoreProductCoins:
-		p, err := s.store.ValidatePurchase(ctx, productID, token)
-		if err != nil {
-			return nil, err
-		}
-		if !p.Purchased {
-			return nil, ErrPurchaseInvalid
-		}
-		// The client sets the payload to the account id: a token bought while
-		// signed in as someone else is not redeemable here.
-		if p.DeveloperPayload != "" && p.DeveloperPayload != userID {
-			return nil, ErrPurchaseWrongRecipient
-		}
 		credited, balance, err := s.repo.CreditCoins(ctx, config.StoreBazaar, token, userID, productID, product.Coins)
 		if errors.Is(err, repository.ErrPurchaseOwnedByOther) {
 			return nil, ErrPurchaseOwnedByOther
@@ -86,14 +85,10 @@ func (s *PurchaseService) VerifyBazaar(ctx context.Context, userID, productID, t
 		return res, nil
 
 	case config.StoreProductPremium:
-		sub, err := s.store.ValidateSubscription(ctx, productID, token)
-		if err != nil {
-			return nil, err
-		}
-		if !sub.ValidUntil.After(s.now()) {
-			return nil, ErrSubscriptionExpired
-		}
-		until, err := s.repo.ApplyPremium(ctx, config.StoreBazaar, token, userID, productID, sub.ValidUntil)
+		// The receipt has no expiry. The app only reports subscriptions Bazaar
+		// still lists as active, so premium runs a short window past each
+		// report (see config.PremiumReverifyWindow).
+		until, err := s.repo.ApplyPremium(ctx, config.StoreBazaar, token, userID, productID, s.now().Add(config.PremiumReverifyWindow))
 		if errors.Is(err, repository.ErrPurchaseOwnedByOther) {
 			return nil, ErrPurchaseOwnedByOther
 		}

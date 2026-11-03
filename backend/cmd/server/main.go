@@ -89,7 +89,7 @@ func main() {
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc, repository.NewDailyRepository(db))
 	powerupSvc := service.NewPowerupService(powerupRepo, userRepo)
 	monetizationSvc := service.NewMonetizationService(userRepo)
-	purchaseSvc := service.NewPurchaseService(repository.NewPurchaseRepository(db), service.NewBazaarClient(cfg))
+	purchaseSvc := service.NewPurchaseService(repository.NewPurchaseRepository(db), service.NewBazaarVerifier(cfg))
 	catalogSvc := service.NewCatalogService(repository.NewCatalogRepository(db))
 	perksSvc := service.NewPerksService(userRepo, catalogSvc)
 

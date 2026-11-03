@@ -1,16 +1,16 @@
 package service
 
 import (
-	"context"
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha1" //nolint:gosec // Bazaar signs purchases with SHA1withRSA
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
-	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"wordchain/backend/internal/config"
@@ -18,195 +18,115 @@ import (
 
 // Errors of the store layer.
 var (
-	// ErrPaymentsUnavailable: Bazaar credentials are not configured.
+	// ErrPaymentsUnavailable: the Bazaar RSA public key is not configured.
 	ErrPaymentsUnavailable = errors.New("payments_unavailable")
-	// ErrPurchaseInvalid: the store does not know the purchase (or it was refunded/cancelled).
+	// ErrPurchaseInvalid: the receipt is forged, malformed, for another app or
+	// product, or the purchase was refunded.
 	ErrPurchaseInvalid = errors.New("purchase_invalid")
-	// ErrStoreUnavailable: the store API failed (network, 5xx, bad credentials); retry later.
-	ErrStoreUnavailable = errors.New("store_unavailable")
 )
 
-const bazaarDefaultBase = "https://pardakht.cafebazaar.ir"
-
-// BazaarPurchase is the validation of a one-time (consumable) purchase.
-type BazaarPurchase struct {
-	// Purchased is false for a refunded/cancelled purchase.
-	Purchased        bool
-	DeveloperPayload string
+// BazaarReceipt is the signed purchase record Bazaar hands the app.
+type BazaarReceipt struct {
+	ProductID    string
+	Token        string
+	Payload      string // developer payload: the account id the client set
+	PackageName  string
+	Purchased    bool // false once refunded
+	PurchaseTime time.Time
 }
 
-// BazaarSubscription is the validation of a subscription token.
-type BazaarSubscription struct {
-	ValidUntil time.Time
-}
-
-// BazaarAPI is the part of Cafe Bazaar's developer API the server uses.
-type BazaarAPI interface {
-	ValidatePurchase(ctx context.Context, productID, token string) (*BazaarPurchase, error)
-	ValidateSubscription(ctx context.Context, productID, token string) (*BazaarSubscription, error)
+// BazaarVerifier checks a purchase receipt.
+type BazaarVerifier interface {
 	Configured() bool
+	// VerifyReceipt validates signature (base64) over signedData (the exact
+	// JSON string Bazaar signed) and returns the parsed receipt.
+	VerifyReceipt(signedData, signature string) (*BazaarReceipt, error)
 }
 
-// BazaarClient calls the developer API (OAuth2 refresh-token flow). Endpoint
-// shapes follow Bazaar's developer API v2; they were taken from a community
-// client because the official docs are not machine-readable — confirm them
-// with the first real purchase (see CLAUDE.md § Cafe Bazaar billing).
-type BazaarClient struct {
-	cfg  *config.Config
-	base string
-	http *http.Client
-
-	mu          sync.Mutex
-	accessToken string
-	expiresAt   time.Time
+// BazaarRSAVerifier verifies receipts with the app's public RSA key from the
+// Bazaar panel — the same key Poolakey takes in connect(). Bazaar signs the
+// receipt JSON with SHA1withRSA, so a valid signature proves the purchase was
+// made through Bazaar for this app; no developer-API credentials are needed.
+type BazaarRSAVerifier struct {
+	pub     *rsa.PublicKey
+	pkgName string
 }
 
-func NewBazaarClient(cfg *config.Config) *BazaarClient {
-	return &BazaarClient{cfg: cfg, base: bazaarDefaultBase, http: &http.Client{Timeout: 10 * time.Second}}
-}
-
-func (b *BazaarClient) Configured() bool {
-	return b.cfg.BazaarClientID != "" && b.cfg.BazaarClientSecret != "" && b.cfg.BazaarRefreshToken != ""
-}
-
-func (b *BazaarClient) token(ctx context.Context, force bool) (string, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if !force && b.accessToken != "" && time.Now().Before(b.expiresAt.Add(-time.Minute)) {
-		return b.accessToken, nil
+// NewBazaarVerifier parses cfg.BazaarRSAPublicKey (base64 X.509 SubjectPublicKeyInfo,
+// as shown in the panel; PEM armour is tolerated). A missing or unparsable key
+// leaves the verifier unconfigured, so payments answer 503 instead of crediting.
+func NewBazaarVerifier(cfg *config.Config) *BazaarRSAVerifier {
+	v := &BazaarRSAVerifier{pkgName: cfg.BazaarPackageName}
+	raw := cfg.BazaarRSAPublicKey
+	for _, junk := range []string{"-----BEGIN PUBLIC KEY-----", "-----END PUBLIC KEY-----"} {
+		raw = strings.ReplaceAll(raw, junk, "")
 	}
-	form := url.Values{
-		"grant_type":    {"refresh_token"},
-		"client_id":     {b.cfg.BazaarClientID},
-		"client_secret": {b.cfg.BazaarClientSecret},
-		"refresh_token": {b.cfg.BazaarRefreshToken},
+	raw = strings.Join(strings.Fields(raw), "")
+	if raw == "" {
+		return v
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, b.base+"/devapi/v2/auth/token/", strings.NewReader(form.Encode()))
+	der, err := base64.StdEncoding.DecodeString(raw)
 	if err != nil {
-		return "", fmt.Errorf("bazaar token request: %w", err)
+		slog.Error("BAZAAR_RSA_PUBLIC_KEY is not valid base64; payments disabled")
+		return v
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	res, err := b.http.Do(req)
+	key, err := x509.ParsePKIXPublicKey(der)
 	if err != nil {
-		return "", fmt.Errorf("bazaar token: %w", stripURL(err))
+		slog.Error("BAZAAR_RSA_PUBLIC_KEY is not a public key; payments disabled", "error", err)
+		return v
 	}
-	defer res.Body.Close()
-	var out struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int64  `json:"expires_in"`
-		Error       string `json:"error"`
+	pub, ok := key.(*rsa.PublicKey)
+	if !ok {
+		slog.Error("BAZAAR_RSA_PUBLIC_KEY is not an RSA key; payments disabled")
+		return v
 	}
-	if err := json.NewDecoder(io.LimitReader(res.Body, 1<<16)).Decode(&out); err != nil {
-		return "", fmt.Errorf("bazaar token decode (status %d): %w", res.StatusCode, err)
-	}
-	if res.StatusCode != http.StatusOK || out.AccessToken == "" {
-		// Never log the body: it can echo credentials.
-		return "", fmt.Errorf("bazaar token refused (status %d, error %q)", res.StatusCode, out.Error)
-	}
-	b.accessToken = out.AccessToken
-	b.expiresAt = time.Now().Add(time.Duration(out.ExpiresIn) * time.Second)
-	return b.accessToken, nil
+	v.pub = pub
+	return v
 }
 
-// get performs an authorised GET, refreshing the access token once on 401.
-func (b *BazaarClient) get(ctx context.Context, path string, out any) (int, error) {
-	if !b.Configured() {
-		return 0, ErrPaymentsUnavailable
-	}
-	for attempt := 0; attempt < 2; attempt++ {
-		tok, err := b.token(ctx, attempt > 0)
-		if err != nil {
-			slog.Error("bazaar auth failed", "error", err)
-			return 0, ErrStoreUnavailable
-		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, b.base+path, nil)
-		if err != nil {
-			return 0, fmt.Errorf("bazaar request: %w", err)
-		}
-		req.Header.Set("Authorization", "Bearer "+tok)
-		res, err := b.http.Do(req)
-		if err != nil {
-			slog.Error("bazaar request failed", "error", stripURL(err))
-			return 0, ErrStoreUnavailable
-		}
-		body, _ := io.ReadAll(io.LimitReader(res.Body, 1<<16))
-		res.Body.Close()
-		if res.StatusCode == http.StatusUnauthorized && attempt == 0 {
-			continue
-		}
-		if res.StatusCode == http.StatusOK && out != nil {
-			if err := json.Unmarshal(body, out); err != nil {
-				slog.Error("bazaar response undecodable", "error", err)
-				return res.StatusCode, ErrStoreUnavailable
-			}
-		}
-		return res.StatusCode, nil
-	}
-	return 0, ErrStoreUnavailable
-}
+func (v *BazaarRSAVerifier) Configured() bool { return v.pub != nil }
 
-func (b *BazaarClient) ValidatePurchase(ctx context.Context, productID, token string) (*BazaarPurchase, error) {
-	var out struct {
-		PurchaseState    int    `json:"purchaseState"`
+func (v *BazaarRSAVerifier) VerifyReceipt(signedData, signature string) (*BazaarReceipt, error) {
+	if v.pub == nil {
+		return nil, ErrPaymentsUnavailable
+	}
+	if signedData == "" || signature == "" || len(signedData) > 4096 || len(signature) > 2048 {
+		return nil, ErrPurchaseInvalid
+	}
+	sig, err := base64.StdEncoding.DecodeString(strings.TrimSpace(signature))
+	if err != nil {
+		return nil, ErrPurchaseInvalid
+	}
+	sum := sha1.Sum([]byte(signedData)) //nolint:gosec
+	if err := rsa.VerifyPKCS1v15(v.pub, crypto.SHA1, sum[:], sig); err != nil {
+		return nil, ErrPurchaseInvalid
+	}
+
+	var raw struct {
+		ProductID        string `json:"productId"`
+		PurchaseToken    string `json:"purchaseToken"`
 		DeveloperPayload string `json:"developerPayload"`
+		Payload          string `json:"payload"`
+		PackageName      string `json:"packageName"`
+		PurchaseState    int    `json:"purchaseState"`
+		PurchaseTime     int64  `json:"purchaseTime"`
 	}
-	path := fmt.Sprintf("/devapi/v2/api/validate/%s/inapp/%s/purchases/%s/",
-		url.PathEscape(b.cfg.BazaarPackageName), url.PathEscape(productID), url.PathEscape(token))
-	status, err := b.get(ctx, path, &out)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal([]byte(signedData), &raw); err != nil {
+		return nil, fmt.Errorf("%w: undecodable receipt", ErrPurchaseInvalid)
 	}
-	switch {
-	case status == http.StatusOK:
-		return &BazaarPurchase{Purchased: out.PurchaseState == 0, DeveloperPayload: out.DeveloperPayload}, nil
-	case status == http.StatusNotFound || status == http.StatusBadRequest:
+	if raw.PackageName != v.pkgName {
 		return nil, ErrPurchaseInvalid
-	default:
-		slog.Error("bazaar validate unexpected status", "status", status)
-		return nil, ErrStoreUnavailable
 	}
-}
-
-func (b *BazaarClient) ValidateSubscription(ctx context.Context, productID, token string) (*BazaarSubscription, error) {
-	var out struct {
-		ValidUntilMsec    int64 `json:"validUntilTimestampMsec"`
-		ValidUntilMillis  int64 `json:"validUntilTimeMillis"`
-		ValidUntilAltMsec int64 `json:"validUntilTimeMsec"`
+	payload := raw.DeveloperPayload
+	if payload == "" {
+		payload = raw.Payload
 	}
-	path := fmt.Sprintf("/devapi/v2/api/applications/%s/subscriptions/%s/purchases/%s/",
-		url.PathEscape(b.cfg.BazaarPackageName), url.PathEscape(productID), url.PathEscape(token))
-	status, err := b.get(ctx, path, &out)
-	if err != nil {
-		return nil, err
-	}
-	switch {
-	case status == http.StatusOK:
-		ms := out.ValidUntilMsec
-		if ms == 0 {
-			ms = out.ValidUntilMillis
-		}
-		if ms == 0 {
-			ms = out.ValidUntilAltMsec
-		}
-		if ms == 0 {
-			slog.Error("bazaar subscription response has no expiry field")
-			return nil, ErrStoreUnavailable
-		}
-		return &BazaarSubscription{ValidUntil: time.UnixMilli(ms)}, nil
-	case status == http.StatusNotFound || status == http.StatusBadRequest:
-		return nil, ErrPurchaseInvalid
-	default:
-		slog.Error("bazaar subscription unexpected status", "status", status)
-		return nil, ErrStoreUnavailable
-	}
-}
-
-// stripURL drops the request URL from a transport error (it carries the
-// purchase token).
-func stripURL(err error) error {
-	var ue *url.Error
-	if errors.As(err, &ue) {
-		return ue.Err
-	}
-	return err
+	return &BazaarReceipt{
+		ProductID:    raw.ProductID,
+		Token:        raw.PurchaseToken,
+		Payload:      payload,
+		PackageName:  raw.PackageName,
+		Purchased:    raw.PurchaseState == 0,
+		PurchaseTime: time.UnixMilli(raw.PurchaseTime),
+	}, nil
 }

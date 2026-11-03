@@ -30,14 +30,12 @@ type Config struct {
 	OTPCodeTTL           time.Duration
 	OTPResendCooldown    time.Duration
 
-	// Cafe Bazaar developer API (purchase verification). Payments are off
-	// until all three credentials are set. Create the API client at
-	// pishkhan.cafebazaar.ir/settings/api and run the one-time OAuth consent
-	// to get the refresh token.
+	// Cafe Bazaar purchase verification. Bazaar signs every purchase with its
+	// private key; the server checks the signature with the app's public RSA
+	// key (Bazaar panel → in-app payments → RSA key). Payments are off until
+	// the key is set.
 	BazaarPackageName  string
-	BazaarClientID     string
-	BazaarClientSecret string
-	BazaarRefreshToken string
+	BazaarRSAPublicKey string
 }
 
 // Load reads all values from environment variables, falling back to safe defaults.
@@ -65,9 +63,7 @@ func Load() *Config {
 		OTPResendCooldown:    parseDuration("OTP_RESEND_COOLDOWN", 120*time.Second),
 
 		BazaarPackageName:  getEnv("BAZAAR_PACKAGE_NAME", "com.ataei.zanjir"),
-		BazaarClientID:     getEnv("BAZAAR_CLIENT_ID", ""),
-		BazaarClientSecret: getEnv("BAZAAR_CLIENT_SECRET", ""),
-		BazaarRefreshToken: getEnv("BAZAAR_REFRESH_TOKEN", ""),
+		BazaarRSAPublicKey: getEnv("BAZAAR_RSA_PUBLIC_KEY", ""),
 	}
 }
 
@@ -316,6 +312,13 @@ var StoreProducts = map[string]StoreProduct{
 	"coins_1500":      {ID: "coins_1500", Kind: StoreProductCoins, Coins: 1500},
 	"premium_monthly": {ID: "premium_monthly", Kind: StoreProductPremium},
 }
+
+// PremiumReverifyWindow is how long a verified, still-listed subscription
+// keeps premium_until ahead of now. Bazaar's signed receipt carries no expiry
+// (that needs the developer API), so the app re-reports its active
+// subscriptions at sign-in and on every resume; a lapsed one stops being
+// reported and premium ends within this window.
+const PremiumReverifyWindow = 72 * time.Hour
 
 // StoreBazaar is the `store_purchases.store` value for Cafe Bazaar.
 const StoreBazaar = "bazaar"
