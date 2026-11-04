@@ -156,8 +156,16 @@ class _GameView extends StatelessWidget {
           return;
         }
         // Daily challenge: auto-navigate to result screen once saved
+        // Pop (not go): the daily screen that launched the game is still
+        // underneath, and `go('/daily')` would reuse it without telling it to
+        // reload — it kept showing the first attempt after the paid retry.
+        // Popping completes its `push('/game')` future, which reloads it.
         if (state is GameOver && state.mode == 'daily') {
-          context.go('/daily');
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/daily');
+          }
         }
       },
       builder: (context, state) {

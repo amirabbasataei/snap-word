@@ -126,14 +126,7 @@ class _DailyViewState extends State<_DailyView> with WidgetsBindingObserver {
           case DailyRetryFailed(:final message):
             ZToast.show(context, message, kind: ZToastKind.error);
           case DailyRetryAvailable(:final challenge):
-            context.push(
-              '/game',
-              extra: GameRouteArgs(
-                mode: 'daily',
-                opponentType: 'solo',
-                startLetter: challenge.startLetter,
-              ),
-            );
+            _playDaily(context, challenge.startLetter);
           default:
         }
       },
@@ -173,6 +166,22 @@ class _DailyViewState extends State<_DailyView> with WidgetsBindingObserver {
     retrying: state is DailyAttempted && state.retrying,
     onBack: () => context.go('/home'),
   );
+}
+
+/// Opens the daily game and, when it closes, reloads the challenge quietly so
+/// the result shows the attempt just played. The screen stays mounted under
+/// the game (it is pushed, not replaced), so nothing else would refresh it.
+Future<void> _playDaily(BuildContext context, String startLetter) async {
+  final cubit = context.read<DailyCubit>();
+  await context.push(
+    '/game',
+    extra: GameRouteArgs(
+      mode: 'daily',
+      opponentType: 'solo',
+      startLetter: startLetter,
+    ),
+  );
+  if (!cubit.isClosed) await cubit.load(silent: true);
 }
 
 /// Scene, header and a body slot for the states with no challenge to show.
@@ -300,15 +309,7 @@ class _DailyBefore extends StatelessWidget {
           kind: ZOverEnterKind.up,
           delayMs: 720,
           child: DailyBeforeActions(
-            onStart:
-                () => context.push(
-                  '/game',
-                  extra: GameRouteArgs(
-                    mode: 'daily',
-                    opponentType: 'solo',
-                    startLetter: challenge.startLetter,
-                  ),
-                ),
+            onStart: () => _playDaily(context, challenge.startLetter),
             onBoard: () => context.push('/daily/board'),
           ),
         ),

@@ -78,6 +78,27 @@ void main() {
       },
     );
 
+    test(
+      'silent reload after the retry game: no spinner, result updates',
+      () async {
+        final repo = FakeDailyRepo(dailyChallenge(played: true));
+        final cubit = DailyCubit(repository: repo);
+        await cubit.load();
+        await cubit.retry();
+        expect(cubit.state, isA<DailyRetryAvailable>());
+        final seen = _record(cubit);
+        repo.challenge = dailyChallenge(
+          played: true,
+          retry: dailyAttempt(number: 2, score: 600),
+        );
+        await cubit.load(silent: true);
+        await Future<void>.delayed(Duration.zero);
+        expect(seen.whereType<DailyLoading>(), isEmpty);
+        final shown = (cubit.state as DailyAttempted).challenge;
+        expect(shown.hasRetried, isTrue);
+      },
+    );
+
     test('silent with nothing on screen yet still shows the spinner', () async {
       final repo = FakeDailyRepo(dailyChallenge());
       final cubit = DailyCubit(repository: repo);

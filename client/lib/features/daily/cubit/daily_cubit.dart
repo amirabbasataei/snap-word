@@ -17,7 +17,11 @@ class DailyCubit extends Cubit<DailyState> {
   /// (no spinner) and swallows a failure — used when the app comes back to the
   /// foreground.
   Future<void> load({bool silent = false}) async {
-    final keep = silent && (state is DailyAvailable || state is DailyAttempted);
+    final keep =
+        silent &&
+        (state is DailyAvailable ||
+            state is DailyAttempted ||
+            state is DailyRetryAvailable);
     if (!keep) emit(const DailyLoading());
     try {
       final challenge = await _repo.getDailyChallenge();
