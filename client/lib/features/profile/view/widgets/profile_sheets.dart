@@ -5,13 +5,11 @@ import 'package:wordchain/core/theme/app_spacing.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/avatar_tile.dart';
-import 'package:wordchain/core/widgets/z_coin.dart';
 import 'package:wordchain/core/widgets/z_load_state.dart';
 
-/// The profile's two bottom sheets. The canvas draws neither, so they keep
+/// The profile's avatar picker sheet. The canvas does not draw it, so it keeps
 /// the Material sheet frame (a shared `ZTray` is still to be built — todo.md
-/// §3); moved here from the screen file, content unchanged apart from the
-/// avatar picker's loading state, which is now `ZLoadState`.
+/// §3). The coin shop is `buy_coins_dialog.dart`.
 
 Future<void> showAvatarPicker(
   BuildContext context, {
@@ -36,23 +34,6 @@ Future<void> showAvatarPicker(
             onPick(id);
           },
         ),
-  );
-}
-
-Future<void> showBuyCoinsSheet(
-  BuildContext context, {
-  required void Function(String productId) onPurchase,
-}) {
-  final z = context.z;
-  return showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: z.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(ZRadius.sheetMax),
-      ),
-    ),
-    builder: (_) => BuyCoinsSheet(onPurchase: onPurchase),
   );
 }
 
@@ -131,91 +112,6 @@ class AvatarPickerSheet extends StatelessWidget {
                 );
               },
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class BuyCoinsSheet extends StatelessWidget {
-  final void Function(String productId) onPurchase;
-
-  const BuyCoinsSheet({super.key, required this.onPurchase});
-
-  static const bundles = [
-    ('coins_100', '۱۰۰ سکه', '۹٬۰۰۰ تومان'),
-    ('coins_350', '۳۵۰ سکه', '۲۵٬۰۰۰ تومان'),
-    ('coins_1500', '۱۵۰۰ سکه', '۷۹٬۰۰۰ تومان'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final z = context.z;
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          ZSpacing.screenGutter,
-          ZSpacing.xl,
-          ZSpacing.screenGutter,
-          ZSpacing.xl,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(
-              header: true,
-              child: Text(
-                'خرید سکه',
-                style: ZTypography.metaLabel.copyWith(
-                  color: z.ink40,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ),
-            const SizedBox(height: ZSpacing.lg),
-            for (final (id, title, price) in bundles)
-              Padding(
-                padding: const EdgeInsets.only(bottom: ZSpacing.md),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    onPurchase(id);
-                  },
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 52),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: ZSpacing.lg,
-                    ),
-                    decoration: BoxDecoration(
-                      color: z.wash,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        const ZCoin(size: 24),
-                        const SizedBox(width: ZSpacing.md),
-                        Text(
-                          title,
-                          style: ZTypography.cardTitle.copyWith(
-                            color: z.ink,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          price,
-                          style: ZTypography.cardTitle.copyWith(
-                            color: z.amberDeep,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

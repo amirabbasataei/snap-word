@@ -31,8 +31,8 @@ import 'package:wordchain/features/profile/data/profile_repository.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_header.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_invite_card.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_premium_card.dart';
-import 'package:wordchain/features/profile/view/widgets/purchase_progress_dialog.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_settings.dart';
+import 'package:wordchain/features/profile/view/widgets/buy_coins_dialog.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_sheets.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_stats_grid.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_xp_bar.dart';
@@ -186,36 +186,50 @@ class _LoadedView extends StatelessWidget {
   /// One purchase at a time, even across rebuilds of this screen.
   static bool _purchasing = false;
 
-  void _purchase(BuildContext context, String productId) async {
+  /// Runs one purchase and toasts what is worth saying. Returns null when none
+  /// was started (a guest is sent to sign in; another one is still running).
+  /// [quietSuccess]: the caller already shows the success (the coin shop's own
+  /// "coins added" state).
+  Future<StorePurchaseResult?> _purchase(
+    BuildContext context,
+    String productId, {
+    bool quietSuccess = false,
+  }) async {
     trackEvent(AnalyticsEvent.purchaseTap, {'product': productId});
     final profile = context.read<ProfileCubit>();
     if (getIt<AuthCubit>().isGuest) {
       context.push('/login?return=/profile');
-      return;
+      return null;
     }
-    if (_purchasing) return;
+    if (_purchasing) return null;
     _purchasing = true;
-    final closeProgress = showPurchaseProgress(context);
+    if (!quietSuccess) {
+      // The coin shop shows its own connecting state; a subscription has none.
+      ZToast.show(
+        context,
+        'در حال اتصال به کافه‌بازار…',
+        kind: ZToastKind.info,
+      );
+    }
     final StorePurchaseResult result;
     try {
       result = await getIt<StorePurchaseService>().buy(productId);
     } finally {
-      closeProgress();
       _purchasing = false;
     }
-    if (result.status == StorePurchaseStatus.success) {
+    final success = result.status == StorePurchaseStatus.success;
+    if (success) {
       // Premium state (and the balance) come from the server.
       unawaited(profile.load(silent: true));
     }
-    if (!context.mounted) return;
-    ZToast.show(
-      context,
-      result.message,
-      kind:
-          result.status == StorePurchaseStatus.success
-              ? ZToastKind.success
-              : ZToastKind.error,
-    );
+    if (context.mounted && !(success && quietSuccess)) {
+      ZToast.show(
+        context,
+        result.message,
+        kind: success ? ZToastKind.success : ZToastKind.error,
+      );
+    }
+    return result;
   }
 
   void _pickAvatar(BuildContext context) {
@@ -258,9 +272,10 @@ class _LoadedView extends StatelessWidget {
               isPremium: state.perks.isPremium,
               coins: coins,
               onCoinsTap:
-                  () => showBuyCoinsSheet(
+                  () => showBuyCoinsDialog(
                     context,
-                    onPurchase: (id) => _purchase(context, id),
+                    balance: coins,
+                    onBuy: (id) => _purchase(context, id, quietSuccess: true),
                   ),
               onEdit: () => showEditUsernameDialog(context),
             ),

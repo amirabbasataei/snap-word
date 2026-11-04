@@ -772,14 +772,24 @@ void main() {
       await open(tester);
       await tester.tap(find.byType(ZHudCoinPill));
       await _settle(tester);
-      expect(find.text('۱۰۰ سکه'), findsOneWidget);
-      expect(find.text('۳۵۰ سکه'), findsOneWidget);
-      expect(find.text('۱۵۰۰ سکه'), findsOneWidget);
-      await tester.tap(find.text('۳۵۰ سکه'));
+      // The shop is one dialog: three packs, the real balance, the middle
+      // pack preselected.
+      expect(find.text('سکه بخر'), findsOneWidget);
+      expect(find.text('۱۰۰'), findsOneWidget);
+      expect(find.text('۳۵۰'), findsOneWidget);
+      expect(find.text('۱٬۵۰۰'), findsOneWidget);
+      expect(find.text('۱٬۲۴۰ سکه'), findsOneWidget);
+      await tester.tap(find.text('۳۵۰'));
+      await _settle(tester);
+      await tester.tap(find.text('پرداخت ۲۵٬۰۰۰ تومان'));
       await _settle(tester);
       expect(h.money.bought, ['coins_350']);
-      expect(find.text('خرید با موفقیت انجام شد!'), findsOneWidget);
-      await _waitForToastToGo(tester);
+      // Success is the dialog's own state, not a toast.
+      expect(find.text('۳۵۰ سکه اضافه شد!'), findsOneWidget);
+      expect(find.text('ادامهٔ بازی'), findsOneWidget);
+      await tester.tap(find.text('ادامهٔ بازی'));
+      await _settle(tester);
+      expect(find.text('سکه بخر'), findsNothing);
     });
 
     testWidgets('coins: cancelled and failed purchases toast', (tester) async {
@@ -790,18 +800,20 @@ void main() {
       );
       await tester.tap(find.byType(ZHudCoinPill));
       await _settle(tester);
-      await tester.tap(find.text('۱۰۰ سکه'));
+      await tester.tap(find.text('۱۰۰'));
+      await _settle(tester);
+      await tester.tap(find.text('پرداخت ۹٬۰۰۰ تومان'));
       await _settle(tester);
       expect(find.text('خرید لغو شد.'), findsOneWidget);
+      // The shop stays open on the picker.
+      expect(find.text('پرداخت ۹٬۰۰۰ تومان'), findsOneWidget);
       await _waitForToastToGo(tester);
 
       h.money.result = const StorePurchaseResult(
         StorePurchaseStatus.failed,
         'خرید ناموفق بود.',
       );
-      await tester.tap(find.byType(ZHudCoinPill));
-      await _settle(tester);
-      await tester.tap(find.text('۱۰۰ سکه'));
+      await tester.tap(find.text('پرداخت ۹٬۰۰۰ تومان'));
       await _settle(tester);
       expect(find.text('خرید ناموفق بود.'), findsOneWidget);
       await _waitForToastToGo(tester);
