@@ -132,11 +132,13 @@ var AIDifficulties = map[string]AIDifficulty{
 // Change values here; never scatter magic numbers elsewhere.
 const (
 	TurnTimerClassicSec = 15  // seconds per turn in Classic mode
+	LongWordBonusMinLen = 7   // Flutter-only scoring: words this long (letters) have their turn score multiplied by LongWordBonusMult
+	LongWordBonusMult   = 2   // see LongWordBonusMinLen; the server uses both only to bound uploaded Daily scores
 	EntryFeeCoins       = 20  // coins each human player pays to start a 1v1 match; the winner takes the 2× pot
 	RoomWaitTimeoutSec  = 120 // a room whose second player never joins is cancelled and removed after this long
-	MinWordLength       = 3   // minimum accepted word length
+	MinWordLength       = 2   // minimum accepted word length (letters); AI levels have their own, higher minimums
 	ContinueWindowSec   = 15  // seconds the losing player has to decide on a continue
-	MaxDailyWords       = 20  // word limit for Daily Challenge
+	DailyChainSafetyCap = 200 // abuse backstop on an uploaded Daily Challenge chain; players have no word limit (lives end the game)
 	ContinueCoins       = 25  // coins spent to continue (Classic)
 	DailyRetryCoins     = 25  // coins spent to retry Daily Challenge
 	HintSessionLimit    = 5   // free hint uses per guest session

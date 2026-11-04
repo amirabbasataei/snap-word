@@ -77,11 +77,25 @@ func TestValidateMove(t *testing.T) {
 
 		// --- Rule 3: minimum length (counted in runes, not bytes) ---
 		{
-			name:      "two-letter word rejected",
+			name:      "two-letter dictionary word accepted",
 			prevWord:  "",
 			newWord:   "او",
 			usedWords: map[string]bool{},
-			wantErr:   ErrTooShort,
+			wantErr:   nil,
+		},
+		{
+			name:      "two-letter word not in dictionary still rejected",
+			prevWord:  "",
+			newWord:   "بژ",
+			usedWords: map[string]bool{},
+			wantErr:   ErrNotInDict,
+		},
+		{
+			name:      "two-letter word must still link to the previous word",
+			prevWord:  "کتاب", // ends با ب
+			newWord:   "او",
+			usedWords: map[string]bool{},
+			wantErr:   ErrWrongLetter,
 		},
 		{
 			name:      "single letter rejected",

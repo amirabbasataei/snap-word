@@ -67,8 +67,9 @@ abstract final class GameConstants {
   /// Paid (inbox reward) to the first signed-in player who suggested a word
   /// the admin approved — mirrors `config.CoinWordSuggestion`.
   static const int wordSuggestionCoins = 25;
-  static const int minWordLength = 3;
-  static const int dailyMaxWords = 20;
+  /// Mirrors `config.MinWordLength`. Two-letter words (آب، دل، در…) are legal;
+  /// AI levels have their own, higher minimums (`ai_opponent.dart`).
+  static const int minWordLength = 2;
   static const int dailyRetryCostCoins = 25;
 
   // Phase 17 (زنجیر redesign) — Lives, adopted for solo (classic + daily

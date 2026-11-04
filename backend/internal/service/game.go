@@ -102,6 +102,17 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 		if err != nil {
 			return nil, false, fmt.Errorf("CreateSoloGame daily: %w", err)
 		}
+		// Daily scores feed the leaderboard and prizes, so the chain is
+		// re-checked here instead of trusting the client (there is no word
+		// limit — lives end a run — so a forged chain would be unbounded).
+		challenge, cerr := s.dailyRepo.GetChallenge(ctx, challengeDate)
+		if cerr != nil {
+			return nil, false, fmt.Errorf("CreateSoloGame daily challenge: %w", cerr)
+		}
+		if verr := ValidateDailyChain(challenge.StartLetter, in.WordChain, in.Score); verr != nil {
+			slog.Warn("CreateSoloGame: daily chain rejected", "userID", userID, "error", verr)
+			return nil, false, verr
+		}
 	}
 
 	gs, err := json.Marshal(soloGameState{WordChain: in.WordChain, Score: in.Score})

@@ -57,8 +57,19 @@ void main() {
       }
     });
 
-    test('rejects words shorter than the minimum length', () {
-      expect(dictionaryService.isValid('او'), isFalse);
+    test('accepts two-letter dictionary words', () {
+      for (final w in ['او', 'از', 'آب', 'در', 'دل', 'که', 'را']) {
+        expect(dictionaryService.isValid(w), isTrue, reason: w);
+      }
+    });
+
+    test('rejects two-letter strings that are not words', () {
+      for (final w in ['بژ', 'فژ', 'کژ', 'ام']) {
+        expect(dictionaryService.isValid(w), isFalse, reason: w);
+      }
+    });
+
+    test('rejects a single letter', () {
       expect(dictionaryService.isValid('و'), isFalse);
     });
 

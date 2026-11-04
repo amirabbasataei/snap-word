@@ -76,6 +76,7 @@ const _faByCode = <String, String>{
   'not_attempted': 'اول باید چالش امروز را انجام بدهی',
   'already_retried': 'تلاش دوبارهٔ امروز را قبلاً استفاده کرده‌ای',
   'daily_attempt_not_allowed': 'تلاش‌های چالش امروز تمام شده',
+  'invalid_daily_chain': 'نتیجهٔ چالش روزانه تأیید نشد',
 
   // Friends / challenges.
   'user_not_found': 'کاربری با این نام پیدا نشد',
@@ -91,7 +92,7 @@ const _faByCode = <String, String>{
   'challenger_cannot_afford': 'حریف دیگر سکهٔ کافی برای ورودی بازی ندارد',
 
   // Word suggestions (Phase 24).
-  'invalid_word': 'این کلمه قابل گزارش نیست؛ فقط حروف فارسی و حداقل ۳ حرف',
+  'invalid_word': 'این کلمه قابل گزارش نیست؛ فقط حروف فارسی و حداقل ۲ حرف',
   'word_in_dictionary': 'این کلمه از قبل در دیکشنری هست',
   'word_unknown': 'این کلمه در دیکشنری نیست',
   'word_already_reviewed': 'این کلمه قبلاً بررسی شده است',

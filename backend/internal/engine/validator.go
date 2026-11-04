@@ -5,6 +5,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"wordchain/backend/internal/config"
 )
 
 var (
@@ -75,7 +77,7 @@ func ValidateMove(prevWord, newWord string, usedWords map[string]bool) error {
 	}
 
 	// Rule 3: minimum length (in runes, not bytes — Persian letters are multi-byte)
-	if utf8.RuneCountInString(newWord) < 3 {
+	if utf8.RuneCountInString(newWord) < config.MinWordLength {
 		return ErrTooShort
 	}
 

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"unicode/utf8"
+
+	"wordchain/backend/internal/config"
 )
 
 //go:embed data/fa.txt
@@ -127,16 +129,31 @@ func eachWord(fn func(w string) bool) {
 	}
 }
 
-// SuggestWord returns a valid word of at least 3 letters that starts with letter
-// and is not present in usedWords. Returns "" if none found.
+// suggestPreferredLen is the length SuggestWord favours: a hint of three or
+// more letters is more useful than «آب». Shorter words are a fallback.
+const suggestPreferredLen = 3
+
+// SuggestWord returns a valid word that starts with letter and is not present
+// in usedWords, preferring words of at least suggestPreferredLen letters and
+// falling back to a shorter one only when nothing longer is left. Returns ""
+// if none found.
 func SuggestWord(letter rune, usedWords map[string]bool) string {
-	found := ""
+	preferred, fallback := "", ""
 	eachWord(func(w string) bool {
-		if utf8.RuneCountInString(w) >= 3 && firstLetter(w) == letter && !usedWords[w] {
-			found = w
+		if firstLetter(w) != letter || usedWords[w] {
+			return true
+		}
+		if utf8.RuneCountInString(w) >= suggestPreferredLen {
+			preferred = w
 			return false
+		}
+		if fallback == "" && utf8.RuneCountInString(w) >= config.MinWordLength {
+			fallback = w
 		}
 		return true
 	})
-	return found
+	if preferred != "" {
+		return preferred
+	}
+	return fallback
 }

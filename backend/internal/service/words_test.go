@@ -211,7 +211,7 @@ func TestWordSubmit_Rules(t *testing.T) {
 		{"ok signed in, no install", wUser, service.SubmitWordInput{Word: missing, Kind: "add"}, nil},
 		{"guest needs install id", "", service.SubmitWordInput{Word: missing, Kind: "add"}, service.ErrWordInvalid},
 		{"latin", wUser, service.SubmitWordInput{Word: "abc", Kind: "add"}, service.ErrWordInvalid},
-		{"too short", wUser, service.SubmitWordInput{Word: "اب", Kind: "add"}, service.ErrWordInvalid},
+		{"too short (one letter)", wUser, service.SubmitWordInput{Word: "ا", Kind: "add"}, service.ErrWordInvalid},
 		{"too long", wUser, service.SubmitWordInput{Word: strings.Repeat("ا", 31), Kind: "add"}, service.ErrWordInvalid},
 		{"bad kind", wUser, service.SubmitWordInput{Word: missing, Kind: "zap"}, service.ErrWordInvalid},
 		{"already in dictionary", wUser, service.SubmitWordInput{Word: existing, Kind: "add"}, service.ErrWordInDictionary},

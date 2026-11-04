@@ -4,14 +4,17 @@ import (
 	"math/rand"
 	"sort"
 	"sync"
-
-	"wordchain/backend/internal/config"
 )
 
 // minWordsForDaily is the minimum number of length>=3 dictionary words
 // starting with a letter for that letter to be eligible as a Daily Challenge
 // start letter — avoids stranding players on a near-empty branch of the tree.
 const minWordsForDaily = 10
+
+// dailyLetterMinWordLen keeps the start-letter pool to letters that open
+// plenty of full-size words; short words are legal in play (config.MinWordLength)
+// but would only widen the pool without making a letter a better opener.
+const dailyLetterMinWordLen = 3
 
 var (
 	dailyLetterPoolOnce sync.Once
@@ -25,7 +28,7 @@ func dailyStartLetters() []rune {
 		counts := make(map[rune]int)
 		for w := range dictionary {
 			runes := []rune(w)
-			if len(runes) < config.MinWordLength {
+			if len(runes) < dailyLetterMinWordLen {
 				continue
 			}
 			counts[runes[0]]++

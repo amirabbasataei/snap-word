@@ -19,7 +19,13 @@ class DictionaryChange {
 
 class DictionaryService {
   static const _assetPath = 'assets/words/fa.txt';
-  static const _minLength = 3;
+
+  /// Mirrors `config.MinWordLength` / `GameConstants.minWordLength`.
+  static const _minLength = 2;
+
+  /// Hints favour words of at least this many letters; shorter ones are only
+  /// offered when nothing longer is left.
+  static const _hintPreferredLength = 3;
 
   /// Zero-width non-joiner — some Persian keyboards insert it inside
   /// compound words (e.g. "می‌روم"). It is not itself a letter, so it must
@@ -96,15 +102,18 @@ class DictionaryService {
   }) {
     final letter = startLetter.trim();
     if (letter.isEmpty) return const [];
-    return _words
-        .where(
-          (w) =>
-              w.startsWith(letter) &&
-              w.length >= _minLength &&
-              !exclude.contains(w),
-        )
-        .take(20)
-        .toList();
+    final candidates = _words.where(
+      (w) =>
+          w.startsWith(letter) &&
+          w.length >= _minLength &&
+          !exclude.contains(w),
+    );
+    final preferred =
+        candidates
+            .where((w) => w.length >= _hintPreferredLength)
+            .take(20)
+            .toList();
+    return preferred.isNotEmpty ? preferred : candidates.take(20).toList();
   }
 
   /// Returns the last meaningful letter of a Persian word, stripping any

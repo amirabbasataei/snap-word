@@ -94,6 +94,10 @@ func (h *GameHandler) CreateSolo(c *gin.Context) {
 		respondError(c, http.StatusConflict, "daily_attempt_not_allowed", "today's daily challenge attempts are used up")
 		return
 	}
+	if errors.Is(err, service.ErrInvalidDailyChain) {
+		respondError(c, http.StatusBadRequest, "invalid_daily_chain", "the daily challenge chain is not valid")
+		return
+	}
 	if err != nil {
 		slog.Error("CreateSolo failed", "userID", userID, "error", err)
 		respondError(c, http.StatusInternalServerError, "internal_error", "failed to create game")

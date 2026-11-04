@@ -103,9 +103,7 @@ class _Header extends StatelessWidget {
           // Daily is a fixed, once-a-day variant — no mode toggle (switching
           // would silently abandon the tracked attempt).
           subtitle:
-              isDaily
-                  ? 'حداکثر ${toPersianDigits(GameConstants.dailyMaxWords)} کلمه'
-                  : '${toPersianDigits(GameConstants.classicTurnTimerSec)} ثانیه',
+              '${toPersianDigits(GameConstants.classicTurnTimerSec)} ثانیه',
           compact: compact,
         ),
       ),

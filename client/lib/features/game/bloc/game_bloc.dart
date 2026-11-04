@@ -328,8 +328,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           active.livesRemaining > 1) {
         // Lives (solo/daily only, Phase 17 — see REDESIGN_PLAN.md §1
         // decision 1) — a mistake costs a life instead of ending the match
-        // while lives remain; the chain is unaffected. Daily still ends via
-        // the separate dailyMaxWords cap above once the chain is long enough.
+        // while lives remain; the chain is unaffected. There is no word
+        // limit — the run ends when the lives are gone.
         _turnStartTime = DateTime.now();
         _startTurnTimer();
         emit(
@@ -370,23 +370,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         _isVsAI(active) ? [...active.wordOwners, 'player'] : active.wordOwners;
 
     await _gameRepository.recordAcceptedWord(active.localMatchId, newChain);
-
-    // Daily challenge ends automatically after reaching the max word count
-    if (active.mode == 'daily' &&
-        newChain.length >= GameConstants.dailyMaxWords) {
-      _stopTurnTimer();
-      await _finalizeGame(
-        emit: emit,
-        localMatchId: active.localMatchId,
-        mode: active.mode,
-        reason: 'max_words',
-        score: active.score + turnScore,
-        wordChain: newChain,
-        canContinue: false,
-        opponentScore: active.opponentScore,
-      );
-      return;
-    }
 
     if (_isVsAI(active)) {
       // Switch to AI turn — restart turn timer so match timer keeps ticking
