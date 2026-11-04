@@ -111,7 +111,7 @@ class _ReferralDialogState extends State<ReferralDialog> {
           done
               // The inviter's +50 is a claimable inbox reward, not instant coins.
               ? 'سکه‌ها به حساب تو اضافه شد و هدیهٔ دوستت هم ثبت شد.'
-              : 'اگه دوستی دعوتت کرده، کدش رو بزن تا هر دوتون سکه بگیرید.',
+              : 'اگه دوستی دعوتت کرده، کدش رو بزن تا هر دوتون سکه بگیرین.',
       panel: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -170,7 +170,7 @@ class _ReferralDialogState extends State<ReferralDialog> {
                 focusedBorder: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 counterText: '',
-                hintText: 'کد دعوت را وارد کن',
+                hintText: 'کد دعوت رو بزن',
                 hintStyle: ZTypography.cardTitle.copyWith(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,

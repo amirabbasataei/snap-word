@@ -393,7 +393,7 @@ class _NeedCoinsSheetState extends State<_NeedCoinsSheet> {
         if (mounted) {
           setState(() {
             _busy = false;
-            _error = 'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن';
+            _error = 'الان تبلیغی نیست، بعداً دوباره امتحان کن';
           });
         }
         return;
@@ -405,7 +405,7 @@ class _NeedCoinsSheetState extends State<_NeedCoinsSheet> {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = 'اتصال برقرار نشد؛ دوباره تلاش کن';
+          _error = 'وصل نشد، دوباره امتحان کن';
         });
       }
     }
@@ -433,8 +433,8 @@ class _NeedCoinsSheetState extends State<_NeedCoinsSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            'به ${toPersianDigits(widget.missing)} سکهٔ دیگر نیاز داری. '
-            'با دیدن یک تبلیغ ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
+            '${toPersianDigits(widget.missing)} سکهٔ دیگه لازم داری. '
+            'با دیدن یه تبلیغ ${toPersianDigits(GameConstants.rewardedAdCoins)} سکه هدیه بگیر.',
             textAlign: TextAlign.center,
             style: ZTypography.body.copyWith(
               fontSize: 14,

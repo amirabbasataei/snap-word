@@ -25,7 +25,7 @@ import 'package:wordchain/features/game/view/widgets/z_game_bubbles.dart';
 String zTauntRuleLine() => tauntRuleText();
 
 const _freeLine =
-    'ارسال فقط برای اشتراک ویژه فعال است؛ دریافت طعنه‌ها برای همه رایگان است.';
+    'فرستادن طعنه فقط برای اشتراک ویژه‌ست، دریافتش برای همه رایگانه.';
 
 /// 66dp chunky button next to the input card. A crown badge marks it as a
 /// premium feature; free players see a lock instead and the tray explains.
@@ -162,7 +162,7 @@ class _ZTauntTrayState extends State<ZTauntTray> {
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       child: Center(
                         child: Text(
-                          'طعنه‌ای در دسترس نیست',
+                          'فعلاً طعنه‌ای نیست',
                           style: TextStyle(
                             color: z.ink60,
                             fontWeight: FontWeight.w800,

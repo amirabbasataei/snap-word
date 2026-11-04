@@ -37,10 +37,10 @@ MessageFace requestFace(PendingRequest r) {
   final name = _isolate(r.username);
   return MessageFace(
     title: 'درخواست دوستی',
-    body: '$name می‌خواهد دوست تو شود.',
+    body: '$name می‌خواد دوستت باشه.',
     glyph: nameInitial(r.username),
     accent: ZDialogAccent.indigo,
-    acceptLabel: 'بپذیر',
+    acceptLabel: 'قبول',
     declineLabel: 'رد',
     acceptSemantics: 'پذیرفتن درخواست دوستی $name',
     declineSemantics: 'رد درخواست دوستی $name',
@@ -51,7 +51,7 @@ MessageFace challengeFace(PendingChallenge c) {
   final name = _isolate(c.challengerUsername);
   return MessageFace(
     title: 'دعوت به بازی',
-    body: '$name تو را به یک بازی آنلاین دعوت کرده است.',
+    body: '$name دعوتت کرده به یه بازی آنلاین.',
     glyph: nameInitial(c.challengerUsername),
     accent: ZDialogAccent.coral,
     acceptLabel: 'بازی کن',

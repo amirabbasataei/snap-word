@@ -252,11 +252,11 @@ func (s *DailyService) RunDailyPayout(ctx context.Context, date time.Time) error
 	for _, row := range rows {
 		award(row.UserID, repository.RewardDailyDone, "", config.CoinDailyComplete,
 			"چالش روزانه تمام شد",
-			fmt.Sprintf("%s سکه گرفتی؛ از صندوق جایزه‌ها بردار.", faNum(config.CoinDailyComplete)))
+			fmt.Sprintf("%s سکه گرفتی، از صندوق جایزه‌ها بردارش.", faNum(config.CoinDailyComplete)))
 		if coins, ok := rankCoins[row.Rank]; ok {
 			award(row.UserID, repository.RewardDailyRank, strconv.Itoa(row.Rank), coins,
 				"جایزه چالش روزانه",
-				fmt.Sprintf("امروز نفر %s شدی و %s سکه گرفتی؛ از صندوق جایزه‌ها بردار!", faNum(row.Rank), faNum(coins)))
+				fmt.Sprintf("در چالش دیروز نفر %s شدی و %s سکه گرفتی! از صندوق جایزه‌ها بردارش.", faNum(row.Rank), faNum(coins)))
 		}
 	}
 	if firstErr != nil {

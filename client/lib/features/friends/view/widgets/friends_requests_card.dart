@@ -51,7 +51,7 @@ class FriendsRequestsCard extends StatelessWidget {
           for (var i = 0; i < requests.length; i++)
             _InboxRow(
               name: requests[i].username,
-              sub: 'می‌خواهد دوست تو شود',
+              sub: 'می‌خواد دوستت باشه',
               index: i,
               divider: i > 0,
               acceptLabel:

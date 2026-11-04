@@ -77,7 +77,7 @@ Widget _gallery() {
             onPressed: () {},
           ),
           const SizedBox(height: 8),
-          NeutralButton(label: 'انصراف', onPressed: () {}),
+          NeutralButton(label: 'بی‌خیال', onPressed: () {}),
         ],
       ),
     ),

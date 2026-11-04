@@ -328,7 +328,7 @@ class _Heading extends StatelessWidget {
                   Semantics(
                     header: true,
                     child: Text(
-                      'کد چهاررقمی را بزن',
+                      'کد چهاررقمی رو بزن',
                       style: ZTypography.display.copyWith(
                         fontSize: 22,
                         height: 1.2,
@@ -341,7 +341,7 @@ class _Heading extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 6,
                     children: [
-                      Text('فرستاده شد به', style: meta),
+                      Text('فرستادیم به', style: meta),
                       Directionality(
                         textDirection: TextDirection.ltr,
                         child: Text(

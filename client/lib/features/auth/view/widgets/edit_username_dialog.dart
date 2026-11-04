@@ -88,7 +88,7 @@ class _EditUsernameDialogState extends State<EditUsernameDialog> {
   Widget build(BuildContext context) {
     final z = context.z;
     final charsBad = !_saved && _changed && _name.isNotEmpty && !_charsOk;
-    final message = _error ?? (charsBad ? 'فقط حرف، عدد و _ مجاز است' : null);
+    final message = _error ?? (charsBad ? 'فقط حرف، عدد و _ می‌شه' : null);
     final bad = message != null;
     return ZFormDialog(
       mood:
@@ -206,7 +206,7 @@ class _EditUsernameDialogState extends State<EditUsernameDialog> {
               : _canSave
               ? _submit
               : null,
-      secondaryLabel: _saved ? null : 'انصراف',
+      secondaryLabel: _saved ? null : 'بی‌خیال',
       onSecondary: () => Navigator.of(context).pop(),
     );
   }

@@ -83,7 +83,7 @@ class _InsufficientCoinsDialog extends StatelessWidget {
           ),
           const SizedBox(height: ZSpacing.sm),
           Text(
-            'برای این کار ${toPersianDigits(cost)} سکه لازم است. با این راه‌ها سکه جمع کن:',
+            'برای این کار ${toPersianDigits(cost)} سکه لازمه. اینجوری سکه جمع کن:',
             textAlign: TextAlign.center,
             style: ZTypography.body.copyWith(
               fontSize: 14,
@@ -125,7 +125,7 @@ class _InsufficientCoinsDialog extends StatelessWidget {
           ),
           const SizedBox(height: ZSpacing.sm),
           ZDialogButton.primary(
-            label: 'متوجه شدم',
+            label: 'باشه',
             onTap: () => Navigator.of(context).pop(),
           ),
         ],

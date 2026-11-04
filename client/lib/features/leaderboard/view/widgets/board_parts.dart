@@ -50,17 +50,17 @@ class BoardDisc extends StatelessWidget {
 /// The player's own subtitle under «تو — name». Everything here is derived
 /// from the rank/score the server returned — no deltas, no league.
 String selfSubtitle(BoardTab tab, int rank, int? score) {
-  const play = 'یک بازی آنلاین بازی کن';
+  const play = 'یه بازی آنلاین بزن';
   switch (tab) {
     case BoardTab.daily:
       return rank <= 0
-          ? 'امروز هنوز چالش روزانه را بازی نکرده‌ای'
+          ? 'امروز هنوز چالش روزانه رو بازی نکردی'
           : rank <= 10
           ? 'جزو ده نفر برتر امروز!'
           : '${toPersianDigits(rank - 10)} پله تا ده‌تای اول';
     case BoardTab.friends:
       if (rank <= 0 || (score ?? 0) == 0) {
-        return 'این هفته امتیازی نداری — $play';
+        return 'این هفته امتیازی نداری. $play';
       }
       return rank == 1
           ? 'بین دوستانت اولی!'
@@ -69,8 +69,8 @@ String selfSubtitle(BoardTab tab, int rank, int? score) {
     case BoardTab.allTime:
       if (rank <= 0) {
         return tab == BoardTab.weekly
-            ? 'این هفته امتیازی نداری — $play'
-            : 'هنوز امتیازی نداری — $play';
+            ? 'این هفته امتیازی نداری. $play'
+            : 'هنوز امتیازی نداری. $play';
       }
       return rank <= 10
           ? 'جزو ده نفر برتری!'

@@ -131,7 +131,7 @@ class _NextTile extends StatelessWidget {
     return Semantics(
       container: true,
       excludeSemantics: true,
-      label: 'چالش بعدی فردا ساعت ۰۰:۰۰، ${formatCountdownFa(left)} مانده',
+      label: 'چالش بعدی فردا ساعت ۰۰:۰۰، ${formatCountdownFa(left)} مونده',
       child: ChunkyBox(
         fill: z.indigo,
         deep: z.indigoDeep,
@@ -155,7 +155,7 @@ class _NextTile extends StatelessWidget {
                 ),
               ),
             ),
-            Text('ساعت و دقیقه تا چالشی تازه', style: meta()),
+            Text('ساعت و دقیقه تا چالش بعدی', style: meta()),
           ],
         ),
       ),

@@ -179,7 +179,7 @@ class _PhoneCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'یک کد چهاررقمی برایت می‌فرستیم. رمزی در کار نیست.',
+                  'یه کد چهاررقمی برات می‌فرستیم. رمز لازم نیست.',
                   style: ZTypography.metaLabel.copyWith(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

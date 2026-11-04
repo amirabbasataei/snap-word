@@ -75,7 +75,7 @@ class _MyWordReportsDialog extends StatelessWidget {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          'هنوز کلمه‌ای نفرستاده‌ای.',
+                          'هنوز کلمه‌ای نفرستادی.',
                           textAlign: TextAlign.center,
                           style: ZTypography.body.copyWith(color: z.ink60),
                         ),

@@ -171,7 +171,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       return _stateCard(
         const ZEmptyState(
           title: 'اعلانی نداری',
-          body: 'هر خبر تازه‌ای برسد، همین‌جا می‌بینی.',
+          body: 'هر خبر تازه‌ای بیاد، همین‌جا می‌بینی.',
           mood: ZMascotMood.idle,
         ),
       );

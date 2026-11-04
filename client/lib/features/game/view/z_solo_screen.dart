@@ -73,7 +73,7 @@ Widget? _mistakeBanner(BuildContext context, GameActive state) {
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     child: Text(
-      'کلمهٔ اشتباه — یک جان از دست دادی!',
+      'کلمهٔ اشتباه! یه جان از دست دادی',
       textAlign: TextAlign.center,
       style: TextStyle(
         color: context.zs.coralInk,

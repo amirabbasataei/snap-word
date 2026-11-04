@@ -73,7 +73,7 @@ func (s *ChallengeService) CreateChallenge(ctx context.Context, challengerID, ch
 
 	if err := s.notifSvc.SendToUser(ctx, challengedID,
 		"چالش دوستانه",
-		fmt.Sprintf("%s تو را به یک بازی کلاسیک دعوت کرد!", challengerName),
+		fmt.Sprintf("%s دعوتت کرده به یه بازی کلاسیک!", challengerName),
 	); err != nil {
 		slog.Warn("CreateChallenge: notification failed", "challengedID", challengedID, "error", err)
 	}
@@ -116,7 +116,7 @@ func (s *ChallengeService) RespondToChallenge(ctx context.Context, challengeID, 
 		}
 		if err := s.notifSvc.SendToUser(ctx, ch.ChallengerID,
 			"چالش رد شد",
-			fmt.Sprintf("%s چالش تو را رد کرد.", responderName),
+			fmt.Sprintf("%s چالشت رو رد کرد.", responderName),
 		); err != nil {
 			slog.Warn("RespondToChallenge: decline notification failed", "challengerID", ch.ChallengerID, "error", err)
 		}
@@ -140,8 +140,8 @@ func (s *ChallengeService) RespondToChallenge(ctx context.Context, challengeID, 
 	}
 
 	if err := s.notifSvc.SendToUser(ctx, ch.ChallengerID,
-		"چالش پذیرفته شد",
-		fmt.Sprintf("%s چالش تو را پذیرفت؛ وارد بازی شو!", responderName),
+		"چالشت قبول شد",
+		fmt.Sprintf("%s چالشت رو قبول کرد، بیا تو بازی!", responderName),
 	); err != nil {
 		slog.Warn("RespondToChallenge: accept notification failed", "challengerID", ch.ChallengerID, "error", err)
 	}
@@ -202,7 +202,7 @@ func (s *ChallengeService) ExpireOldChallenges(ctx context.Context) {
 		}
 		if err := s.notifSvc.SendToUser(ctx, ch.ChallengerID,
 			"چالش منقضی شد",
-			fmt.Sprintf("چالش تو برای %s منقضی شد.", challengedName),
+			fmt.Sprintf("چالشت برای %s منقضی شد.", challengedName),
 		); err != nil {
 			slog.Warn("ExpireOldChallenges: notification failed",
 				"challengerID", ch.ChallengerID, "error", err)

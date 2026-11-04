@@ -258,10 +258,10 @@ void main() {
       tester,
     ) async {
       await open(tester);
-      expect(find.text('جایزه‌های آمادهٔ دریافت'), findsOneWidget);
+      expect(find.text('جایزه‌های آماده'), findsOneWidget);
       // 6 unclaimed: 10 + 300 + 100 + 10 + 50 + 200.
       expect(find.text('۶'), findsOneWidget);
-      expect(find.text('روی هم ۶۷۰ سکه منتظر توست'), findsOneWidget);
+      expect(find.text('روی هم ۶۷۰ سکه منتظرته'), findsOneWidget);
     });
 
     testWidgets('nothing unclaimed: says so, and that all are taken', (
@@ -272,7 +272,7 @@ void main() {
         items: [reward('x', 'streak', detail: '3', claimed: true)],
       );
       expect(find.text('فعلاً جایزه‌ای آماده نیست'), findsOneWidget);
-      expect(find.text('همهٔ جایزه‌هایت را گرفته‌ای'), findsOneWidget);
+      expect(find.text('همهٔ جایزه‌هات رو گرفتی'), findsOneWidget);
       expect(find.text('۰'), findsOneWidget);
     });
 
@@ -291,13 +291,13 @@ void main() {
     ) async {
       await open(tester, hgt: 1600);
       for (final text in [
-        'پاداش ورود روزانه',
-        'پاداش روزهای پیاپی',
+        'جایزهٔ ورود روزانه',
+        'جایزهٔ روزهای پیاپی',
         '۷ روز پیاپی بازی کردی! ۱۰۰ سکه هدیه بگیر.',
         'در جدول هفتگی رتبهٔ ۲ شدی! ۳۰۰ سکه هدیه بگیر.',
         'در چالش دیروز رتبهٔ ۱ شدی! ۱۰۰ سکه هدیه بگیر.',
         'برای شرکت در چالش دیروز ۱۰ سکه هدیه بگیر.',
-        'تیم زنجیر برایت ۲۰۰ سکه هدیه فرستاده است.',
+        'تیم زنجیر برات ۲۰۰ سکه هدیه فرستاده.',
         'برای سر زدن امروز ۱۰ سکه هدیه بگیر.',
       ]) {
         expect(find.text(text), findsOneWidget, reason: text);
@@ -350,7 +350,7 @@ void main() {
       expect(find.text('گرفتی'), findsNWidgets(2));
       expect(find.text('دریافت'), findsNWidgets(5));
       expect(find.text('۵'), findsOneWidget);
-      expect(find.text('روی هم ۶۶۰ سکه منتظر توست'), findsOneWidget);
+      expect(find.text('روی هم ۶۶۰ سکه منتظرته'), findsOneWidget);
       // 90 + 10, credited on the live balance.
       expect(find.text('۱۰۰'), findsOneWidget);
       expect((h.auth.state as AuthAuthenticated).coins, 100);
@@ -521,7 +521,7 @@ void main() {
       final handle = tester.ensureSemantics();
       await open(tester, hgt: 1600);
       final first = tester.getSemantics(find.byType(RewardTile).first);
-      expect(first.label, contains('پاداش ورود روزانه'));
+      expect(first.label, contains('جایزهٔ ورود روزانه'));
       expect(first.label, contains('۱۰ سکه'));
       expect(first.label, contains('دریافت'));
       expect(first.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);

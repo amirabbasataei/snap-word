@@ -180,7 +180,7 @@ class _GuestBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return _StateCard(
       child: ZEmptyState(
-        title: 'دوستانت را پیدا کن',
+        title: 'دوستات رو پیدا کن',
         body: 'ثبت‌نام کن تا دوست اضافه کنی، چالش بفرستی و رقابت کنی!',
         actionLabel: 'ثبت‌نام رایگان',
         onAction: () => context.push('/login?return=/friends'),

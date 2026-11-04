@@ -163,7 +163,7 @@ class _BuyCoinsDialogState extends State<BuyCoinsDialog> {
                   ),
                   // The button's resting edge already takes 7 of the 14.
                   const SizedBox(height: 7),
-                  _Note(text: done ? 'خریدت با موفقیت ثبت شد.' : 'پرداخت امن از کافه‌بازار'),
+                  _Note(text: done ? 'خریدت ثبت شد.' : 'پرداخت امن از کافه‌بازار'),
                 ],
               ),
             ),

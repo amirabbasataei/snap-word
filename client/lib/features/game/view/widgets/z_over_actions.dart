@@ -90,7 +90,7 @@ class ZOverContinueActions extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             _SquareButton(
-              label: 'ادامه نمی‌دم؛ بازگشت به خانه',
+              label: 'ادامه نمی‌دم، برمی‌گردم خانه',
               onTap: onDecline,
               glyph: ZIcon('house', size: 24, color: z.ink),
             ),

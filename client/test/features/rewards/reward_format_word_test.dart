@@ -15,7 +15,7 @@ void main() {
         createdAt: DateTime(2026, 10, 27),
       ),
     );
-    expect(face.title, 'پاداش پیشنهاد کلمه');
+    expect(face.title, 'جایزهٔ پیشنهاد کلمه');
     expect(face.body, contains('آزمونک'));
     expect(face.body, contains(toPersianDigits(25)));
     expect(face.body, isNot(contains('دعوت')));

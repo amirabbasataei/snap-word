@@ -96,8 +96,8 @@ class _NotificationPermissionDialog extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'با فعال‌کردن اعلان‌ها بلافاصله می‌فهمی کسی درخواست دوستی داده، '
-            'تو را به چالش دعوت کرده یا جایزه‌ات آماده است.',
+            'اگه اعلان‌ها رو روشن کنی، همون لحظه می‌فهمی کسی درخواست دوستی داده، '
+            'چالشت کرده یا جایزه‌ات آماده‌ست.',
             textAlign: TextAlign.center,
             style: ZTypography.body.copyWith(
               fontSize: 14,
@@ -107,7 +107,7 @@ class _NotificationPermissionDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          ZDialogButton.primary(label: 'فعال‌سازی اعلان‌ها', onTap: onAgree),
+          ZDialogButton.primary(label: 'روشن کردن اعلان‌ها', onTap: onAgree),
           const SizedBox(height: 7),
           ZDialogButton.secondary(label: 'بعداً', onTap: onLater),
         ],

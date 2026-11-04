@@ -48,7 +48,7 @@ Future<void> _report(OverlayState overlay, String word) async {
   } else {
     ZToast.showOn(
       overlay,
-      state.message ?? 'مشکلی پیش آمد، دوباره تلاش کن',
+      state.message ?? 'یه مشکلی پیش اومد، دوباره امتحان کن',
       kind: ZToastKind.error,
     );
   }

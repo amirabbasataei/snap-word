@@ -407,7 +407,7 @@ void main() {
       await _settle(tester);
       await openTray(tester);
       expect(find.text('همین بود؟'), findsNothing);
-      expect(find.text('طعنه‌ای در دسترس نیست'), findsNothing);
+      expect(find.text('فعلاً طعنه‌ای نیست'), findsNothing);
       await tester.pump(const Duration(seconds: 2));
       expect(find.text('همین بود؟'), findsOneWidget);
     });
@@ -422,7 +422,7 @@ void main() {
       await _settle(tester);
       await openTray(tester);
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('طعنه‌ای در دسترس نیست'), findsOneWidget);
+      expect(find.text('فعلاً طعنه‌ای نیست'), findsOneWidget);
     });
 
     /// Pumps [before] then [after], so the taunt arrives as a state change

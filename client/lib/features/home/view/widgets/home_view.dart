@@ -77,7 +77,7 @@ class HomeView extends StatelessWidget {
   /// Decorative — it is the home screen's "this is the game" picture.
   static const heroWords = ['سیب', 'باران', 'نمک', 'کتاب', 'برف'];
 
-  static const onlineFallback = 'با بازیکنان دیگر به رقابت بپرداز';
+  static const onlineFallback = 'با بقیهٔ بازیکن‌ها رقابت کن';
 
   // Heights of the non-hero blocks, used to size the hero to the screen.
   static const _hudBlock = 10.0 + ZGame.hudRowHeight;

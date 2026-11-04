@@ -68,13 +68,13 @@ void main() {
       await tester.pumpWidget(
         _app(
           ZLoadState.error(
-            message: 'خطا در اتصال به اینترنت',
+            message: 'وصل نشد، اینترنتت رو چک کن',
             onRetry: () => retries++,
           ),
         ),
       );
 
-      expect(find.text('خطا در اتصال به اینترنت'), findsOneWidget);
+      expect(find.text('وصل نشد، اینترنتت رو چک کن'), findsOneWidget);
       expect(
         tester.widget<ZMascot>(find.byType(ZMascot)).mood,
         ZMascotMood.sad,
@@ -100,7 +100,7 @@ void main() {
         await tester.pumpWidget(
           _app(
             ZLoadState.error(
-              message: 'بارگذاری دوستان ناموفق بود، لطفاً دوباره تلاش کن',
+              message: 'دوستات لود نشدن، لطفاً دوباره تلاش کن',
               onRetry: () {},
             ),
             brightness: brightness,

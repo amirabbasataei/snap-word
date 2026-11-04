@@ -31,8 +31,8 @@ class ProfilePremiumCard extends StatelessWidget {
   });
 
   static const benefits = [
-    'ارسال پیام‌های سریع حین بازی دو نفره',
-    'آواتارهای ویژه و نشان تاج کنار نام',
+    'فرستادن پیام سریع حین بازی دونفره',
+    'آواتار ویژه و تاج کنار اسمت',
   ];
 
   static String untilLabel(DateTime until) {
@@ -72,7 +72,7 @@ class ProfilePremiumCard extends StatelessWidget {
                 child: Semantics(
                   header: true,
                   child: Text(
-                    premium ? 'اشتراک ویژه فعال است' : 'اشتراک ویژه',
+                    premium ? 'اشتراک ویژه فعاله' : 'اشتراک ویژه',
                     style: ZTypography.button.copyWith(
                       fontSize: 15,
                       height: 1.3,

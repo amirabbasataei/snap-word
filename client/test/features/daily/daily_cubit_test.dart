@@ -204,7 +204,7 @@ void main() {
         final repo = FakeDailyRepo(dailyChallenge(played: true))
           ..retryError = const DailyException(
             code: 'already_retried',
-            message: 'تلاش دوبارهٔ امروز را قبلاً استفاده کرده‌ای',
+            message: 'تلاش دوبارهٔ امروزت رو قبلاً استفاده کردی',
           );
         final cubit = await played(repo);
         await cubit.retry();

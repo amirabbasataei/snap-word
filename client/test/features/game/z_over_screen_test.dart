@@ -304,7 +304,7 @@ void main() {
       h.register(bestChain: 23);
       await show(t, _over(opponentType: 'solo'));
       expect(find.text('زنجیر پاره شد!'), findsOneWidget);
-      expect(find.text('وقت تموم شد؛ کلمه‌ای با «ر» نداشتی.'), findsOneWidget);
+      expect(find.text('وقت تموم شد و کلمه‌ای با «ر» نگفتی.'), findsOneWidget);
       expect(find.byType(ZMascot), findsOneWidget);
       expect(t.widget<ZMascot>(find.byType(ZMascot)).mood, ZMascotMood.sad);
       expect(find.text('امتیاز این دست'), findsOneWidget);
@@ -362,9 +362,9 @@ void main() {
         await t.pump();
         await t.pump(const Duration(milliseconds: 300));
         expect(h.words.suggested, ['قلمم']);
-        expect(find.text('گزارش شد؛ ممنون'), findsOneWidget);
+        expect(find.text('گزارش شد، ممنون'), findsOneWidget);
         // Sent once: the pill no longer reacts.
-        await t.tap(find.text('گزارش شد؛ ممنون'));
+        await t.tap(find.text('گزارش شد، ممنون'));
         await t.pump();
         expect(h.words.suggested, hasLength(1));
         await t.pump(const Duration(seconds: 6)); // let the toast go
@@ -421,7 +421,7 @@ void main() {
           t,
         ); // the dialog drops in (mascots loop, so no pumpAndSettle)
         await t.tap(find.text('دریا').last);
-        await t.tap(find.text('نامناسب است'));
+        await t.tap(find.text('نامناسب'));
         await t.pump();
         await t.tap(find.text('ارسال گزارش'));
         await _settle(t);
@@ -433,7 +433,7 @@ void main() {
     testWidgets('ending the game yourself is not «chain broken»', (t) async {
       h.register();
       await show(t, _over(reason: 'ended_by_user', opponentType: 'solo'));
-      expect(find.text('بازی را پایان دادی'), findsOneWidget);
+      expect(find.text('بازی رو تموم کردی'), findsOneWidget);
       expect(find.text('با میل خودت بازی رو تموم کردی.'), findsOneWidget);
     });
 
@@ -547,7 +547,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 300));
       expect(h.bloc.events, isEmpty);
       expect(
-        find.text('تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن.'),
+        find.text('الان تبلیغی نیست، بعداً دوباره امتحان کن.'),
         findsOneWidget,
       );
       await t.pump(const Duration(seconds: 6));
@@ -580,7 +580,7 @@ void main() {
     testWidgets('home square and ✕ both decline the continue', (t) async {
       h.register();
       await show(t, _continueOffer());
-      await t.tap(find.bySemanticsLabel('ادامه نمی‌دم؛ بازگشت به خانه'));
+      await t.tap(find.bySemanticsLabel('ادامه نمی‌دم، برمی‌گردم خانه'));
       await t.pump();
       expect(h.bloc.events.last, isA<AcceptDefeat>());
       await t.tap(find.bySemanticsLabel('بستن'));

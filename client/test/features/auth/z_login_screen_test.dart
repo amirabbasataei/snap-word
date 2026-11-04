@@ -121,7 +121,7 @@ void main() {
       registerLinks();
       await pumpLogin(tester);
       expect(
-        find.textContaining('با ورود، قوانین و حریم خصوصی زنجیر را می‌پذیرم.'),
+        find.textContaining('با ورود، قوانین و حریم خصوصی زنجیر رو قبول دارم.'),
         findsOneWidget,
       );
     });
@@ -184,7 +184,7 @@ void main() {
         await pumpLogin(tester);
         expect(find.text(_title), findsOneWidget);
         expect(
-          find.text('یک کد چهاررقمی برایت می‌فرستیم. رمزی در کار نیست.'),
+          find.text('یه کد چهاررقمی برات می‌فرستیم. رمز لازم نیست.'),
           findsOneWidget,
         );
         expect(find.text('شمارهٔ موبایل'), findsOneWidget);
@@ -196,7 +196,7 @@ void main() {
           find.text('با شمارهٔ تازه ۱۰۰ سکه، بعد از ورود ۵۰ سکه'),
           findsOneWidget,
         );
-        expect(find.text('فعلاً مهمان می‌مانم'), findsOneWidget);
+        expect(find.text('فعلاً مهمان می‌مونم'), findsOneWidget);
         expect(find.text('امتیاز مهمان روی این گوشی می‌ماند'), findsOneWidget);
         expect(find.text('حرف آخر، حرف اول!'), findsOneWidget);
         // No carrier, no player counts, no checkbox gate.
@@ -249,7 +249,7 @@ void main() {
       await pumpLogin(tester);
       await sendCode(tester);
       expect(auth.sentTo, [_phone]);
-      expect(find.text('کد چهاررقمی را بزن'), findsOneWidget);
+      expect(find.text('کد چهاررقمی رو بزن'), findsOneWidget);
       expect(find.text('۰۹۳۶۴۴۱۹۹۷۰'), findsOneWidget);
       expect(find.text('ارسال دوباره تا ۰۱:۵۰'), findsOneWidget);
     });
@@ -298,7 +298,7 @@ void main() {
 
         auth.sendGate!.complete(defaultSend);
         await flush(tester);
-        expect(find.text('کد چهاررقمی را بزن'), findsOneWidget);
+        expect(find.text('کد چهاررقمی رو بزن'), findsOneWidget);
       },
     );
 
@@ -346,7 +346,7 @@ void main() {
       expect(find.text(errorMessageFor('rate_limited')), findsNothing);
       await typePhone(tester, '364419970');
       await tapSend(tester);
-      expect(find.text('کد چهاررقمی را بزن'), findsOneWidget);
+      expect(find.text('کد چهاررقمی رو بزن'), findsOneWidget);
     });
 
     testWidgets('back from the OTP page keeps the number', (tester) async {
@@ -370,7 +370,7 @@ void main() {
         clock.elapsed += const Duration(seconds: 50);
         auth.sendAnswers.add(authError('resend_cooldown'));
         await tapSend(tester);
-        expect(find.text('کد چهاررقمی را بزن'), findsOneWidget);
+        expect(find.text('کد چهاررقمی رو بزن'), findsOneWidget);
         expect(find.text('ارسال دوباره تا ۰۱:۱۰'), findsOneWidget);
         expect(find.text(errorMessageFor('resend_cooldown')), findsNothing);
       },
@@ -429,9 +429,9 @@ void main() {
   });
 
   group('guest', () {
-    testWidgets('«فعلاً مهمان می‌مانم» goes straight to Home', (tester) async {
+    testWidgets('«فعلاً مهمان می‌مونم» goes straight to Home', (tester) async {
       await pumpLogin(tester);
-      await tester.tap(find.text('فعلاً مهمان می‌مانم'));
+      await tester.tap(find.text('فعلاً مهمان می‌مونم'));
       await flush(tester);
       expect(auth.guestTaps, 1);
       expect(find.text('page:home'), findsOneWidget);
@@ -494,7 +494,7 @@ void main() {
       await pumpLogin(tester);
       expect(find.bySemanticsLabel('شمارهٔ موبایل'), findsOneWidget);
       expect(find.bySemanticsLabel(_send), findsOneWidget);
-      expect(find.bySemanticsLabel('فعلاً مهمان می‌مانم'), findsOneWidget);
+      expect(find.bySemanticsLabel('فعلاً مهمان می‌مونم'), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp('^کد دعوت داری؟')), findsOneWidget);
       handle.dispose();
     });
@@ -596,7 +596,7 @@ void main() {
 
               // The send button stays reachable by scrolling.
               await tester.scrollUntilVisible(
-                find.text('فعلاً مهمان می‌مانم'),
+                find.text('فعلاً مهمان می‌مونم'),
                 100,
                 scrollable: find.byType(Scrollable).first,
               );

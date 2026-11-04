@@ -52,7 +52,7 @@ class FriendChallengeDialog extends StatelessWidget {
   /// «X را به بازی دعوت کنی؟». The name goes in a bidi isolate so a Latin
   /// username cannot reorder the Persian around it.
   static String titleFor(String friendUsername) =>
-      '\u2068$friendUsername\u2069 را به بازی دعوت کنی؟';
+      '\u2068$friendUsername\u2069 رو به بازی دعوت کنی؟';
 
   // Canvas: «تا ۲ دقیقه منتظر جوابش می‌مونی» — the challenge actually stays
   // open for 24h (the 2 minutes is how long a room waits once it is accepted).

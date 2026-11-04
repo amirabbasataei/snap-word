@@ -30,13 +30,13 @@ class RewardsSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final z = context.z;
     final headline =
-        ready > 0 ? 'جایزه‌های آمادهٔ دریافت' : 'فعلاً جایزه‌ای آماده نیست';
+        ready > 0 ? 'جایزه‌های آماده' : 'فعلاً جایزه‌ای آماده نیست';
     final sub =
         ready > 0
-            ? 'روی هم ${formatPersianNumber(coins)} سکه منتظر توست'
+            ? 'روی هم ${formatPersianNumber(coins)} سکه منتظرته'
             : anyClaimed
-            ? 'همهٔ جایزه‌هایت را گرفته‌ای'
-            : 'بازی کن تا جایزه‌ها برسند';
+            ? 'همهٔ جایزه‌هات رو گرفتی'
+            : 'بازی کن تا جایزه جمع بشه';
     return MergeSemantics(
       child: ChunkyBox(
         fill: z.amber,

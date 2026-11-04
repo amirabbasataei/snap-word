@@ -431,7 +431,7 @@ void main() {
       expect(find.text('بلندترین کلمه · ۵ حرف'), findsOneWidget);
       // Free: no crown, the subscription is offered.
       expect(find.text('اشتراک ویژه'), findsNWidgets(2));
-      expect(find.text('اشتراک ویژه فعال است'), findsNothing);
+      expect(find.text('اشتراک ویژه فعاله'), findsNothing);
       expect(find.byType(ProfileCrown), findsOneWidget);
     });
 
@@ -517,8 +517,8 @@ void main() {
     testWidgets('crown, the date and the picked avatar', (tester) async {
       await open(tester);
       expect(find.byType(ProfileCrown), findsWidgets);
-      await scrollTo(tester, find.text('اشتراک ویژه فعال است'));
-      expect(find.text('اشتراک ویژه فعال است'), findsOneWidget);
+      await scrollTo(tester, find.text('اشتراک ویژه فعاله'));
+      expect(find.text('اشتراک ویژه فعاله'), findsOneWidget);
       expect(find.textContaining('تا ۱۲ آبان ۱۴۰۵'), findsOneWidget);
       expect(find.text('تغییر آواتار'), findsOneWidget);
       // The subscription pitch is gone.
@@ -555,7 +555,7 @@ void main() {
 
     testWidgets('a rejected avatar toasts the Persian reason', (tester) async {
       h.repo.avatarError = const ProfileException(
-        'این امکان فقط برای اشتراک ویژه فعال است',
+        'این فقط برای اشتراک ویژه‌ست',
       );
       await open(tester);
       await scrollTo(tester, find.text('تغییر آواتار'));
@@ -565,7 +565,7 @@ void main() {
       await _settle(tester);
       expect(h.repo.avatarsSet, ['owl']);
       expect(
-        find.text('این امکان فقط برای اشتراک ویژه فعال است'),
+        find.text('این فقط برای اشتراک ویژه‌ست'),
         findsOneWidget,
       );
       // The disc keeps the old avatar.
@@ -584,10 +584,10 @@ void main() {
       await open(tester);
       await scrollTo(tester, find.text('اشتراک ویژه').last);
       expect(
-        find.text('• ارسال پیام‌های سریع حین بازی دو نفره'),
+        find.text('• فرستادن پیام سریع حین بازی دونفره'),
         findsOneWidget,
       );
-      expect(find.text('• آواتارهای ویژه و نشان تاج کنار نام'), findsOneWidget);
+      expect(find.text('• آواتار ویژه و تاج کنار اسمت'), findsOneWidget);
       expect(find.text('تغییر آواتار'), findsNothing);
       await tester.tap(find.text('اشتراک ویژه').last);
       await _settle(tester);
@@ -614,9 +614,9 @@ void main() {
     testWidgets('a failed load shows the reason and retry works', (
       tester,
     ) async {
-      h.repo.statsError = const ProfileException('بارگذاری پروفایل ناموفق بود');
+      h.repo.statsError = const ProfileException('پروفایل لود نشد');
       await open(tester);
-      expect(find.text('بارگذاری پروفایل ناموفق بود'), findsOneWidget);
+      expect(find.text('پروفایل لود نشد'), findsOneWidget);
       expect(find.text('آرش'), findsNothing);
       expect(
         tester.widget<ZMascot>(find.byType(ZMascot)).mood,
@@ -634,7 +634,7 @@ void main() {
     ) async {
       h.repo.statsError = StateError('boom');
       await open(tester);
-      expect(find.text('بارگذاری پروفایل ناموفق بود'), findsOneWidget);
+      expect(find.text('پروفایل لود نشد'), findsOneWidget);
     });
 
     testWidgets('a failed perks lookup does not break the profile', (
@@ -743,7 +743,7 @@ void main() {
         await _settle(tester);
         expect(h.auth.renamed, isEmpty);
       }
-      expect(find.text('فقط حرف، عدد و _ مجاز است'), findsOneWidget);
+      expect(find.text('فقط حرف، عدد و _ می‌شه'), findsOneWidget);
     });
 
     testWidgets('rename: a taken name keeps the dialog and says why', (
@@ -927,7 +927,7 @@ void main() {
     testWidgets('real code, share and copy', (tester) async {
       await open(tester);
       await scrollTo(tester, find.text('دوستت رو بیار، ۵۰ سکه بگیر'));
-      expect(find.text('دوستت ۱۰۰ سکه می‌گیرد و تو ۵۰ سکه'), findsOneWidget);
+      expect(find.text('دوستت ۱۰۰ سکه می‌گیره و تو ۵۰ سکه'), findsOneWidget);
       expect(
         find.text(
           '$_lri'
@@ -956,7 +956,7 @@ void main() {
     ) async {
       h.codeError = StateError('x');
       await open(tester);
-      await scrollTo(tester, find.text('کد دعوت بارگذاری نشد'));
+      await scrollTo(tester, find.text('کد دعوت لود نشد'));
       // Only the card failed: stats were fetched once and nothing re-loaded.
       expect(h.repo.statsFetches, 1);
       expect(find.byType(ZLoadState), findsNothing);
@@ -1343,7 +1343,7 @@ void main() {
     });
 
     testWidgets('error dark', (tester) async {
-      h.repo.statsError = const ProfileException('بارگذاری پروفایل ناموفق بود');
+      h.repo.statsError = const ProfileException('پروفایل لود نشد');
       await open(tester, mode: ThemeMode.dark);
       await shot(tester, 'z_profile_error_dark');
     });
@@ -1449,7 +1449,7 @@ void main() {
         expect(find.text(explainer), findsOneWidget);
         expect(h.notifications.requests, 0, reason: 'not asked yet');
 
-        await tester.tap(find.text('فعال‌سازی اعلان‌ها'));
+        await tester.tap(find.text('روشن کردن اعلان‌ها'));
         await _settle(tester);
         expect(h.notifications.requests, 1);
         expect(h.notifications.registrations, 1);
@@ -1479,7 +1479,7 @@ void main() {
       await scrollTo(tester, find.text(label));
       await tester.tap(find.text(label));
       await _settle(tester);
-      await tester.tap(find.text('فعال‌سازی اعلان‌ها'));
+      await tester.tap(find.text('روشن کردن اعلان‌ها'));
       await _settle(tester);
       expect(find.text(notificationsBlockedTitle), findsOneWidget);
       expect(find.text(notificationsEnabledTitle), findsNothing);

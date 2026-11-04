@@ -87,7 +87,7 @@ class _AiLevelDialogState extends State<AiLevelDialog> {
   Widget build(BuildContext context) {
     final z = context.z;
     return ZDialogCard(
-      semanticLabel: 'سطح حریف را انتخاب کن',
+      semanticLabel: 'سطح حریف رو انتخاب کن',
       padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -100,7 +100,7 @@ class _AiLevelDialogState extends State<AiLevelDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'سطح حریف را انتخاب کن',
+                      'سطح حریف رو انتخاب کن',
                       style: ZTypography.screenTitle.copyWith(
                         fontSize: 20,
                         height: 1.25,
@@ -110,7 +110,7 @@ class _AiLevelDialogState extends State<AiLevelDialog> {
                     Text(
                       // Canvas: «… و بددهن‌تر» — the AI never speaks, so the
                       // line names what really changes between levels.
-                      'هرچه سخت‌تر، سریع‌تر و کم‌اشتباه‌تر',
+                      'هرچی سخت‌تر، سریع‌تر و کم‌اشتباه‌تر',
                       style: ZTypography.body.copyWith(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,

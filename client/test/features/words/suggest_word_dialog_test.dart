@@ -141,7 +141,7 @@ void main() {
         await t.pump(const Duration(milliseconds: 600));
 
         expect(words.suggested, ['آزمونک']);
-        expect(find.textContaining('وارد شو'), findsOneWidget);
+        expect(find.textContaining('وارد حساب بشی'), findsOneWidget);
       },
     );
 
@@ -150,7 +150,7 @@ void main() {
       (t) async {
         signedIn(true);
         words.fail = const WordSuggestionException(
-          'این کلمه قبلاً بررسی شده است',
+          'این کلمه قبلاً بررسی شده',
           code: 'word_already_reviewed',
         );
         await _open(t, showSuggestWordDialog);
@@ -159,12 +159,12 @@ void main() {
         await t.tap(send());
         await t.pump();
         await t.pump(const Duration(milliseconds: 300));
-        expect(find.text('این کلمه قبلاً بررسی شده است'), findsOneWidget);
+        expect(find.text('این کلمه قبلاً بررسی شده'), findsOneWidget);
 
         words.fail = null;
         await t.enterText(find.byType(TextField), 'آزمونکی');
         await t.pump();
-        expect(find.text('این کلمه قبلاً بررسی شده است'), findsNothing);
+        expect(find.text('این کلمه قبلاً بررسی شده'), findsNothing);
       },
     );
   });
@@ -202,7 +202,7 @@ void main() {
       signedIn(true);
       await _open(t, showMyWordReportsDialog);
       await t.pump(const Duration(milliseconds: 300));
-      expect(find.text('هنوز کلمه‌ای نفرستاده‌ای.'), findsOneWidget);
+      expect(find.text('هنوز کلمه‌ای نفرستادی.'), findsOneWidget);
     });
   });
 

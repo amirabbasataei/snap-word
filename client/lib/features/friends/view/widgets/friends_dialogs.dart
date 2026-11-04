@@ -62,7 +62,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
           ),
           const SizedBox(height: 6),
           Text(
-            'نام کاربری دقیق دوستت را بنویس تا برایش درخواست دوستی بفرستیم.',
+            'نام کاربری دقیق دوستت رو بنویس تا براش درخواست دوستی بفرستیم.',
             textAlign: TextAlign.center,
             style: ZTypography.body.copyWith(
               fontSize: 14,
@@ -168,11 +168,11 @@ class RemoveFriendDialog extends StatelessWidget {
   });
 
   static String titleFor(String friendUsername) =>
-      '${isolate(friendUsername)} را از دوستان حذف کنی؟';
+      '${isolate(friendUsername)} رو از دوستات حذف کنی؟';
 
   static const body =
-      'دیگر در فهرست دوستانت نیست و نمی‌توانی برایش چالش بفرستی. '
-      'اگر پشیمان شدی باید دوباره درخواست دوستی بدهی.';
+      'دیگه توی لیست دوستات نیست و نمی‌تونی براش چالش بفرستی. '
+      'اگه پشیمون شدی، باید دوباره درخواست دوستی بدی.';
 
   @override
   Widget build(BuildContext context) {

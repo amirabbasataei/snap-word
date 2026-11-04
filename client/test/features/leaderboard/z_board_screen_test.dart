@@ -326,7 +326,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('جدول تا ۵ روز و ۸ ساعت دیگر بازنشانی می‌شود'),
+        find.text('جدول تا ۵ روز و ۸ ساعت دیگه ریست می‌شه'),
         findsOneWidget,
       );
     });
@@ -420,7 +420,7 @@ void main() {
       );
       await open(tester);
       expect(
-        find.text('این هفته امتیازی نداری — یک بازی آنلاین بازی کن'),
+        find.text('این هفته امتیازی نداری. یه بازی آنلاین بزن'),
         findsOneWidget,
       );
       expect(
@@ -593,7 +593,7 @@ void main() {
       await goTo(tester, 'امروز');
       expect(find.text('چالش روزانهٔ شمارهٔ ۴۲'), findsOneWidget);
       expect(find.text('جایزهٔ سه نفر اول: ۱۰۰ · ۶۰ · ۳۰ سکه'), findsOneWidget);
-      expect(find.text('پایان امروز: ۸ ساعت و ۳۰ دقیقه دیگر'), findsOneWidget);
+      expect(find.text('تا پایان امروز ۸ ساعت و ۳۰ دقیقه مونده'), findsOneWidget);
       // Rank 4 is a row, with the canvas's sub-line from the real field.
       expect(find.text('زنجیر ۱۲ کلمه'), findsOneWidget);
       expect(find.text('مریم ک.'), findsOneWidget);
@@ -693,7 +693,7 @@ void main() {
       await open(tester);
       await goTo(tester, 'دوستان');
       expect(
-        find.text('این هفته امتیازی نداری — یک بازی آنلاین بازی کن'),
+        find.text('این هفته امتیازی نداری. یه بازی آنلاین بزن'),
         findsOneWidget,
       );
     });
@@ -720,7 +720,7 @@ void main() {
     testWidgets('a login card; nothing is fetched', (tester) async {
       await open(tester, auth: const AuthGuest());
       expect(find.byType(ZRibbonTitle), findsOneWidget);
-      expect(find.text('برای دیدن جدول امتیازات، ثبت‌نام کن'), findsOneWidget);
+      expect(find.text('برای دیدن جدول امتیازها، ثبت‌نام کن'), findsOneWidget);
       expect(find.byType(BoardTabs), findsNothing);
       expect(h.repo.calls, isEmpty);
       await tester.tap(find.text('ثبت‌نام رایگان'));
@@ -965,7 +965,7 @@ void main() {
     test('weekly: prizes then the reset clock', () {
       expect(BoardNote.lines(BoardTab.weekly, now), [
         'جایزهٔ سه نفر اول: ۵۰۰ · ۳۰۰ · ۱۰۰ سکه',
-        'جدول تا ۵ روز و ۸ ساعت دیگر بازنشانی می‌شود',
+        'جدول تا ۵ روز و ۸ ساعت دیگه ریست می‌شه',
       ]);
     });
 
@@ -973,7 +973,7 @@ void main() {
       expect(BoardNote.lines(BoardTab.daily, now, dayNumber: 42), [
         'چالش روزانهٔ شمارهٔ ۴۲',
         'جایزهٔ سه نفر اول: ۱۰۰ · ۶۰ · ۳۰ سکه',
-        'پایان امروز: ۸ ساعت و ۳۰ دقیقه دیگر',
+        'تا پایان امروز ۸ ساعت و ۳۰ دقیقه مونده',
       ]);
     });
 

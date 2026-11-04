@@ -277,11 +277,11 @@ void main() {
         repo = _Repo();
         await open(tester);
         final cubit = GetIt.I<MessagesCubit>();
-        cubit.addMissed('چالش پذیرفته شد', 'وارد بازی شو!');
+        cubit.addMissed('چالشت قبول شد', 'وارد بازی شو!');
         await _settle(tester);
         expect(cubit.state.count, 1);
         expect(find.byType(MissedPushTile), findsOneWidget);
-        expect(find.text('چالش پذیرفته شد'), findsOneWidget);
+        expect(find.text('چالشت قبول شد'), findsOneWidget);
         await tester.tap(find.text('باشه'));
         await _settle(tester);
         expect(cubit.state.count, 0);
@@ -318,7 +318,7 @@ void main() {
       expect(inTile(1, 'درخواست دوستی'), findsOneWidget);
       expect(inTile(2, 'دعوت به بازی'), findsOneWidget);
       expect(inTile(2, 'بازی کن'), findsOneWidget);
-      expect(inTile(0, 'بپذیر'), findsOneWidget);
+      expect(inTile(0, 'قبول'), findsOneWidget);
       expect(inTile(0, 'رد'), findsOneWidget);
       // The disc shows the sender's initial (upper-cased for Latin names).
       expect(
@@ -356,7 +356,7 @@ void main() {
     ) async {
       repo = sample();
       await open(tester);
-      await tester.tap(inTile(0, 'بپذیر'));
+      await tester.tap(inTile(0, 'قبول'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(repo.requestAnswers, [('r1', true)]);
@@ -405,10 +405,10 @@ void main() {
       repo = sample();
       await open(tester);
       repo.respondGate = Completer();
-      await tester.tap(inTile(0, 'بپذیر'));
+      await tester.tap(inTile(0, 'قبول'));
       await tester.pump();
       expect(inTile(0, 'کمی صبر کن…'), findsOneWidget);
-      expect(inTile(1, 'بپذیر'), findsOneWidget, reason: 'others unaffected');
+      expect(inTile(1, 'قبول'), findsOneWidget, reason: 'others unaffected');
       await tester.tap(find.text('کمی صبر کن…'), warnIfMissed: false);
       await tester.tap(inTile(0, 'رد'), warnIfMissed: false);
       repo.respondGate!.complete();
@@ -423,12 +423,12 @@ void main() {
       repo = sample();
       await open(tester);
       repo.respondError = _err(networkErrorCode);
-      await tester.tap(inTile(0, 'بپذیر'));
+      await tester.tap(inTile(0, 'قبول'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text(networkErrorMessage), findsOneWidget);
       expect(find.byType(MessageTile), findsNWidgets(3));
-      expect(inTile(0, 'بپذیر'), findsOneWidget, reason: 'buttons are back');
+      expect(inTile(0, 'قبول'), findsOneWidget, reason: 'buttons are back');
       await drainToast(tester);
     });
 

@@ -69,7 +69,7 @@ class FriendsInviteCard extends StatelessWidget {
                   ),
                 ),
                 if (failed)
-                  Text('کد دعوت بارگذاری نشد', style: sub)
+                  Text('کد دعوت لود نشد', style: sub)
                 else if (!ready)
                   Padding(
                     padding: const EdgeInsets.only(top: 5),

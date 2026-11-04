@@ -54,7 +54,7 @@ class _ReportPill extends StatelessWidget {
         } else if (state.status == WordReportStatus.failed) {
           ZToast.show(
             context,
-            state.message ?? 'مشکلی پیش آمد، دوباره تلاش کن',
+            state.message ?? 'یه مشکلی پیش اومد، دوباره امتحان کن',
             kind: ZToastKind.error,
           );
         }
@@ -63,7 +63,7 @@ class _ReportPill extends StatelessWidget {
         final sent = state.sent;
         final label =
             sent
-                ? 'گزارش شد؛ ممنون'
+                ? 'گزارش شد، ممنون'
                 : state.sending
                 ? 'در حال ارسال…'
                 : '«$word» درست بود؟ گزارش بده';

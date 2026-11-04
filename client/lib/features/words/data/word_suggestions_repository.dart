@@ -11,7 +11,7 @@ class WordSuggestionException implements Exception {
 /// Why a player flags a word that is already in the dictionary.
 enum WordFlagReason {
   notAWord('not_a_word', 'کلمه نیست'),
-  inappropriate('inappropriate', 'نامناسب است');
+  inappropriate('inappropriate', 'نامناسب');
 
   final String wire;
   final String label;

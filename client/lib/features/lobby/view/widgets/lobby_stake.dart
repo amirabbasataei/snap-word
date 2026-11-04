@@ -19,8 +19,8 @@ class LobbyStakeCard extends StatelessWidget {
   const LobbyStakeCard({super.key, this.error});
 
   static String get aiFallbackNote =>
-      'اگر تا ${toPersianDigits(GameConstants.matchmakingAiFallbackSec)} ثانیه '
-      'حریفی پیدا نشود، با حریف هوشمند بازی می‌کنی و ورودی نمی‌دهی.';
+      'اگه تا ${toPersianDigits(GameConstants.matchmakingAiFallbackSec)} ثانیه '
+      'حریفی پیدا نشه، با حریف هوشمند بازی می‌کنی و ورودی نمی‌دی.';
 
   @override
   Widget build(BuildContext context) {

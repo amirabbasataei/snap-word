@@ -292,7 +292,7 @@ class _DisconnectedBanner extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'اتصال حریف قطع شد — ${toPersianDigits(GameConstants.reconnectGraceSec)} ثانیه صبر می‌کنیم…',
+                'اتصال حریف قطع شد. ${toPersianDigits(GameConstants.reconnectGraceSec)} ثانیه صبر می‌کنیم…',
                 style: ZTypography.metaLabel.copyWith(
                   color: z.onCoral,
                   fontSize: 12.5,
@@ -388,12 +388,12 @@ class _WaitingForOpponentState extends State<_WaitingForOpponent> {
               ),
               const SizedBox(height: ZSpacing.xxl),
               Text(
-                'در انتظار ورود ${widget.opponentName} به بازی…',
+                'منتظریم ${widget.opponentName} بیاد تو بازی…',
                 textAlign: TextAlign.center,
                 style: ZTypography.cardTitle.copyWith(color: z.ink),
               ),
               const Spacer(),
-              NeutralButton(label: 'انصراف', onPressed: widget.onCancel),
+              NeutralButton(label: 'بی‌خیال', onPressed: widget.onCancel),
             ],
           ),
         ),

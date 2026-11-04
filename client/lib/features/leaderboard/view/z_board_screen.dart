@@ -108,8 +108,8 @@ class _GuestBody extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
       child: ZStateCard(
         child: ZEmptyState(
-          title: 'جدول را ببین',
-          body: 'برای دیدن جدول امتیازات، ثبت‌نام کن',
+          title: 'جدول رو ببین',
+          body: 'برای دیدن جدول امتیازها، ثبت‌نام کن',
           actionLabel: 'ثبت‌نام رایگان',
           onAction: () => context.push('/login?return=/leaderboard'),
         ),
@@ -218,7 +218,7 @@ class _EmptyBoard extends StatelessWidget {
     return switch (tab) {
       BoardTab.weekly => const ZEmptyState(
         title: 'هنوز کسی امتیاز نگرفته',
-        body: 'این هفته اولین نفر باش — یک بازی آنلاین بازی کن.',
+        body: 'این هفته اولین نفر باش. یه بازی آنلاین بزن.',
       ),
       BoardTab.daily => ZEmptyState(
         mood: ZMascotMood.thinking,
@@ -228,12 +228,12 @@ class _EmptyBoard extends StatelessWidget {
         onAction: () => context.push('/daily'),
       ),
       BoardTab.allTime => const ZEmptyState(
-        title: 'هنوز کسی امتیازی ندارد',
-        body: 'اولین نفر باش — یک بازی آنلاین بازی کن.',
+        title: 'هنوز کسی امتیازی نداره',
+        body: 'اولین نفر باش. یه بازی آنلاین بزن.',
       ),
       BoardTab.friends => ZEmptyState(
         title: 'هنوز دوستی نداری',
-        body: 'دوست اضافه کن تا امتیاز این هفته‌تان را کنار هم ببینی.',
+        body: 'دوست اضافه کن تا امتیاز این هفتهٔ همتون رو کنار هم ببینی.',
         actionLabel: 'افزودن دوست',
         onAction: () => context.go('/friends'),
       ),

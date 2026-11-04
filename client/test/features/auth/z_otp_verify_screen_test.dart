@@ -84,15 +84,15 @@ void main() {
       (tester) async {
         await pumpOtp(tester);
         expect(find.text('تأیید شماره'), findsOneWidget);
-        expect(find.text('کد چهاررقمی را بزن'), findsOneWidget);
-        expect(find.text('فرستاده شد به'), findsOneWidget);
+        expect(find.text('کد چهاررقمی رو بزن'), findsOneWidget);
+        expect(find.text('فرستادیم به'), findsOneWidget);
         expect(find.text('۰۹۳۶۴۴۱۹۹۷۰'), findsOneWidget);
         expect(find.text('ویرایش'), findsOneWidget);
         expect(find.text('ارسال دوباره تا ۰۲:۰۰'), findsOneWidget);
         expect(find.text('تازه‌واردی؟'), findsOneWidget);
         expect(
           find.text(
-            'با همین کد حساب تازه‌ات ساخته می‌شود و ۵۰ سکهٔ خوش‌آمد می‌گیری.',
+            'با همین کد حسابت ساخته می‌شه و ۵۰ سکه خوش‌آمد می‌گیری.',
           ),
           findsOneWidget,
         );
@@ -112,8 +112,8 @@ void main() {
       await pumpOtp(tester, args: otpArgs(referral: 'K7M2QX'));
       expect(
         find.text(
-          'با همین کد حساب تازه‌ات ساخته می‌شود و ۵۰ سکهٔ خوش‌آمد، '
-          'به‌علاوهٔ ۱۰۰ سکه برای کد دعوتت می‌گیری.',
+          'با همین کد حسابت ساخته می‌شه و ۵۰ سکه خوش‌آمد می‌گیری، '
+          'به‌اضافهٔ ۱۰۰ سکه برای کد دعوتت.',
         ),
         findsOneWidget,
       );
@@ -225,7 +225,7 @@ void main() {
       await pumpOtp(tester);
       await typeCode(tester, '1111');
       expect(find.text('page:home'), findsOneWidget);
-      expect(find.text('خوش آمدی! ۵۰ سکه هدیه گرفتی'), findsOneWidget);
+      expect(find.text('خوش اومدی! ۵۰ سکه هدیه گرفتی'), findsOneWidget);
       await waitOutToast(tester);
     });
 
@@ -235,7 +235,7 @@ void main() {
       auth.verifyAnswers.add(newcomer(coins: 150));
       await pumpOtp(tester, args: otpArgs(referral: 'K7M2QX'));
       await typeCode(tester, '1111');
-      expect(find.text('خوش آمدی! ۱۵۰ سکه هدیه گرفتی'), findsOneWidget);
+      expect(find.text('خوش اومدی! ۱۵۰ سکه هدیه گرفتی'), findsOneWidget);
       await waitOutToast(tester);
     });
 
@@ -435,7 +435,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('فرستادن کد'));
       await flush(tester);
-      expect(find.text('کد چهاررقمی را بزن'), findsOneWidget);
+      expect(find.text('کد چهاررقمی رو بزن'), findsOneWidget);
       await tester.tap(find.text('ویرایش'));
       await flush(tester);
       expect(find.text('با شماره‌ات بیا تو'), findsOneWidget);
@@ -533,7 +533,7 @@ void main() {
       for (var i = 0; i < 20; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
-      expect(find.text('کد چهاررقمی را بزن'), findsOneWidget);
+      expect(find.text('کد چهاررقمی رو بزن'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

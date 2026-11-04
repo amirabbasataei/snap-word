@@ -194,10 +194,10 @@ void main() {
 
     testWidgets('failure: the message and a working retry', (tester) async {
       h.repo.error = const LeaderboardException(
-        'بارگذاری جدول امروز ناموفق بود',
+        'جدول امروز لود نشد',
       );
       await open(tester);
-      expect(find.text('بارگذاری جدول امروز ناموفق بود'), findsOneWidget);
+      expect(find.text('جدول امروز لود نشد'), findsOneWidget);
       h.repo.error = null;
       await tester.tap(find.text(ZLoadState.retryLabel));
       await _settle(tester);
@@ -226,9 +226,9 @@ void main() {
       expect(find.text('جدول امروز'), findsOneWidget);
       expect(find.text('چالش روزانهٔ شمارهٔ ۴۲'), findsOneWidget);
       expect(find.text('جایزهٔ سه نفر اول: ۱۰۰ · ۶۰ · ۳۰ سکه'), findsOneWidget);
-      expect(find.text('همهٔ شرکت‌کننده‌ها ۱۰ سکه می‌گیرند'), findsOneWidget);
+      expect(find.text('همهٔ شرکت‌کننده‌ها ۱۰ سکه می‌گیرن'), findsOneWidget);
       expect(
-        find.textContaining('پایان امروز: ۸ ساعت و ۳۰ دقیقه'),
+        find.textContaining('تا پایان امروز ۸ ساعت و ۳۰ دقیقه'),
         findsOneWidget,
       );
       expect(find.byType(BoardPodium), findsOneWidget);
@@ -267,7 +267,7 @@ void main() {
       h.repo.result = _board(myRank: null, myScore: null);
       await open(tester);
       expect(
-        find.text('امروز هنوز چالش روزانه را بازی نکرده‌ای'),
+        find.text('امروز هنوز چالش روزانه رو بازی نکردی'),
         findsOneWidget,
       );
     });
@@ -343,7 +343,7 @@ void main() {
               await fresh(
                 (r) =>
                     r.error = const LeaderboardException(
-                      'بارگذاری جدول امروز ناموفق بود',
+                      'جدول امروز لود نشد',
                     ),
               );
               await check('error');

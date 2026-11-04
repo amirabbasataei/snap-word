@@ -509,24 +509,24 @@ void main() {
       await tapText(tester, 'امتحان دوباره · ۲۵ سکه');
       await _settle(tester);
       expect(
-        find.text('برای این کار ۲۵ سکه لازم است. با این راه‌ها سکه جمع کن:'),
+        find.text('برای این کار ۲۵ سکه لازمه. اینجوری سکه جمع کن:'),
         findsOneWidget,
       );
       expect(h.visited, isEmpty);
       // Close it; the retry can be tried again.
-      await tester.tap(find.text('متوجه شدم'));
+      await tester.tap(find.text('باشه'));
       await _settle(tester);
       expect(find.text('امتحان دوباره · ۲۵ سکه'), findsOneWidget);
       await tapText(tester, 'امتحان دوباره · ۲۵ سکه');
       await _settle(tester);
       expect(h.repo.retries, 2);
-      expect(find.text('متوجه شدم'), findsOneWidget);
+      expect(find.text('باشه'), findsOneWidget);
     });
 
     testWidgets('slot already bought: goes on to the game', (tester) async {
       h.repo.retryError = const DailyException(
         code: 'already_retried',
-        message: 'تلاش دوبارهٔ امروز را قبلاً استفاده کرده‌ای',
+        message: 'تلاش دوبارهٔ امروزت رو قبلاً استفاده کردی',
       );
       await open(tester);
       await tapText(tester, 'امتحان دوباره · ۲۵ سکه');
@@ -723,7 +723,7 @@ void main() {
       h = _Harness();
       h.repo.loadError = const DailyException(
         code: 'x',
-        message: 'بارگذاری چالش امروز ناموفق بود',
+        message: 'چالش امروز لود نشد',
       );
       await open(
         tester,

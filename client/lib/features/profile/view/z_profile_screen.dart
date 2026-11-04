@@ -337,9 +337,9 @@ class _LoadedView extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                   child: ZEmptyState(
                     mascotSize: 80,
-                    title: 'پیشرفتت را ذخیره کن',
+                    title: 'پیشرفتت رو ذخیره کن',
                     body:
-                        'ثبت‌نام رایگان کن تا پیشرفتت ذخیره شود و قدرت‌های بیشتری باز شود.',
+                        'ثبت‌نام کن تا پیشرفتت ذخیره بشه و آیتم‌های بیشتری باز بشه.',
                     actionLabel: 'ثبت‌نام رایگان',
                     onAction: () => context.push('/login?return=/profile'),
                   ),

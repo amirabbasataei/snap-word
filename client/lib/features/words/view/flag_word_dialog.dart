@@ -62,8 +62,8 @@ class _FlagWordDialogState extends State<FlagWordDialog> {
             title: 'ممنون از گزارشت',
             body:
                 state.alreadyReported
-                    ? 'این کلمه را قبلاً گزارش کرده بودی.'
-                    : 'کلمه بررسی می‌شود؛ تصمیم با تیم زنجیر است.',
+                    ? 'این کلمه رو قبلاً گزارش کرده بودی.'
+                    : 'کلمه بررسی می‌شه، تصمیمش با تیم زنجیره.',
             primaryLabel: 'باشه',
             primaryAccent: ZDialogAccent.teal,
             onPrimary: () => Navigator.of(context).pop(),
@@ -78,7 +78,7 @@ class _FlagWordDialogState extends State<FlagWordDialog> {
           pillAccent: ZDialogAccent.coral,
           title: 'کدام کلمه مشکل داشت؟',
           body:
-              'کلمه‌ای که واقعاً وجود ندارد یا نامناسب است را انتخاب کن.'
+              'کلمه‌ای رو انتخاب کن که واقعاً وجود نداره یا نامناسبه.'
               '${signedIn ? '' : ' (برای گزارش لازم نیست وارد حساب باشی.)'}',
           panel: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -108,7 +108,7 @@ class _FlagWordDialogState extends State<FlagWordDialog> {
               Divider(height: 1, thickness: 2, color: context.zs.outline),
               const SizedBox(height: 10),
               Text(
-                'مشکل کلمه چیست؟',
+                'مشکلش چیه؟',
                 textAlign: TextAlign.center,
                 style: ZTypography.metaLabel.copyWith(
                   fontSize: 12.5,
@@ -146,7 +146,7 @@ class _FlagWordDialogState extends State<FlagWordDialog> {
               _canSend && !state.sending
                   ? () => cubit.flag(_word!, _reason!)
                   : null,
-          secondaryLabel: 'انصراف',
+          secondaryLabel: 'بی‌خیال',
           onSecondary: () => Navigator.of(context).pop(),
         );
       },

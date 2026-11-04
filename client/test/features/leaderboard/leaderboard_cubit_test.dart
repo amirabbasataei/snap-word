@@ -23,7 +23,7 @@ class _Repo extends Fake implements LeaderboardRepository {
     final gate = gates[tab];
     if (gate != null) return gate.future;
     if (fail.contains(tab)) {
-      throw const LeaderboardException('بارگذاری جدول امتیازها ناموفق بود');
+      throw const LeaderboardException('جدول امتیازها لود نشد');
     }
     return _board('$tab-$version', avatar: avatar);
   }

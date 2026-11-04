@@ -188,7 +188,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
           const ZStateCard(
             child: ZEmptyState(
               title: 'هدیه‌ای نداری',
-              body: 'چالش روزانه، بازی پیاپی و دعوت دوستان برایت هدیه می‌آورد.',
+              body: 'چالش روزانه، بازی هر روزه و دعوت دوستات هدیه می‌آره.',
               mood: ZMascotMood.idle,
             ),
           ),

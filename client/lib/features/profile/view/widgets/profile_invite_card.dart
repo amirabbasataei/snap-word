@@ -32,7 +32,7 @@ class ProfileInviteCard extends StatelessWidget {
   });
 
   static const title = 'دوستت رو بیار، ۵۰ سکه بگیر';
-  static const subtitle = 'دوستت ۱۰۰ سکه می‌گیرد و تو ۵۰ سکه';
+  static const subtitle = 'دوستت ۱۰۰ سکه می‌گیره و تو ۵۰ سکه';
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +70,7 @@ class ProfileInviteCard extends StatelessWidget {
           if (failed)
             Row(
               children: [
-                Expanded(child: Text('کد دعوت بارگذاری نشد', style: sub)),
+                Expanded(child: Text('کد دعوت لود نشد', style: sub)),
                 const SizedBox(width: 8),
                 ProfileChunkButton(
                   label: 'تلاش دوباره',

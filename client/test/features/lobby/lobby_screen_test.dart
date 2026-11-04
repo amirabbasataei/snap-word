@@ -271,7 +271,7 @@ void main() {
       expect(find.text('جایزهٔ برنده'), findsOneWidget);
       expect(find.text('۴۰ سکه'), findsOneWidget);
       expect(
-        find.textContaining('تا ${'۳۰'} ثانیه حریفی پیدا نشود'),
+        find.textContaining('تا ${'۳۰'} ثانیه حریفی پیدا نشه'),
         findsOneWidget,
       );
       expect(GameConstants.matchmakingAiFallbackSec, 30);
@@ -388,9 +388,9 @@ void main() {
       await tester.tap(find.text('پیدا کردن حریف'));
       await _settle(tester);
 
-      expect(find.text('متوجه شدم'), findsOneWidget);
+      expect(find.text('باشه'), findsOneWidget);
       expect(
-        find.textContaining('برای این کار ${'۲۰'} سکه لازم است'),
+        find.textContaining('برای این کار ${'۲۰'} سکه لازمه'),
         findsOneWidget,
       );
       // Back to idle underneath: no retry block, the normal button.
@@ -400,13 +400,13 @@ void main() {
 
     testWidgets('other failures show the reason and a retry', (tester) async {
       h.queue.failWith = const LobbyException(
-        'حریفی پیدا نشد. دوباره تلاش کن.',
+        'حریفی پیدا نشد. دوباره امتحان کن.',
       );
       await open(tester);
       await tester.tap(find.text('پیدا کردن حریف'));
       await _settle(tester);
 
-      expect(find.text('حریفی پیدا نشد. دوباره تلاش کن.'), findsOneWidget);
+      expect(find.text('حریفی پیدا نشد. دوباره امتحان کن.'), findsOneWidget);
       expect(find.text('تلاش دوباره'), findsOneWidget);
       expect(find.text('حریف پیدا نشد'), findsOneWidget);
       expect(
@@ -433,7 +433,7 @@ void main() {
       expect(find.byType(ZHudCoinPill), findsNothing);
       expect(h.friends.fetches, 0);
       expect(
-        find.textContaining('برای دعوت دوستانت اول وارد حسابت شو'),
+        find.textContaining('برای دعوت دوستات اول وارد حسابت شو'),
         findsOneWidget,
       );
       expect(find.text('تو'), findsOneWidget);
@@ -486,7 +486,7 @@ void main() {
       h.friends.list = const [];
       await open(tester);
 
-      expect(find.textContaining('هنوز دوستی اضافه نکرده‌ای'), findsOneWidget);
+      expect(find.textContaining('هنوز دوستی اضافه نکردی'), findsOneWidget);
       expect(find.text('۰ نفر'), findsNothing);
 
       await tester.tap(find.text('افزودن دوست'));
@@ -497,11 +497,11 @@ void main() {
     testWidgets('error: Persian message and a working retry', (tester) async {
       h.friends.fetchError = const FriendsException(
         code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
+        message: 'وصل نشد، اینترنتت رو چک کن',
       );
       await open(tester);
 
-      expect(find.text('خطا در اتصال به اینترنت'), findsOneWidget);
+      expect(find.text('وصل نشد، اینترنتت رو چک کن'), findsOneWidget);
 
       h.friends.fetchError = null;
       await tester.tap(find.text('تلاش دوباره'));
@@ -519,7 +519,7 @@ void main() {
       await _settle(tester);
 
       expect(h.friends.sent, [('f1', 'classic')]);
-      expect(find.textContaining('دعوت‌نامه برای'), findsOneWidget);
+      expect(find.textContaining('دعوت برای'), findsOneWidget);
       expect(find.textContaining('مریم ک.'), findsWidgets);
       expect(find.text('دعوت شد'), findsOneWidget);
       expect(find.text('دعوت به بازی'), findsOneWidget);
@@ -557,7 +557,7 @@ void main() {
       await tester.tap(find.text('دعوت به بازی').first);
       await _settle(tester);
 
-      expect(find.text('متوجه شدم'), findsOneWidget);
+      expect(find.text('باشه'), findsOneWidget);
       expect(find.text('دعوت شد'), findsNothing);
     });
   });
@@ -622,7 +622,7 @@ void main() {
         testWidgets('error + guest + loading: no overflow $tag', (
           tester,
         ) async {
-          h.queue.failWith = const LobbyException('پیوستن به صف ناموفق بود');
+          h.queue.failWith = const LobbyException('وارد صف نشد');
           h.friends.gate = Completer();
           await open(
             tester,
@@ -728,7 +728,7 @@ void main() {
 
     testWidgets('error light', (tester) async {
       h.queue.failWith = const LobbyException(
-        'حریفی پیدا نشد. دوباره تلاش کن.',
+        'حریفی پیدا نشد. دوباره امتحان کن.',
       );
       await open(tester);
       await tester.tap(find.text('پیدا کردن حریف'));

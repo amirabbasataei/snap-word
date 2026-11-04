@@ -26,14 +26,14 @@ RewardFace rewardFace(RewardItem item) {
   switch (item.kind) {
     case 'streak':
       return RewardFace(
-        title: 'پاداش روزهای پیاپی',
+        title: 'جایزهٔ روزهای پیاپی',
         body: '$number روز پیاپی بازی کردی! $coins سکه هدیه بگیر.',
         glyph: number,
         accent: ZDialogAccent.amber,
       );
     case 'weekly_rank':
       return RewardFace(
-        title: 'پاداش جدول هفتگی',
+        title: 'جایزهٔ جدول هفتگی',
         body: 'در جدول هفتگی رتبهٔ $number شدی! $coins سکه هدیه بگیر.',
         glyph: number,
         accent: ZDialogAccent.indigo,
@@ -47,7 +47,7 @@ RewardFace rewardFace(RewardItem item) {
       );
     case 'daily_done':
       return RewardFace(
-        title: 'پاداش چالش روزانه',
+        title: 'جایزهٔ شرکت در چالش',
         body: 'برای شرکت در چالش دیروز $coins سکه هدیه بگیر.',
         glyph: 'چ',
         accent: ZDialogAccent.teal,
@@ -55,7 +55,7 @@ RewardFace rewardFace(RewardItem item) {
     case 'admin_gift':
       return RewardFace(
         title: 'هدیهٔ زنجیر',
-        body: 'تیم زنجیر برایت $coins سکه هدیه فرستاده است.',
+        body: 'تیم زنجیر برات $coins سکه هدیه فرستاده.',
         glyph: 'ز',
         accent: ZDialogAccent.coral,
       );
@@ -63,7 +63,7 @@ RewardFace rewardFace(RewardItem item) {
       // detail = the approved word (may be anything Persian; isolate it).
       final word = item.detail.isEmpty ? '' : ' «\u2068${item.detail}\u2069»';
       return RewardFace(
-        title: 'پاداش پیشنهاد کلمه',
+        title: 'جایزهٔ پیشنهاد کلمه',
         body:
             'کلمهٔ$word که پیشنهاد دادی به بازی اضافه شد. $coins سکه هدیه بگیر!',
         glyph: 'ک',
@@ -71,7 +71,7 @@ RewardFace rewardFace(RewardItem item) {
       );
     case 'daily_login':
       return RewardFace(
-        title: 'پاداش ورود روزانه',
+        title: 'جایزهٔ ورود روزانه',
         body: 'برای سر زدن امروز $coins سکه هدیه بگیر.',
         glyph: 'و',
         accent: ZDialogAccent.amber,

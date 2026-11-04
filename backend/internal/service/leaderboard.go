@@ -293,7 +293,7 @@ func (s *LeaderboardService) RunWeeklyReset(ctx context.Context, weekStart time.
 		}
 		if err := s.notifSvc.SendToUser(ctx, entry.UserID,
 			"جایزه جدول هفته",
-			fmt.Sprintf("تو نفر %s شدی و %s سکه گرفتی؛ از صندوق جایزه‌ها بردار!", faNum(entry.Rank), faNum(coins)),
+			fmt.Sprintf("نفر %s شدی و %s سکه گرفتی! از صندوق جایزه‌ها بردارش.", faNum(entry.Rank), faNum(coins)),
 		); err != nil {
 			slog.Warn("weekly reset: notification failed", "userID", entry.UserID, "error", err)
 		}

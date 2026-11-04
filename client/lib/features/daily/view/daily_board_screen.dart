@@ -135,7 +135,7 @@ class _DailyBoardView extends StatelessWidget {
                         selfAvatarId: state.selfAvatarId,
                         now: (clock ?? DateTime.now)(),
                         extraNoteLines: [
-                          'همهٔ شرکت‌کننده‌ها ${toPersianDigits(GameConstants.dailyCompletePrize)} سکه می‌گیرند',
+                          'همهٔ شرکت‌کننده‌ها ${toPersianDigits(GameConstants.dailyCompletePrize)} سکه می‌گیرن',
                         ],
                       );
                     },

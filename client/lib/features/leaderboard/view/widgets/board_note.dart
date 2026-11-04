@@ -43,14 +43,14 @@ class BoardNote extends StatelessWidget {
   }) => switch (tab) {
     BoardTab.weekly => [
       prizeLine(GameConstants.weeklyPrizeCoins),
-      'جدول تا ${formatCountdownFa(untilIranWeekReset(now))} دیگر بازنشانی می‌شود',
+      'جدول تا ${formatCountdownFa(untilIranWeekReset(now))} دیگه ریست می‌شه',
     ],
     BoardTab.daily => [
       dayNumber == null
           ? 'چالش روزانهٔ امروز'
           : 'چالش روزانهٔ شمارهٔ ${toPersianDigits(dayNumber)}',
       prizeLine(GameConstants.dailyPrizeCoins),
-      'پایان امروز: ${formatCountdownFa(untilIranMidnight(now))} دیگر',
+      'تا پایان امروز ${formatCountdownFa(untilIranMidnight(now))} مونده',
     ],
     BoardTab.allTime => ['مجموع امتیاز بازی‌های آنلاین'],
     BoardTab.friends => ['امتیاز این هفتهٔ تو و دوستانت'],

@@ -41,7 +41,7 @@ class DailyRules extends StatelessWidget {
                   ],
                 ),
                 title: '${toPersianDigits(lives)} جان',
-                sub: 'هر اشتباه یکی کم می‌کند',
+                sub: 'هر اشتباه یکی کم می‌کنه',
               ),
             ),
             const SizedBox(width: 8),
@@ -65,7 +65,7 @@ class DailyRules extends StatelessWidget {
                 ),
                 title:
                     '${toPersianDigits(GameConstants.classicTurnTimerSec)} ثانیه',
-                sub: 'برای هر نوبت؛ تکرار ممنوع',
+                sub: 'برای هر نوبت، تکرار ممنوع',
               ),
             ),
             const SizedBox(width: 8),

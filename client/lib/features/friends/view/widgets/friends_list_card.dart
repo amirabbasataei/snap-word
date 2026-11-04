@@ -39,7 +39,7 @@ class FriendsListCard extends StatelessWidget {
     required this.onAddFriend,
   });
 
-  static const removeHint = 'برای حذف یک دوست، انگشتتُ روی اسمش نگه دار';
+  static const removeHint = 'برای حذف یه دوست، روی اسمش نگه دار';
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +74,7 @@ class FriendsListCard extends StatelessWidget {
               child: ZEmptyState(
                 title: 'هنوز دوستی نداری',
                 body:
-                    'نام کاربری دقیق دوستت را وارد کن، یا کد دعوتت را برایش بفرست.',
+                    'نام کاربری دقیق دوستت رو بزن، یا کد دعوتت رو براش بفرست.',
                 actionLabel: 'افزودن دوست',
                 onAction: onAddFriend,
               ),

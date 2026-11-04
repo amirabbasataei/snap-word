@@ -65,7 +65,7 @@ class _LegalConsentTextState extends State<LegalConsentText> {
             TextSpan(text: 'قوانین', style: link, recognizer: _terms),
             const TextSpan(text: ' و '),
             TextSpan(text: 'حریم خصوصی', style: link, recognizer: _privacy),
-            const TextSpan(text: ' زنجیر را می‌پذیرم.'),
+            const TextSpan(text: ' زنجیر رو قبول دارم.'),
           ],
         ),
       ),

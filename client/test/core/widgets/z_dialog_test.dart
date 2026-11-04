@@ -287,10 +287,10 @@ void main() {
       await _settle(tester);
 
       expect(find.text('سکهٔ کافی نداری'), findsOneWidget);
-      expect(find.textContaining('۲۰ سکه لازم است'), findsOneWidget);
+      expect(find.textContaining('۲۰ سکه لازمه'), findsOneWidget);
       expect(find.text('چالش روزانه'), findsOneWidget);
 
-      await tester.tap(find.text('متوجه شدم'));
+      await tester.tap(find.text('باشه'));
       await _settle(tester);
       expect(find.text('سکهٔ کافی نداری'), findsNothing);
     });
@@ -350,7 +350,7 @@ void main() {
       await _settle(tester);
       expect(find.text('از دوستانت جا نمون!'), findsOneWidget);
 
-      await tester.tap(find.text('فعال‌سازی اعلان‌ها'));
+      await tester.tap(find.text('روشن کردن اعلان‌ها'));
       await _settle(tester);
       expect(notifications.calls, ['permission', 'token']);
     });

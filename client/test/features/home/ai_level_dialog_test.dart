@@ -69,8 +69,8 @@ void main() {
   testWidgets('shows the canvas copy and no seconds', (tester) async {
     _size(tester, 396, 812);
     await _open(tester, (_) {});
-    expect(find.text('سطح حریف را انتخاب کن'), findsOneWidget);
-    expect(find.text('هرچه سخت‌تر، سریع‌تر و کم‌اشتباه‌تر'), findsOneWidget);
+    expect(find.text('سطح حریف رو انتخاب کن'), findsOneWidget);
+    expect(find.text('هرچی سخت‌تر، سریع‌تر و کم‌اشتباه‌تر'), findsOneWidget);
     for (final l in aiLevels) {
       expect(find.text(l.title), findsOneWidget);
       expect(find.text(l.name), findsOneWidget);

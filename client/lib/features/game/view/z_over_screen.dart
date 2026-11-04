@@ -101,7 +101,7 @@ class _ZOverScreenState extends State<ZOverScreen> {
       if (!watched) {
         ZToast.show(
           context,
-          'تبلیغی در دسترس نیست؛ بعداً دوباره تلاش کن.',
+          'الان تبلیغی نیست، بعداً دوباره امتحان کن.',
           kind: ZToastKind.error,
         );
         return;
@@ -283,7 +283,7 @@ class _LossBody extends StatelessWidget {
 
   String get _title {
     if (iWon == false) return 'باختی!';
-    if (state.reason == 'ended_by_user') return 'بازی را پایان دادی';
+    if (state.reason == 'ended_by_user') return 'بازی رو تموم کردی';
     return 'زنجیر پاره شد!';
   }
 
@@ -291,7 +291,7 @@ class _LossBody extends StatelessWidget {
     switch (state.reason) {
       case 'timeout':
         return requiredLetter != null
-            ? 'وقت تموم شد؛ کلمه‌ای با «$requiredLetter» نداشتی.'
+            ? 'وقت تموم شد و کلمه‌ای با «$requiredLetter» نگفتی.'
             : 'وقت تموم شد.';
       case 'invalid_word':
         final word = state.rejectedWord ?? '';

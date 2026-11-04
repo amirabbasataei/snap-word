@@ -500,7 +500,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         emit(
           _withNotice(
             active,
-            'راهنمای رایگان تمام شد — برای راهنمای بیشتر ثبت‌نام کن',
+            'راهنمای رایگانت تموم شد. برای بیشتر، ثبت‌نام کن',
           ),
         );
         return;
@@ -546,7 +546,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         _log.w('usePowerup failed: $e');
         final now = state;
         if (now is GameActive) {
-          emit(_withNotice(now, 'اتصال برقرار نشد؛ دوباره تلاش کن'));
+          emit(_withNotice(now, 'وصل نشد، دوباره امتحان کن'));
         }
         return;
       }
@@ -591,7 +591,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             usedPowerups: {...cur.usedPowerups, 'shield'},
             powerupCounts: counts,
             coinBalance: coins,
-            powerupNotice: 'سپر فعال شد؛ اولین اشتباهت خنثی می‌شود',
+            powerupNotice: 'سپر روشن شد، اولین اشتباهت حساب نمی‌شه',
           ),
         );
     }
@@ -605,7 +605,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       active.copyWith(
         shieldActive: false,
         turnTimeRemaining: _timeLimitSec,
-        powerupNotice: 'سپر اشتباهت را خنثی کرد',
+        powerupNotice: 'سپر اشتباهت رو خنثی کرد',
       ),
     );
   }
@@ -1014,7 +1014,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
                 : active.hintWord,
         powerupNotice:
             shieldFired
-                ? 'سپر اشتباهت را خنثی کرد'
+                ? 'سپر اشتباهت رو خنثی کرد'
                 : type == 'hint' && (hint == null || hint.isEmpty)
                 ? 'کلمهٔ پیشنهادی پیدا نشد'
                 : '$name فعال شد',

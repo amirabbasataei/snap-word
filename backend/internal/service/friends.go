@@ -71,7 +71,7 @@ func (s *FriendService) SendFriendRequest(ctx context.Context, requesterID, targ
 
 	if err := s.notifSvc.SendToUser(ctx, target.ID,
 		"درخواست دوستی جدید",
-		fmt.Sprintf("%s می‌خواهد با تو دوست شود.", requesterName),
+		fmt.Sprintf("%s می‌خواد باهات دوست بشه.", requesterName),
 	); err != nil {
 		slog.Warn("SendFriendRequest: notification failed", "target", target.ID, "error", err)
 	}
@@ -105,8 +105,8 @@ func (s *FriendService) RespondToFriendRequest(ctx context.Context, addresseeID,
 			addresseeName = addressee.Username
 		}
 		if err := s.notifSvc.SendToUser(ctx, requesterID,
-			"درخواست دوستی پذیرفته شد",
-			fmt.Sprintf("%s درخواست دوستی تو را پذیرفت.", addresseeName),
+			"درخواستت قبول شد",
+			fmt.Sprintf("%s درخواست دوستیت رو قبول کرد.", addresseeName),
 		); err != nil {
 			slog.Warn("RespondToFriendRequest: notification failed", "requesterID", requesterID, "error", err)
 		}

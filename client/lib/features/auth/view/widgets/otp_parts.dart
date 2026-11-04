@@ -93,9 +93,9 @@ class WelcomeCard extends StatelessWidget {
     final referral = toPersianDigits(GameConstants.referralSignupCoins);
     final body =
         hasReferral
-            ? 'با همین کد حساب تازه‌ات ساخته می‌شود و $welcome سکهٔ خوش‌آمد، '
-                'به‌علاوهٔ $referral سکه برای کد دعوتت می‌گیری.'
-            : 'با همین کد حساب تازه‌ات ساخته می‌شود و $welcome سکهٔ خوش‌آمد می‌گیری.';
+            ? 'با همین کد حسابت ساخته می‌شه و $welcome سکه خوش‌آمد می‌گیری، '
+                'به‌اضافهٔ $referral سکه برای کد دعوتت.'
+            : 'با همین کد حسابت ساخته می‌شه و $welcome سکه خوش‌آمد می‌گیری.';
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
       child: ChunkyBox(

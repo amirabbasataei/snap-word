@@ -48,8 +48,8 @@ class ProfileWordCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             signedIn
-                ? 'کلمهٔ درستی که بازی نپذیرفت را بفرست؛ اگر تأیید شود ${toPersianDigits(GameConstants.wordSuggestionCoins)} سکه هدیه می‌گیری.'
-                : 'کلمهٔ درستی که بازی نپذیرفت را بفرست. برای گرفتن جایزه باید وارد حساب باشی.',
+                ? 'کلمهٔ درستی که بازی قبول نکرد رو بفرست. اگه تأیید بشه، ${toPersianDigits(GameConstants.wordSuggestionCoins)} سکه هدیه می‌گیری.'
+                : 'کلمهٔ درستی که بازی قبول نکرد رو بفرست. برای جایزه باید وارد حساب باشی.',
             style: ZTypography.button.copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w800,

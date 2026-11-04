@@ -99,8 +99,8 @@ class LobbyFriendsCard extends StatelessWidget {
               message: switch (notice) {
                 LobbyFriendsNotice.error => errorMessage ?? '',
                 LobbyFriendsNotice.empty =>
-                  'هنوز دوستی اضافه نکرده‌ای. دوستانت را اضافه کن تا بتوانی دعوتشان کنی.',
-                _ => 'برای دعوت دوستانت اول وارد حسابت شو.',
+                  'هنوز دوستی اضافه نکردی. دوستات رو اضافه کن تا بتونی دعوتشون کنی.',
+                _ => 'برای دعوت دوستات اول وارد حسابت شو.',
               },
               action: switch (notice) {
                 LobbyFriendsNotice.error => 'تلاش دوباره',

@@ -206,7 +206,7 @@ class _Foot extends StatelessWidget {
                         color: zs.coralInk,
                       ),
                     ),
-                    const TextSpan(text: ' کلمهٔ قبلی شروع می‌شود'),
+                    const TextSpan(text: ' کلمهٔ قبلی شروع می‌شه'),
                   ],
                 ),
                 textAlign: TextAlign.center,

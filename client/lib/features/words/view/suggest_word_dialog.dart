@@ -115,7 +115,7 @@ class _SuggestWordDialogState extends State<SuggestWordDialog> {
           pillAccent: ZDialogAccent.indigo,
           title: 'کلمه‌ای کم داریم؟',
           body:
-              'کلمهٔ درستی را که بازی نپذیرفت بنویس. بعد از بررسی به همه اضافه می‌شود'
+              'کلمهٔ درستی که بازی قبول نکرد رو بنویس. بعد از بررسی برای همه اضافه می‌شه'
               '${signedIn ? ' و ${toPersianDigits(GameConstants.wordSuggestionCoins)} سکه هدیه می‌گیری.' : '.'}',
           panel: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -171,7 +171,7 @@ class _SuggestWordDialogState extends State<SuggestWordDialog> {
           primaryLabel: state.sending ? '...' : 'ارسال',
           primaryAccent: ZDialogAccent.indigo,
           onPrimary: _canSend && !state.sending ? () => _send(cubit) : null,
-          secondaryLabel: 'انصراف',
+          secondaryLabel: 'بی‌خیال',
           onSecondary: () => Navigator.of(context).pop(),
         );
       },

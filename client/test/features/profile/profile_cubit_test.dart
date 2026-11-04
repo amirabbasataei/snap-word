@@ -145,10 +145,10 @@ void main() {
     });
 
     test('a failed first load is an error with the Persian reason', () async {
-      repo.statsError = const ProfileException('بارگذاری پروفایل ناموفق بود');
+      repo.statsError = const ProfileException('پروفایل لود نشد');
       final cubit = make();
       await cubit.load();
-      expect(cubit.state, const ProfileError('بارگذاری پروفایل ناموفق بود'));
+      expect(cubit.state, const ProfileError('پروفایل لود نشد'));
     });
 
     test('an unexpected error falls back to the generic line', () async {
@@ -216,14 +216,14 @@ void main() {
 
     test('a refusal returns the message and changes nothing', () async {
       repo.avatarError = const ProfileException(
-        'این امکان فقط برای اشتراک ویژه فعال است',
+        'این فقط برای اشتراک ویژه‌ست',
       );
       final cubit = make();
       await cubit.load();
       final before = cubit.state;
       expect(
         await cubit.setAvatar('owl'),
-        'این امکان فقط برای اشتراک ویژه فعال است',
+        'این فقط برای اشتراک ویژه‌ست',
       );
       expect(cubit.state, before);
     });

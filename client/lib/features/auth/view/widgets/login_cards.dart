@@ -131,7 +131,7 @@ class GuestOption extends StatelessWidget {
           ChunkyPressable(
             depth: ZGame.depthSm,
             onTap: onTap,
-            semanticLabel: 'فعلاً مهمان می‌مانم',
+            semanticLabel: 'فعلاً مهمان می‌مونم',
             builder:
                 (context, depth, _) => ChunkyBox(
                   fill: z.surface,
@@ -144,7 +144,7 @@ class GuestOption extends StatelessWidget {
                     widthFactor: 1,
                     child: ExcludeSemantics(
                       child: Text(
-                        'فعلاً مهمان می‌مانم',
+                        'فعلاً مهمان می‌مونم',
                         style: ZTypography.button.copyWith(
                           fontSize: 14,
                           height: 1,
@@ -157,7 +157,7 @@ class GuestOption extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'امتیاز مهمان فقط روی این گوشی می‌ماند',
+            'امتیاز مهمان فقط روی این گوشی می‌مونه',
             textAlign: TextAlign.center,
             style: ZTypography.metaLabel.copyWith(
               fontSize: 12,

@@ -162,7 +162,7 @@ void main() {
       await _size(tester, 393, 852);
       await tester.pumpWidget(_screen(_state(mistake: 'invalid_word')));
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('کلمهٔ اشتباه — یک جان از دست دادی!'), findsOneWidget);
+      expect(find.text('کلمهٔ اشتباه! یه جان از دست دادی'), findsOneWidget);
     });
 
     testWidgets('power-ups: count badge, else coin price badge', (

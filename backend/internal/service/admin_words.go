@@ -459,7 +459,7 @@ func (s *AdminWordService) notifyApproved(userID, word string) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		body := fmt.Sprintf("کلمهٔ «%s» به دیکشنری اضافه شد. %s سکه جایزه در بخش جوایز منتظر توست.", word, faNum(config.CoinWordSuggestion))
+		body := fmt.Sprintf("کلمهٔ «%s» به دیکشنری اضافه شد. %s سکه جایزه تو بخش جایزه‌ها منتظرته.", word, faNum(config.CoinWordSuggestion))
 		if err := s.push.SendToUser(ctx, userID, "کلمه‌ات تأیید شد", body); err != nil {
 			slog.Warn("word approval push failed", "error", err)
 		}

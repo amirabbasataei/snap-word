@@ -285,13 +285,13 @@ Future<void> _settle(WidgetTester tester) async {
 Future<void> _waitForToastToGo(WidgetTester tester) async {
   for (
     var i = 0;
-    i < 30 && find.text('چالش ارسال شد').evaluate().isNotEmpty;
+    i < 30 && find.text('چالش فرستاده شد').evaluate().isNotEmpty;
     i++
   ) {
     await tester.pump(const Duration(seconds: 1));
   }
   await tester.pump(const Duration(milliseconds: 500));
-  expect(find.text('چالش ارسال شد'), findsNothing);
+  expect(find.text('چالش فرستاده شد'), findsNothing);
 }
 
 void main() {
@@ -351,7 +351,7 @@ void main() {
       expect(find.text('بدون امتیاز این هفته'), findsOneWidget);
       expect(find.text('دعوت به بازی'), findsNWidgets(3));
       expect(
-        find.text('برای حذف یک دوست، انگشتتُ روی اسمش نگه دار'),
+        find.text('برای حذف یه دوست، روی اسمش نگه دار'),
         findsOneWidget,
       );
 
@@ -424,11 +424,11 @@ void main() {
     ) async {
       h.repo.fetchError = const FriendsException(
         code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
+        message: 'وصل نشد، اینترنتت رو چک کن',
       );
       await open(tester);
 
-      expect(find.text('خطا در اتصال به اینترنت'), findsOneWidget);
+      expect(find.text('وصل نشد، اینترنتت رو چک کن'), findsOneWidget);
       expect(find.text('تلاش دوباره'), findsOneWidget);
       expect(
         tester.widget<ZMascot>(find.byType(ZMascot)).mood,
@@ -439,7 +439,7 @@ void main() {
       await tester.tap(find.text('تلاش دوباره'));
       await _settle(tester);
       expect(find.text('دوستان من'), findsOneWidget);
-      expect(find.text('خطا در اتصال به اینترنت'), findsNothing);
+      expect(find.text('وصل نشد، اینترنتت رو چک کن'), findsNothing);
     });
 
     testWidgets('no friends: the empty state, no search, invite code kept', (
@@ -454,7 +454,7 @@ void main() {
       expect(find.text('جست‌وجوی نام دوستان'), findsNothing);
       expect(find.text('۰ نفر'), findsNothing);
       expect(
-        find.text('برای حذف یک دوست، انگشتتُ روی اسمش نگه دار'),
+        find.text('برای حذف یه دوست، روی اسمش نگه دار'),
         findsNothing,
       );
       // The share card is the best next step when the list is empty.
@@ -470,7 +470,7 @@ void main() {
     ) async {
       await open(tester, auth: const AuthGuest());
 
-      expect(find.text('دوستانت را پیدا کن'), findsOneWidget);
+      expect(find.text('دوستات رو پیدا کن'), findsOneWidget);
       expect(find.bySemanticsLabel('افزودن دوست'), findsNothing);
       expect(h.repo.fetches, 0);
       expect(h.auth.codeFetches, 0);
@@ -492,7 +492,7 @@ void main() {
       expect(find.text('درخواست‌ها'), findsOneWidget);
       expect(find.text('۳'), findsOneWidget);
       expect(find.text('لیلا م.'), findsOneWidget);
-      expect(find.text('می‌خواهد دوست تو شود'), findsNWidgets(2));
+      expect(find.text('می‌خواد دوستت باشه'), findsNWidgets(2));
       expect(find.text('چالش فرستاد · کلاسیک'), findsOneWidget);
       // The messages badge is told what the screen loaded.
       expect(h.messages.pendingSets, greaterThan(0));
@@ -592,7 +592,7 @@ void main() {
         );
         await _settle(tester);
 
-        expect(find.text('متوجه شدم'), findsOneWidget);
+        expect(find.text('باشه'), findsOneWidget);
         expect(find.text('دوستان من'), findsOneWidget, reason: 'list stays');
       },
     );
@@ -612,7 +612,7 @@ void main() {
 
       expect(
         find.text(
-          'نام کاربری دقیق دوستت را بنویس تا برایش درخواست دوستی بفرستیم.',
+          'نام کاربری دقیق دوستت رو بنویس تا براش درخواست دوستی بفرستیم.',
         ),
         findsOneWidget,
       );
@@ -621,7 +621,7 @@ void main() {
       await _settle(tester);
 
       expect(h.repo.requested, ['زهرا_ب']);
-      expect(find.text('درخواست دوستی برای زهرا_ب ارسال شد'), findsOneWidget);
+      expect(find.text('درخواست دوستی برای زهرا_ب فرستاده شد'), findsOneWidget);
       expect(find.text('ارسال درخواست'), findsNothing, reason: 'dialog closed');
       expect(find.byType(ZLoadState), findsNothing, reason: 'no spinner');
     });
@@ -720,7 +720,7 @@ void main() {
         await _settle(tester);
 
         expect(h.repo.sent, [('f1', 'classic')]);
-        expect(find.text('چالش ارسال شد'), findsOneWidget);
+        expect(find.text('چالش فرستاده شد'), findsOneWidget);
         expect(find.text('دعوت شد'), findsOneWidget);
         expect(find.text('دعوت به بازی'), findsNWidgets(2));
         expect(find.byType(ZLoadState), findsNothing);
@@ -784,7 +784,7 @@ void main() {
       await tester.tap(find.text('بفرست'));
       await _settle(tester);
 
-      expect(find.text('متوجه شدم'), findsOneWidget);
+      expect(find.text('باشه'), findsOneWidget);
       expect(find.text('دعوت شد'), findsNothing);
     });
 
@@ -816,7 +816,7 @@ void main() {
       await tester.longPress(find.text('مریم ک.'));
       await _settle(tester);
 
-      expect(find.textContaining('را از دوستان حذف کنی؟'), findsOneWidget);
+      expect(find.textContaining('رو از دوستات حذف کنی؟'), findsOneWidget);
       expect(h.repo.removed, isEmpty);
 
       await tester.tap(find.text('حذف'));
@@ -846,7 +846,7 @@ void main() {
     testWidgets('a failure toasts and the friend stays', (tester) async {
       h.repo.removeError = const FriendsException(
         code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
+        message: 'وصل نشد، اینترنتت رو چک کن',
       );
       await open(tester);
       await tester.longPress(find.text('مریم ک.'));
@@ -854,7 +854,7 @@ void main() {
       await tester.tap(find.text('حذف'));
       await _settle(tester);
 
-      expect(find.text('خطا در اتصال به اینترنت'), findsOneWidget);
+      expect(find.text('وصل نشد، اینترنتت رو چک کن'), findsOneWidget);
       expect(find.text('مریم ک.'), findsOneWidget);
       expect(find.text('دوستان من'), findsOneWidget);
     });
@@ -874,7 +874,7 @@ void main() {
       );
       await _settle(tester);
 
-      expect(find.textContaining('را از دوستان حذف کنی؟'), findsOneWidget);
+      expect(find.textContaining('رو از دوستات حذف کنی؟'), findsOneWidget);
       handle.dispose();
     });
   });
@@ -917,7 +917,7 @@ void main() {
         reason: 'not «no friends»',
       );
       expect(
-        find.text('برای حذف یک دوست، انگشتتُ روی اسمش نگه دار'),
+        find.text('برای حذف یه دوست، روی اسمش نگه دار'),
         findsNothing,
       );
 
@@ -970,7 +970,7 @@ void main() {
       await tester.pumpWidget(h.app());
       await _settle(tester);
 
-      expect(find.text('کد دعوت بارگذاری نشد'), findsOneWidget);
+      expect(find.text('کد دعوت لود نشد'), findsOneWidget);
       expect(find.text('اشتراک‌گذاری'), findsNothing);
       expect(
         find.text('دوستان من'),
@@ -1014,14 +1014,14 @@ void main() {
       await open(tester);
       h.repo.fetchError = const FriendsException(
         code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
+        message: 'وصل نشد، اینترنتت رو چک کن',
       );
       h.bus.notify(MainTab.friends);
       await _settle(tester);
 
       expect(h.repo.fetches, 2);
       expect(find.text('مریم ک.'), findsOneWidget);
-      expect(find.text('خطا در اتصال به اینترنت'), findsNothing);
+      expect(find.text('وصل نشد، اینترنتت رو چک کن'), findsNothing);
       expect(find.text('تلاش دوباره'), findsNothing);
     });
 
@@ -1065,7 +1065,7 @@ void main() {
       await open(tester);
       h.bus.notify(MainTab.friends);
       await _settle(tester);
-      await tester.tap(find.text('فعال‌سازی اعلان‌ها'));
+      await tester.tap(find.text('روشن کردن اعلان‌ها'));
       await _settle(tester);
       expect(h.notifications.permissionRequests, 1);
     });
@@ -1152,7 +1152,7 @@ void main() {
           h = _Harness();
           h.repo.fetchError = const FriendsException(
             code: 'network_error',
-            message: 'خطا در اتصال به اینترنت',
+            message: 'وصل نشد، اینترنتت رو چک کن',
           );
           await open(
             tester,
@@ -1340,7 +1340,7 @@ void main() {
     testWidgets('error dark', (tester) async {
       h.repo.fetchError = const FriendsException(
         code: 'network_error',
-        message: 'خطا در اتصال به اینترنت',
+        message: 'وصل نشد، اینترنتت رو چک کن',
       );
       await open(tester, brightness: Brightness.dark);
       await shot(tester, 'z_friends_error_dark');
