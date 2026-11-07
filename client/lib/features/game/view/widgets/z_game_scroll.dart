@@ -81,7 +81,10 @@ class _ZChainScrollerState extends State<ZChainScroller> {
           padding: padding,
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: c.maxHeight - padding.vertical,
+              minHeight: (c.maxHeight - padding.vertical).clamp(
+                0.0,
+                double.infinity,
+              ),
             ),
             child: Align(
               alignment: Alignment.bottomCenter,

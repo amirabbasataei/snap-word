@@ -181,10 +181,7 @@ class HomeView extends StatelessWidget {
                                 padding: const EdgeInsets.fromLTRB(40, 18, 40, 0),
                                 child: HomeOnlineButton(
                                   onTap: onOnline,
-                                  subtitle:
-                                      data.onlineCount == null
-                                          ? onlineFallback
-                                          : HomeOnlineButton.onlineCountLabel(data.onlineCount!),
+                                  subtitle: 'با دوستات یا حریف تصادفی'
                                 ),
                               ),
                               SizedBox(height: extra * .4 + 4),

@@ -161,28 +161,14 @@ class HomeOnlineButton extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: z.onCoral,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          subtitle,
-                          style: ZTypography.button.copyWith(
-                            fontSize: ZGame.minLabel,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                            color: z.onCoral,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      subtitle,
+                      style: ZTypography.button.copyWith(
+                        fontSize: ZGame.minLabel,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                        color: z.onCoral,
+                      ),
                     ),
                   ],
                 ),

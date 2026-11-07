@@ -530,6 +530,17 @@ class ZWordInput extends StatefulWidget {
   /// ZVersus). Null = the text stays centred.
   final Widget? thinkingAccessory;
 
+  /// Typing comes from the in-game [ZPersianKeyboard] (which edits
+  /// [controller]): the system keyboard stays hidden (`TextInputType.none`),
+  /// the field takes focus by itself so the caret shows, and the card has no
+  /// send tile of its own (the keyboard has the send key). Chunky only.
+  final bool customKeyboard;
+
+  /// The field's text/focus when the caller also drives them (the keyboard).
+  /// Null = the widget owns its own.
+  final TextEditingController? controller;
+  final FocusNode? focusNode;
+
   const ZWordInput({
     super.key,
     this.startLetter,
@@ -541,6 +552,9 @@ class ZWordInput extends StatefulWidget {
     this.chunky = false,
     this.longWordMinLength,
     this.thinkingAccessory,
+    this.customKeyboard = false,
+    this.controller,
+    this.focusNode,
   });
 
   @override
@@ -548,8 +562,9 @@ class ZWordInput extends StatefulWidget {
 }
 
 class _ZWordInputState extends State<ZWordInput> {
-  final _controller = TextEditingController();
-  final _focusNode = FocusNode();
+  late final TextEditingController _controller =
+      widget.controller ?? TextEditingController();
+  late final FocusNode _focusNode = widget.focusNode ?? FocusNode();
 
   @override
   void didUpdateWidget(ZWordInput oldWidget) {
@@ -564,8 +579,8 @@ class _ZWordInputState extends State<ZWordInput> {
 
   @override
   void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
+    if (widget.controller == null) _controller.dispose();
+    if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();
   }
 
@@ -791,6 +806,9 @@ class _ZWordInputState extends State<ZWordInput> {
               controller: _controller,
               focusNode: _focusNode,
               enabled: widget.enabled,
+              keyboardType: widget.customKeyboard ? TextInputType.none : null,
+              // A focused field blinks its caret forever; reduced motion skips it.
+              autofocus: widget.customKeyboard && !homeReducedMotion(context),
               // Keyboard word suggestions would hand the player free answers.
               autocorrect: false,
               enableSuggestions: false,
@@ -822,28 +840,30 @@ class _ZWordInputState extends State<ZWordInput> {
               onSubmitted: (_) => _submit(),
             ),
           ),
-          const SizedBox(width: 10),
-          ChunkyPressable(
-            depth: ZGame.depthMd - 1,
-            onTap: widget.enabled ? _submit : null,
-            semanticLabel: 'بفرست',
-            builder:
-                (context, depth, _) => ChunkyBox(
-                  fill: widget.enabled ? z.teal : z.wash,
-                  deep: widget.enabled ? z.tealDeep : null,
-                  depth: widget.enabled ? depth : 0,
-                  radius: 16,
-                  highlight: widget.enabled,
-                  width: ZGame.gameSendWidth,
-                  height: ZGame.gameSendHeight,
-                  alignment: Alignment.center,
-                  child: SvgPicture.string(
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="$ink" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
-                    width: 24,
-                    height: 24,
+          if (!widget.customKeyboard) ...[
+            const SizedBox(width: 10),
+            ChunkyPressable(
+              depth: ZGame.depthMd - 1,
+              onTap: widget.enabled ? _submit : null,
+              semanticLabel: 'بفرست',
+              builder:
+                  (context, depth, _) => ChunkyBox(
+                    fill: widget.enabled ? z.teal : z.wash,
+                    deep: widget.enabled ? z.tealDeep : null,
+                    depth: widget.enabled ? depth : 0,
+                    radius: 16,
+                    highlight: widget.enabled,
+                    width: ZGame.gameSendWidth,
+                    height: ZGame.gameSendHeight,
+                    alignment: Alignment.center,
+                    child: SvgPicture.string(
+                      '<svg viewBox="0 0 24 24" fill="none" stroke="$ink" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+                      width: 24,
+                      height: 24,
+                    ),
                   ),
-                ),
-          ),
+            ),
+          ],
         ],
       ),
     );
