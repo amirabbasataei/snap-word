@@ -148,7 +148,7 @@ class ShareService {
   Future<void> shareInvite({required String code}) async {
     final text = '''بیا با هم زنجیر کلمه بازی کنیم! 🔗
 موقع ثبت‌نام این کد دعوت رو وارد کن و سکهٔ هدیه بگیر: $code
-دانلود و بازی: wordchain.app''';
+دانلود و بازی: https://cafebazaar.ir/app/com.ataei.zanjir''';
     trackEvent(AnalyticsEvent.share, {'kind': 'invite'});
     await Share.share(text);
   }
