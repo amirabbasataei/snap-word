@@ -13,6 +13,9 @@ const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default:
 const Users = lazy(() => import('@/pages/Users').then((m) => ({ default: m.Users })))
 const UserDetail = lazy(() => import('@/pages/UserDetail').then((m) => ({ default: m.UserDetail })))
 
+const Matches = lazy(() => import('@/pages/Matches').then((m) => ({ default: m.Matches })))
+const MatchDetail = lazy(() => import('@/pages/MatchDetail').then((m) => ({ default: m.MatchDetail })))
+
 const Analytics = lazy(() => import('@/pages/Analytics').then((m) => ({ default: m.Analytics })))
 const InstallTimeline = lazy(() => import('@/pages/InstallTimeline').then((m) => ({ default: m.InstallTimeline })))
 
@@ -37,6 +40,8 @@ export function App() {
           <Route index element={<Suspense fallback={null}><Dashboard /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={null}><Users /></Suspense>} />
           <Route path="/users/:id" element={<Suspense fallback={null}><UserDetail /></Suspense>} />
+          <Route path="/matches" element={<Suspense fallback={null}><Matches /></Suspense>} />
+          <Route path="/matches/:id" element={<Suspense fallback={null}><MatchDetail /></Suspense>} />
           <Route path="/analytics" element={<Suspense fallback={null}><Analytics /></Suspense>} />
           <Route path="/analytics/installs/:id" element={<Suspense fallback={null}><InstallTimeline /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={null}><Settings /></Suspense>} />

@@ -1,5 +1,5 @@
 import {
-  Activity, Bell, BookA, Gamepad2, LayoutDashboard, Medal, Radio, ScrollText, Settings, Shield, Smile, Swords, Trophy, UserRound, Users,
+  Activity, Bell, BookA, LayoutDashboard, Medal, Radio, ScrollText, Settings, Shield, Smile, Swords, Trophy, UserRound, Users,
   type LucideIcon,
 } from 'lucide-react'
 import type { AdminRole } from '@/auth/AuthContext'
@@ -56,7 +56,6 @@ export const NAV: NavGroup[] = [
 // Pages that exist only as placeholders until their stage lands.
 export const PLACEHOLDERS: { to: string; title: string; stage: string; icon: LucideIcon }[] = [
   { to: '/live', title: 'اتاق‌های زنده', stage: 'A6', icon: Radio },
-  { to: '/matches', title: 'مسابقه‌ها', stage: 'A6', icon: Gamepad2 },
   { to: '/admins', title: 'مدیران', stage: 'A7', icon: Shield },
   { to: '/audit', title: 'گزارش فعالیت', stage: 'A7', icon: ScrollText },
 ]

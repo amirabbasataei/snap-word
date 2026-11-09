@@ -11,7 +11,7 @@ Read this (and CLAUDE.md) at the start of every admin-panel session. Run one sta
 | A3 | Dashboard (real data only) | [x] Complete |
 | A4 | Users & economy (incl. ban) | [x] Complete |
 | A5 | Content & catalogue (taunts, avatars, daily, leaderboards) | [x] Complete |
-| A6 | Live ops, matches & notifications | [ ] In Progress — **notifications done** (2026-10-31, see log); live rooms and matches pages not started |
+| A6 | Live ops, matches & notifications | [ ] In Progress — **notifications done** (2026-10-31, see log); matches page done (2026-11-09, see CLAUDE.md § Admin Panel); live rooms page not started |
 | A7 | Admins, 2FA, audit log, hardening, release | [ ] Not Started |
 | A8 | Product analytics (events, retention, funnels, timelines) | [x] Complete (code) — client tracker not yet verified on-device |
 

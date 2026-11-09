@@ -9,6 +9,7 @@ const MESSAGES: Record<string, string> = {
   validation_error: 'اطلاعات واردشده معتبر نیست.',
   not_found: 'مورد درخواستی پیدا نشد.',
   user_not_found: 'کاربر پیدا نشد.',
+  match_not_found: 'مسابقه پیدا نشد.',
   reason_required: 'دلیل را بنویسید (حداقل ۳ و حداکثر ۲۰۰ نویسه).',
   invalid_amount: 'مقدار سکه باید عددی صحیح و غیرصفر، حداکثر ۱٬۰۰۰٬۰۰۰ باشد (هدیه فقط مثبت).',
   invalid_days: 'تعداد روز باید بین ۱ و ۳۶۵۰ باشد.',

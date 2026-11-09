@@ -11,6 +11,7 @@ export const MATCH_STATUS_LABEL: Record<string, string> = {
   finished: 'تمام‌شده',
   active: 'در جریان',
   abandoned: 'رهاشده',
+  pending: 'در انتظار حریف',
 }
 
 export const REWARD_KIND_LABEL: Record<string, string> = {

@@ -240,7 +240,7 @@ function MatchesTab({ user }: { user: Detail }) {
     { key: 'status', header: 'وضعیت', cell: (m) => <Badge tone={m.status === 'finished' ? 'green' : 'neutral'}>{MATCH_STATUS_LABEL[m.status] ?? m.status}</Badge> },
     { key: 'score', header: 'امتیاز', cell: (m) => formatNumber(m.score) },
     { key: 'won', header: 'نتیجه', cell: (m) => (m.won ? <Badge tone="yellow">برنده</Badge> : <span className="text-muted">—</span>) },
-    { key: 'at', header: 'زمان', cell: (m) => formatJalaliDateTime(m.at) },
+    { key: 'at', header: 'زمان', cell: (m) => <Link to={`/matches/${m.id}`} className="hover:text-blue">{formatJalaliDateTime(m.at)}</Link> },
   ]
   const dailyCols: Column<Detail['daily_attempts'][number]>[] = [
     { key: 'date', header: 'روز', cell: (a) => formatJalaliDay(a.date, 'yyyy/MM/dd') },

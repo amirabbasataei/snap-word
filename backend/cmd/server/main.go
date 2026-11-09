@@ -143,6 +143,7 @@ func main() {
 	catalogHandler := handler.NewCatalogHandler(catalogSvc, auditSvc)
 	adminAuthHandler := handler.NewAdminAuthHandler(adminAuthSvc, auditSvc, cfg.AdminAPIKey)
 	dashboardHandler := handler.NewAdminDashboardHandler(service.NewAdminDashboardService(adminRepo, hub, rdb, notifSvc))
+	adminMatchesHandler := handler.NewAdminMatchesHandler(service.NewAdminMatchService(adminRepo))
 	adminUsersHandler := handler.NewAdminUsersHandler(service.NewAdminUserService(adminRepo, userRepo, authSvc, auditSvc))
 	adminContentSvc, err := service.NewAdminContentService(adminRepo, dailyRepo, leaderboardSvc, userRepo, rdb, auditSvc, cfg)
 	if err != nil {
@@ -226,6 +227,8 @@ func main() {
 	admin.GET("/dashboard/timeseries", dashboardHandler.Timeseries)
 	admin.GET("/users", adminUsersHandler.List)
 	admin.GET("/users/:id", adminUsersHandler.Get)
+	admin.GET("/matches", adminMatchesHandler.List)
+	admin.GET("/matches/:id", adminMatchesHandler.Get)
 	admin.GET("/analytics/overview", adminAnalyticsHandler.Overview)
 	admin.GET("/analytics/retention", adminAnalyticsHandler.Retention)
 	admin.GET("/analytics/funnel", adminAnalyticsHandler.Funnel)
