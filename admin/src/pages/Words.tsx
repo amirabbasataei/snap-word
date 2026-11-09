@@ -146,7 +146,7 @@ function Queue({ kind, canEdit, onPending }: { kind: WordKind; canEdit: boolean;
     })
   }
   columns.push(
-    { key: 'word', header: 'کلمه', cell: (r) => <WordCell word={r.word} warnings={r.warnings} extra={r.known_rejected ? <Badge tone="pink">قبلاً رد شده</Badge> : undefined} /> },
+    { key: 'word', header: 'کلمه', cell: (r) => <WordCell word={r.word} warnings={r.warnings} /> },
     { key: 'reporters', header: 'گزارش‌دهنده', cell: (r) => formatNumber(r.reporters) },
   )
   if (!isAdd) {

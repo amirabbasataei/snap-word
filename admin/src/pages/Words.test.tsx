@@ -8,7 +8,7 @@ const NOW = new Date().toISOString()
 const sug = (over: Record<string, unknown>) => ({
   id: 1, word: 'آزمونک', kind: 'add', status: 'pending', outcome: '', reporters: 3, not_a_word: 0, inappropriate: 0,
   review_note: '', reviewed_by: '', reviewed_at: null, created_at: NOW, last_reported_at: NOW,
-  in_dictionary: false, ai_blocked: false, known_rejected: false, warnings: [], ...over,
+  in_dictionary: false, ai_blocked: false, warnings: [], ...over,
 })
 const ADD = [
   sug({ id: 1, word: 'آزمونک', reporters: 3 }),
@@ -22,9 +22,9 @@ function setup(role: 'viewer' | 'operator' | 'owner') {
     if ((init?.method ?? 'GET') !== 'GET') return Response.json({ data: { done: 2, failed: [] } })
     if (url.includes('/words/suggestions?') && url.includes('kind=add')) return Response.json({ data: queue(ADD) })
     if (url.includes('/words/suggestions?') && url.includes('kind=remove')) return Response.json({ data: queue(REMOVE) })
-    if (url.includes('/dictionary/misses')) return Response.json({ data: { items: [{ word: 'ناموجود', count: 12, in_dictionary: false, known_rejected: false, warnings: [] }] } })
+    if (url.includes('/dictionary/misses')) return Response.json({ data: { items: [{ word: 'ناموجود', count: 12, in_dictionary: false, warnings: [] }] } })
     if (url.includes('/dictionary/lookup')) {
-      return Response.json({ data: { word: 'کتاب', in_dictionary: true, in_base: true, ai_blocked: false, known_rejected: false, warnings: [], suggestions: [] } })
+      return Response.json({ data: { word: 'کتاب', in_dictionary: true, in_base: true, ai_blocked: false, warnings: [], suggestions: [] } })
     }
   })
 }

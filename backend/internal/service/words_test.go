@@ -237,15 +237,9 @@ func TestWordSubmit_Rules(t *testing.T) {
 	}
 }
 
-func TestWordSubmit_KnownRejectedAndReviewed(t *testing.T) {
+func TestWordSubmit_Reviewed(t *testing.T) {
 	svc, st := newSuggestionSvc(t)
 	ctx := context.Background()
-	if _, err := svc.Submit(ctx, wUser, "ip", service.SubmitWordInput{Word: "آبجویی", Kind: "add"}); !errors.Is(err, service.ErrWordReviewed) {
-		// آبجویی is on the curation-rejected list unless it was later added.
-		if !engine.IsValid("آبجویی") {
-			t.Fatalf("known-rejected word err = %v", err)
-		}
-	}
 	// A suggestion an admin already decided on is refused.
 	if _, err := svc.Submit(ctx, wUser, "ip", service.SubmitWordInput{Word: "نابودکلمهتست", Kind: "add"}); err != nil {
 		t.Fatal(err)

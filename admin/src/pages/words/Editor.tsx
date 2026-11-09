@@ -55,7 +55,6 @@ export function Editor({ canEdit }: { canEdit: boolean }) {
                 {d.in_dictionary && !d.in_base && <Badge tone="blue">افزودهٔ بعدی (هنوز در fa.txt نیست)</Badge>}
                 {!d.in_dictionary && d.in_base && <Badge tone="pink">حذف‌شده از fa.txt</Badge>}
                 {d.ai_blocked && <Badge tone="yellow">مسدود برای هوش مصنوعی</Badge>}
-                {d.known_rejected && <Badge tone="pink">در فهرست ردشده‌های پالایش</Badge>}
               </div>
               {d.suggestions.length > 0 && (
                 <ul className="space-y-1 text-sm text-muted">

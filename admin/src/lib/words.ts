@@ -26,7 +26,6 @@ export interface WordSuggestion {
   last_reported_at: string
   in_dictionary: boolean
   ai_blocked: boolean
-  known_rejected: boolean
   warnings: string[]
 }
 
@@ -111,7 +110,6 @@ export interface WordMiss {
   word: string
   count: number
   in_dictionary: boolean
-  known_rejected: boolean
   warnings: string[]
 }
 
@@ -127,7 +125,6 @@ export interface WordLookup {
   in_dictionary: boolean
   in_base: boolean
   ai_blocked: boolean
-  known_rejected: boolean
   warnings: string[]
   suggestions: WordSuggestion[]
 }

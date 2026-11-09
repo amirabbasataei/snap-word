@@ -29,7 +29,6 @@ export function Misses({ canEdit }: { canEdit: boolean }) {
           extra={
             <>
               {m.in_dictionary && <Badge tone="green">اکنون در دیکشنری است</Badge>}
-              {m.known_rejected && <Badge tone="pink">قبلاً رد شده</Badge>}
             </>
           }
         />

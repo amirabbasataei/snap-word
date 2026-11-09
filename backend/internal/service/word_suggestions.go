@@ -94,9 +94,6 @@ func (s *WordSuggestionService) Submit(ctx context.Context, userID, ip string, i
 		if inDict {
 			return nil, ErrWordInDictionary
 		}
-		if engine.IsKnownRejected(word) {
-			return nil, ErrWordReviewed
-		}
 	case repository.WordKindRemove:
 		if in.Reason != ReasonNotAWord && in.Reason != ReasonInappropriate {
 			return nil, ErrWordInvalid

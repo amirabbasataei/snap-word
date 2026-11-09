@@ -104,11 +104,3 @@ func TestOverlayWordsAreIterated(t *testing.T) {
 	}
 }
 
-func TestKnownRejected(t *testing.T) {
-	if len(rejected) < 3000 {
-		t.Fatalf("rejected list looks truncated: %d", len(rejected))
-	}
-	if !IsKnownRejected("آبجویی") {
-		t.Fatal("first rejected word not found")
-	}
-}

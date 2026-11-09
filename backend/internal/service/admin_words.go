@@ -93,7 +93,6 @@ type WordSuggestionItem struct {
 	LastReportedAt time.Time  `json:"last_reported_at"`
 	InDictionary   bool       `json:"in_dictionary"`
 	AIBlocked      bool       `json:"ai_blocked"`
-	KnownRejected  bool       `json:"known_rejected"`
 	Warnings       []string   `json:"warnings"`
 }
 
@@ -103,7 +102,7 @@ func suggestionItem(r repository.AdminWordSuggestion) WordSuggestionItem {
 		NotAWord: r.NotAWord, Inappropriate: r.Inappropriate, ReviewNote: r.ReviewNote, ReviewedBy: r.ReviewedBy,
 		ReviewedAt: r.ReviewedAt, CreatedAt: r.CreatedAt, LastReportedAt: r.LastReportedAt,
 		InDictionary: engine.IsValid(r.Word), AIBlocked: engine.IsAIBlocked(r.Word),
-		KnownRejected: engine.IsKnownRejected(r.Word), Warnings: WordWarnings(r.Word),
+		Warnings: WordWarnings(r.Word),
 	}
 }
 
@@ -356,7 +355,6 @@ type WordLookup struct {
 	InDictionary  bool                 `json:"in_dictionary"`
 	InBase        bool                 `json:"in_base"`
 	AIBlocked     bool                 `json:"ai_blocked"`
-	KnownRejected bool                 `json:"known_rejected"`
 	Warnings      []string             `json:"warnings"`
 	Suggestions   []WordSuggestionItem `json:"suggestions"`
 }
@@ -373,7 +371,7 @@ func (s *AdminWordService) Lookup(ctx context.Context, word string) (*WordLookup
 	}
 	out := &WordLookup{
 		Word: word, InDictionary: engine.IsValid(word), InBase: engine.InBase(word), AIBlocked: engine.IsAIBlocked(word),
-		KnownRejected: engine.IsKnownRejected(word), Warnings: WordWarnings(word), Suggestions: make([]WordSuggestionItem, len(rows)),
+		Warnings: WordWarnings(word), Suggestions: make([]WordSuggestionItem, len(rows)),
 	}
 	for i, r := range rows {
 		out.Suggestions[i] = suggestionItem(r)
@@ -386,7 +384,6 @@ type MissItem struct {
 	Word          string   `json:"word"`
 	Count         int      `json:"count"`
 	InDictionary  bool     `json:"in_dictionary"`
-	KnownRejected bool     `json:"known_rejected"`
 	Warnings      []string `json:"warnings"`
 }
 
@@ -402,7 +399,7 @@ func (s *AdminWordService) Misses(ctx context.Context, n int) ([]MissItem, error
 	out := make([]MissItem, len(top))
 	for i, m := range top {
 		out[i] = MissItem{Word: m.Word, Count: m.Count, InDictionary: engine.IsValid(m.Word),
-			KnownRejected: engine.IsKnownRejected(m.Word), Warnings: WordWarnings(m.Word)}
+			Warnings: WordWarnings(m.Word)}
 	}
 	return out, nil
 }
