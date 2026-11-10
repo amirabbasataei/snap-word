@@ -1,6 +1,6 @@
 # Scoring & ranking — plan (Phase 25)
 
-> **Status (2026-11-10): planned, nothing built.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
+> **Status (2026-11-10): S1 and S2 done in code (not deployed); S3–S7 not started.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
 
 ## Why
 
@@ -50,7 +50,17 @@ Two different "streaks" exist — don't mix them up:
 4. Rebuild the backend, run Go + Flutter tests, update CLAUDE.md § Scoring Formula / Streak rules / Power-ups.
 
 ### S2 — Rating backend
-**Status: not started.**
+**Status: done in code 2026-11-10** (Go + admin panel, tests with real Postgres, backend rebuilt locally, migration 019 applied locally; **not deployed — ships with S3, right after a Saturday reset**; no live 1v1 match was played against it, the REST boards/stats/admin pages were checked live with empty data). Outcome and decisions beyond the plan:
+- Name stays «جام» (the S2 request said «ماج», read as a typo). Defaults exactly as below (`config.Rating*`, `WeeklyMinRatedGames`, `WeeklyPrizeScanLimit`).
+- `rating_history` has FKs to `matches` (ON DELETE CASCADE) and `users`. A **pair-capped game writes no history row and does not count in `rated_games`**; its `rating_update` carries `reason: "pair_cap"` with every delta 0. Retried applies return the stored rows (`Applied=false`) and feed the weekly board only once; concurrent applies are serialised by the `FOR UPDATE` on both `player_stats` rows (locked in id order).
+- WS: picked the **follow-up `rating_update`** event. `resolveGame` now starts `Room.afterGame` (rating → queue `rating_update` → `closeAfterDrain` → `finalizeToDB`); the close moved behind the rating because closing a send channel before the broadcast would panic. A failed rating write sends nothing and still closes the room. `game_start.state.ratings` added (humans only).
+- Weekly board: besides `leaderboard:weekly:rating` and `:wins`, a third hash **`leaderboard:weekly:games`** (needed for the ≥5-games prize rule). Order: Δ, wins, user id; `GetTopN` also pulls every member tied with the last fetched one so the wins tie-break is exact at the cut. Prizes go to the first 3 *eligible* players, ranked 1–3 among them. The reset deletes the old `leaderboard:global:weekly` key **unpaid** (cut-over option "deploy right after a Saturday reset"; the option of paying it one last time was not built).
+- `GET /leaderboard` keeps its shape and adds `games` (+ `wins` on weekly rows), `player_games` (+ `player_wins` on weekly). On the friends board `player_rank` is now the caller's place **among friends** (was their global weekly rank, todo.md 2.13). The all-time `player_score` is the caller's rating even below 10 games (rank 0).
+- `/profile/stats` also returns **`total_score`**: the all-time board no longer carries word points, and S3 shows «مجموع امتیاز» from here.
+- Removed the dead word-points queries (`LeaderboardRepository.GetAllTimeTop/GetAllTimeRank`); `LeaderboardUpdater.AddScore` → `AddTotalScore`.
+- Admin panel: user page «جام» row, match detail «جام ±N ← after» per player (`rating_before/after/delta`, null when unrated), «جدول امتیازات» shows weekly Δ / wins / rated games and the all-time rating.
+- Tests: `service/rating_test.go` (Elo table, K switch, floor, apply, replay, concurrent apply, pair cap incl. the next Iran day, draw/AI), `service/leaderboard_rating_test.go` (weekly order/tie-break/standing, reset eligibility + idempotency + key cleanup, all-time min games/banned/AI, friends), `ws/rating_test.go` (`rating_update` after `game_over` with deltas, one apply per match, pair cap, draw/AI/cancelled unrated, failure still closes), an admin-matches detail case, panel tests.
+- **Until S3 ships, the current app would show ratings under the old word-points labels** — hence S2 must not be deployed alone.
 
 **Decided defaults** (change them before starting S2 if you disagree):
 - **Elo**, shown to players as «جام». Start 1000, floor 0. `E = 1 / (1 + 10^((Rb − Ra)/400))`, `Δ = round(K × (S − E))`, S = 1 win / 0 loss. K = 32 for a player's first 30 rated games, then 16. Both players' deltas are computed from the pre-match ratings.

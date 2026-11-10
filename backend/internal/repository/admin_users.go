@@ -184,6 +184,9 @@ type AdminUserStats struct {
 	LastPlayedDate     *time.Time
 	TotalScore         int64
 	XP                 int64
+	Rating             int // Elo «جام» (1000 with no stats row)
+	RatedGames         int
+	PeakRating         int
 }
 
 // AdminReferred is one account that signed up (or redeemed) with this user's code.
@@ -235,6 +238,7 @@ SELECT u.id, COALESCE(u.username, ''), u.phone, u.coins, COALESCE(ps.xp, 0), COA
        COALESCE(ps.wins, 0), COALESCE(ps.longest_word, ''), COALESCE(ps.best_match_streak, 0),
        COALESCE(ps.daily_streak, 0), COALESCE(ps.longest_daily_streak, 0), ps.last_played_date,
        COALESCE(ps.total_score, 0),
+       COALESCE(ps.rating, 1000), COALESCE(ps.rated_games, 0), COALESCE(ps.peak_rating, 1000),
        (SELECT count(*) FROM friendships f
          WHERE f.status = 'accepted' AND (f.requester_id = u.id OR f.addressee_id = u.id)),
        (SELECT count(*) FROM device_tokens d WHERE d.user_id = u.id),
@@ -257,6 +261,7 @@ WHERE u.id = $1 AND u.phone_verified_at IS NOT NULL`
 		&d.Stats.Wins, &d.Stats.LongestWord, &d.Stats.BestMatchStreak,
 		&d.Stats.DailyStreak, &d.Stats.LongestDailyStreak, &lastPlayed,
 		&d.Stats.TotalScore,
+		&d.Stats.Rating, &d.Stats.RatedGames, &d.Stats.PeakRating,
 		&d.FriendsCount, &d.DeviceTokens, &d.ReferredCount,
 	)
 	if errors.Is(err, sql.ErrNoRows) {

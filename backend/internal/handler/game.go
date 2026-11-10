@@ -65,6 +65,10 @@ type statsResponse struct {
 	Level              int        `json:"level"`
 	XPInLevel          int64      `json:"xp_in_level"` // progress within the current level
 	XPForNextLevel     int64      `json:"xp_for_next"` // size of the current level's step
+	TotalScore         int64      `json:"total_score"` // lifetime word points of 1v1 games («مجموع امتیاز»)
+	Rating             int        `json:"rating"`      // Elo «جام»; 1000 before the first rated game
+	RatedGames         int        `json:"rated_games"`
+	PeakRating         int        `json:"peak_rating"`
 }
 
 // CreateSolo handles POST /api/v1/game/solo.
@@ -185,5 +189,9 @@ func toStatsResponse(s *repository.PlayerStats) statsResponse {
 		DailyStreak:        s.DailyStreak,
 		LongestDailyStreak: s.LongestDailyStreak,
 		LastPlayedDate:     s.LastPlayedDate,
+		TotalScore:         s.TotalScore,
+		Rating:             s.Rating,
+		RatedGames:         s.RatedGames,
+		PeakRating:         s.PeakRating,
 	}
 }

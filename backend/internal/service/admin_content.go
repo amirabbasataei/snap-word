@@ -500,7 +500,9 @@ type BoardEntry struct {
 	Rank     int     `json:"rank"`
 	UserID   string  `json:"user_id"`
 	Username string  `json:"username"`
-	Score    float64 `json:"score"`
+	Score    float64 `json:"score"`          // weekly: net rating change; all-time: rating
+	Games    int     `json:"games"`          // rated games this board counts (this week / ever)
+	Wins     *int    `json:"wins,omitempty"` // weekly only
 	AvatarID string  `json:"avatar_id"`
 }
 
@@ -524,7 +526,8 @@ func cleanBoardLimit(limit int) (int, error) {
 func toBoard(entries []LeaderboardEntry, limit int) *Board {
 	b := &Board{Entries: make([]BoardEntry, len(entries)), Limit: limit}
 	for i, e := range entries {
-		b.Entries[i] = BoardEntry{Rank: e.Rank, UserID: e.UserID, Username: e.Username, Score: e.Score, AvatarID: e.AvatarID}
+		b.Entries[i] = BoardEntry{Rank: e.Rank, UserID: e.UserID, Username: e.Username, Score: e.Score,
+			Games: e.Games, Wins: e.Wins, AvatarID: e.AvatarID}
 	}
 	return b
 }

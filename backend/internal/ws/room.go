@@ -63,6 +63,16 @@ type outMsg struct {
 	// can still show a taunt added after it last fetched.
 	Taunt string `json:"taunt,omitempty"`
 	Text  string `json:"text,omitempty"`
+	// Rating («جام») change per player, on rating_update (sent after game_over
+	// for a rated 1v1 match; Reason "pair_cap" when the match changed nothing).
+	Rating map[string]RatingChange `json:"rating,omitempty"`
+}
+
+// RatingChange is one player's rating before and after a match.
+type RatingChange struct {
+	Before int `json:"before"`
+	After  int `json:"after"`
+	Delta  int `json:"delta"`
 }
 
 type gameStartState struct {
@@ -79,6 +89,8 @@ type gameStartState struct {
 	Avatars map[string]string `json:"avatars,omitempty"`
 	// Premium lists the players with an active subscription (badge + taunts).
 	Premium []string `json:"premium,omitempty"`
+	// Ratings maps each human player to their current rating («جام»).
+	Ratings map[string]int `json:"ratings,omitempty"`
 }
 
 // PowerupDeductor deducts one power-up use from a player's inventory.
@@ -106,10 +118,28 @@ type XPRecorder interface {
 	AddXP(ctx context.Context, userID string, xp int) error
 }
 
-// LeaderboardUpdater adds a player's score to the weekly leaderboard.
-// Used only for multiplayer games; solo scores are excluded.
+// LeaderboardUpdater adds a game's word points to the player's lifetime total
+// (a profile stat). Used only for multiplayer games; solo scores are excluded.
+// The boards rank the rating (RatingApplier) since Phase 25 S2.
 type LeaderboardUpdater interface {
-	AddScore(ctx context.Context, userID string, score int) error
+	AddTotalScore(ctx context.Context, userID string, score int) error
+}
+
+// RatingOutcome is a rated match's result. Rated is false when the pair cap
+// swallowed the match (Reason "pair_cap", every Delta 0).
+type RatingOutcome struct {
+	Rated   bool
+	Reason  string
+	Changes map[string]RatingChange
+}
+
+// RatingApplier applies the Elo rating after a 1v1 human match and reads the
+// current ratings for game_start. ApplyMatchResult must be idempotent per match
+// and returns nil for an unrated match. Implemented by service.RatingService
+// (through an adapter in main).
+type RatingApplier interface {
+	ApplyMatchResult(ctx context.Context, matchID, winnerID, loserID string) (*RatingOutcome, error)
+	RatingsOf(ctx context.Context, userIDs []string) (map[string]int, error)
 }
 
 // CoinLedger moves coins for match entry fees. Implemented by
@@ -131,6 +161,7 @@ type RoomDeps struct {
 	Perks          PerkLookup       // nil disables premium perks (tests)
 	Taunts         TauntLookup      // nil disables taunts (tests)
 	WordMisses     WordMissRecorder // nil disables the missing-word tally (tests)
+	Rating         RatingApplier    // nil disables the rating (tests)
 }
 
 // WordMissRecorder tallies words rejected as not_in_dictionary (anonymously,
@@ -885,6 +916,7 @@ func (r *Room) startGame() {
 			EntryFee:    r.feePaid(),
 			Premium:     premium,
 			Avatars:     avatars,
+			Ratings:     r.ratingState(),
 		},
 	}))
 
@@ -1030,10 +1062,84 @@ func (r *Room) resolveGame(winnerID string) {
 		Payout: payout,
 	}))
 
-	go r.finalizeToDB(winnerID, chain, scores)
+	go r.afterGame(winnerID, r.isRatedResult(winnerID), chain, scores)
+}
 
-	// Give the game_over message time to drain, then close connections.
+// isRatedResult reports whether this finished match moves the rating: a winner
+// and two human players. Draws and AI-fallback rooms are unrated; cancelled
+// rooms never reach resolveGame. Must be called with r.mu held.
+func (r *Room) isRatedResult(winnerID string) bool {
+	if r.deps.Rating == nil || winnerID == "" || len(r.playerOrder) != maxPlayers {
+		return false
+	}
+	for _, pid := range r.playerOrder {
+		if pid == config.SystemAIUserID {
+			return false
+		}
+	}
+	return true
+}
+
+// afterGame runs once per match after game_over, off the room lock: the rating
+// (whose DB transaction must not run under the lock, so its result follows
+// game_over as a rating_update event), then closing the connections, then the
+// rest of the bookkeeping.
+func (r *Room) afterGame(winnerID string, rated bool, chain []string, scores map[string]int) {
+	if rated {
+		r.applyRating(winnerID, r.opponentOf(winnerID))
+	}
+	// Close only after the rating_update was queued: closing a send channel
+	// first would make that broadcast panic.
+	r.mu.Lock()
 	r.closeAfterDrain()
+	r.mu.Unlock()
+	r.finalizeToDB(winnerID, chain, scores)
+}
+
+// applyRating rates the match and tells both players their change.
+func (r *Room) applyRating(winnerID, loserID string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	out, err := r.deps.Rating.ApplyMatchResult(ctx, r.id, winnerID, loserID)
+	if err != nil {
+		slog.Error("ws: rating apply failed", "room", r.id, "error", err)
+		return
+	}
+	if out == nil || len(out.Changes) == 0 {
+		return
+	}
+	msg := outMsg{Type: "rating_update", Rating: out.Changes}
+	if !out.Rated {
+		msg.Reason = out.Reason
+	}
+	r.mu.Lock()
+	r.broadcast(mustMarshal(msg))
+	r.mu.Unlock()
+}
+
+// ratingState returns the humans' current ratings for game_start, or nil.
+// Must be called with r.mu held (one short DB read, like perkState).
+func (r *Room) ratingState() map[string]int {
+	if r.deps.Rating == nil {
+		return nil
+	}
+	var humans []string
+	for _, pid := range r.playerOrder {
+		if pid != config.SystemAIUserID {
+			humans = append(humans, pid)
+		}
+	}
+	if len(humans) == 0 {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	ratings, err := r.deps.Rating.RatingsOf(ctx, humans)
+	if err != nil {
+		slog.Error("ws: rating lookup failed", "room", r.id, "error", err)
+		return nil
+	}
+	return ratings
 }
 
 func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]int) {
@@ -1066,7 +1172,7 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 
 		// Skip the AI opponent — it has a real users/match_players row now
 		// (config.SystemAIUserID) so score persistence works, but it must
-		// never contribute to player_stats or the weekly leaderboard.
+		// never contribute to player_stats, the rating or the boards.
 		if playerID == config.SystemAIUserID {
 			continue
 		}
@@ -1081,8 +1187,8 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 			}
 		}
 		if r.deps.LeaderboardSvc != nil {
-			if err := r.deps.LeaderboardSvc.AddScore(ctx, playerID, score); err != nil {
-				slog.Error("ws: AddScore failed", "room", r.id, "player", playerID, "error", err)
+			if err := r.deps.LeaderboardSvc.AddTotalScore(ctx, playerID, score); err != nil {
+				slog.Error("ws: AddTotalScore failed", "room", r.id, "player", playerID, "error", err)
 			}
 		}
 	}
@@ -1115,6 +1221,7 @@ func (r *Room) sendCurrentState(client *Client) {
 			NextLetter:  nextLetter,
 			Premium:     premium,
 			Avatars:     avatars,
+			Ratings:     r.ratingState(),
 		},
 	}))
 }

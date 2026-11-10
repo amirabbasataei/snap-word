@@ -19,6 +19,10 @@ type PlayerStats struct {
 	DailyStreak        int
 	LongestDailyStreak int
 	XP                 int64
+	TotalScore         int64 // lifetime word points of multiplayer games
+	Rating             int   // Elo «جام» (Phase 25 S2)
+	RatedGames         int
+	PeakRating         int
 	LastPlayedDate     *time.Time
 	UpdatedAt          time.Time
 }
@@ -34,7 +38,8 @@ func NewStatsRepository(db *sql.DB) *StatsRepository {
 func (r *StatsRepository) GetStats(ctx context.Context, userID string) (*PlayerStats, error) {
 	const q = `
 		SELECT user_id, total_matches, wins, longest_word, best_match_streak,
-		       daily_streak, longest_daily_streak, last_played_date, updated_at, xp
+		       daily_streak, longest_daily_streak, last_played_date, updated_at, xp,
+		       total_score, rating, rated_games, peak_rating
 		FROM player_stats WHERE user_id = $1`
 
 	s := &PlayerStats{}
@@ -45,6 +50,7 @@ func (r *StatsRepository) GetStats(ctx context.Context, userID string) (*PlayerS
 		&s.UserID, &s.TotalMatches, &s.Wins, &longestWord,
 		&s.BestMatchStreak, &s.DailyStreak, &s.LongestDailyStreak,
 		&lastPlayedDate, &s.UpdatedAt, &s.XP,
+		&s.TotalScore, &s.Rating, &s.RatedGames, &s.PeakRating,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrStatsNotFound

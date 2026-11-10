@@ -199,7 +199,12 @@ export interface BoardEntry {
   rank: number
   user_id: string
   username: string
+  /** Weekly: net «جام» change this week. All-time: the rating. */
   score: number
+  /** Rated games the board counts (this week / ever). */
+  games: number
+  /** Weekly board only: rated wins this week. */
+  wins?: number
   avatar_id: string
 }
 export interface Board {

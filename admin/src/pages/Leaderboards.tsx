@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { useBoard, useWeeklyRewards, type BoardEntry } from '@/lib/content'
 import { messageOf } from '@/lib/errors'
-import { formatJalaliDateTime, formatJalaliDay, formatNumber } from '@/lib/fa'
+import { formatJalaliDateTime, formatJalaliDay, formatNumber, formatSignedNumber } from '@/lib/fa'
 
 const TABS = ['weekly', 'alltime', 'rewards'] as const
 type Tab = (typeof TABS)[number]
@@ -71,16 +71,22 @@ function BoardView({ kind, limit, onLimit }: { kind: 'weekly' | 'alltime'; limit
         </Link>
       ),
     },
-    { key: 'score', header: 'امتیاز', cell: (e) => formatNumber(e.score) },
+    {
+      key: 'score',
+      header: kind === 'weekly' ? 'جام این هفته' : 'جام',
+      cell: (e) => (kind === 'weekly' ? formatSignedNumber(e.score) : formatNumber(e.score)),
+    },
+    { key: 'games', header: 'بازی رتبه‌دار', cell: (e) => formatNumber(e.games) },
+    ...(kind === 'weekly' ? [{ key: 'wins', header: 'برد', cell: (e: BoardEntry) => formatNumber(e.wins ?? 0) }] : []),
   ]
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
         <p className="tabular text-xs text-muted">
           {kind === 'weekly' && query.data?.resets_at
-            ? `پایان هفته: ${formatJalaliDateTime(query.data.resets_at)}`
+            ? `پایان هفته: ${formatJalaliDateTime(query.data.resets_at)} · جایزه برای سه نفر اولی که جام هفته‌شان مثبت است و دست‌کم ۵ بازی رتبه‌دار داشته‌اند`
             : kind === 'alltime'
-              ? 'مجموع امتیاز بازی‌های رتبه‌دار، از ابتدا (بدون بازنشانی)'
+              ? 'جام (امتیاز مهارت) بازیکنانی که دست‌کم ۱۰ بازی رتبه‌دار داشته‌اند'
               : ' '}
         </p>
         <Select
@@ -97,7 +103,7 @@ function BoardView({ kind, limit, onLimit }: { kind: 'weekly' | 'alltime'; limit
         loading={query.isPending}
         error={query.isError ? messageOf(query.error) : null}
         onRetry={() => void query.refetch()}
-        emptyText={kind === 'weekly' ? 'این هفته هنوز امتیازی ثبت نشده است.' : 'هنوز امتیازی ثبت نشده است.'}
+        emptyText={kind === 'weekly' ? 'این هفته هنوز بازی رتبه‌داری ثبت نشده است.' : 'هنوز کسی ۱۰ بازی رتبه‌دار نداشته است.'}
       />
     </Card>
   )

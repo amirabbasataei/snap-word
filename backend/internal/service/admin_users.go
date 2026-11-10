@@ -254,6 +254,9 @@ type userStatsView struct {
 	LongestDailyStreak int        `json:"longest_daily_streak"`
 	LastPlayedDate     *time.Time `json:"last_played_date"`
 	TotalScore         int64      `json:"total_score"`
+	Rating             int        `json:"rating"`
+	RatedGames         int        `json:"rated_games"`
+	PeakRating         int        `json:"peak_rating"`
 }
 
 type userRef struct {
@@ -344,6 +347,7 @@ func (s *AdminUserService) Detail(ctx context.Context, role, id string) (*AdminU
 			BestMatchStreak: d.Stats.BestMatchStreak, DailyStreak: d.Stats.DailyStreak,
 			LongestDailyStreak: d.Stats.LongestDailyStreak, LastPlayedDate: d.Stats.LastPlayedDate,
 			TotalScore: d.Stats.TotalScore,
+			Rating:     d.Stats.Rating, RatedGames: d.Stats.RatedGames, PeakRating: d.Stats.PeakRating,
 		},
 		FriendsCount: d.FriendsCount, DeviceTokens: d.DeviceTokens, ReferredCount: d.ReferredCount,
 		Referred: make([]referredView, len(referred)), Rewards: make([]rewardView, len(rewards)),

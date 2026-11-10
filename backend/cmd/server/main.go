@@ -82,7 +82,9 @@ func main() {
 
 	notifSvc := service.NewNotificationService(cfg, notifRepo)
 	streakSvc := service.NewStreakService(statsRepo, userRepo, notifSvc)
-	leaderboardSvc := service.NewLeaderboardService(rdb, userRepo, friendRepo, lbRepo, notifSvc)
+	ratingRepo := repository.NewRatingRepository(db)
+	leaderboardSvc := service.NewLeaderboardService(rdb, userRepo, friendRepo, lbRepo, ratingRepo, notifSvc)
+	ratingSvc := service.NewRatingService(ratingRepo, leaderboardSvc)
 
 	kavenegarClient := service.NewKavenegarClient(cfg)
 	authSvc := service.NewAuthService(userRepo, kavenegarClient, rdb, cfg)
@@ -112,6 +114,7 @@ func main() {
 		Perks:          userRepo,
 		Taunts:         catalogSvc,
 		WordMisses:     wordMissSvc,
+		Rating:         ratingApplier{ratingSvc},
 	})
 
 	matchSvc := service.NewMatchmakingService(rdb, hub, userRepo)
@@ -442,4 +445,23 @@ func (d powerupDeductor) UseItem(ctx context.Context, userID, powerupType string
 		return ws.PowerupReceipt{}, err
 	}
 	return ws.PowerupReceipt{Remaining: use.Remaining, Coins: use.Coins}, nil
+}
+
+// ratingApplier adapts service.RatingService to ws.RatingApplier.
+type ratingApplier struct{ svc *service.RatingService }
+
+func (a ratingApplier) ApplyMatchResult(ctx context.Context, matchID, winnerID, loserID string) (*ws.RatingOutcome, error) {
+	res, err := a.svc.ApplyMatchResult(ctx, matchID, winnerID, loserID)
+	if err != nil || res == nil {
+		return nil, err
+	}
+	out := &ws.RatingOutcome{Rated: res.Rated, Reason: res.Reason, Changes: make(map[string]ws.RatingChange, len(res.Changes))}
+	for id, c := range res.Changes {
+		out.Changes[id] = ws.RatingChange{Before: c.Before, After: c.After, Delta: c.Delta}
+	}
+	return out, nil
+}
+
+func (a ratingApplier) RatingsOf(ctx context.Context, userIDs []string) (map[string]int, error) {
+	return a.svc.RatingsOf(ctx, userIDs)
 }

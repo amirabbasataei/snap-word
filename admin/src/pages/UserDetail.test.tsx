@@ -15,7 +15,7 @@ const USER: Detail = {
   coins: 12500, xp: 3500, level: 3, total_matches: 42, premium: true, premium_until: '2026-12-01T00:00:00Z',
   avatar_id: 'fox', created_at: '2026-09-20T08:00:00Z', banned: false, banned_at: null,
   referral_code: 'ABC234', ban_reason: '', joined_at: '2026-09-20T08:00:00Z', xp_in_level: 500, xp_for_next: 3000,
-  stats: { total_matches: 42, wins: 20, longest_word: 'کتابخانه', best_match_streak: 6, daily_streak: 2, longest_daily_streak: 9, last_played_date: '2026-10-09T00:00:00Z', total_score: 8000 },
+  stats: { total_matches: 42, wins: 20, longest_word: 'کتابخانه', best_match_streak: 6, daily_streak: 2, longest_daily_streak: 9, last_played_date: '2026-10-09T00:00:00Z', total_score: 8000, rating: 1032, rated_games: 12, peak_rating: 1048 },
   friends_count: 4, device_tokens: 1,
   push: { state: 'granted', devices: [{ platform: 'android', permission: 'granted', updated_at: '2026-10-09T10:00:00Z' }] },
   referrer: { id: '33333333-3333-3333-3333-333333333333', username: 'inviter' },
@@ -71,6 +71,7 @@ describe('UserDetail', () => {
     expect(screen.getByText('۱۲٬۵۰۰')).toBeInTheDocument()
     expect(screen.getByText('سطح ۳')).toBeInTheDocument()
     expect(screen.getByText('کتابخانه')).toBeInTheDocument()
+    expect(screen.getByText('۱٬۰۳۲ (رکورد ۱٬۰۴۸، ۱۲ بازی رتبه‌دار)')).toBeInTheDocument()
   })
 
   it('a viewer sees no action buttons', async () => {

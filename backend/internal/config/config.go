@@ -180,6 +180,20 @@ const (
 	CoinShield    = 20 // not in the original spec's price list; priced above Extra Time
 )
 
+// Skill rating («جام», Phase 25 S2): Elo for 1v1 human games only. AI-fallback
+// rooms, cancelled rooms and draws are unrated. See SCORING_PLAN.md § S2.
+const (
+	RatingStart            = 1000 // every player's first rating (player_stats default)
+	RatingFloor            = 0    // a rating never drops below this
+	RatingKProvisional     = 32   // K for a player's first RatingProvisionalGames rated games
+	RatingKStable          = 16   // K afterwards
+	RatingProvisionalGames = 30
+	RatingPairCapPerDay    = 3   // rated games per pair of players per Iran day; later ones change nothing
+	RatingMinGamesForBoard = 10  // rated games needed to appear on the all-time board
+	WeeklyMinRatedGames    = 5   // rated games in the week needed for a weekly prize (plus a positive net Δ)
+	WeeklyPrizeScanLimit   = 200 // weekly rows scanned for the 3 prize-eligible players
+)
+
 // Premium perks. Taunts are preset messages only (never free text): the client
 // sends an ID and the server broadcasts it. The taunt and avatar catalogues live
 // in the `taunts` / `avatars` tables and are managed via the admin API.

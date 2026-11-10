@@ -55,6 +55,10 @@ export interface UserDetail extends UserItem {
     longest_daily_streak: number
     last_played_date: string | null
     total_score: number
+    /** Elo «جام» (1000 before the first rated game). */
+    rating: number
+    rated_games: number
+    peak_rating: number
   }
   friends_count: number
   device_tokens: number

@@ -22,6 +22,10 @@ export interface MatchPlayer {
   score: number
   is_ai: boolean
   continue_used: boolean
+  /** Rating («جام») around this match; null when it was unrated. */
+  rating_before: number | null
+  rating_after: number | null
+  rating_delta: number | null
 }
 
 export interface MatchItem {

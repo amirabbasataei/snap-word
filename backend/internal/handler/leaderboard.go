@@ -20,55 +20,61 @@ func NewLeaderboardHandler(svc *service.LeaderboardService) *LeaderboardHandler 
 	return &LeaderboardHandler{svc: svc}
 }
 
-// Get handles GET /api/v1/leaderboard?type=global&limit=100
+// Get handles GET /api/v1/leaderboard?type=global&limit=100   (this week's net «جام»)
 //
-//	and      GET /api/v1/leaderboard?type=friends&limit=100
-//	and      GET /api/v1/leaderboard?type=alltime&limit=100
+//	and      GET /api/v1/leaderboard?type=friends&limit=100  (friends by rating)
+//	and      GET /api/v1/leaderboard?type=alltime&limit=100  (rating, ≥ 10 rated games)
+//
+// player_rank / player_score / player_games are the caller's own row on that
+// board (player_wins on the weekly board only); player_rank is 0 when the
+// caller is not on it.
 func (h *LeaderboardHandler) Get(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID := c.GetString(middleware.ContextKeyUserID)
 	lbType := c.DefaultQuery("type", "global")
 	limit := clampLimit(c.DefaultQuery("limit", "100"))
 
 	var (
 		entries []service.LeaderboardEntry
+		me      service.PlayerStanding
 		err     error
+		meErr   error
 	)
-
 	switch lbType {
 	case "friends":
-		entries, err = h.svc.GetFriendsLeaderboard(c.Request.Context(), userID, limit)
+		entries, me, err = h.svc.GetFriendsLeaderboard(ctx, userID, limit)
 	case "alltime":
-		entries, err = h.svc.GetAllTimeTop(c.Request.Context(), limit)
+		entries, err = h.svc.GetAllTimeTop(ctx, limit)
+		if err == nil {
+			me, meErr = h.svc.AllTimeStanding(ctx, userID)
+		}
 	default:
-		entries, err = h.svc.GetTopN(c.Request.Context(), limit)
+		lbType = "global"
+		entries, err = h.svc.GetTopN(ctx, limit)
+		if err == nil {
+			me, meErr = h.svc.WeeklyStanding(ctx, userID)
+		}
 	}
 	if err != nil {
 		slog.Error("leaderboard: query failed", "type", lbType, "userID", userID, "error", err)
 		respondError(c, http.StatusInternalServerError, "leaderboard_error", "failed to fetch leaderboard")
 		return
 	}
-
-	var (
-		rank  int64
-		score float64
-	)
-	if lbType == "alltime" {
-		rank, score, err = h.svc.GetAllTimeRank(c.Request.Context(), userID)
-	} else {
-		rank, score, err = h.svc.GetPlayerRank(c.Request.Context(), userID)
-	}
-	if err != nil {
-		slog.Warn("leaderboard: GetPlayerRank failed", "userID", userID, "error", err)
+	if meErr != nil {
+		slog.Warn("leaderboard: player standing failed", "type", lbType, "userID", userID, "error", meErr)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
-			"entries":          entries,
-			"player_rank":      rank,
-			"player_score":     score,
-			"player_avatar_id": h.svc.GetAvatarID(c.Request.Context(), userID),
-		},
-	})
+	data := gin.H{
+		"entries":          entries,
+		"player_rank":      me.Rank,
+		"player_score":     me.Score,
+		"player_games":     me.Games,
+		"player_avatar_id": h.svc.GetAvatarID(ctx, userID),
+	}
+	if lbType == "global" {
+		data["player_wins"] = me.Wins
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
 func clampLimit(s string) int {

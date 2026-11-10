@@ -201,7 +201,7 @@ func (s *GameService) GetGameState(ctx context.Context, matchID, userID string) 
 func (s *GameService) GetStats(ctx context.Context, userID string) (*repository.PlayerStats, error) {
 	stats, err := s.statsRepo.GetStats(ctx, userID)
 	if errors.Is(err, repository.ErrStatsNotFound) {
-		return &repository.PlayerStats{UserID: userID}, nil
+		return &repository.PlayerStats{UserID: userID, Rating: config.RatingStart, PeakRating: config.RatingStart}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("GetStats: %w", err)

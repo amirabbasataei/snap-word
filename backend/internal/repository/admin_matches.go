@@ -37,6 +37,11 @@ type AdminMatchPlayer struct {
 	Score        int    `json:"score"`
 	IsAI         bool   `json:"is_ai"`
 	ContinueUsed bool   `json:"continue_used"`
+	// Rating («جام») before/after this match; nil when the match was unrated
+	// (solo, AI, draw, pair cap, or played before Phase 25 S2).
+	RatingBefore *int `json:"rating_before"`
+	RatingAfter  *int `json:"rating_after"`
+	RatingDelta  *int `json:"rating_delta"`
 }
 
 // AdminMatchRow is one match of the list (and the head of the detail).
@@ -73,8 +78,11 @@ JOIN LATERAL (
   SELECT count(*) AS n, COALESCE(bool_or(mp.is_ai), false) AS has_ai,
          COALESCE(json_agg(json_build_object(
            'user_id', mp.user_id, 'username', COALESCE(u.username, ''), 'score', mp.score,
-           'is_ai', mp.is_ai, 'continue_used', mp.continue_used) ORDER BY mp.is_ai, mp.joined_at, mp.user_id), '[]'::json) AS players
+           'is_ai', mp.is_ai, 'continue_used', mp.continue_used,
+           'rating_before', rh.rating_before, 'rating_after', rh.rating_after, 'rating_delta', rh.delta)
+           ORDER BY mp.is_ai, mp.joined_at, mp.user_id), '[]'::json) AS players
   FROM match_players mp JOIN users u ON u.id = mp.user_id
+  LEFT JOIN rating_history rh ON rh.match_id = mp.match_id AND rh.user_id = mp.user_id
   WHERE mp.match_id = m.id
 ) p ON true`
 

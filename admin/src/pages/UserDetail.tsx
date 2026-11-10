@@ -226,7 +226,10 @@ function SummaryTab({ user }: { user: Detail }) {
             <Fact label="رشتهٔ روزانه">{formatNumber(s.daily_streak)} (رکورد {formatNumber(s.longest_daily_streak)})</Fact>
             <Fact label="طولانی‌ترین کلمه">{s.longest_word || '—'}</Fact>
             <Fact label="آخرین بازی">{s.last_played_date ? formatJalaliDay(s.last_played_date.slice(0, 10), 'yyyy/MM/dd') : '—'}</Fact>
-            <Fact label="مجموع امتیاز جدول">{formatNumber(s.total_score)}</Fact>
+            <Fact label="مجموع امتیاز بازی‌های آنلاین">{formatNumber(s.total_score)}</Fact>
+            <Fact label="جام">
+              {formatNumber(s.rating)} (رکورد {formatNumber(s.peak_rating)}، {formatNumber(s.rated_games)} بازی رتبه‌دار)
+            </Fact>
           </dl>
         </CardBody>
       </Card>

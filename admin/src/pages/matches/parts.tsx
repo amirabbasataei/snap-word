@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import type { MatchPlayer } from '@/lib/matches'
-import { formatNumber } from '@/lib/fa'
+import { formatNumber, formatSignedNumber } from '@/lib/fa'
 
 /** Status as a pill: finished green, running blue, the rest neutral. */
 export function MatchStatusBadge({ status, label }: { status: string; label: string }) {
@@ -31,6 +31,11 @@ export function PlayerLine({ p, winner }: { p: MatchPlayer; winner: boolean }) {
       <span className="tabular text-muted">{formatNumber(p.score)}</span>
       {winner && <Badge tone="yellow">برنده</Badge>}
       {p.continue_used && <Badge tone="orange">ادامه</Badge>}
+      {p.rating_delta != null && p.rating_after != null && (
+        <span className="tabular text-xs text-muted" title="تغییر جام در این مسابقه">
+          جام {formatSignedNumber(p.rating_delta)} ← {formatNumber(p.rating_after)}
+        </span>
+      )}
     </span>
   )
 }

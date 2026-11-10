@@ -8,11 +8,11 @@ function setup(entry = '/content/leaderboards') {
   return mount('viewer', <Leaderboards />, (url) => {
     if (url.includes('/leaderboards/weekly')) {
       return Response.json({ data: { limit: 50, resets_at: '2026-10-17T00:00:00+03:30', entries: [
-        { rank: 1, user_id: 'u1', username: 'pro2', score: 4300, avatar_id: '' },
-        { rank: 2, user_id: 'u2', username: 'tttt', score: 251, avatar_id: 'lion' },
+        { rank: 1, user_id: 'u1', username: 'pro2', score: 64, games: 9, wins: 7, avatar_id: '' },
+        { rank: 2, user_id: 'u2', username: 'tttt', score: -12, games: 3, wins: 1, avatar_id: 'lion' },
       ] } })
     }
-    if (url.includes('/leaderboards/alltime')) return Response.json({ data: { limit: 50, entries: [{ rank: 1, user_id: 'u9', username: 'legend', score: 99000, avatar_id: '' }] } })
+    if (url.includes('/leaderboards/alltime')) return Response.json({ data: { limit: 50, entries: [{ rank: 1, user_id: 'u9', username: 'legend', score: 1480, games: 210, avatar_id: '' }] } })
     if (url.includes('/leaderboards/rewards')) {
       return Response.json({ data: { prizes: [500, 300, 100], weeks: [{ payout_date: '2026-10-03', rewards: [
         { rank: 1, user_id: 'u1', username: 'pro2', coins: 500, awarded_at: '2026-10-02T20:30:00Z', banned: false },
@@ -28,7 +28,10 @@ describe('Leaderboards', () => {
   it('shows the weekly board with Persian digits and the next reset, read-only', async () => {
     setup()
     expect(await screen.findByText('pro2')).toBeInTheDocument()
-    expect(screen.getByText('۴٬۳۰۰')).toBeInTheDocument()
+    expect(screen.getByText('+۶۴')).toBeInTheDocument()
+    expect(screen.getByText('−۱۲')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'جام این هفته' })).toBeInTheDocument()
+    expect(screen.getByText('۷')).toBeInTheDocument()
     expect(screen.getByText(/پایان هفته: ۱۴۰۵\/۰۷\/۲۵ ۰۰:۰۰/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /حذف|ویرایش|ذخیره/ })).not.toBeInTheDocument()
   })
@@ -38,7 +41,8 @@ describe('Leaderboards', () => {
     await screen.findByText('pro2')
     await userEvent.click(screen.getByRole('tab', { name: 'همیشه' }))
     expect(await screen.findByText('legend')).toBeInTheDocument()
-    expect(screen.getByText('۹۹٬۰۰۰')).toBeInTheDocument()
+    expect(screen.getByText('۱٬۴۸۰')).toBeInTheDocument()
+    expect(screen.getByText('۲۱۰')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('tab', { name: 'جایزه‌های هفتگی' }))
     expect(await screen.findByText('پرداخت ۱۴۰۵/۰۷/۱۱')).toBeInTheDocument()

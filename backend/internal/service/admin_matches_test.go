@@ -44,6 +44,8 @@ func newMatchSvc(t *testing.T) *service.AdminMatchService {
 	  ($3,$5,10,false,false), ($3,$7,0,true,false),
 	  ($4,$5,30,false,false)`,
 		mSolo, mVersus, mAI, mDaily, mUserA, mUserB, config.SystemAIUserID)
+	exec(`INSERT INTO rating_history (match_id, user_id, opponent_id, rating_before, rating_after, delta) VALUES
+	  ($1,$2,$3,1000,984,-16), ($1,$3,$2,1000,1016,16)`, mVersus, mUserA, mUserB)
 	return service.NewAdminMatchService(repository.NewAdminRepository(db))
 }
 
@@ -166,6 +168,24 @@ func TestAdminMatches_Detail(t *testing.T) {
 	// A match without game_state has an empty (not null) chain.
 	if d, err := svc.Detail(ctx, mAI); err != nil || d.WordChain == nil || len(d.WordChain) != 0 {
 		t.Errorf("no state: %+v, %v", d, err)
+	}
+	// A rated 1v1 carries each player's rating change; unrated matches carry none.
+	v, err := svc.Detail(ctx, mVersus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range v.Players {
+		wantDelta, wantAfter := -16, 984
+		if p.UserID == mUserB {
+			wantDelta, wantAfter = 16, 1016
+		}
+		if p.RatingDelta == nil || *p.RatingDelta != wantDelta || p.RatingAfter == nil || *p.RatingAfter != wantAfter ||
+			p.RatingBefore == nil || *p.RatingBefore != 1000 {
+			t.Errorf("rated player %s: %+v", p.Username, p)
+		}
+	}
+	if d, _ := svc.Detail(ctx, mAI); d.Players[0].RatingDelta != nil {
+		t.Errorf("AI match has a rating change: %+v", d.Players[0])
 	}
 	for _, id := range []string{"not-a-uuid", "99999999-0000-0000-0000-000000000009"} {
 		if _, err := svc.Detail(ctx, id); !errors.Is(err, service.ErrAdminMatchNotFound) {

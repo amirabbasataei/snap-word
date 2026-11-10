@@ -14,15 +14,15 @@ const VERSUS: MatchItem = {
   at: '2026-11-02T10:00:00Z', started_at: '2026-11-02T10:00:00Z', ended_at: '2026-11-02T10:05:00Z',
   duration_sec: 300, chain_length: 7, winner_id: B,
   players: [
-    { user_id: A, username: 'ali', score: 40, is_ai: false, continue_used: true },
-    { user_id: B, username: 'sara', score: 70, is_ai: false, continue_used: false },
+    { user_id: A, username: 'ali', score: 40, is_ai: false, continue_used: true, rating_before: 1000, rating_after: 984, rating_delta: -16 },
+    { user_id: B, username: 'sara', score: 70, is_ai: false, continue_used: false, rating_before: 1000, rating_after: 1016, rating_delta: 16 },
   ],
 }
 const AI: MatchItem = {
   ...VERSUS, id: '10000000-0000-0000-0000-000000000003', kind: 'ai', winner_id: '', duration_sec: null, chain_length: 0,
   players: [
-    { user_id: A, username: 'ali', score: 10, is_ai: false, continue_used: false },
-    { user_id: '00000000-0000-0000-0000-000000000001', username: '', score: 0, is_ai: true, continue_used: false },
+    { user_id: A, username: 'ali', score: 10, is_ai: false, continue_used: false, rating_before: null, rating_after: null, rating_delta: null },
+    { user_id: '00000000-0000-0000-0000-000000000001', username: '', score: 0, is_ai: true, continue_used: false, rating_before: null, rating_after: null, rating_delta: null },
   ],
 }
 
@@ -107,6 +107,13 @@ describe('MatchDetail page', () => {
     expect(chain.querySelectorAll('li')).toHaveLength(3)
     expect(chain).toHaveTextContent('کتاب')
     expect(screen.getByRole('link', { name: 'ali' })).toHaveAttribute('href', `/users/${A}`)
+  })
+
+  it('shows each player\'s rating change of a rated match', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: detail })))
+    open(detail.id)
+    expect(await screen.findByText('جام +۱۶ ← ۱٬۰۱۶')).toBeInTheDocument()
+    expect(screen.getByText('جام −۱۶ ← ۹۸۴')).toBeInTheDocument()
   })
 
   it('handles a match without a stored chain and a draw', async () => {

@@ -43,6 +43,13 @@ export function formatCompact(value: number): string {
   return formatNumber(value)
 }
 
+/** «+۱۶» / «−۱۲» / «۰» in Persian digits. */
+export function formatSignedNumber(n: number): string {
+  if (n > 0) return `+${formatNumber(n)}`
+  if (n < 0) return `−${formatNumber(-n)}`
+  return formatNumber(0)
+}
+
 /** `0.256` → `٪۲۶`; signed variant for deltas: `+٪۲۵`. */
 export function formatPercent(ratio: number, signed = false): string {
   const n = Math.round(ratio * 100)
