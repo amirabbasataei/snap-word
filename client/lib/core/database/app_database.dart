@@ -23,6 +23,12 @@ class LocalMatches extends Table {
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
+
+  /// Per-word record of a single-player run — JSON `{"t": [ms…], "s": [streak…]}`,
+  /// one entry per chain word the player typed (see [ScoreTrace]). The Daily
+  /// Challenge uploads it so the server can recompute the score. Null for
+  /// rows from before v3; a trace shorter than the chain is never uploaded.
+  TextColumn get scoreTrace => text().nullable()();
 }
 
 class LocalUsedWords extends Table {
@@ -84,18 +90,24 @@ class LocalAnalyticsEvents extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openDatabase());
 
+  /// Opens the database on a given executor (tests use an in-memory or
+  /// pre-seeded file database).
+  AppDatabase.forTesting(super.executor);
+
   static QueryExecutor _openDatabase() {
     return driftDatabase(name: 'wordchain.db');
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       // v2 only adds a table; the match/stats tables are never touched.
       if (from < 2) await m.createTable(localAnalyticsEvents);
+      // v3 adds one nullable column; no match or stats row is touched.
+      if (from < 3) await m.addColumn(localMatches, localMatches.scoreTrace);
     },
   );
 }

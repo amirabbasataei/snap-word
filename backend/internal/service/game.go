@@ -32,12 +32,19 @@ type SoloGameInput struct {
 	LongestWord string    `json:"longest_word"`
 	StartedAt   time.Time `json:"started_at"`
 	EndedAt     time.Time `json:"ended_at"`
+	// WordTimesMs / WordStreaks (Daily only) are the per-word trace the
+	// server recomputes the score from — see ValidateDailyScore. Both nil =
+	// an older app: only the upper-bound check applies.
+	WordTimesMs []int `json:"word_times_ms"`
+	WordStreaks []int `json:"word_streaks"`
 }
 
 // soloGameState is stored as JSONB in matches.game_state.
 type soloGameState struct {
-	WordChain []string `json:"word_chain"`
-	Score     int      `json:"score"`
+	WordChain   []string `json:"word_chain"`
+	Score       int      `json:"score"`
+	WordTimesMs []int    `json:"word_times_ms,omitempty"`
+	WordStreaks []int    `json:"word_streaks,omitempty"`
 }
 
 // MatchWithPlayers bundles a match and its player rows for API responses.
@@ -113,9 +120,22 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 			slog.Warn("CreateSoloGame: daily chain rejected", "userID", userID, "error", verr)
 			return nil, false, verr
 		}
+		// With a trace the score is recomputed, not just bounded. A trace
+		// with only one half is malformed, not "an old app".
+		if in.WordTimesMs != nil || in.WordStreaks != nil {
+			trace := DailyTrace{TimesMs: in.WordTimesMs, Streaks: in.WordStreaks}
+			if verr := ValidateDailyScore(in.WordChain, in.Score, trace); verr != nil {
+				slog.Warn("CreateSoloGame: daily score rejected", "userID", userID, "error", verr)
+				return nil, false, verr
+			}
+		}
 	}
 
-	gs, err := json.Marshal(soloGameState{WordChain: in.WordChain, Score: in.Score})
+	state := soloGameState{WordChain: in.WordChain, Score: in.Score}
+	if in.Mode == "daily" { // the trace was validated above; other modes never keep it
+		state.WordTimesMs, state.WordStreaks = in.WordTimesMs, in.WordStreaks
+	}
+	gs, err := json.Marshal(state)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateSoloGame marshal: %w", err)
 	}

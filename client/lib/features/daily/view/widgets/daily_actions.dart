@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
+import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/z_dialog.dart';
 import 'package:wordchain/features/daily/view/widgets/daily_icons.dart';
@@ -118,6 +119,17 @@ class DailyAfterActions extends StatelessWidget {
             ),
           if (onRetry != null) ...[
             const SizedBox(height: 4),
+            Text(
+              'تلاش دوباره رتبه و جایزه رو عوض نمی‌کنه، فقط رکورد خودته.',
+              textAlign: TextAlign.center,
+              style: ZTypography.metaLabel.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+                color: z.ink60,
+              ),
+            ),
+            const SizedBox(height: 8),
             ZDialogButton.secondary(
               label:
                   retrying

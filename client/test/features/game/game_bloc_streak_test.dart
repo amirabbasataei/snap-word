@@ -18,8 +18,10 @@ class _FakeRepo extends Fake implements GameRepository {
   @override
   Future<void> recordAcceptedWord(
     int localMatchId,
-    List<String> updatedChain,
-  ) async {}
+    List<String> updatedChain, {
+    int? responseMs,
+    int? streak,
+  }) async {}
 
   @override
   Future<void> finishLocalGame(

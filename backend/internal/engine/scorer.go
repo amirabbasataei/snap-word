@@ -3,6 +3,8 @@ package engine
 import (
 	"strings"
 	"unicode/utf8"
+
+	"wordchain/backend/internal/config"
 )
 
 // LetterCount is the number of letters in word for scoring: runes, not bytes
@@ -36,4 +38,19 @@ func CalculateScore(word string, responseTimeSec float64, streak int, timeLimitS
 	}
 
 	return base + int(speedBonus) + int(streakBonus)
+}
+
+// CalculateSoloScore is the score of one word in the on-device modes (solo,
+// vs-AI, Daily Challenge): CalculateScore with the long-word multiplier from
+// config.LongWordBonusMinLen letters. It mirrors Flutter's
+// GameBloc.calculateScore exactly (same float math, same truncation); the
+// server uses it to recompute an uploaded Daily score from the word timings.
+// Multiplayer (ws.Room) still uses CalculateScore alone. SCORING_PLAN.md S6
+// replaces the multiplier.
+func CalculateSoloScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int {
+	score := CalculateScore(word, responseTimeSec, streak, timeLimitSec)
+	if LetterCount(word) >= config.LongWordBonusMinLen {
+		score *= config.LongWordBonusMult
+	}
+	return score
 }

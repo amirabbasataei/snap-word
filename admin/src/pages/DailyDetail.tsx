@@ -82,7 +82,7 @@ function Loaded({ day }: { day: Detail }) {
         </span>
       ),
     },
-    { key: 'score', header: 'بهترین امتیاز', cell: (b) => formatNumber(b.score) },
+    { key: 'score', header: 'امتیاز تلاش رایگان', cell: (b) => formatNumber(b.score) },
     { key: 'chain', header: 'طول زنجیر', className: 'hidden sm:table-cell', cell: (b) => formatNumber(b.chain_length) },
   ]
   const attempts: Column<Detail['attempts'][number]>[] = [
@@ -136,7 +136,7 @@ function Loaded({ day }: { day: Detail }) {
         <Tile label="بازیکن" value={formatNumber(day.stats.players)} />
         <Tile label="تلاش" value={formatNumber(day.stats.attempts)} />
         <Tile label="تلاش دوم (پولی)" value={formatNumber(day.stats.retries)} />
-        <Tile label="بهترین امتیاز" value={day.stats.players > 0 ? formatNumber(day.stats.best_score) : '—'} />
+        <Tile label="بهترین امتیاز (همهٔ تلاش‌ها)" value={day.stats.players > 0 ? formatNumber(day.stats.best_score) : '—'} />
         <Tile label="میانگین امتیاز" value={day.stats.players > 0 ? formatNumber(day.stats.avg_score) : '—'} />
       </div>
 
@@ -170,6 +170,9 @@ function Loaded({ day }: { day: Detail }) {
         </TabsList>
         <TabsContent value="board" className="pt-5">
           <Card>
+            <p className="border-b border-border px-4 py-3 text-xs text-muted">
+              رتبه و جایزه فقط از تلاش رایگان حساب می‌شود. تلاش دوم (پولی) فقط بهترین امتیاز شخصی بازیکن را ثبت می‌کند و در این جدول نیست.
+            </p>
             <DataTable columns={board} rows={day.board} rowKey={(b) => b.user_id} emptyText="کسی در این روز بازی نکرده است." />
           </Card>
         </TabsContent>

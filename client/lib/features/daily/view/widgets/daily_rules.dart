@@ -13,8 +13,8 @@ import 'package:wordchain/features/game/data/game_constants.dart';
 /// The three rule tiles under the hero (canvas `ZDailyBeforeA`): lives, the
 /// turn timer and the attempts. Every number comes from [GameConstants]; the
 /// canvas' «۱۰ ثانیه» and «روزی یک بار» are replaced by what the game really
-/// does (15 s per turn; one free attempt, then a paid retry whose better score
-/// stays on the board).
+/// does (15 s per turn; one free attempt that decides the rank, then a paid
+/// retry that only sets a personal record).
 class DailyRules extends StatelessWidget {
   const DailyRules({super.key});
 
@@ -94,7 +94,7 @@ class DailyRules extends StatelessWidget {
                 ),
                 title: 'یک بار رایگان',
                 sub:
-                    'بار دوم ${toPersianDigits(GameConstants.dailyRetryCostCoins)} سکه',
+                    'بار دوم ${toPersianDigits(GameConstants.dailyRetryCostCoins)} سکه، بدون رتبه',
               ),
             ),
           ],

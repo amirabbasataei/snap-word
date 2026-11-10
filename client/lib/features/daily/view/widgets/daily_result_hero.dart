@@ -22,11 +22,16 @@ class DailyResultHero extends StatelessWidget {
   /// Null when the server has no rank for the player.
   final int? rank;
 
+  /// The player also bought the second attempt. The rank always comes from
+  /// the free attempt, which may not be the score shown, so the pill says so.
+  final bool retried;
+
   const DailyResultHero({
     super.key,
     required this.words,
     required this.score,
     required this.rank,
+    this.retried = false,
   });
 
   static const stage = 236.0;
@@ -39,7 +44,9 @@ class DailyResultHero extends StatelessWidget {
     final animate = !homeReducedMotion(context);
     final rankText =
         rank != null
-            ? 'رتبهٔ ${toPersianDigits(rank!)} امروز'
+            ? (retried
+                ? 'رتبهٔ ${toPersianDigits(rank!)} با تلاش اول'
+                : 'رتبهٔ ${toPersianDigits(rank!)} امروز')
             : 'نتیجهٔ امروزت ثبت شد';
     return Column(
       children: [

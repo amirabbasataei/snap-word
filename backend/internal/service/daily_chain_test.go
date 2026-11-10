@@ -98,3 +98,103 @@ func TestMaxTurnScoreLongWordBonus(t *testing.T) {
 		t.Errorf("long word max = %d, want %d", got, want)
 	}
 }
+
+// traceFor builds a plausible trace for chain: 4 s per word, streak counting
+// up from 0, and the score the app would have computed from it.
+func traceFor(chain []string) (DailyTrace, int) {
+	tr := DailyTrace{TimesMs: make([]int, len(chain)), Streaks: make([]int, len(chain))}
+	total := 0
+	for i, w := range chain {
+		tr.TimesMs[i] = 4000
+		tr.Streaks[i] = i
+		total += engine.CalculateSoloScore(w, 4, i, config.TurnTimerClassicSec)
+	}
+	return tr, total
+}
+
+func TestValidateDailyScore(t *testing.T) {
+	chain := buildChain(t, "س", 12)
+	tr, score := traceFor(chain)
+
+	t.Run("exact recomputation is accepted", func(t *testing.T) {
+		if err := ValidateDailyScore(chain, score, tr); err != nil {
+			t.Fatalf("expected ok, got %v", err)
+		}
+	})
+	t.Run("a mistake resets the streak", func(t *testing.T) {
+		// Word 5 follows a lost life: its streak is 0 and counting restarts.
+		tr2 := DailyTrace{TimesMs: append([]int(nil), tr.TimesMs...), Streaks: append([]int(nil), tr.Streaks...)}
+		total := 0
+		for i, w := range chain {
+			if i >= 5 {
+				tr2.Streaks[i] = i - 5
+			}
+			total += engine.CalculateSoloScore(w, 4, tr2.Streaks[i], config.TurnTimerClassicSec)
+		}
+		if err := ValidateDailyScore(chain, total, tr2); err != nil {
+			t.Fatalf("expected ok, got %v", err)
+		}
+		if total == score {
+			t.Fatal("test is vacuous: the reset changed nothing")
+		}
+	})
+	t.Run("an Extra Time turn is accepted", func(t *testing.T) {
+		tr2 := DailyTrace{TimesMs: append([]int(nil), tr.TimesMs...), Streaks: tr.Streaks}
+		tr2.TimesMs[2] = 22000
+		total := 0
+		for i, w := range chain {
+			total += engine.CalculateSoloScore(w, float64(tr2.TimesMs[i])/1000, tr2.Streaks[i], config.TurnTimerClassicSec)
+		}
+		if err := ValidateDailyScore(chain, total, tr2); err != nil {
+			t.Fatalf("expected ok, got %v", err)
+		}
+	})
+
+	mutate := func(f func(tr *DailyTrace)) DailyTrace {
+		c := DailyTrace{TimesMs: append([]int(nil), tr.TimesMs...), Streaks: append([]int(nil), tr.Streaks...)}
+		f(&c)
+		return c
+	}
+	bad := map[string]struct {
+		score int
+		trace DailyTrace
+	}{
+		"score one too high":         {score + 1, tr},
+		"score one too low":          {score - 1, tr},
+		"fewer times than words":     {score, DailyTrace{TimesMs: tr.TimesMs[:5], Streaks: tr.Streaks}},
+		"fewer streaks than words":   {score, DailyTrace{TimesMs: tr.TimesMs, Streaks: tr.Streaks[:5]}},
+		"missing times":              {score, DailyTrace{Streaks: tr.Streaks}},
+		"time below the human limit": {score, mutate(func(c *DailyTrace) { c.TimesMs[3] = config.DailyWordMinMs - 1 })},
+		"negative time":              {score, mutate(func(c *DailyTrace) { c.TimesMs[3] = -5 })},
+		"time above the longest turn": {score, mutate(func(c *DailyTrace) {
+			c.TimesMs[3] = (config.TurnTimerClassicSec+config.ExtraTimeBonusSec)*1000 + config.DailyWordSlackMs + 1
+		})},
+		"first word with a streak": {score, mutate(func(c *DailyTrace) { c.Streaks[0] = 1 })},
+		"streak skips ahead":       {score, mutate(func(c *DailyTrace) { c.Streaks[4] = 9 })},
+		"negative streak":          {score, mutate(func(c *DailyTrace) { c.Streaks[4] = -1 })},
+	}
+	for name, tc := range bad {
+		t.Run(name, func(t *testing.T) {
+			err := ValidateDailyScore(chain, tc.score, tc.trace)
+			if !errors.Is(err, ErrInvalidDailyChain) {
+				t.Fatalf("expected ErrInvalidDailyChain, got %v", err)
+			}
+		})
+	}
+
+	t.Run("fastest honest trace scores below the old maximum", func(t *testing.T) {
+		// The exact score never exceeds the lenient bound older apps get.
+		fast := DailyTrace{TimesMs: make([]int, len(chain)), Streaks: tr.Streaks}
+		total := 0
+		for i, w := range chain {
+			fast.TimesMs[i] = config.DailyWordMinMs
+			total += engine.CalculateSoloScore(w, float64(config.DailyWordMinMs)/1000, fast.Streaks[i], config.TurnTimerClassicSec)
+		}
+		if total > chainMax(chain) {
+			t.Fatalf("exact %d above the bound %d", total, chainMax(chain))
+		}
+		if err := ValidateDailyScore(chain, total, fast); err != nil {
+			t.Fatalf("expected ok, got %v", err)
+		}
+	})
+}

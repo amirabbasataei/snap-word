@@ -218,7 +218,7 @@ void main() {
         reason: 'not the canvas 10',
       );
       expect(find.text('یک بار رایگان'), findsOneWidget);
-      expect(find.text('بار دوم ۲۵ سکه'), findsOneWidget);
+      expect(find.text('بار دوم ۲۵ سکه، بدون رتبه'), findsOneWidget);
 
       expect(find.text('۷ روز پیاپی'), findsOneWidget);
       expect(find.text('رکورد: ۱۲ روز'), findsOneWidget, reason: 'local stats');
@@ -398,6 +398,15 @@ void main() {
         await tester.ensureVisible(find.byType(DailyCompareCard));
         expect(find.text('تلاش اول · بهترین'), findsOneWidget);
         expect(find.text('تلاش دوباره'), findsOneWidget);
+        // The rank is the free attempt's, and the screen says so.
+        expect(find.text('رتبهٔ ۳ با تلاش اول'), findsOneWidget);
+        expect(find.text('رتبهٔ ۳ امروز'), findsNothing);
+        expect(
+          find.text(
+            'رتبه و جایزه فقط با تلاش اول حساب می‌شه. تلاش دوباره رکورد خودته.',
+          ),
+          findsOneWidget,
+        );
         // The retry is used up: no retry button.
         expect(find.textContaining('امتحان دوباره'), findsNothing);
       },
@@ -517,6 +526,10 @@ void main() {
       await tester.tap(find.text('باشه'));
       await _settle(tester);
       expect(find.text('امتحان دوباره · ۲۵ سکه'), findsOneWidget);
+      expect(
+        find.text('تلاش دوباره رتبه و جایزه رو عوض نمی‌کنه، فقط رکورد خودته.'),
+        findsOneWidget,
+      );
       await tapText(tester, 'امتحان دوباره · ۲۵ سکه');
       await _settle(tester);
       expect(h.repo.retries, 2);

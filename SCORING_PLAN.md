@@ -1,6 +1,6 @@
 # Scoring & ranking — plan (Phase 25)
 
-> **Status (2026-11-10): S1–S4 done (not deployed — S2 + S3 + S4 ship together); S5–S7 not started.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
+> **Status (2026-11-10): S1–S5 done (not deployed — S2 + S3 + S4 + S5 ship together); S6–S7 not started.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
 
 ## Why
 
@@ -108,7 +108,14 @@ Work:
 - Admin: a flag on the user page when > 50 % of a player's rated games in the last 7 days are against the same opponent (read-only signal, no auto-ban).
 
 ### S5 — Daily Challenge fairness
-**Status: not started.**
+**Status: done 2026-11-10** (backend + Flutter + admin panel; Go, Flutter and panel tests green, backend rebuilt locally and checked live over HTTP; Drift schema v3; **not deployed — ships with S2 + S3 + S4, ask before doing it**, **not verified on a device**). Decisions beyond the plan:
+- **Formula decision:** implemented **today's ×2 long-word rule** in Go (`engine.CalculateSoloScore`, a mirror of `GameBloc.calculateScore`) and left the swap to S6 (the plan's own S6 text expects S5 to be formula-agnostic). The two sides share one vector table (`engine/scorer_test.go` ↔ `score_trace_test.dart`); S6 must change both scorers, both tables and the Daily recompute together.
+- **Streaks are uploaded too** (`word_streaks[]`, the streak before each word), not only `word_times_ms[]`: lives and the shield reset the streak and the chain does not record them, so the server could not recompute otherwise. Validated structurally (first 0; each 0 or previous + 1). No cap on the number of resets: a resumed run restarts at 0 and must stay valid.
+- **Extra Time:** instead of a per-word flag, the time ceiling is `(15 + 8) s + 2 s slack` for every word (the speed bonus is already 0 past 15 s, so a long time never helps a cheater); floor 300 ms (`config.DailyWordMinMs`).
+- **Resume bug found and fixed on the way:** a resumed solo/Daily match restored `score = 0` (the row only gets its score at game end), which would make every resumed Daily run fail the exact recompute. The per-word trace is persisted per accepted word (`local_matches.score_trace`, Drift v3, real v2→v3 upgrade tested) and the resumed score is rebuilt from it. A pre-v3 / mismatching trace is never uploaded (lenient bound applies) and keeps score 0 as before.
+- **Ranking:** `GetDailyLeaderboard`, `GetUserRank`, `GetTodayBest` (hence `RunDailyPayout`, the admin board and `GET /daily`'s `rank` / `today_best`) use `attempt_number = 1`. `your_best` and the result hero still show the better of the two attempts. Retry button / compare card / board note / rules tile / hero pill say that the retry only sets a personal record. The retry still costs 25 coins and is **not** refunded or re-priced — flag if you want the retry rethought now that it buys no rank.
+- Not done: an old app keeps the lenient bound until a minimum app version is enforced (then drop the no-trace path); timings remain client-reported.
+- Goldens: regenerated `daily_before_*` and `daily_board_*`; `daily_after_*` / `after + retried` fail on this box on a clean HEAD and must be regenerated on a machine where they pass.
 
 - **Prizes and the «امروز» ranking use the free attempt only** (`attempt_number = 1`). A paid retry still records a personal best shown on ZDailyAfter («بهترین تلاشت»), but cannot buy a better prize rank. Touches `DailyRepository.GetDailyLeaderboard` / `GetUserRank`, `RunDailyPayout`, ZDailyAfter/Before copy, the admin daily detail.
 - **Recompute the score on the server:** the client also uploads `word_times_ms[]` (one per word) on `POST /game/solo` for `mode: daily`; the server recomputes with the exact Flutter formula (needs `engine` to share the long-word rule — do S6's formula decision first or implement today's ×2 and change it in S6) and rejects a mismatch (`400 invalid_daily_chain`). Plausibility: each time 300 ms … 15 s (+8 s if Extra Time was used — upload a used-power-up flag per word or allow it). Uploads **without** timings (old apps) keep the bound check — the lenient one from S1 — until the minimum app version is raised.

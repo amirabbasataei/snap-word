@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 import 'package:wordchain/core/services/ai_opponent.dart';
+import 'package:wordchain/features/game/data/score_trace.dart';
 
 class SyncService {
   final SharedPreferences _prefs;
@@ -44,6 +45,12 @@ class SyncService {
       try {
         final chain =
             (jsonDecode(match.wordChain) as List<dynamic>).cast<String>();
+        // A Daily run also uploads each word's time and streak so the server
+        // can recompute the score. Only a trace that lines up with the chain
+        // is sent; otherwise (a run from before the trace existed) the server
+        // applies its upper-bound check alone.
+        final trace = ScoreTrace.parse(match.scoreTrace);
+        final withTrace = match.mode == 'daily' && trace.covers(chain);
         final response = await _dio.post(
           ApiEndpoints.soloGame,
           data: {
@@ -56,6 +63,8 @@ class SyncService {
             'longest_word': longestOwnWord(chain, match.opponentType),
             'started_at': _toRfc3339(match.startedAt),
             'ended_at': _toRfc3339(match.endedAt!),
+            if (withTrace) 'word_times_ms': trace.timesMs,
+            if (withTrace) 'word_streaks': trace.streaks,
           },
         );
         final remoteId = response.data['data']['id'] as String;

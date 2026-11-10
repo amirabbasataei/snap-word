@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
+import 'package:wordchain/features/game/data/score_trace.dart';
 
 class PowerupUseResult {
   final int remaining; // inventory left for the type
@@ -53,11 +54,27 @@ class GameRepository {
       _usedWordDao.isWordUsed(matchId, word);
 
   // Atomically inserts the word into used_words and updates the chain JSON.
-  Future<void> recordAcceptedWord(int matchId, List<String> updatedChain) =>
-      _db.transaction(() async {
-        await _usedWordDao.insertWord(matchId, updatedChain.last);
-        await _matchDao.updateWordChainForMatch(matchId, updatedChain);
-      });
+  // [responseMs] / [streak] (the player's own words only) extend the run's
+  // score trace in the same transaction — see [ScoreTrace].
+  Future<void> recordAcceptedWord(
+    int matchId,
+    List<String> updatedChain, {
+    int? responseMs,
+    int? streak,
+  }) => _db.transaction(() async {
+    await _usedWordDao.insertWord(matchId, updatedChain.last);
+    String? trace;
+    if (responseMs != null && streak != null) {
+      final row = await _matchDao.getMatchById(matchId);
+      trace =
+          ScoreTrace.parse(row?.scoreTrace).add(responseMs, streak).toJson();
+    }
+    await _matchDao.updateWordChainForMatch(
+      matchId,
+      updatedChain,
+      scoreTrace: trace,
+    );
+  });
 
   Future<void> finishLocalGame(
     int localMatchId,

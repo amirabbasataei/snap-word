@@ -17,6 +17,7 @@ import 'package:wordchain/features/game/bloc/game_state.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/data/rating_change.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
+import 'package:wordchain/features/game/data/score_trace.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 
 export 'game_event.dart';
@@ -202,7 +203,17 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         mode = match.mode;
         opponentType = match.opponentType;
         wordChain = List<String>.from(jsonDecode(match.wordChain) as List);
-        score = match.score;
+        // The match row only learns its score when the game ends, so a
+        // resumed run restarted from 0. The score trace holds every turn's
+        // time and streak, so the score before the interruption is restored
+        // from it — which also keeps the Daily upload's score equal to what
+        // the server recomputes. Without a matching trace (a run from before
+        // the trace existed) it stays as it was.
+        final trace = ScoreTrace.parse(match.scoreTrace);
+        score =
+            match.opponentType == 'solo' && trace.covers(wordChain)
+                ? scoreFromTrace(wordChain, trace)
+                : match.score;
       } else {
         mode = event.mode;
         opponentType = event.opponentType;
@@ -354,14 +365,16 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
 
-    final responseTimeSec =
+    // Whole milliseconds: the same integer is scored here and uploaded in the
+    // Daily trace, so the server recomputes the identical number.
+    final responseMs =
         _turnStartTime != null
-            ? DateTime.now().difference(_turnStartTime!).inMilliseconds / 1000.0
-            : _timeLimitSec.toDouble();
+            ? DateTime.now().difference(_turnStartTime!).inMilliseconds
+            : _timeLimitSec * 1000;
 
     final turnScore = calculateScore(
       word,
-      responseTimeSec,
+      responseMs / 1000.0,
       active.streak,
       _timeLimitSec.toDouble(),
     );
@@ -371,7 +384,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final newOwners =
         _isVsAI(active) ? [...active.wordOwners, 'player'] : active.wordOwners;
 
-    await _gameRepository.recordAcceptedWord(active.localMatchId, newChain);
+    await _gameRepository.recordAcceptedWord(
+      active.localMatchId,
+      newChain,
+      responseMs: responseMs,
+      streak: active.streak,
+    );
 
     if (_isVsAI(active)) {
       // Switch to AI turn — restart turn timer so match timer keeps ticking
@@ -1601,6 +1619,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   /// Letters in [word] for scoring: the half-space (ZWNJ, U+200C) is not a
   /// letter. Mirrors Go `engine.LetterCount`.
   static int letterCount(String word) => word.replaceAll('\u200c', '').length;
+
+  /// The score a run had earned, recomputed from its [trace]. Only valid for
+  /// a trace that [ScoreTrace.covers] the chain (a solo/Daily run, where
+  /// every chain word is the player's own).
+  static int scoreFromTrace(List<String> chain, ScoreTrace trace) {
+    var total = 0;
+    for (var i = 0; i < chain.length; i++) {
+      total += calculateScore(
+        chain[i],
+        trace.timesMs[i] / 1000.0,
+        trace.streaks[i],
+        GameConstants.classicTurnTimerSec.toDouble(),
+      );
+    }
+    return total;
+  }
 
   static int calculateScore(
     String word,

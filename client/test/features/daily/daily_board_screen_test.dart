@@ -226,6 +226,12 @@ void main() {
       expect(find.text('جایزهٔ سه نفر اول: ۱۰۰ · ۶۰ · ۳۰ سکه'), findsOneWidget);
       expect(find.text('همهٔ شرکت‌کننده‌ها ۱۰ سکه می‌گیرن'), findsOneWidget);
       expect(
+        find.text(
+          'جدول با تلاش اول ساخته می‌شه. تلاش دوباره رتبه رو عوض نمی‌کنه.',
+        ),
+        findsOneWidget,
+      );
+      expect(
         find.textContaining('تا پایان امروز ۸ ساعت و ۳۰ دقیقه'),
         findsOneWidget,
       );

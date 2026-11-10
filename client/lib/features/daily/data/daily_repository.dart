@@ -64,9 +64,10 @@ class DailyChallenge {
   /// One free attempt, then one paid retry (`POST /daily/retry`).
   bool get canRetry => hasAttempted && !hasRetried;
 
-  /// The attempt that counts: the server ranks the player by their best score,
-  /// so the paid retry only replaces the first attempt when it scored higher
-  /// (a tie keeps the first).
+  /// The player's best attempt, shown as their result: the paid retry replaces
+  /// the first attempt only when it scored higher (a tie keeps the first). The
+  /// server's rank and prizes come from the free attempt alone, whichever of
+  /// the two this is.
   DailyAttempt? get bestAttempt {
     final first = attempt;
     final retry = retryAttempt;

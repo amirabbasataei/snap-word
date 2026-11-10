@@ -147,20 +147,23 @@ var FallbackAILevels = []FallbackAILevel{
 // Game tuning defaults — read from this package in handlers and services.
 // Change values here; never scatter magic numbers elsewhere.
 const (
-	TurnTimerClassicSec = 15  // seconds per turn in Classic mode
-	LongWordBonusMinLen = 7   // Flutter-only scoring: words this long (letters) have their turn score multiplied by LongWordBonusMult
-	LongWordBonusMult   = 2   // see LongWordBonusMinLen; the server uses both only to bound uploaded Daily scores
-	EntryFeeCoins       = 20  // coins each human player pays to start a 1v1 match; the winner takes the 2× pot
-	RoomWaitTimeoutSec  = 120 // a room whose second player never joins is cancelled and removed after this long
-	MinWordLength       = 2   // minimum accepted word length (letters); AI levels have their own, higher minimums
-	ContinueWindowSec   = 15  // seconds the losing player has to decide on a continue
-	DailyChainSafetyCap = 200 // abuse backstop on an uploaded Daily Challenge chain; players have no word limit (lives end the game)
-	ContinueCoins       = 25  // coins spent to continue (Classic)
-	DailyRetryCoins     = 25  // coins spent to retry Daily Challenge
-	HintSessionLimit    = 5   // free hint uses per guest session
-	AIFallbackWaitSec   = 30  // matchmaking waits this long before pairing with AI
-	OTPMaxAttempts      = 5   // failed verify-otp attempts allowed before lockout
-	OTPMaxSendsPerDay   = 10  // send-otp requests allowed per phone per rolling day
+	TurnTimerClassicSec = 15   // seconds per turn in Classic mode
+	ExtraTimeBonusSec   = 8    // seconds the Extra Time power-up adds to a turn (mirrors GameConstants.extraTimeBonusSec)
+	LongWordBonusMinLen = 7    // solo/Daily scoring (engine.CalculateSoloScore): words this long (letters) have their turn score multiplied by LongWordBonusMult; multiplayer does not apply it yet
+	LongWordBonusMult   = 2    // see LongWordBonusMinLen
+	DailyWordMinMs      = 300  // fastest plausible Daily word (ms) in an uploaded timing trace
+	DailyWordSlackMs    = 2000 // timer ticks and clock jitter allowed on top of a turn's longest possible time
+	EntryFeeCoins       = 20   // coins each human player pays to start a 1v1 match; the winner takes the 2× pot
+	RoomWaitTimeoutSec  = 120  // a room whose second player never joins is cancelled and removed after this long
+	MinWordLength       = 2    // minimum accepted word length (letters); AI levels have their own, higher minimums
+	ContinueWindowSec   = 15   // seconds the losing player has to decide on a continue
+	DailyChainSafetyCap = 200  // abuse backstop on an uploaded Daily Challenge chain; players have no word limit (lives end the game)
+	ContinueCoins       = 25   // coins spent to continue (Classic)
+	DailyRetryCoins     = 25   // coins spent to retry Daily Challenge
+	HintSessionLimit    = 5    // free hint uses per guest session
+	AIFallbackWaitSec   = 30   // matchmaking waits this long before pairing with AI
+	OTPMaxAttempts      = 5    // failed verify-otp attempts allowed before lockout
+	OTPMaxSendsPerDay   = 10   // send-otp requests allowed per phone per rolling day
 
 	// SystemAIUserID is the fixed, well-known users.id row for the matchmaking
 	// AI-fallback opponent (backend/internal/service/matchmaking.go). A single

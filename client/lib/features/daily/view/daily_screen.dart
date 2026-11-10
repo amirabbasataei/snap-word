@@ -359,6 +359,7 @@ class _DailyAfter extends StatelessWidget {
               words: attempt.chainLength,
               score: attempt.score,
               rank: challenge.rank,
+              retried: challenge.hasRetried,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),

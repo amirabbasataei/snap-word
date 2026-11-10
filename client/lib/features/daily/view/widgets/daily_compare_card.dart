@@ -6,8 +6,9 @@ import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
 
 /// «مقایسهٔ دو تلاش» — the free attempt next to the paid one, the better score
-/// marked (it is the one on the board). Not in the canvas; derived from its
-/// cards.
+/// marked as the player's record. Only the free attempt counts for the rank
+/// and the prizes (Phase 25 S5), and a line says so. Not in the canvas;
+/// derived from its cards.
 class DailyCompareCard extends StatelessWidget {
   final DailyAttempt first;
   final DailyAttempt retry;
@@ -57,6 +58,16 @@ class DailyCompareCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'رتبه و جایزه فقط با تلاش اول حساب می‌شه. تلاش دوباره رکورد خودته.',
+            style: ZTypography.metaLabel.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
+              color: z.ink60,
             ),
           ),
         ],

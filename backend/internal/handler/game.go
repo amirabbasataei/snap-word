@@ -32,6 +32,10 @@ type createSoloRequest struct {
 	LongestWord string    `json:"longest_word"`
 	StartedAt   time.Time `json:"started_at" binding:"required"`
 	EndedAt     time.Time `json:"ended_at"   binding:"required"`
+	// Daily Challenge only: per-word response times (ms) and the match streak
+	// before each word. Optional — older apps omit them.
+	WordTimesMs []int `json:"word_times_ms"`
+	WordStreaks []int `json:"word_streaks"`
 }
 
 type matchResponse struct {
@@ -91,6 +95,8 @@ func (h *GameHandler) CreateSolo(c *gin.Context) {
 		LongestWord: req.LongestWord,
 		StartedAt:   req.StartedAt,
 		EndedAt:     req.EndedAt,
+		WordTimesMs: req.WordTimesMs,
+		WordStreaks: req.WordStreaks,
 	}
 
 	match, alreadyExisted, err := h.gameSvc.CreateSoloGame(c.Request.Context(), userID, in)

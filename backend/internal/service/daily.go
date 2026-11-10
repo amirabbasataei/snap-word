@@ -30,12 +30,12 @@ type DailyInfo struct {
 	ChallengeDate string
 	DayNumber     int
 	StartLetter   string
-	TodayBest     int
-	YourBest      int
+	TodayBest     int // top free-attempt score of the day (the board's first row)
+	YourBest      int // the caller's best over both attempts (a paid retry counts here)
 	DailyStreak   int
 	Attempt       *DailyAttemptInfo
 	RetryAttempt  *DailyAttemptInfo
-	Rank          *int
+	Rank          *int // by the free attempt only; a paid retry never changes it
 }
 
 type DailyService struct {
@@ -202,7 +202,7 @@ type DailyBoard struct {
 	MyRank        *int
 }
 
-// Leaderboard returns today's ranking (best score per player) and the
+// Leaderboard returns today's ranking (each player's free attempt) and the
 // caller's own rank.
 func (s *DailyService) Leaderboard(ctx context.Context, userID string, limit int) (*DailyBoard, error) {
 	today := todayIran()
@@ -224,7 +224,8 @@ func (s *DailyService) Leaderboard(ctx context.Context, userID string, limit int
 
 // RunDailyPayout pays the prizes for a finished challenge day (called after
 // Iran midnight): every finisher gets the completion prize, the top 3 an
-// extra rank prize. Both are claimable inbox messages, idempotent per
+// extra rank prize. Ranks come from the free attempt only — a paid retry can
+// not buy a better one. Both are claimable inbox messages, idempotent per
 // (user, kind, date), so re-running is safe.
 func (s *DailyService) RunDailyPayout(ctx context.Context, date time.Time) error {
 	rows, err := s.dailyRepo.GetDailyLeaderboard(ctx, date, 1<<30)

@@ -30,13 +30,17 @@ class MatchDao extends DatabaseAccessor<AppDatabase> with _$MatchDaoMixin {
   Future<LocalMatche?> getMatchById(int id) =>
       (select(localMatches)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<void> updateWordChainForMatch(int id, List<String> chain) =>
-      (update(localMatches)..where((t) => t.id.equals(id))).write(
-        LocalMatchesCompanion(
-          chainLength: Value(chain.length),
-          wordChain: Value(jsonEncode(chain)),
-        ),
-      );
+  Future<void> updateWordChainForMatch(
+    int id,
+    List<String> chain, {
+    String? scoreTrace,
+  }) => (update(localMatches)..where((t) => t.id.equals(id))).write(
+    LocalMatchesCompanion(
+      chainLength: Value(chain.length),
+      wordChain: Value(jsonEncode(chain)),
+      scoreTrace: scoreTrace == null ? const Value.absent() : Value(scoreTrace),
+    ),
+  );
 
   Future<void> finishMatch(
     int id,
