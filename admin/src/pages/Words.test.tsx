@@ -8,7 +8,8 @@ const NOW = new Date().toISOString()
 const sug = (over: Record<string, unknown>) => ({
   id: 1, word: 'آزمونک', kind: 'add', status: 'pending', outcome: '', reporters: 3, not_a_word: 0, inappropriate: 0,
   review_note: '', reviewed_by: '', reviewed_at: null, created_at: NOW, last_reported_at: NOW,
-  in_dictionary: false, ai_blocked: false, warnings: [], ...over,
+  in_dictionary: false, ai_blocked: false, warnings: [],
+  reporter_list: [{ user_id: 'u1', username: 'علی' }], guest_reporters: 1, ...over,
 })
 const ADD = [
   sug({ id: 1, word: 'آزمونک', reporters: 3 }),
@@ -36,6 +37,9 @@ describe('Words', () => {
     setup('viewer')
     expect(await screen.findByText('آزمونک')).toBeInTheDocument()
     expect(screen.getByText('شکل جمع/صفتِ یک کلمهٔ موجود')).toBeInTheDocument()
+    // who suggested it: signed-in name (links to the user) + guest count + the unnamed rest
+    expect(screen.getAllByRole('link', { name: 'علی' })[0]).toHaveAttribute('href', '/users/u1')
+    expect(screen.getAllByText('۱ مهمان').length).toBeGreaterThan(0)
     expect(screen.getByRole('tab', { name: /پیشنهاد افزودن \(۲\)/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /تأیید/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()

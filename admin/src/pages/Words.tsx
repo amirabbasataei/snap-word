@@ -1,5 +1,6 @@
 import { Check, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -20,6 +21,25 @@ import {
 import { Editor } from './words/Editor'
 import { Misses } from './words/Misses'
 import { NoteDialog, WordCell } from './words/parts'
+
+/** Who reported the word: first signed-in names (linked to the user page), then "+N" for the rest. */
+function ReporterNames({ item }: { item: WordSuggestion }) {
+  const named = item.reporter_list ?? []
+  const guests = item.guest_reporters ?? 0
+  const hidden = Math.max(0, item.reporters - named.length - guests)
+  if (named.length === 0 && guests === 0) return <span className="text-muted">—</span>
+  return (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {named.map((u) => (
+        <Link key={u.user_id} to={`/users/${u.user_id}`} className="hover:text-blue">
+          {u.username || 'بدون نام'}
+        </Link>
+      ))}
+      {guests > 0 && <span className="text-muted">{formatNumber(guests)} مهمان</span>}
+      {hidden > 0 && <span className="text-muted">+{formatNumber(hidden)}</span>}
+    </span>
+  )
+}
 
 const STATUS_OPTIONS: { value: WordStatusFilter; label: string }[] = [
   { value: 'pending', label: 'در انتظار بررسی' },
@@ -147,7 +167,8 @@ function Queue({ kind, canEdit, onPending }: { kind: WordKind; canEdit: boolean;
   }
   columns.push(
     { key: 'word', header: 'کلمه', cell: (r) => <WordCell word={r.word} warnings={r.warnings} /> },
-    { key: 'reporters', header: 'گزارش‌دهنده', cell: (r) => formatNumber(r.reporters) },
+    { key: 'reporters', header: 'تعداد گزارش', cell: (r) => formatNumber(r.reporters) },
+    { key: 'who', header: 'پیشنهاددهنده', cell: (r) => <ReporterNames item={r} /> },
   )
   if (!isAdd) {
     columns.push({

@@ -27,6 +27,9 @@ export interface WordSuggestion {
   in_dictionary: boolean
   ai_blocked: boolean
   warnings: string[]
+  /** First signed-in reporters (queue rows only) and the number of guest reports. */
+  reporter_list?: { user_id: string; username: string }[]
+  guest_reporters?: number
 }
 
 export interface WordQueue {

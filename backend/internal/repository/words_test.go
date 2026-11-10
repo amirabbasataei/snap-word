@@ -47,6 +47,9 @@ func TestWords_SubmitCountsDistinctReporters(t *testing.T) {
 	if err != nil || total != 1 || items[0].Reporters != 3 {
 		t.Fatalf("queue = %+v total=%d err=%v", items, total, err)
 	}
+	if len(items[0].ReporterList) != 1 || items[0].ReporterList[0].UserID != wordUserA || items[0].GuestReporters != 2 {
+		t.Fatalf("reporter attribution = %+v guests=%d", items[0].ReporterList, items[0].GuestReporters)
+	}
 }
 
 func TestWords_ApproveAddRewardsFirstSignedInReporterOnce(t *testing.T) {

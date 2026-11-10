@@ -94,6 +94,16 @@ type WordSuggestionItem struct {
 	InDictionary   bool       `json:"in_dictionary"`
 	AIBlocked      bool       `json:"ai_blocked"`
 	Warnings       []string   `json:"warnings"`
+	// Queue rows only: the first signed-in reporters and the number of guest
+	// reports (the detail endpoint lists everyone).
+	ReporterList   []WordQueueReporter `json:"reporter_list"`
+	GuestReporters int                 `json:"guest_reporters"`
+}
+
+// WordQueueReporter is a signed-in reporter shown in a queue row.
+type WordQueueReporter struct {
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
 }
 
 func suggestionItem(r repository.AdminWordSuggestion) WordSuggestionItem {
@@ -102,8 +112,17 @@ func suggestionItem(r repository.AdminWordSuggestion) WordSuggestionItem {
 		NotAWord: r.NotAWord, Inappropriate: r.Inappropriate, ReviewNote: r.ReviewNote, ReviewedBy: r.ReviewedBy,
 		ReviewedAt: r.ReviewedAt, CreatedAt: r.CreatedAt, LastReportedAt: r.LastReportedAt,
 		InDictionary: engine.IsValid(r.Word), AIBlocked: engine.IsAIBlocked(r.Word),
-		Warnings: WordWarnings(r.Word),
+		Warnings:     WordWarnings(r.Word),
+		ReporterList: reporterList(r.ReporterList), GuestReporters: r.GuestReporters,
 	}
+}
+
+func reporterList(in []repository.QueueReporter) []WordQueueReporter {
+	out := make([]WordQueueReporter, len(in))
+	for i, r := range in {
+		out[i] = WordQueueReporter{UserID: r.UserID, Username: r.Username}
+	}
+	return out
 }
 
 // WordQueueQuery is the filter of GET /admin/words/suggestions.
@@ -351,12 +370,12 @@ func (s *AdminWordService) SetWord(ctx context.Context, actor AuditActor, word s
 
 // WordLookup describes one word for the lookup box.
 type WordLookup struct {
-	Word          string               `json:"word"`
-	InDictionary  bool                 `json:"in_dictionary"`
-	InBase        bool                 `json:"in_base"`
-	AIBlocked     bool                 `json:"ai_blocked"`
-	Warnings      []string             `json:"warnings"`
-	Suggestions   []WordSuggestionItem `json:"suggestions"`
+	Word         string               `json:"word"`
+	InDictionary bool                 `json:"in_dictionary"`
+	InBase       bool                 `json:"in_base"`
+	AIBlocked    bool                 `json:"ai_blocked"`
+	Warnings     []string             `json:"warnings"`
+	Suggestions  []WordSuggestionItem `json:"suggestions"`
 }
 
 // Lookup reports the dictionary state of a word and every suggestion about it.
@@ -381,10 +400,10 @@ func (s *AdminWordService) Lookup(ctx context.Context, word string) (*WordLookup
 
 // MissItem is one most-rejected word of multiplayer play.
 type MissItem struct {
-	Word          string   `json:"word"`
-	Count         int      `json:"count"`
-	InDictionary  bool     `json:"in_dictionary"`
-	Warnings      []string `json:"warnings"`
+	Word         string   `json:"word"`
+	Count        int      `json:"count"`
+	InDictionary bool     `json:"in_dictionary"`
+	Warnings     []string `json:"warnings"`
 }
 
 // Misses returns the most-rejected words, already-fixed ones flagged.

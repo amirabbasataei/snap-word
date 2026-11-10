@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // Sentinel errors of the word-suggestion store.
@@ -237,7 +239,19 @@ type AdminWordSuggestion struct {
 	ReviewedAt     *time.Time
 	CreatedAt      time.Time
 	LastReportedAt time.Time
+	// Filled by ListSuggestions only: the first signed-in reporters (oldest
+	// first, at most queueReporterNames) and how many reports were guests.
+	ReporterList   []QueueReporter
+	GuestReporters int
 }
+
+// QueueReporter is a signed-in player who reported a word.
+type QueueReporter struct {
+	UserID   string
+	Username string
+}
+
+const queueReporterNames = 3
 
 // WordListParams filters the review queue. Empty Status / Kind mean all.
 type WordListParams struct {
@@ -286,7 +300,49 @@ func (r *WordRepository) ListSuggestions(ctx context.Context, p WordListParams) 
 		}
 		out = append(out, s)
 	}
-	return out, total, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	rows.Close()
+	if err := r.attachReporters(ctx, out); err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+// attachReporters fills ReporterList/GuestReporters for one page of rows.
+func (r *WordRepository) attachReporters(ctx context.Context, items []AdminWordSuggestion) error {
+	if len(items) == 0 {
+		return nil
+	}
+	ids := make([]int64, len(items))
+	idx := make(map[int64]int, len(items))
+	for i, it := range items {
+		ids[i] = it.ID
+		idx[it.ID] = i
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT r.suggestion_id, COALESCE(r.user_id::text, ''), COALESCE(u.username, '')
+		FROM word_suggestion_reports r LEFT JOIN users u ON u.id = r.user_id
+		WHERE r.suggestion_id = ANY($1::bigint[]) ORDER BY r.created_at`, pq.Array(ids))
+	if err != nil {
+		return fmt.Errorf("WordRepository.attachReporters: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sid int64
+		var uid, name string
+		if err := rows.Scan(&sid, &uid, &name); err != nil {
+			return fmt.Errorf("WordRepository.attachReporters scan: %w", err)
+		}
+		it := &items[idx[sid]]
+		if uid == "" {
+			it.GuestReporters++
+		} else if len(it.ReporterList) < queueReporterNames {
+			it.ReporterList = append(it.ReporterList, QueueReporter{UserID: uid, Username: name})
+		}
+	}
+	return rows.Err()
 }
 
 // SuggestionCounts returns the pending queue sizes per kind.
