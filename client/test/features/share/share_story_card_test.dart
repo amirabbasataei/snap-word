@@ -86,7 +86,9 @@ void main() {
       expect(bd.getUint32(16), 1080);
       expect(bd.getUint32(20), 1920);
       if (out != null) {
-        File('$out/card_${withCode ? 'code' : 'guest'}.png').writeAsBytesSync(bytes);
+        File(
+          '$out/card_${withCode ? 'code' : 'guest'}.png',
+        ).writeAsBytesSync(bytes);
       }
     }
   });

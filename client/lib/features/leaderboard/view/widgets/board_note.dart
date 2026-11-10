@@ -43,6 +43,8 @@ class BoardNote extends StatelessWidget {
   }) => switch (tab) {
     BoardTab.weekly => [
       prizeLine(GameConstants.weeklyPrizeCoins),
+      'جایزه برای کسیه که ${toPersianDigits(GameConstants.weeklyMinRatedGames)} '
+          'بازی کرده و جام این هفته‌اش مثبته',
       'جدول تا ${formatCountdownFa(untilIranWeekReset(now))} دیگه ریست می‌شه',
     ],
     BoardTab.daily => [
@@ -52,8 +54,11 @@ class BoardNote extends StatelessWidget {
       prizeLine(GameConstants.dailyPrizeCoins),
       'تا پایان امروز ${formatCountdownFa(untilIranMidnight(now))} مونده',
     ],
-    BoardTab.allTime => ['مجموع امتیاز بازی‌های آنلاین'],
-    BoardTab.friends => ['امتیاز این هفتهٔ تو و دوستانت'],
+    BoardTab.allTime => [
+      'جام همهٔ بازی‌های آنلاین',
+      'بعد از ${toPersianDigits(GameConstants.ratingMinGamesForBoard)} بازی رتبه می‌گیری',
+    ],
+    BoardTab.friends => ['جام تو و دوستانت'],
   };
 
   @override

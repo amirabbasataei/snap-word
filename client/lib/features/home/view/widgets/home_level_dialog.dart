@@ -60,21 +60,25 @@ const aiDefaultLevel = 'ai_medium';
 
 /// Asks which vs-AI level to play. Resolves to the chosen `opponentType`, or
 /// null when the player closes the dialog without starting.
-Future<String?> showAiLevelDialog(BuildContext context) =>
-    showZDialog<String>(
-      context,
-      barrierLabel: 'بستن',
-      builder: (dialogContext) => AiLevelDialog(
+Future<String?> showAiLevelDialog(BuildContext context) => showZDialog<String>(
+  context,
+  barrierLabel: 'بستن',
+  builder:
+      (dialogContext) => AiLevelDialog(
         onStart: (id) => Navigator.of(dialogContext).pop(id),
         onClose: () => Navigator.of(dialogContext).pop(),
       ),
-    );
+);
 
 class AiLevelDialog extends StatefulWidget {
   final ValueChanged<String> onStart;
   final VoidCallback onClose;
 
-  const AiLevelDialog({super.key, required this.onStart, required this.onClose});
+  const AiLevelDialog({
+    super.key,
+    required this.onStart,
+    required this.onClose,
+  });
 
   @override
   State<AiLevelDialog> createState() => _AiLevelDialogState();

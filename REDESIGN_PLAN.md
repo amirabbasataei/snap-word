@@ -1171,3 +1171,14 @@ The canvas redrew the Home mascot to match the other screens; the app still had 
 - `ZMascotMood.hanging` in `core/widgets/z_mascot.dart` reuses the standing mascot's body (88×86), idle face, legs and antenna; only the arms differ. `ZMascot.hangingSize` / `hangingGrip` replace `HomeMascot.size` / `gripPoint`. At rest (reduced motion) it is upright — the old widget rested at −7°.
 - Deleted `home_mascot.dart` and the never-used `mascotMood` plumbing (`HomeHero`, `HomeHeroChain`).
 - Verification: `test/features/home/home_mascot_golden_test.dart` renders the pose (light/dark) and the whole hero; the pose PNG was diffed against a Chrome render of the canvas markup (light 10 px / dark 33 px differ by > 24/255 of 36 040 — anti-aliasing only). The `home_hud_*` goldens include the mascot and must be regenerated on a machine where they pass (they fail on this Linux box on a clean HEAD). Not yet checked on a device.
+
+---
+
+## Rating client (Phase 25 S3, 2026-11-10) — ZOver card, ZBoard labels, ZProfile card, ZVersus pill; checked on two emulators
+
+**Canvas:** the zanjir canvas (project `4a90de7c…`) has no rating frames (it predates the Elo «جام»); every piece below is derived from the existing tokens and shared widgets. Details and decisions: SCORING_PLAN.md § S3.
+- **ZOver:** `ZOverRatingCard` (`features/game/view/widgets/z_over_rating.dart`) between the head-to-head / score card and the report-word link, wrapped in `ZOverEnter` so a late `rating_update` fades in. 1v1 only.
+- **ZBoard:** same layout, new numbers and sub-lines (signed weekly Δ, games, wins); note + self row carry the prize rule; all-time has the provisional state. `BoardPodium` / `BoardRowsCard` / `BoardRow` / `BoardSelfRow` take the tab.
+- **ZProfile:** `ProfileRatingCard` between the XP bar and the stat grid (signed-in only), laid out like the grid (big tile + list).
+- **ZVersus:** the pill shows each side's rating after the name; the 64 dp side width still holds «حریف ۱۰۱۶».
+- **Flagged:** the win body now exceeds 812 dp tall phones' viewport by the width of the card, so the «کلمه‌ای اشتباه…» link scrolls under the footer on the shortest layouts (the body scrolls; nothing overflows).

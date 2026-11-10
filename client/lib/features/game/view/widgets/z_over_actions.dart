@@ -86,7 +86,11 @@ class ZOverContinueActions extends StatelessWidget {
             _SquareButton(
               label: 'اشتراک‌گذاری نتیجه',
               onTap: onShare,
-              glyph: SvgPicture.string(_shareGlyph(z.ink), width: 22, height: 22),
+              glyph: SvgPicture.string(
+                _shareGlyph(z.ink),
+                width: 22,
+                height: 22,
+              ),
             ),
             const SizedBox(width: 10),
             _SquareButton(
@@ -101,7 +105,11 @@ class ZOverContinueActions extends StatelessWidget {
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               'فرصت ادامه: ${toPersianDigits(secondsLeft)} ثانیه',
-              style: TextStyle(color: z.ink60, fontWeight: FontWeight.w800, fontSize: 12),
+              style: TextStyle(
+                color: z.ink60,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
             ),
           ),
       ],
@@ -168,7 +176,11 @@ class ZOverFinalActions extends StatelessWidget {
                 height: ZGame.overSecondaryHeight,
                 radius: ZGame.overSecondaryRadius,
                 depth: ZGame.overSecondaryDepth,
-                icon: SvgPicture.string(_shareGlyph(z.ink), width: 20, height: 20),
+                icon: SvgPicture.string(
+                  _shareGlyph(z.ink),
+                  width: 20,
+                  height: 20,
+                ),
               ),
             ),
           ],
@@ -184,7 +196,11 @@ class _SquareButton extends StatelessWidget {
   final VoidCallback onTap;
   final Widget glyph;
 
-  const _SquareButton({required this.label, required this.onTap, required this.glyph});
+  const _SquareButton({
+    required this.label,
+    required this.onTap,
+    required this.glyph,
+  });
 
   @override
   Widget build(BuildContext context) {

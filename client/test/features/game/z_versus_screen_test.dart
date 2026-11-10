@@ -44,6 +44,8 @@ GameActive _state({
   String? tauntText,
   bool tauntFromMe = false,
   Map<String, int> counts = const {},
+  int? myRating,
+  int? opponentRating,
 }) {
   final chain = _chain.take(words).toList();
   return GameActive(
@@ -68,6 +70,8 @@ GameActive _state({
     opponentContinueWindowActive: continueWindow,
     myPremium: myPremium,
     opponentPremium: opponentPremium,
+    myRating: myRating,
+    opponentRating: opponentRating,
     myAvatarId: myAvatarId,
     tauntId: taunt,
     tauntText: tauntText,
@@ -254,6 +258,29 @@ void main() {
       expect(find.text('نوبت مریم'), findsOneWidget);
       expect(find.text('مریم در حال فکر کردن…'), findsOneWidget);
       expect(find.widgetWithText(ZDiscAvatar, 'م'), findsWidgets);
+    });
+
+    testWidgets('each side\'s جام sits next to its name', (tester) async {
+      await _size(tester, 393, 852);
+      await tester.pumpWidget(
+        _screen(_state(myRating: 1016, opponentRating: 984)),
+      );
+      await _settle(tester);
+      expect(find.text('۱۰۱۶'), findsOneWidget);
+      expect(find.text('۹۸۴'), findsOneWidget);
+      expect(find.text('حریف'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('no ratings (AI fallback, old server): names only', (
+      tester,
+    ) async {
+      await _size(tester, 393, 852);
+      await tester.pumpWidget(_screen(_state()));
+      await _settle(tester);
+      expect(find.text('۱۰۱۶'), findsNothing);
+      expect(find.text('۱۰۰۰'), findsNothing);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('premium crowns appear next to the premium players only', (

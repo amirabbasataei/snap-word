@@ -276,7 +276,14 @@ class _MascotPainter extends CustomPainter {
         ..moveTo(x1, y1)
         ..lineTo(x2, y2);
 
-  Path _curve(double x1, double y1, double cx, double cy, double x2, double y2) =>
+  Path _curve(
+    double x1,
+    double y1,
+    double cx,
+    double cy,
+    double x2,
+    double y2,
+  ) =>
       Path()
         ..moveTo(x1, y1)
         ..quadraticBezierTo(cx, cy, x2, y2);
@@ -413,13 +420,12 @@ class _MascotPainter extends CustomPainter {
     final edge = box.shift(const Offset(0, 6));
     canvas.drawRRect(edge.inflate(3), _fill(outline));
     canvas.drawRRect(edge, _fill(amberDeep));
-    final shader =
-        LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color.alphaBlend(hi, amber), amber],
-          stops: const [0, .55],
-        ).createShader(box.outerRect);
+    final shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color.alphaBlend(hi, amber), amber],
+      stops: const [0, .55],
+    ).createShader(box.outerRect);
     canvas.drawRRect(box, Paint()..shader = shader);
     canvas.drawRRect(box.deflate(1.5), _stroke(outline, 3));
   }
@@ -440,14 +446,27 @@ class _MascotPainter extends CustomPainter {
   void _glint(Canvas canvas, double x, double y, double r) =>
       canvas.drawCircle(Offset(x, y), r, _fill(white));
 
-  void _cheek(Canvas canvas, double x, double y, double rx, double ry, double a) {
+  void _cheek(
+    Canvas canvas,
+    double x,
+    double y,
+    double rx,
+    double ry,
+    double a,
+  ) {
     canvas.drawOval(
       Rect.fromCenter(center: Offset(x, y), width: rx * 2, height: ry * 2),
       _fill(coral.withValues(alpha: a)),
     );
   }
 
-  void _openMouth(Canvas canvas, Path mouth, Offset tongue, double rx, double ry) {
+  void _openMouth(
+    Canvas canvas,
+    Path mouth,
+    Offset tongue,
+    double rx,
+    double ry,
+  ) {
     canvas.drawPath(mouth, _fill(outline));
     canvas.drawPath(mouth, _stroke(outline, 2));
     canvas.drawOval(
@@ -516,10 +535,7 @@ class _MascotPainter extends CustomPainter {
         _glint(canvas, 78.5, 74.5, 1.8);
         _cheek(canvas, 35, 93, 6, 3.5, .4);
         _cheek(canvas, 95, 93, 6, 3.5, .4);
-        canvas.drawPath(
-          _curve(55, 104, 65, 93, 75, 104),
-          _stroke(outline, 5),
-        );
+        canvas.drawPath(_curve(55, 104, 65, 93, 75, 104), _stroke(outline, 5));
         // Tear: drips 12px and fades out.
         final drop =
             Path()

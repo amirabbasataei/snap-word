@@ -52,6 +52,7 @@ class BoardResultView extends StatelessWidget {
               ),
               if (hasPodium)
                 BoardPodium(
+                  tab: tab,
                   top3: entries.take(3).toList(),
                   currentUserId: currentUserId,
                 ),
@@ -62,6 +63,7 @@ class BoardResultView extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(top: hasPodium ? 0 : 12),
                   child: BoardRowsCard(
+                    tab: tab,
                     entries: rest,
                     currentUserId: currentUserId,
                     underPodium: hasPodium,
@@ -73,11 +75,18 @@ class BoardResultView extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
           child: BoardSelfRow(
+            tab: tab,
             username: username,
             avatarId: result.playerAvatarId ?? selfAvatarId,
             rank: result.playerRank,
             score: result.playerScore,
-            subtitle: selfSubtitle(tab, result.playerRank, result.playerScore),
+            showUnrankedScore: tab == BoardTab.allTime,
+            subtitle: selfSubtitle(
+              tab,
+              result.playerRank,
+              result.playerScore,
+              games: result.playerGames,
+            ),
           ),
         ),
       ],

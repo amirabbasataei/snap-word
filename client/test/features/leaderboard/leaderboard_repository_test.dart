@@ -61,6 +61,8 @@ Map<String, Object?> _row(
   num score, {
   String? avatar,
   int? chain,
+  int? games,
+  int? wins,
 }) => {
   'rank': rank,
   'user_id': id,
@@ -68,6 +70,8 @@ Map<String, Object?> _row(
   'score': score,
   if (avatar != null) 'avatar_id': avatar,
   if (chain != null) 'chain_length': chain,
+  if (games != null) 'games': games,
+  if (wins != null) 'wins': wins,
 };
 
 void main() {
@@ -110,38 +114,69 @@ void main() {
     expect(adapter.requests.single.queryParameters['type'], 'alltime');
   });
 
-  test('friends: the player\'s place is read from the entries, not from the '
-      'server\'s global weekly rank', () async {
-    final (repo, _) = _repo({
+  test('friends: rank, score and games are the server\'s own', () async {
+    final (repo, adapter) = _repo({
       '/api/v1/leaderboard?friends': {
         'entries': [
-          _row(1, 'f1', 900),
-          _row(2, 'me', 300, avatar: 'cat'),
-          _row(3, 'f2', 0),
+          _row(1, 'f1', 1090, games: 14),
+          _row(2, 'me', 1016, avatar: 'cat', games: 3),
+          _row(3, 'f2', 1000, games: 0),
         ],
-        // The handler answers with the *global* rank here.
-        'player_rank': 87,
-        'player_score': 300.0,
+        // Since S2 this is the place among friends.
+        'player_rank': 2,
+        'player_score': 1016,
+        'player_games': 3,
         'player_avatar_id': 'cat',
       },
     });
-    final board = await repo.fetchFriends('me');
+    final board = await repo.fetchFriends();
     expect(board.playerRank, 2);
-    expect(board.playerScore, 300);
+    expect(board.playerScore, 1016);
+    expect(board.playerGames, 3);
     expect(board.playerAvatarId, 'cat');
+    expect(board.entries.first.games, 14);
+    expect(adapter.requests.single.queryParameters['type'], 'friends');
   });
 
-  test('friends: a player missing from the entries has no rank', () async {
+  test(
+    'weekly: net جام, wins and games per row, and the player\'s own',
+    () async {
+      final (repo, _) = _repo({
+        '/api/v1/leaderboard?global': {
+          'entries': [
+            _row(1, 'a', 48, games: 9, wins: 7),
+            _row(2, 'b', -12, games: 5, wins: 1),
+          ],
+          'player_rank': 2,
+          'player_score': -12,
+          'player_games': 5,
+          'player_wins': 1,
+        },
+      });
+      final board = await repo.fetchGlobal();
+      expect(board.entries.first.wins, 7);
+      expect(board.entries.first.games, 9);
+      expect(board.entries.last.score, -12);
+      expect(board.playerScore, -12);
+      expect(board.playerGames, 5);
+      expect(board.playerWins, 1);
+    },
+  );
+
+  test('all-time: unranked below ten games still reports the rating', () async {
     final (repo, _) = _repo({
-      '/api/v1/leaderboard?friends': {
-        'entries': [_row(1, 'f1', 900)],
+      '/api/v1/leaderboard?alltime': {
+        'entries': <Object>[],
         'player_rank': 0,
-        'player_score': 0,
+        'player_score': 1032,
+        'player_games': 4,
       },
     });
-    final board = await repo.fetchFriends('me');
+    final board = await repo.fetchAllTime();
     expect(board.playerRank, 0);
-    expect(board.playerScore, isNull);
+    expect(board.playerScore, 1032);
+    expect(board.playerGames, 4);
+    expect(board.playerWins, isNull);
   });
 
   test(

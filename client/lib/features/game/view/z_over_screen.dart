@@ -26,6 +26,7 @@ import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_actions.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_cards.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_rating.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/words/view/z_over_report_word.dart';
 
@@ -179,7 +180,7 @@ class _ZOverScreenState extends State<ZOverScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child:
             won
-                ? _WinBody(state: state, auth: auth)
+                ? _WinBody(state: state, auth: auth, isVersus: isVersus)
                 : _LossBody(
                   state: state,
                   record: _recordChainLength,
@@ -387,6 +388,15 @@ class _LossBody extends StatelessWidget {
             ),
           ),
         ),
+        if (isVersus && ZOverRatingCard.shows(state))
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 0,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ZOverRatingCard(state: state),
+            ),
+          ),
         if (isDuel) ZOverFlagWordLink(chain: state.wordChain),
       ],
     );
@@ -396,8 +406,13 @@ class _LossBody extends StatelessWidget {
 class _WinBody extends StatelessWidget {
   final GameOver state;
   final AuthState auth;
+  final bool isVersus;
 
-  const _WinBody({required this.state, required this.auth});
+  const _WinBody({
+    required this.state,
+    required this.auth,
+    required this.isVersus,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -481,6 +496,15 @@ class _WinBody extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+          ),
+        if (isVersus && ZOverRatingCard.shows(state))
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 0,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              child: ZOverRatingCard(state: state),
             ),
           ),
         ZOverFlagWordLink(chain: state.wordChain),

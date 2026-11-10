@@ -8,6 +8,7 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/core/widgets/z_disc_avatar.dart';
+import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 import 'package:wordchain/features/leaderboard/view/widgets/board_parts.dart';
 
@@ -18,9 +19,11 @@ class BoardPodium extends StatelessWidget {
   /// Rank-ascending: index 0 is رتبهٔ ۱.
   final List<LeaderboardEntry> top3;
   final String currentUserId;
+  final BoardTab tab;
 
   const BoardPodium({
     super.key,
+    required this.tab,
     required this.top3,
     required this.currentUserId,
   }) : assert(top3.length == 3);
@@ -30,6 +33,7 @@ class BoardPodium extends StatelessWidget {
     Widget cell(int place, {required int flex}) => Expanded(
       flex: flex,
       child: _Pedestal(
+        tab: tab,
         entry: top3[place - 1],
         place: place,
         mine: top3[place - 1].userId == currentUserId,
@@ -53,11 +57,13 @@ class BoardPodium extends StatelessWidget {
 }
 
 class _Pedestal extends StatelessWidget {
+  final BoardTab tab;
   final LeaderboardEntry entry;
   final int place;
   final bool mine;
 
   const _Pedestal({
+    required this.tab,
     required this.entry,
     required this.place,
     required this.mine,
@@ -130,7 +136,7 @@ class _Pedestal extends StatelessWidget {
       excludeSemantics: true,
       label:
           'رتبهٔ ${toPersianDigits(place)}: ${isolate(entry.username)}، '
-          '${formatPersianNumber(entry.score)} امتیاز${mine ? '، تو' : ''}',
+          '${boardScoreSpoken(tab, entry.score)}${mine ? '، تو' : ''}',
       child: MediaQuery.withClampedTextScaling(
         maxScaleFactor: 1.3,
         child: Column(
@@ -202,8 +208,9 @@ class _Pedestal extends StatelessWidget {
                       ),
                       FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text(
-                          formatPersianNumber(entry.score),
+                        child: BoardScoreText(
+                          tab: tab,
+                          score: entry.score,
                           style: ZTypography.cardTitle.copyWith(
                             fontSize: first ? 12.5 : 12,
                             fontWeight: FontWeight.w800,

@@ -350,10 +350,7 @@ void main() {
       expect(find.text('۳۲۰ امتیاز این هفته'), findsOneWidget);
       expect(find.text('بدون امتیاز این هفته'), findsOneWidget);
       expect(find.text('دعوت به بازی'), findsNWidgets(3));
-      expect(
-        find.text('برای حذف یه دوست، روی اسمش نگه دار'),
-        findsOneWidget,
-      );
+      expect(find.text('برای حذف یه دوست، روی اسمش نگه دار'), findsOneWidget);
 
       // Initials on discs, no mascot while there are friends.
       final discs = tester.widgetList<ZDiscAvatar>(find.byType(ZDiscAvatar));
@@ -453,10 +450,7 @@ void main() {
       expect(find.text('افزودن دوست'), findsOneWidget);
       expect(find.text('جست‌وجوی نام دوستان'), findsNothing);
       expect(find.text('۰ نفر'), findsNothing);
-      expect(
-        find.text('برای حذف یه دوست، روی اسمش نگه دار'),
-        findsNothing,
-      );
+      expect(find.text('برای حذف یه دوست، روی اسمش نگه دار'), findsNothing);
       // The share card is the best next step when the list is empty.
       expect(find.text('با کد دعوت، ۵۰ سکه بگیر'), findsOneWidget);
 
@@ -916,10 +910,7 @@ void main() {
         findsNothing,
         reason: 'not «no friends»',
       );
-      expect(
-        find.text('برای حذف یه دوست، روی اسمش نگه دار'),
-        findsNothing,
-      );
+      expect(find.text('برای حذف یه دوست، روی اسمش نگه دار'), findsNothing);
 
       await tester.tap(find.bySemanticsLabel('پاک کردن جست‌وجو'));
       await tester.pump();

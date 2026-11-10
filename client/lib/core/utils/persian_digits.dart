@@ -33,3 +33,12 @@ String formatPersianNumber(int value) {
   final grouped = groups.join(_thousandsSeparator);
   return toPersianDigits(negative ? '-$grouped' : grouped);
 }
+
+/// A signed change with «+» / «−» (U+2212) and separators — `16` → `+۱۶`,
+/// `-1240` → `−۱٬۲۴۰`, `0` → `۰`. Wrap it in an LTR [Directionality] so the sign
+/// stays on the left of the digits inside an RTL row.
+String formatSignedPersianNumber(int value) {
+  if (value == 0) return toPersianDigits(0);
+  final sign = value > 0 ? '+' : '−';
+  return '$sign${formatPersianNumber(value.abs())}';
+}

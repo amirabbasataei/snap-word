@@ -101,8 +101,7 @@ class FakeShare extends Fake implements ShareService {
   Future<void> shareDaily(
     BuildContext context,
     DailyChallengeResult result,
-  ) async =>
-      shared.add(result);
+  ) async => shared.add(result);
 }
 
 class FakeStats extends Fake implements StatsDao {

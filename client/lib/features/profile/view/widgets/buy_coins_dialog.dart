@@ -23,7 +23,10 @@ Future<void> showBuyCoinsDialog(
   required int balance,
   required Future<StorePurchaseResult?> Function(String productId) onBuy,
 }) {
-  return showZDialog<void>(context, builder: (_) => BuyCoinsDialog(balance: balance, onBuy: onBuy));
+  return showZDialog<void>(
+    context,
+    builder: (_) => BuyCoinsDialog(balance: balance, onBuy: onBuy),
+  );
 }
 
 class CoinPack {
@@ -112,13 +115,18 @@ class _BuyCoinsDialogState extends State<BuyCoinsDialog> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Padding(padding: EdgeInsets.only(top: 4), child: Center(child: _CoinDisc())),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Center(child: _CoinDisc()),
+                  ),
                   const SizedBox(height: 14),
                   Center(
                     child: Semantics(
                       header: true,
                       child: Text(
-                        done ? '${formatPersianNumber(pack.coins)} سکه اضافه شد!' : 'سکه بخر',
+                        done
+                            ? '${formatPersianNumber(pack.coins)} سکه اضافه شد!'
+                            : 'سکه بخر',
                         textAlign: TextAlign.center,
                         style: ZTypography.body.copyWith(
                           fontSize: 21,
@@ -145,7 +153,10 @@ class _BuyCoinsDialogState extends State<BuyCoinsDialog> {
                             index: i,
                             selected: i == _selected,
                             dimmed: _phase != _Phase.pick && i != _selected,
-                            onTap: _phase == _Phase.pick ? () => setState(() => _selected = i) : null,
+                            onTap:
+                                _phase == _Phase.pick
+                                    ? () => setState(() => _selected = i)
+                                    : null,
                           ),
                       ],
                     ),
@@ -163,14 +174,18 @@ class _BuyCoinsDialogState extends State<BuyCoinsDialog> {
                   ),
                   // The button's resting edge already takes 7 of the 14.
                   const SizedBox(height: 7),
-                  _Note(text: done ? 'خریدت ثبت شد.' : 'پرداخت امن از کافه‌بازار'),
+                  _Note(
+                    text: done ? 'خریدت ثبت شد.' : 'پرداخت امن از کافه‌بازار',
+                  ),
                 ],
               ),
             ),
             PositionedDirectional(
               top: 8,
               end: 8,
-              child: _CloseButton(onTap: paying ? null : () => Navigator.of(context).pop()),
+              child: _CloseButton(
+                onTap: paying ? null : () => Navigator.of(context).pop(),
+              ),
             ),
           ],
         ),
@@ -201,8 +216,11 @@ const _spinnerSvg =
     'viewBox="0 0 24 24" fill="none" stroke="{c}" stroke-width="3" '
     'stroke-linecap="round"><path d="M12 3a9 9 0 1 1-9 9"/></svg>';
 
-Widget _svg(String template, Color color, double size) =>
-    SvgPicture.string(template.replaceAll('{c}', svgHex(color)), width: size, height: size);
+Widget _svg(String template, Color color, double size) => SvgPicture.string(
+  template.replaceAll('{c}', svgHex(color)),
+  width: size,
+  height: size,
+);
 
 /// 44×44 tap target, the ✕ drawn 18dp (canvas: top 8 / left 8 of the card).
 class _CloseButton extends StatelessWidget {
@@ -219,7 +237,11 @@ class _CloseButton extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: SizedBox(width: 44, height: 44, child: Center(child: _svg(_closeSvg, context.z.ink60, 18))),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(child: _svg(_closeSvg, context.z.ink60, 18)),
+        ),
       ),
     );
   }
@@ -243,7 +265,10 @@ class _CoinDisc extends StatelessWidget {
         child: Container(
           width: 26,
           height: 26,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: z.amberDeep, width: 3.5)),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: z.amberDeep, width: 3.5),
+          ),
         ),
       ),
     );
@@ -282,11 +307,21 @@ class _BalancePill extends StatelessWidget {
           ),
           Text(
             'موجودی:',
-            style: ZTypography.body.copyWith(fontSize: 13, fontWeight: FontWeight.w800, height: 1.2, color: z.ink60),
+            style: ZTypography.body.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+              color: z.ink60,
+            ),
           ),
           Text(
             '${formatPersianNumber(balance)} سکه',
-            style: ZTypography.body.copyWith(fontSize: 14, fontWeight: FontWeight.w900, height: 1.2, color: z.ink),
+            style: ZTypography.body.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              height: 1.2,
+              color: z.ink,
+            ),
           ),
         ],
       ),
@@ -480,14 +515,20 @@ class _CoinStack extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color.alphaBlend(const Color(0x59FFFFFF), z.amber), z.amber],
+                      colors: [
+                        Color.alphaBlend(const Color(0x59FFFFFF), z.amber),
+                        z.amber,
+                      ],
                       stops: const [0, .55],
                     ),
                   ),
                   child: Container(
                     width: 10,
                     height: 10,
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: z.amberDeep, width: 2)),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: z.amberDeep, width: 2),
+                    ),
                   ),
                 ),
               ),
@@ -503,7 +544,11 @@ class _PayButton extends StatelessWidget {
   final bool paying;
   final VoidCallback? onTap;
 
-  const _PayButton({required this.label, required this.paying, required this.onTap});
+  const _PayButton({
+    required this.label,
+    required this.paying,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -533,7 +578,9 @@ class _PayButton extends StatelessWidget {
                       style: ZTypography.button.copyWith(
                         fontSize: 17,
                         color: z.onTeal,
-                        shadows: [Shadow(color: z.tealDeep, offset: const Offset(0, 2))],
+                        shadows: [
+                          Shadow(color: z.tealDeep, offset: const Offset(0, 2)),
+                        ],
                       ),
                     ),
                   ),
@@ -555,8 +602,12 @@ class _Spinner extends StatefulWidget {
   State<_Spinner> createState() => _SpinnerState();
 }
 
-class _SpinnerState extends State<_Spinner> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+class _SpinnerState extends State<_Spinner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  );
 
   @override
   void didChangeDependencies() {
@@ -576,7 +627,12 @@ class _SpinnerState extends State<_Spinner> with SingleTickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
-    return ExcludeSemantics(child: RotationTransition(turns: _c, child: _svg(_spinnerSvg, widget.color, 18)));
+    return ExcludeSemantics(
+      child: RotationTransition(
+        turns: _c,
+        child: _svg(_spinnerSvg, widget.color, 18),
+      ),
+    );
   }
 }
 
@@ -597,7 +653,12 @@ class _Note extends StatelessWidget {
           child: Text(
             text,
             textAlign: TextAlign.center,
-            style: ZTypography.body.copyWith(fontSize: 12, fontWeight: FontWeight.w700, height: 1.5, color: z.ink60),
+            style: ZTypography.body.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1.5,
+              color: z.ink60,
+            ),
           ),
         ),
       ],

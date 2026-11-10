@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:wordchain/features/game/data/rating_change.dart';
 
 // Sentinel object used for nullable copyWith parameters
 const _sentinel = Object();
@@ -79,6 +80,11 @@ class GameActive extends GameState {
   final bool opponentPremium;
   final String? myAvatarId;
   final String? opponentAvatarId;
+  // 1v1 «جام» of both players at game_start (null when the server sent none),
+  // and whether the opponent is the AI fallback (no rating, no stakes).
+  final int? myRating;
+  final int? opponentRating;
+  final bool opponentIsAi;
   final String? tauntId;
   final String? tauntText;
   final bool tauntFromMe;
@@ -120,6 +126,9 @@ class GameActive extends GameState {
     this.opponentPremium = false,
     this.myAvatarId,
     this.opponentAvatarId,
+    this.myRating,
+    this.opponentRating,
+    this.opponentIsAi = false,
     this.tauntId,
     this.tauntText,
     this.tauntFromMe = false,
@@ -204,6 +213,9 @@ class GameActive extends GameState {
       opponentPremium: opponentPremium,
       myAvatarId: myAvatarId,
       opponentAvatarId: opponentAvatarId,
+      myRating: myRating,
+      opponentRating: opponentRating,
+      opponentIsAi: opponentIsAi,
       tauntId: taunt ?? tauntId,
       tauntText: tauntText ?? this.tauntText,
       tauntFromMe: tauntFromMe ?? this.tauntFromMe,
@@ -251,6 +263,9 @@ class GameActive extends GameState {
     opponentPremium,
     myAvatarId,
     opponentAvatarId,
+    myRating,
+    opponentRating,
+    opponentIsAi,
     tauntSeq,
   ];
 }
@@ -284,6 +299,14 @@ class GameOver extends GameState {
   // GameActive), so the result screen shows the same discs as the match did.
   final String? myAvatarId;
   final String? opponentAvatarId;
+  // 1v1 only: the opponent was the AI fallback (a game with no «جام»).
+  final bool opponentIsAi;
+  // 1v1 only: my «جام» change, from the server's `rating_update` that follows
+  // `game_over` (null until it arrives — and forever for a draw, an AI game or
+  // a failed rating write). [ratingPairCap]: the pair already played its three
+  // rated games today, so nothing moved.
+  final RatingChange? rating;
+  final bool ratingPairCap;
 
   const GameOver({
     required this.localMatchId,
@@ -305,9 +328,17 @@ class GameOver extends GameState {
     this.coinsNet = 0,
     this.myAvatarId,
     this.opponentAvatarId,
+    this.opponentIsAi = false,
+    this.rating,
+    this.ratingPairCap = false,
   });
 
-  GameOver copyWith({int? continueTimeRemaining, bool? isSaved}) {
+  GameOver copyWith({
+    int? continueTimeRemaining,
+    bool? isSaved,
+    RatingChange? rating,
+    bool? ratingPairCap,
+  }) {
     return GameOver(
       localMatchId: localMatchId,
       mode: mode,
@@ -329,6 +360,9 @@ class GameOver extends GameState {
       coinsNet: coinsNet,
       myAvatarId: myAvatarId,
       opponentAvatarId: opponentAvatarId,
+      opponentIsAi: opponentIsAi,
+      rating: rating ?? this.rating,
+      ratingPairCap: ratingPairCap ?? this.ratingPairCap,
     );
   }
 
@@ -358,6 +392,9 @@ class GameOver extends GameState {
     coinsNet,
     myAvatarId,
     opponentAvatarId,
+    opponentIsAi,
+    rating,
+    ratingPairCap,
   ];
 }
 

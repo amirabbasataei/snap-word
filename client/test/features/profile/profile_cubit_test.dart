@@ -215,16 +215,11 @@ void main() {
     });
 
     test('a refusal returns the message and changes nothing', () async {
-      repo.avatarError = const ProfileException(
-        'این فقط برای اشتراک ویژه‌ست',
-      );
+      repo.avatarError = const ProfileException('این فقط برای اشتراک ویژه‌ست');
       final cubit = make();
       await cubit.load();
       final before = cubit.state;
-      expect(
-        await cubit.setAvatar('owl'),
-        'این فقط برای اشتراک ویژه‌ست',
-      );
+      expect(await cubit.setAvatar('owl'), 'این فقط برای اشتراک ویژه‌ست');
       expect(cubit.state, before);
     });
 

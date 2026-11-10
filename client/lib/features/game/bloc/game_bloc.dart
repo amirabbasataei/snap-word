@@ -15,6 +15,7 @@ import 'package:wordchain/core/services/websocket_service.dart';
 import 'package:wordchain/features/game/bloc/game_event.dart';
 import 'package:wordchain/features/game/bloc/game_state.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/rating_change.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 
@@ -961,6 +962,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         _handleWsPowerupUsed(event.data, emit);
       case 'powerup_rejected':
         _handleWsPowerupRejected(emit);
+      case 'rating_update':
+        _handleWsRatingUpdate(event.data, emit);
       case 'taunt':
         _handleWsTaunt(event.data, emit);
       case 'taunt_rejected':
@@ -1093,6 +1096,16 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       'game_start perks: premium=$premiumIds avatars=$avatars '
       'me=$_myPlayerId opponent=$opponentId',
     );
+    // «جام» of the human players. The AI fallback has none, so an opponent
+    // that is missing from a map that does hold mine is the AI.
+    final ratings = (gameState['ratings'] as Map<String, dynamic>?) ?? const {};
+    final myRating = (ratings[_myPlayerId] as num?)?.toInt();
+    final opponentRating =
+        opponentId.isEmpty ? null : (ratings[opponentId] as num?)?.toInt();
+    final opponentIsAi =
+        myRating != null &&
+        opponentId.isNotEmpty &&
+        !ratings.containsKey(opponentId);
 
     emit(
       GameActive(
@@ -1115,6 +1128,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             opponentId.isNotEmpty && premiumIds.contains(opponentId),
         myAvatarId: avatars[_myPlayerId] as String?,
         opponentAvatarId: avatars[opponentId] as String?,
+        myRating: myRating,
+        opponentRating: opponentRating,
+        opponentIsAi: opponentIsAi,
       ),
     );
     _trackGameStart(mode, 'multiplayer');
@@ -1221,6 +1237,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           opponentScore: active.opponentScore,
           myAvatarId: active.myAvatarId,
           opponentAvatarId: active.opponentAvatarId,
+          opponentIsAi: active.opponentIsAi,
         ),
       );
       if (canContinue) _startContinueTimer();
@@ -1357,6 +1374,28 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         myAvatarId: active?.myAvatarId ?? prevOver?.myAvatarId,
         opponentAvatarId:
             active?.opponentAvatarId ?? prevOver?.opponentAvatarId,
+        opponentIsAi: active?.opponentIsAi ?? prevOver?.opponentIsAi ?? false,
+      ),
+    );
+  }
+
+  /// The server's follow-up to `game_over` for a rated 1v1 match: my «جام»
+  /// before/after, or (`reason: pair_cap`) nothing moved. It lands on the
+  /// result screen that is already up.
+  void _handleWsRatingUpdate(
+    Map<String, dynamic> data,
+    Emitter<GameState> emit,
+  ) {
+    final over = state;
+    if (over is! GameOver) return;
+    final change = RatingChange.tryParse(
+      (data['rating'] as Map<String, dynamic>?)?[_myPlayerId],
+    );
+    if (change == null) return;
+    emit(
+      over.copyWith(
+        rating: change,
+        ratingPairCap: data['reason'] == 'pair_cap',
       ),
     );
   }

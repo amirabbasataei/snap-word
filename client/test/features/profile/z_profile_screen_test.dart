@@ -58,6 +58,10 @@ const _stats = ProfileStats(
   level: 12,
   xpInLevel: 620,
   xpForNext: 1000,
+  rating: 1042,
+  ratedGames: 14,
+  peakRating: 1068,
+  totalScore: 18420,
 );
 
 /// Auth cubit stand-in that can emit and records what the screen asks of it.
@@ -435,6 +439,36 @@ void main() {
       expect(find.byType(ProfileCrown), findsOneWidget);
     });
 
+    testWidgets('جام: rating, best, rated games and the lifetime score', (
+      tester,
+    ) async {
+      await open(tester);
+      expect(find.text('جام تو'), findsOneWidget);
+      expect(find.text('۱٬۰۴۲'), findsOneWidget);
+      expect(find.text('بیشترین جام'), findsOneWidget);
+      expect(find.text('۱٬۰۶۸'), findsOneWidget);
+      expect(find.text('بازی با جام'), findsOneWidget);
+      expect(find.text('۱۴'), findsOneWidget);
+      // «مجموع امتیاز» stays, now beside the rating.
+      expect(find.text('مجموع امتیاز'), findsOneWidget);
+      expect(find.text('۱۸٬۴۲۰'), findsOneWidget);
+    });
+
+    testWidgets('a player with no rated game starts on 1000', (tester) async {
+      h.repo.stats = const ProfileStats(
+        totalMatches: 3,
+        wins: 0,
+        bestScore: 0,
+        bestMatchStreak: 0,
+        dailyStreak: 0,
+        longestDailyStreak: 0,
+        coins: 0,
+      );
+      await open(tester);
+      expect(find.text('۱٬۰۰۰'), findsNWidgets(2)); // rating + best
+      expect(find.text('بازی با جام'), findsOneWidget);
+    });
+
     testWidgets('the canvas pieces nothing backs stay out', (tester) async {
       await open(tester);
       await scrollTo(tester, find.text('خروج از حساب'));
@@ -564,10 +598,7 @@ void main() {
       await tester.tap(find.byType(AvatarTile).at(1));
       await _settle(tester);
       expect(h.repo.avatarsSet, ['owl']);
-      expect(
-        find.text('این فقط برای اشتراک ویژه‌ست'),
-        findsOneWidget,
-      );
+      expect(find.text('این فقط برای اشتراک ویژه‌ست'), findsOneWidget);
       // The disc keeps the old avatar.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
       await tester.pump();
@@ -583,10 +614,7 @@ void main() {
     testWidgets('lists the real perks and starts the purchase', (tester) async {
       await open(tester);
       await scrollTo(tester, find.text('اشتراک ویژه').last);
-      expect(
-        find.text('• فرستادن پیام سریع حین بازی دونفره'),
-        findsOneWidget,
-      );
+      expect(find.text('• فرستادن پیام سریع حین بازی دونفره'), findsOneWidget);
       expect(find.text('• آواتار ویژه و تاج کنار اسمت'), findsOneWidget);
       expect(find.text('تغییر آواتار'), findsNothing);
       await tester.tap(find.text('اشتراک ویژه').last);
@@ -678,6 +706,8 @@ void main() {
       expect(find.bySemanticsLabel('ویرایش نام کاربری'), findsNothing);
       expect(find.textContaining('۶۲۰'), findsNothing);
       expect(find.text('اشتراک ویژه'), findsNothing);
+      expect(find.textContaining('جام'), findsNothing);
+      expect(find.text('مجموع امتیاز'), findsNothing);
       expect(find.textContaining('دوستت رو بیار'), findsNothing);
       await scrollTo(tester, find.text('حالت شب'));
       expect(find.text('کد دعوت داری؟'), findsNothing);
@@ -1188,6 +1218,11 @@ void main() {
             );
             expect(tester.takeException(), isNull);
             final list = find.byType(Scrollable).first;
+            // Twice: the first jump lands on the list's estimated end, and the
+            // rows built on the way (the rating card made the page taller)
+            // correct it.
+            await tester.drag(list, const Offset(0, -4000));
+            await tester.pump();
             await tester.drag(list, const Offset(0, -4000));
             await tester.pump();
             expect(tester.takeException(), isNull);

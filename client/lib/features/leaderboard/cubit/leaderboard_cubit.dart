@@ -80,6 +80,6 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     BoardTab.weekly => _repo.fetchGlobal(),
     BoardTab.daily => _repo.fetchDaily(currentUserId),
     BoardTab.allTime => _repo.fetchAllTime(),
-    BoardTab.friends => _repo.fetchFriends(currentUserId),
+    BoardTab.friends => _repo.fetchFriends(),
   };
 }

@@ -387,6 +387,11 @@ class ZVersusPill extends StatelessWidget {
   final bool myPremium;
   final bool opponentPremium;
 
+  /// «جام» of each side (1v1 against a human), shown after the name; null
+  /// draws the name alone.
+  final int? myRating;
+  final int? opponentRating;
+
   const ZVersusPill({
     super.key,
     required this.myAvatar,
@@ -400,9 +405,12 @@ class ZVersusPill extends StatelessWidget {
     required this.opponentTurnLabel,
     this.myPremium = false,
     this.opponentPremium = false,
+    this.myRating,
+    this.opponentRating,
   });
 
   static const _maxSide = 64.0;
+  static const _ratingGap = 4.0;
   static const _crownWidth = 15.0;
   static const _chipPad = 8.0;
   static const _scoreStyle = TextStyle(
@@ -440,12 +448,21 @@ class ZVersusPill extends StatelessWidget {
     int score,
     String label,
     bool premium,
+    int? rating,
   ) =>
       math
           .max(
             _textWidth(context, toPersianDigits(score), _scoreStyle),
             _textWidth(context, label, _labelStyle) +
-                (premium ? _crownWidth : 0),
+                (premium ? _crownWidth : 0) +
+                (rating == null
+                    ? 0
+                    : _ratingGap +
+                        _textWidth(
+                          context,
+                          toPersianDigits(rating),
+                          _labelStyle,
+                        )),
           )
           .clamp(0, _maxSide)
           .toDouble();
@@ -456,6 +473,7 @@ class ZVersusPill extends StatelessWidget {
     String label,
     CrossAxisAlignment align,
     bool premium,
+    int? rating,
   ) {
     final z = context.z;
     return Column(
@@ -495,6 +513,15 @@ class ZVersusPill extends StatelessWidget {
                   style: _labelStyle.copyWith(color: z.ink),
                 ),
               ),
+              if (rating != null) ...[
+                const SizedBox(width: _ratingGap),
+                Text(
+                  toPersianDigits(rating),
+                  maxLines: 1,
+                  semanticsLabel: 'جام ${toPersianDigits(rating)}',
+                  style: _labelStyle.copyWith(color: z.ink60),
+                ),
+              ],
             ],
           ),
         ),
@@ -530,12 +557,13 @@ class ZVersusPill extends StatelessWidget {
           // padding 2×8 + outline 2×3, then the sides and the widest chip.
           final base =
               22 +
-              _sideWidth(context, myScore, myLabel, myPremium) +
+              _sideWidth(context, myScore, myLabel, myPremium, myRating) +
               _sideWidth(
                 context,
                 opponentScore,
                 opponentLabel,
                 opponentPremium,
+                opponentRating,
               ) +
               math.max(
                 _textWidth(context, myTurnLabel, _chipStyle),
@@ -570,6 +598,7 @@ class ZVersusPill extends StatelessWidget {
                   myLabel,
                   CrossAxisAlignment.start,
                   myPremium,
+                  myRating,
                 ),
                 Expanded(
                   child: Center(
@@ -582,6 +611,7 @@ class ZVersusPill extends StatelessWidget {
                   opponentLabel,
                   CrossAxisAlignment.end,
                   opponentPremium,
+                  opponentRating,
                 ),
                 if (discSize != null) ...[
                   SizedBox(width: gap),

@@ -45,6 +45,8 @@ LeaderboardEntry _e(
   int score, {
   String? avatar,
   int? chain,
+  int? games,
+  int? wins,
 }) => LeaderboardEntry(
   userId: id,
   username: name,
@@ -52,6 +54,8 @@ LeaderboardEntry _e(
   rank: rank,
   avatarId: avatar,
   chainLength: chain,
+  games: games,
+  wins: wins,
 );
 
 const _names = [
@@ -69,31 +73,39 @@ const _names = [
   'امیر ج.',
 ];
 
-/// Twelve players; the signed-in player («آرش», `me-1`) is 5th.
-LeaderboardResult _weekly({int? rank, int? score}) => LeaderboardResult(
-  entries: [
-    for (var i = 0; i < _names.length; i++)
-      _e(
-        i + 1,
-        i == 4 ? 'me-1' : 'u$i',
-        _names[i],
-        5360 - i * 310,
-        avatar: i == 1 ? 'fox' : null,
-      ),
-  ],
-  playerRank: rank ?? 5,
-  playerScore: score ?? 3750,
-);
+/// Twelve players; the signed-in player («آرش», `me-1`) is 5th. Scores are the
+/// week's net جام: +60 for 1st, −7 per place, so the 12th is on −17. Everyone
+/// has 8 games; wins fall from 7 to 0.
+LeaderboardResult _weekly({int? rank, int? score, int? games}) =>
+    LeaderboardResult(
+      entries: [
+        for (var i = 0; i < _names.length; i++)
+          _e(
+            i + 1,
+            i == 4 ? 'me-1' : 'u$i',
+            _names[i],
+            60 - i * 7,
+            avatar: i == 1 ? 'fox' : null,
+            games: 8,
+            wins: (7 - i).clamp(0, 7),
+          ),
+      ],
+      playerRank: rank ?? 5,
+      playerScore: score ?? 32,
+      playerGames: games ?? 8,
+      playerWins: 3,
+    );
 
 LeaderboardResult _allTime() => LeaderboardResult(
   entries: [
-    _e(1, 'u0', 'نوید ا.', 91000),
-    _e(2, 'me-1', 'آرش', 74000),
-    _e(3, 'u2', 'حسین ط.', 5000),
-    _e(4, 'u3', 'مریم ک.', 4000),
+    _e(1, 'u0', 'نوید ا.', 1480, games: 61),
+    _e(2, 'me-1', 'آرش', 1356, games: 40),
+    _e(3, 'u2', 'حسین ط.', 1204, games: 22),
+    _e(4, 'u3', 'مریم ک.', 1150, games: 12),
   ],
   playerRank: 2,
-  playerScore: 74000,
+  playerScore: 1356,
+  playerGames: 40,
 );
 
 LeaderboardResult _daily({bool me = false, int rank = 14}) => LeaderboardResult(
@@ -111,12 +123,13 @@ LeaderboardResult _daily({bool me = false, int rank = 14}) => LeaderboardResult(
 
 LeaderboardResult _friends() => LeaderboardResult(
   entries: [
-    _e(1, 'f1', 'مریم ک.', 900),
-    _e(2, 'me-1', 'آرش', 300),
-    _e(3, 'f2', 'حسین ط.', 0),
+    _e(1, 'f1', 'مریم ک.', 1090, games: 14),
+    _e(2, 'me-1', 'آرش', 1016, games: 3),
+    _e(3, 'f2', 'حسین ط.', 1000, games: 0),
   ],
   playerRank: 2,
-  playerScore: 300,
+  playerScore: 1016,
+  playerGames: 3,
 );
 
 class _Auth extends FakeAuthCubit {
@@ -157,8 +170,7 @@ class _FakeBoards extends Fake implements LeaderboardRepository {
       _go(BoardTab.daily);
 
   @override
-  Future<LeaderboardResult> fetchFriends(String currentUserId) =>
-      _go(BoardTab.friends);
+  Future<LeaderboardResult> fetchFriends() => _go(BoardTab.friends);
 
   int count(BoardTab t) => calls.where((c) => c == t).length;
 }
@@ -295,7 +307,11 @@ void main() {
       // The rest are rows, from 4th on.
       expect(find.byType(BoardRow, skipOffstage: false), findsNWidgets(9));
       expect(find.text('مریم ک.'), findsOneWidget);
-      expect(find.text('۴٬۴۳۰'), findsOneWidget);
+      // 4th: +39 for the week, with the games and wins behind it.
+      expect(find.text('+۳۹'), findsOneWidget);
+      expect(find.text('۸ بازی · ۴ برد'), findsOneWidget);
+      // A losing week is a negative number with a real minus.
+      expect(find.text('−۱۷'), findsOneWidget);
       // Own row, pinned, from the server's rank/score.
       expect(find.text('تو — آرش'), findsOneWidget);
       expect(find.text('جزو ده نفر برتری!'), findsOneWidget);
@@ -309,7 +325,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(BoardSelfRow),
-          matching: find.text('۳٬۷۵۰'),
+          matching: find.text('+۳۲'),
         ),
         findsOneWidget,
       );
@@ -326,6 +342,10 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.text('جایزه برای کسیه که ۵ بازی کرده و جام این هفته‌اش مثبته'),
+        findsOneWidget,
+      );
+      expect(
         find.text('جدول تا ۵ روز و ۸ ساعت دیگه ریست می‌شه'),
         findsOneWidget,
       );
@@ -338,11 +358,11 @@ void main() {
         'لیگ',
         'نفر این هفته',
         'بازیکن',
-        'آنلاین',
+        'امتیاز',
       ]) {
         expect(find.textContaining(omitted), findsNothing);
       }
-      // Weekly rows have no sub-line: that field exists on the daily board only.
+      // The chain length exists on the daily board only.
       expect(find.textContaining('زنجیر'), findsNothing);
     });
 
@@ -360,11 +380,30 @@ void main() {
     testWidgets('my rank outside the top 100: still shown, with the gap', (
       tester,
     ) async {
-      h.repo.results[BoardTab.weekly] = _weekly(rank: 340, score: 800);
+      h.repo.results[BoardTab.weekly] = _weekly(rank: 340, score: 80);
       await open(tester);
       expect(find.text('۳۳۰ پله تا ده‌تای اول'), findsOneWidget);
       expect(find.text('۳۴۰'), findsOneWidget);
-      expect(find.text('۸۰۰'), findsOneWidget);
+      expect(find.text('+۸۰'), findsOneWidget);
+    });
+
+    testWidgets('my row says what the prize still needs', (tester) async {
+      // Fewer than five games this week.
+      h.repo.results[BoardTab.weekly] = _weekly(games: 3);
+      await open(tester);
+      expect(find.text('برای جایزه ۲ بازی دیگه لازمه'), findsOneWidget);
+      expect(find.text('جزو ده نفر برتری!'), findsNothing);
+
+      // Enough games, but the week is not positive.
+      await GetIt.I.reset();
+      h = _Harness();
+      h.repo.results[BoardTab.weekly] = _weekly(score: -4);
+      await open(tester);
+      expect(
+        find.text('برای جایزه، جام این هفته‌ات باید مثبت بشه'),
+        findsOneWidget,
+      );
+      expect(find.text('−۴'), findsOneWidget);
     });
 
     testWidgets('my own row in the list is marked; others are not', (
@@ -420,7 +459,7 @@ void main() {
       );
       await open(tester);
       expect(
-        find.text('این هفته امتیازی نداری. یه بازی آنلاین بزن'),
+        find.text('این هفته بازی آنلاین نکردی. یه بازی آنلاین بزن'),
         findsOneWidget,
       );
       expect(
@@ -456,7 +495,7 @@ void main() {
         playerScore: 0,
       );
       await open(tester);
-      expect(find.text('هنوز کسی امتیاز نگرفته'), findsOneWidget);
+      expect(find.text('این هفته هنوز بازی آنلاینی نبوده'), findsOneWidget);
       expect(find.byType(ZEmptyState), findsOneWidget);
       expect(find.byType(BoardSelfRow), findsNothing);
       expect(find.byType(BoardPodium), findsNothing);
@@ -544,12 +583,13 @@ void main() {
 
       await goTo(tester, 'همیشه');
       expect(h.repo.count(BoardTab.allTime), 1);
-      expect(find.text('مجموع امتیاز بازی‌های آنلاین'), findsOneWidget);
-      expect(find.text('۹۱٬۰۰۰'), findsOneWidget);
+      expect(find.text('جام همهٔ بازی‌های آنلاین'), findsOneWidget);
+      expect(find.text('بعد از ۱۰ بازی رتبه می‌گیری'), findsOneWidget);
+      expect(find.text('۱٬۴۸۰'), findsOneWidget);
 
       await goTo(tester, 'دوستان');
       expect(h.repo.count(BoardTab.friends), 1);
-      expect(find.text('امتیاز این هفتهٔ تو و دوستانت'), findsOneWidget);
+      expect(find.text('جام تو و دوستانت'), findsOneWidget);
 
       await goTo(tester, 'این هفته');
       expect(find.text('نوید ا.'), findsOneWidget);
@@ -593,7 +633,10 @@ void main() {
       await goTo(tester, 'امروز');
       expect(find.text('چالش روزانهٔ شمارهٔ ۴۲'), findsOneWidget);
       expect(find.text('جایزهٔ سه نفر اول: ۱۰۰ · ۶۰ · ۳۰ سکه'), findsOneWidget);
-      expect(find.text('تا پایان امروز ۸ ساعت و ۳۰ دقیقه مونده'), findsOneWidget);
+      expect(
+        find.text('تا پایان امروز ۸ ساعت و ۳۰ دقیقه مونده'),
+        findsOneWidget,
+      );
       // Rank 4 is a row, with the canvas's sub-line from the real field.
       expect(find.text('زنجیر ۱۲ کلمه'), findsOneWidget);
       expect(find.text('مریم ک.'), findsOneWidget);
@@ -655,13 +698,58 @@ void main() {
       },
     );
 
-    testWidgets('all-time: lifetime scores, my rank from the server', (
+    testWidgets('all-time: ratings, games, my rank from the server', (
       tester,
     ) async {
       await open(tester);
       await goTo(tester, 'همیشه');
-      expect(find.text('۷۴٬۰۰۰'), findsWidgets);
+      expect(find.text('۱٬۳۵۶'), findsWidgets);
+      // 4th place is a row: rating and the games behind it, no wins here.
+      expect(find.text('۱٬۱۵۰'), findsOneWidget);
+      expect(find.text('۱۲ بازی'), findsOneWidget);
       expect(find.text('جزو ده نفر برتری!'), findsOneWidget);
+    });
+
+    testWidgets('all-time: under ten rated games — provisional, rating shown', (
+      tester,
+    ) async {
+      h.repo.results[BoardTab.allTime] = LeaderboardResult(
+        entries: _allTime().entries,
+        playerRank: 0,
+        playerScore: 1032,
+        playerGames: 4,
+      );
+      await open(tester);
+      await goTo(tester, 'همیشه');
+      expect(
+        find.text('بعد از ۱۰ بازی رتبه می‌گیری. تا الان ۴ بازی کردی.'),
+        findsOneWidget,
+      );
+      final self = find.byType(BoardSelfRow);
+      expect(
+        find.descendant(of: self, matching: find.text('—')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: self, matching: find.text('۱٬۰۳۲')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('all-time: nobody ranked yet', (tester) async {
+      h.repo.results[BoardTab.allTime] = const LeaderboardResult(
+        entries: [],
+        playerRank: 0,
+        playerScore: 1000,
+        playerGames: 0,
+      );
+      await open(tester);
+      await goTo(tester, 'همیشه');
+      expect(find.text('هنوز کسی رتبه نگرفته'), findsOneWidget);
+      expect(
+        find.text('بعد از ۱۰ بازی آنلاین رتبه می‌گیری. اولین نفر باش.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('friends: my place among friends, not the global rank', (
@@ -671,29 +759,32 @@ void main() {
       await goTo(tester, 'دوستان');
       expect(find.text('بین دوستانت نفر ۲'), findsOneWidget);
       expect(find.text('جزو ده نفر برتری!'), findsNothing);
+      // Ratings, not word points; a friend with no games sits on 1000.
+      expect(find.text('۱٬۰۱۶'), findsWidgets);
+      expect(find.text('۱٬۰۰۰'), findsOneWidget);
     });
 
     testWidgets('friends: first place', (tester) async {
       h.repo.results[BoardTab.friends] = LeaderboardResult(
-        entries: [_e(1, 'me-1', 'آرش', 900), _e(2, 'f1', 'مریم ک.', 300)],
+        entries: [_e(1, 'me-1', 'آرش', 1090), _e(2, 'f1', 'مریم ک.', 1016)],
         playerRank: 1,
-        playerScore: 900,
+        playerScore: 1090,
       );
       await open(tester);
       await goTo(tester, 'دوستان');
       expect(find.text('بین دوستانت اولی!'), findsOneWidget);
     });
 
-    testWidgets('friends: nobody scored yet', (tester) async {
+    testWidgets('friends: not on the board — what to do', (tester) async {
       h.repo.results[BoardTab.friends] = LeaderboardResult(
-        entries: [_e(1, 'me-1', 'آرش', 0), _e(2, 'f1', 'مریم ک.', 0)],
-        playerRank: 1,
-        playerScore: 0,
+        entries: [_e(1, 'f1', 'مریم ک.', 1090), _e(2, 'f2', 'حسین ط.', 1016)],
+        playerRank: 0,
+        playerScore: 1000,
       );
       await open(tester);
       await goTo(tester, 'دوستان');
       expect(
-        find.text('این هفته امتیازی نداری. یه بازی آنلاین بزن'),
+        find.text('هنوز بازی آنلاین نکردی. یه بازی آنلاین بزن'),
         findsOneWidget,
       );
     });
@@ -702,13 +793,17 @@ void main() {
       tester,
     ) async {
       h.repo.results[BoardTab.friends] = LeaderboardResult(
-        entries: [_e(1, 'me-1', 'آرش', 0)],
+        entries: [_e(1, 'me-1', 'آرش', 1000)],
         playerRank: 1,
-        playerScore: 0,
+        playerScore: 1000,
       );
       await open(tester);
       await goTo(tester, 'دوستان');
       expect(find.text('هنوز دوستی نداری'), findsOneWidget);
+      expect(
+        find.text('دوست اضافه کن تا جام همتون رو کنار هم ببینی.'),
+        findsOneWidget,
+      );
       expect(find.byType(BoardSelfRow), findsNothing);
       await tester.tap(find.text('افزودن دوست'));
       await _settle(tester);
@@ -965,6 +1060,7 @@ void main() {
     test('weekly: prizes then the reset clock', () {
       expect(BoardNote.lines(BoardTab.weekly, now), [
         'جایزهٔ سه نفر اول: ۵۰۰ · ۳۰۰ · ۱۰۰ سکه',
+        'جایزه برای کسیه که ۵ بازی کرده و جام این هفته‌اش مثبته',
         'جدول تا ۵ روز و ۸ ساعت دیگه ریست می‌شه',
       ]);
     });
@@ -986,8 +1082,11 @@ void main() {
     });
 
     test('all-time and friends have no prizes or clock', () {
-      expect(BoardNote.lines(BoardTab.allTime, now), hasLength(1));
-      expect(BoardNote.lines(BoardTab.friends, now), hasLength(1));
+      expect(BoardNote.lines(BoardTab.allTime, now), [
+        'جام همهٔ بازی‌های آنلاین',
+        'بعد از ۱۰ بازی رتبه می‌گیری',
+      ]);
+      expect(BoardNote.lines(BoardTab.friends, now), ['جام تو و دوستانت']);
     });
   });
 

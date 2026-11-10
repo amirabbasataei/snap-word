@@ -84,9 +84,7 @@ class ShareStoryCard extends StatelessWidget {
                         right: -60,
                         height: 480,
                         child: CustomPaint(
-                          painter: ZRaysPainter(
-                            z.amber.withValues(alpha: .32),
-                          ),
+                          painter: ZRaysPainter(z.amber.withValues(alpha: .32)),
                         ),
                       ),
                       Padding(
@@ -192,13 +190,7 @@ class _Chain extends StatelessWidget {
     for (var i = 0; i < shown.length; i++) {
       final (fill, deep, on) = fills[(offset + i) % fills.length];
       if (i > 0) {
-        children.add(
-          Container(
-            width: 6,
-            height: 6,
-            color: context.zs.outline,
-          ),
-        );
+        children.add(Container(width: 6, height: 6, color: context.zs.outline));
       }
       children.add(
         ChunkyBox(

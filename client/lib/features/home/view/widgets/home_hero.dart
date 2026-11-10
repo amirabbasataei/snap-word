@@ -58,12 +58,7 @@ class HomeHero extends StatelessWidget {
             top: 244,
             child: HomeAiButton(onTap: onAi),
           ),
-          Positioned.fill(
-            child: HomeHeroChain(
-              words: words,
-              animate: animate,
-            ),
-          ),
+          Positioned.fill(child: HomeHeroChain(words: words, animate: animate)),
         ],
       ),
     );

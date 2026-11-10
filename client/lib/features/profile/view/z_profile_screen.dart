@@ -35,6 +35,7 @@ import 'package:wordchain/features/profile/view/widgets/profile_settings.dart';
 import 'package:wordchain/features/profile/view/widgets/buy_coins_dialog.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_sheets.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_stats_grid.dart';
+import 'package:wordchain/features/profile/view/widgets/profile_rating_card.dart';
 import 'package:wordchain/features/profile/view/widgets/profile_xp_bar.dart';
 import 'package:wordchain/core/services/analytics_service.dart';
 
@@ -287,6 +288,11 @@ class _LoadedView extends StatelessWidget {
                   xpInLevel: stats.xpInLevel,
                   xpForNext: stats.xpForNext,
                 ),
+              ),
+            if (signedIn)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: ProfileRatingCard(stats: stats),
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),

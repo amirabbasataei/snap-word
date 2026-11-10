@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
+import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/core/widgets/z_empty_state.dart';
 import 'package:wordchain/core/widgets/z_load_state.dart';
 import 'package:wordchain/core/widgets/z_mascot.dart';
@@ -21,11 +23,12 @@ import 'package:wordchain/features/leaderboard/view/widgets/board_tabs.dart';
 /// scene, ribbon title, a four-way segmented control, the podium, the ranked
 /// list and the player's own row pinned underneath.
 ///
-/// Tabs: «این هفته» (`type=global`, the weekly Redis board), «امروز»
-/// (`GET /daily/leaderboard`, today's Daily Challenge), «همیشه» (`type=alltime`)
-/// and «دوستان» (`type=friends`). The canvas's «بلندترین زنجیر» sub-line is
-/// real only on the daily board (`chain_length`); the other boards carry no
-/// such field, so their rows have none. No rank deltas, leagues or player
+/// Tabs: «این هفته» (`type=global`, the net «جام» of the week's rated games),
+/// «امروز» (`GET /daily/leaderboard`, today's Daily Challenge, word points),
+/// «همیشه» (`type=alltime`, the rating, ranked after ten rated games) and
+/// «دوستان» (`type=friends`, friends by rating). The canvas's «بلندترین زنجیر»
+/// sub-line is real only on the daily board (`chain_length`); the rating boards
+/// show the games (and, this week, wins) behind a row instead. No rank deltas, leagues or player
 /// counts exist on the server, so none are drawn.
 class ZBoardScreen extends StatelessWidget {
   /// Clock for the countdowns; tests pass a fixed one.
@@ -217,8 +220,8 @@ class _EmptyBoard extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (tab) {
       BoardTab.weekly => const ZEmptyState(
-        title: 'هنوز کسی امتیاز نگرفته',
-        body: 'این هفته اولین نفر باش. یه بازی آنلاین بزن.',
+        title: 'این هفته هنوز بازی آنلاینی نبوده',
+        body: 'اولین نفر باش. یه بازی آنلاین بزن.',
       ),
       BoardTab.daily => ZEmptyState(
         mood: ZMascotMood.thinking,
@@ -227,13 +230,15 @@ class _EmptyBoard extends StatelessWidget {
         actionLabel: 'چالش روزانه',
         onAction: () => context.push('/daily'),
       ),
-      BoardTab.allTime => const ZEmptyState(
-        title: 'هنوز کسی امتیازی نداره',
-        body: 'اولین نفر باش. یه بازی آنلاین بزن.',
+      BoardTab.allTime => ZEmptyState(
+        title: 'هنوز کسی رتبه نگرفته',
+        body:
+            'بعد از ${toPersianDigits(GameConstants.ratingMinGamesForBoard)} '
+            'بازی آنلاین رتبه می‌گیری. اولین نفر باش.',
       ),
       BoardTab.friends => ZEmptyState(
         title: 'هنوز دوستی نداری',
-        body: 'دوست اضافه کن تا امتیاز این هفتهٔ همتون رو کنار هم ببینی.',
+        body: 'دوست اضافه کن تا جام همتون رو کنار هم ببینی.',
         actionLabel: 'افزودن دوست',
         onAction: () => context.go('/friends'),
       ),

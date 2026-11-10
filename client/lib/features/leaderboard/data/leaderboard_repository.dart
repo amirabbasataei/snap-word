@@ -19,6 +19,13 @@ class LeaderboardEntry {
   /// Words in the player's chain — only the Daily Challenge board sends it.
   final int? chainLength;
 
+  /// Rated games behind the row (this week on the weekly board, in total on
+  /// the all-time and friends boards); null on the Daily board.
+  final int? games;
+
+  /// Wins this week — the weekly board only.
+  final int? wins;
+
   const LeaderboardEntry({
     required this.userId,
     required this.username,
@@ -26,6 +33,8 @@ class LeaderboardEntry {
     required this.rank,
     this.avatarId,
     this.chainLength,
+    this.games,
+    this.wins,
   });
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) =>
@@ -36,6 +45,8 @@ class LeaderboardEntry {
         rank: (json['rank'] as num?)?.toInt() ?? 0,
         avatarId: _nonEmpty(json['avatar_id']),
         chainLength: (json['chain_length'] as num?)?.toInt(),
+        games: (json['games'] as num?)?.toInt(),
+        wins: (json['wins'] as num?)?.toInt(),
       );
 }
 
@@ -50,6 +61,12 @@ class LeaderboardResult {
   final int? playerScore;
   final String? playerAvatarId;
 
+  /// The player's rated games on this board (`player_games`) and, on the
+  /// weekly board, their wins this week (`player_wins`); null when the server
+  /// does not say (Daily).
+  final int? playerGames;
+  final int? playerWins;
+
   /// The Daily Challenge number — set on the daily board only.
   final int? dayNumber;
 
@@ -58,6 +75,8 @@ class LeaderboardResult {
     required this.playerRank,
     this.playerScore,
     this.playerAvatarId,
+    this.playerGames,
+    this.playerWins,
     this.dayNumber,
   });
 }
@@ -67,26 +86,18 @@ class LeaderboardRepository {
 
   LeaderboardRepository({required Dio dio}) : _dio = dio;
 
-  /// «این هفته» — `GET /leaderboard?type=global`.
+  /// «این هفته» — `GET /leaderboard?type=global`: the week's net «جام»
+  /// (`score`, can be negative), wins and rated games.
   Future<LeaderboardResult> fetchGlobal() => _fetch('global');
 
-  /// «همیشه» — `type=alltime` (lifetime `player_stats.total_score`).
+  /// «همیشه» — `type=alltime`: the rating, only for players with at least ten
+  /// rated games (`player_rank` 0 = not ranked yet, `player_score` is still
+  /// the rating).
   Future<LeaderboardResult> fetchAllTime() => _fetch('alltime');
 
-  /// «دوستان». The server's `player_rank` / `player_score` on this type are
-  /// the player's rank on the *global weekly* board, so the player's place
-  /// among friends is read from the entries instead (the friends board always
-  /// includes the requester).
-  Future<LeaderboardResult> fetchFriends(String currentUserId) async {
-    final board = await _fetch('friends');
-    final me = board.entries.where((e) => e.userId == currentUserId);
-    return LeaderboardResult(
-      entries: board.entries,
-      playerRank: me.isEmpty ? 0 : me.first.rank,
-      playerScore: me.isEmpty ? null : me.first.score,
-      playerAvatarId: board.playerAvatarId,
-    );
-  }
+  /// «دوستان» — `type=friends`: the player and their accepted friends by
+  /// rating; `player_rank` is the place among friends.
+  Future<LeaderboardResult> fetchFriends() => _fetch('friends');
 
   /// «امروز» — `GET /daily/leaderboard`, today's Daily Challenge ranking
   /// (Iran day). Entries carry `chain_length` but no avatar; the response has
@@ -133,6 +144,8 @@ class LeaderboardRepository {
         playerRank: (data['player_rank'] as num?)?.toInt() ?? 0,
         playerScore: (data['player_score'] as num?)?.toInt() ?? 0,
         playerAvatarId: _nonEmpty(data['player_avatar_id']),
+        playerGames: (data['player_games'] as num?)?.toInt(),
+        playerWins: (data['player_wins'] as num?)?.toInt(),
       );
     } on DioException catch (e) {
       throw LeaderboardException(

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:wordchain/core/network/api_endpoints.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 
 class ProfileException implements Exception {
   final String message;
@@ -20,6 +21,13 @@ class ProfileStats {
   final int xpInLevel;
   final int xpForNext;
 
+  /// «جام» (Elo, starts at 1000), its peak, the games that moved it, and the
+  /// lifetime 1v1 word points («مجموع امتیاز»). Signed-in players only.
+  final int rating;
+  final int ratedGames;
+  final int peakRating;
+  final int totalScore;
+
   const ProfileStats({
     required this.totalMatches,
     required this.wins,
@@ -32,6 +40,10 @@ class ProfileStats {
     this.level = 1,
     this.xpInLevel = 0,
     this.xpForNext = 1000,
+    this.rating = GameConstants.ratingStart,
+    this.ratedGames = 0,
+    this.peakRating = GameConstants.ratingStart,
+    this.totalScore = 0,
   });
 
   factory ProfileStats.fromJson(Map<String, dynamic> json) => ProfileStats(
@@ -46,6 +58,10 @@ class ProfileStats {
     level: json['level'] as int? ?? 1,
     xpInLevel: json['xp_in_level'] as int? ?? 0,
     xpForNext: json['xp_for_next'] as int? ?? 1000,
+    rating: json['rating'] as int? ?? GameConstants.ratingStart,
+    ratedGames: json['rated_games'] as int? ?? 0,
+    peakRating: json['peak_rating'] as int? ?? GameConstants.ratingStart,
+    totalScore: json['total_score'] as int? ?? 0,
   );
 
   ProfileStats copyWith({int? coins}) => ProfileStats(
@@ -60,6 +76,10 @@ class ProfileStats {
     level: level,
     xpInLevel: xpInLevel,
     xpForNext: xpForNext,
+    rating: rating,
+    ratedGames: ratedGames,
+    peakRating: peakRating,
+    totalScore: totalScore,
   );
 }
 

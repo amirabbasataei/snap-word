@@ -23,11 +23,8 @@ class HomeHeroChain extends StatefulWidget {
   final List<String> words;
   final bool animate;
 
-  const HomeHeroChain({
-    super.key,
-    required this.words,
-    this.animate = true,
-  }) : assert(words.length >= 3 && words.length <= 5);
+  const HomeHeroChain({super.key, required this.words, this.animate = true})
+    : assert(words.length >= 3 && words.length <= 5);
 
   static const canvas = Size(ZGame.heroWidth, ZGame.heroHeight);
 

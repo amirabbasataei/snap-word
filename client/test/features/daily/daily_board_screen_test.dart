@@ -193,9 +193,7 @@ void main() {
     });
 
     testWidgets('failure: the message and a working retry', (tester) async {
-      h.repo.error = const LeaderboardException(
-        'جدول امروز لود نشد',
-      );
+      h.repo.error = const LeaderboardException('جدول امروز لود نشد');
       await open(tester);
       expect(find.text('جدول امروز لود نشد'), findsOneWidget);
       h.repo.error = null;
@@ -266,10 +264,7 @@ void main() {
     testWidgets('has not played today: the own row says so', (tester) async {
       h.repo.result = _board(myRank: null, myScore: null);
       await open(tester);
-      expect(
-        find.text('امروز هنوز چالش روزانه رو بازی نکردی'),
-        findsOneWidget,
-      );
+      expect(find.text('امروز هنوز چالش روزانه رو بازی نکردی'), findsOneWidget);
     });
   });
 
@@ -342,9 +337,7 @@ void main() {
               await check('loading');
               await fresh(
                 (r) =>
-                    r.error = const LeaderboardException(
-                      'جدول امروز لود نشد',
-                    ),
+                    r.error = const LeaderboardException('جدول امروز لود نشد'),
               );
               await check('error');
               await fresh(

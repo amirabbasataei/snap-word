@@ -76,6 +76,8 @@ class ZVersusActiveScreen extends StatelessWidget {
           opponentTurnLabel: 'نوبت $opponentName',
           myPremium: state.myPremium,
           opponentPremium: state.opponentPremium,
+          myRating: state.myRating,
+          opponentRating: state.opponentRating,
         ),
         // Clocks run on both turns in a duel, so the ring is never dimmed.
         ring: ZTimerRing(

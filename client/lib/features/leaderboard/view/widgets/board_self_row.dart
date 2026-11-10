@@ -5,12 +5,14 @@ import 'package:wordchain/core/utils/avatar_initial.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/z_disc_avatar.dart';
+import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'package:wordchain/features/leaderboard/view/widgets/board_parts.dart';
 
 /// «تو — name»: the player's own place, pinned under the list (canvas
 /// `ZBoardA`: ink plate with an indigo edge). Whatever the rank is — in or out
 /// of the loaded top 100, or none at all.
 class BoardSelfRow extends StatelessWidget {
+  final BoardTab tab;
   final String username;
   final String? avatarId;
 
@@ -21,26 +23,32 @@ class BoardSelfRow extends StatelessWidget {
   final int? score;
   final String subtitle;
 
+  /// Show the score although the player has no rank yet — the rating is real
+  /// before the tenth game, the weekly Δ is not (no rated game = no score).
+  final bool showUnrankedScore;
+
   const BoardSelfRow({
     super.key,
+    required this.tab,
     required this.username,
     required this.avatarId,
     required this.rank,
     required this.score,
     required this.subtitle,
+    this.showUnrankedScore = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     final ranked = rank > 0;
-    final shownScore = ranked ? score : null;
+    final shownScore = ranked || showUnrankedScore ? score : null;
     return Semantics(
       container: true,
       excludeSemantics: true,
       label:
           'تو — ${isolate(username)}. $subtitle'
-          '${shownScore == null ? '' : '، ${formatPersianNumber(shownScore)} امتیاز'}',
+          '${shownScore == null ? '' : '، ${boardScoreSpoken(tab, shownScore)}'}',
       child: ChunkyBox(
         fill: z.inkSurface,
         deep: z.indigo,
@@ -112,8 +120,9 @@ class BoardSelfRow extends StatelessWidget {
             ),
             if (shownScore != null) ...[
               const SizedBox(width: 8),
-              Text(
-                formatPersianNumber(shownScore),
+              BoardScoreText(
+                tab: tab,
+                score: shownScore,
                 style: ZTypography.button.copyWith(
                   fontSize: 16,
                   color: z.onInkSurface,

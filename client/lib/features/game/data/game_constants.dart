@@ -23,6 +23,14 @@ abstract final class GameConstants {
   /// `config.CoinDailyRank1..3`); claimed from the inbox after the reset.
   static const List<int> weeklyPrizeCoins = [500, 300, 100];
   static const List<int> dailyPrizeCoins = [100, 60, 30];
+
+  // «جام» (Elo rating, Phase 25). Mirror config.RatingStart,
+  // config.RatingPairCapPerDay, config.WeeklyMinRatedGames and
+  // config.RatingMinGamesForBoard: the server decides, the UI only states them.
+  static const int ratingStart = 1000;
+  static const int ratingPairCapPerDay = 3;
+  static const int weeklyMinRatedGames = 5;
+  static const int ratingMinGamesForBoard = 10;
   static const int continueWindowSec = 15;
   static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;
@@ -66,6 +74,7 @@ abstract final class GameConstants {
   /// Paid (inbox reward) to the first signed-in player who suggested a word
   /// the admin approved — mirrors `config.CoinWordSuggestion`.
   static const int wordSuggestionCoins = 25;
+
   /// Mirrors `config.MinWordLength`. Two-letter words (آب، دل، در…) are legal;
   /// AI levels have their own, higher minimums (`ai_opponent.dart`).
   static const int minWordLength = 2;

@@ -3,6 +3,7 @@ import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
+import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
 import 'package:wordchain/features/leaderboard/data/leaderboard_repository.dart';
 import 'package:wordchain/features/leaderboard/view/widgets/board_parts.dart';
 
@@ -11,6 +12,7 @@ import 'package:wordchain/features/leaderboard/view/widgets/board_parts.dart';
 /// bead, avatar, name, an optional sub-line and the score on every row. The
 /// player's own row is tinted.
 class BoardRowsCard extends StatelessWidget {
+  final BoardTab tab;
   final List<LeaderboardEntry> entries;
   final String currentUserId;
 
@@ -19,6 +21,7 @@ class BoardRowsCard extends StatelessWidget {
 
   const BoardRowsCard({
     super.key,
+    required this.tab,
     required this.entries,
     required this.currentUserId,
     required this.underPodium,
@@ -42,6 +45,7 @@ class BoardRowsCard extends StatelessWidget {
         children: [
           for (var i = 0; i < entries.length; i++)
             BoardRow(
+              tab: tab,
               entry: entries[i],
               index: i,
               divider: i > 0,
@@ -54,6 +58,7 @@ class BoardRowsCard extends StatelessWidget {
 }
 
 class BoardRow extends StatelessWidget {
+  final BoardTab tab;
   final LeaderboardEntry entry;
   final int index;
   final bool divider;
@@ -61,6 +66,7 @@ class BoardRow extends StatelessWidget {
 
   const BoardRow({
     super.key,
+    required this.tab,
     required this.entry,
     required this.index,
     required this.divider,
@@ -70,15 +76,14 @@ class BoardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final chain = entry.chainLength;
-    final sub = chain == null ? null : 'زنجیر ${toPersianDigits(chain)} کلمه';
+    final sub = boardRowSub(tab, entry);
     return Semantics(
       container: true,
       excludeSemantics: true,
       label:
           'رتبهٔ ${toPersianDigits(entry.rank)}: ${isolate(entry.username)}'
           '${sub == null ? '' : '، $sub'}، '
-          '${formatPersianNumber(entry.score)} امتیاز${mine ? '، تو' : ''}',
+          '${boardScoreSpoken(tab, entry.score)}${mine ? '، تو' : ''}',
       child: Container(
         constraints: const BoxConstraints(minHeight: 52),
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -149,8 +154,9 @@ class BoardRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              formatPersianNumber(entry.score),
+            BoardScoreText(
+              tab: tab,
+              score: entry.score,
               style: ZTypography.button.copyWith(fontSize: 15, color: z.ink),
             ),
           ],

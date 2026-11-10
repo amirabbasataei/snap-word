@@ -754,8 +754,7 @@ class _ZWordInputState extends State<ZWordInput> {
             valueListenable: _controller,
             builder:
                 (context, value, _) => _LongWordCue(
-                  visible:
-                      GameBloc.letterCount(value.text.trim()) >= min,
+                  visible: GameBloc.letterCount(value.text.trim()) >= min,
                   minLength: min,
                 ),
           ),

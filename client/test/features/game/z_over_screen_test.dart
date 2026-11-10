@@ -18,7 +18,9 @@ import 'package:wordchain/core/widgets/z_state_card.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/rating_change.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/game/view/widgets/z_over_rating.dart';
 import 'package:wordchain/features/game/view/z_over_screen.dart';
 import 'package:wordchain/features/words/data/word_suggestions_repository.dart';
 
@@ -46,6 +48,9 @@ GameOver _over({
   int coinsNet = 0,
   String? myAvatarId,
   String? opponentAvatarId,
+  bool opponentIsAi = false,
+  RatingChange? rating,
+  bool ratingPairCap = false,
 }) => GameOver(
   localMatchId: -1,
   mode: mode,
@@ -66,6 +71,9 @@ GameOver _over({
   coinsNet: coinsNet,
   myAvatarId: myAvatarId,
   opponentAvatarId: opponentAvatarId,
+  opponentIsAi: opponentIsAi,
+  rating: rating,
+  ratingPairCap: ratingPairCap,
 );
 
 /// The offer of a solo loss with the continue window open.
@@ -96,6 +104,9 @@ GameOver _versusLoss() => _over(
   entryFee: 20,
   coinsNet: -20,
 );
+
+const _plus16 = RatingChange(before: 1000, after: 1016, delta: 16);
+const _minus12 = RatingChange(before: 1000, after: 988, delta: -12);
 
 class _FakeStats extends Fake implements StatsDao {
   final int best;
@@ -783,6 +794,126 @@ void main() {
     });
   });
 
+  group('جام (Phase 25 S3)', () {
+    Finder card() => find.byType(ZOverRatingCard);
+
+    testWidgets('a won 1v1 shows the gain and the new total', (t) async {
+      h.register();
+      await show(t, _over(iWon: true, score: 360, rating: _plus16));
+      expect(find.text('+۱۶'), findsOneWidget);
+      expect(find.text('جام تو'), findsOneWidget);
+      expect(find.text('۱٬۰۱۶'), findsOneWidget);
+      expect(find.text('قبلاً ۱٬۰۰۰'), findsOneWidget);
+      expect(find.text(ZOverRatingCard.aiNote), findsNothing);
+    });
+
+    testWidgets('a lost 1v1 shows the loss with a real minus', (t) async {
+      h.register();
+      await show(t, _over(iWon: false, reason: 'timeout', rating: _minus12));
+      expect(find.text('−۱۲'), findsOneWidget);
+      expect(find.text('۹۸۸'), findsOneWidget);
+      expect(find.text('+۱۲'), findsNothing);
+    });
+
+    testWidgets('the gain is spoken, not just drawn', (t) async {
+      final handle = t.ensureSemantics();
+      h.register();
+      await show(t, _over(iWon: true, rating: _plus16));
+      expect(
+        find.bySemanticsLabel('جامت ۱۶ تا بیشتر شد و شد ۱٬۰۱۶'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('pair cap: nothing moved, and why', (t) async {
+      h.register();
+      await show(
+        t,
+        _over(
+          iWon: true,
+          rating: const RatingChange(before: 1100, after: 1100, delta: 0),
+          ratingPairCap: true,
+        ),
+      );
+      expect(
+        find.descendant(of: card(), matching: find.text('۰')),
+        findsOneWidget,
+      );
+      expect(find.text('۱٬۱۰۰'), findsOneWidget);
+      expect(
+        find.text(
+          'امروز ۳ بار با این حریف بازی کردی. بازی‌های بعدیِ امروز جام نداره.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the AI fallback says it has no جام, and shows no number', (
+      t,
+    ) async {
+      h.register();
+      await show(t, _over(iWon: true, opponentIsAi: true));
+      expect(find.text('بازی با هوش مصنوعی جام نداره'), findsOneWidget);
+      expect(find.text('جام تو'), findsNothing);
+    });
+
+    testWidgets('the AI note also shows on a loss', (t) async {
+      h.register();
+      await show(t, _over(iWon: false, reason: 'timeout', opponentIsAi: true));
+      expect(find.text('بازی با هوش مصنوعی جام نداره'), findsOneWidget);
+    });
+
+    testWidgets('nothing yet (or a draw): no card, no placeholder', (t) async {
+      h.register();
+      await show(t, _over(iWon: true));
+      expect(card(), findsNothing);
+      expect(find.textContaining('جام'), findsNothing);
+      expect(t.takeException(), isNull);
+    });
+
+    testWidgets('never on solo, vs-AI or the continue offer', (t) async {
+      h.register(bestChain: 23);
+      await show(t, _continueOffer());
+      expect(card(), findsNothing);
+      expect(find.textContaining('جام'), findsNothing);
+    });
+
+    testWidgets('rating_update after the result is up: the card appears', (
+      t,
+    ) async {
+      h.register();
+      await _size(t, 396, 812);
+      final over = ValueNotifier(_over(iWon: true, score: 360));
+      await t.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          builder:
+              (context, child) => Directionality(
+                textDirection: TextDirection.rtl,
+                child: child!,
+              ),
+          home: BlocProvider<GameBloc>.value(
+            value: h.bloc,
+            child: ValueListenableBuilder<GameOver>(
+              valueListenable: over,
+              builder: (_, state, _) => ZOverScreen(state: state),
+            ),
+          ),
+        ),
+      );
+      await _settle(t);
+      expect(find.text('بردی!'), findsOneWidget);
+      expect(find.text('+۱۶'), findsNothing);
+
+      over.value = over.value.copyWith(rating: _plus16);
+      await _settle(t);
+      expect(find.text('بردی!'), findsOneWidget);
+      expect(find.text('+۱۶'), findsOneWidget);
+      expect(find.text('۱٬۰۱۶'), findsOneWidget);
+    });
+  });
+
   group('header', () {
     testWidgets('shows the live coin balance of a signed-in player', (t) async {
       h.register();
@@ -847,6 +978,17 @@ void main() {
         ),
       ),
       ('win', _versusWin),
+      ('win + جام', () => _over(iWon: true, score: 360, rating: _plus16)),
+      ('loss + جام', () => _over(iWon: false, rating: _minus12)),
+      (
+        'pair cap',
+        () => _over(
+          iWon: true,
+          rating: const RatingChange(before: 1100, after: 1100, delta: 0),
+          ratingPairCap: true,
+        ),
+      ),
+      ('AI fallback', () => _over(iWon: true, opponentIsAi: true)),
       (
         'win, huge scores',
         () => _over(
@@ -951,6 +1093,39 @@ void main() {
     }
     testWidgets('loss final, 1v1 light', (t) async {
       await shoot(t, _versusLoss(), Brightness.light, 'z_over_loss_light');
+    });
+    testWidgets('win with جام, light', (t) async {
+      await shoot(
+        t,
+        _over(
+          iWon: true,
+          score: 360,
+          opponentScore: 240,
+          entryFee: 20,
+          coinsNet: 20,
+          rating: _plus16,
+        ),
+        Brightness.light,
+        'z_over_win_rating_light',
+      );
+    });
+    testWidgets('loss with جام, dark', (t) async {
+      await shoot(
+        t,
+        _over(
+          iWon: false,
+          reason: 'invalid_word',
+          rejectedWord: 'قلمم',
+          rejectionReason: 'not_in_dictionary',
+          score: 200,
+          opponentScore: 350,
+          entryFee: 20,
+          coinsNet: -20,
+          rating: _minus12,
+        ),
+        Brightness.dark,
+        'z_over_loss_rating_dark',
+      );
     });
     testWidgets('new record, final light', (t) async {
       await shoot(

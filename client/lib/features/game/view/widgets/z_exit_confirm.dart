@@ -176,7 +176,9 @@ class ZExitCopy {
   }
 
   /// `(value, label)` of each stake card, in display order.
-  List<(String, String)> get stakes => [for (final s in _stakes) (s.value, s.label)];
+  List<(String, String)> get stakes => [
+    for (final s in _stakes) (s.value, s.label),
+  ];
 }
 
 /// The exit-confirm content: mascot, status pill, title, body, the "what

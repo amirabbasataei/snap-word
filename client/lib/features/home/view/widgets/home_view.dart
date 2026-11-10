@@ -101,7 +101,9 @@ class HomeView extends StatelessWidget {
               // The shell's floating dock overlays the bottom of this screen
               // (`extendBody`); its height arrives as bottom padding.
               child: Padding(
-                padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom,
+                ),
                 child: SafeArea(
                   bottom: false,
                   child: LayoutBuilder(
@@ -118,10 +120,16 @@ class HomeView extends StatelessWidget {
                       final scale =
                           byWidth
                               .clamp(0.0, _maxHeroScale)
-                              .clamp(0.0, byHeight.clamp(_minHeroScale, _maxHeroScale))
+                              .clamp(
+                                0.0,
+                                byHeight.clamp(_minHeroScale, _maxHeroScale),
+                              )
                               .toDouble();
                       final heroH = ZGame.heroHeight * scale;
-                      final extra = (c.maxHeight - fixed - heroH).clamp(0.0, double.infinity);
+                      final extra = (c.maxHeight - fixed - heroH).clamp(
+                        0.0,
+                        double.infinity,
+                      );
 
                       return SingleChildScrollView(
                         physics: const ClampingScrollPhysics(),
@@ -131,10 +139,15 @@ class HomeView extends StatelessWidget {
                             children: [
                               const SizedBox(height: 10),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
                                 child: HomeHud(
                                   level: data.level,
-                                  levelProgress: data.xpForNext <= 0 ? 0 : data.xpInLevel / data.xpForNext,
+                                  levelProgress:
+                                      data.xpForNext <= 0
+                                          ? 0
+                                          : data.xpInLevel / data.xpForNext,
                                   coins: data.coins,
                                   streak: data.streak,
                                   messages: data.pendingMessages,
@@ -164,7 +177,12 @@ class HomeView extends StatelessWidget {
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  6,
+                                  16,
+                                  0,
+                                ),
                                 child: HomeProgressPath(
                                   level: data.level,
                                   xpInLevel: data.xpInLevel,
@@ -174,14 +192,27 @@ class HomeView extends StatelessWidget {
                               ),
                               SizedBox(height: extra * .3),
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-                                child: HomePlayButton(onTap: onPlay, animate: animate),
+                                padding: const EdgeInsets.fromLTRB(
+                                  18,
+                                  14,
+                                  18,
+                                  0,
+                                ),
+                                child: HomePlayButton(
+                                  onTap: onPlay,
+                                  animate: animate,
+                                ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(40, 18, 40, 0),
+                                padding: const EdgeInsets.fromLTRB(
+                                  40,
+                                  18,
+                                  40,
+                                  0,
+                                ),
                                 child: HomeOnlineButton(
                                   onTap: onOnline,
-                                  subtitle: 'با دوستات یا حریف تصادفی'
+                                  subtitle: 'با دوستات یا حریف تصادفی',
                                 ),
                               ),
                               SizedBox(height: extra * .4 + 4),

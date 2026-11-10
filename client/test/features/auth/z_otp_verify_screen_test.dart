@@ -91,9 +91,7 @@ void main() {
         expect(find.text('ارسال دوباره تا ۰۲:۰۰'), findsOneWidget);
         expect(find.text('تازه‌واردی؟'), findsOneWidget);
         expect(
-          find.text(
-            'با همین کد حسابت ساخته می‌شه و ۵۰ سکه خوش‌آمد می‌گیری.',
-          ),
+          find.text('با همین کد حسابت ساخته می‌شه و ۵۰ سکه خوش‌آمد می‌گیری.'),
           findsOneWidget,
         );
         expect(find.text(_confirm), findsOneWidget);
