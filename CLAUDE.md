@@ -16,38 +16,23 @@ A production-ready word-chain mobile game (Shiritori-style).
 
 ---
 
-## 📊 Phase Status
+## 📚 Detail docs (read on demand)
 
+Long per-feature notes moved out of this file on 2026-11-10; each section below keeps the rules that matter and links to its doc in `docs/`: `daily-challenge.md` · `rating-client.md` · `local-database.md` · `database-schema.md` · `otp-sms.md` · `bazaar-billing.md` (+ `bazaar-release.md`) · `premium-perks.md` · `admin-panel.md` · `admin-notifications.md` · `product-analytics.md` · `word-suggestions.md` · `legal-pages.md` · `push-fcm.md` · `dictionary.md` · `server-runbook.md`. Plans: REDESIGN_PLAN.md, SCORING_PLAN.md, ADMIN_PLAN.md, ANALYTICS_PLAN.md.
+
+---
+
+## 📊 Phase Status
 
 | # | Phase | Status |
 |---|---|---|
-| 1 | Flutter: Core Setup | [x] Complete |
-| 2 | Flutter: Game Feature (Solo + Tutorial — tutorial later removed) | [x] Complete |
-| 3 | Flutter: Auth Feature | [x] Complete |
-| 4 | Foundation & Database | [x] Complete |
-| 5 | Backend: Dictionary & Game Engine | [x] Complete |
-| 6 | Backend: Auth | [x] Complete |
-| 7 | Backend: Game REST API & Match Repository | [x] Complete |
-| 8 | Backend: WebSocket & Multiplayer | [x] Complete |
-| 9 | Backend: Matchmaking & AI Opponent | [x] Complete |
-| 10 | Backend: Leaderboard & Streak | [x] Complete |
-| 11 | Backend: Friends & Challenges | [x] Complete |
-| 12 | Backend: Push Notifications | [x] Complete |
-| 13 | Flutter: Lobby & Multiplayer | [x] Complete |
-| 14 | Flutter: Leaderboard, Friends & Profile | [x] Complete |
-| 15 | Flutter: Daily Challenge & Sharing | [x] Complete |
-| 16 | Monetization Hooks & Final Wiring | [x] Complete |
-| 17 | Visual Redesign (زنجیر) | [ ] In Progress — Stages 1–5 complete and on-device verified; Stage 6 code complete (multiplayer game-over/overlays on tokens, legacy `AppColors` removed) — needs a live multiplayer match to verify; Stage 7 partial (shared-widget goldens + token lint done, chain-renderer goldens remaining) |
-| 18 | Bug Fixes & Quick Wins | [ ] Not Started |
-| 19 | Multiplayer Lives & Best-of-5 Rounds | [ ] Not Started |
-| 20 | Progression & Lobby Economy | [ ] Not Started |
-| 21 | Production Readiness | [ ] Not Started |
-| 22 | Premium Perks (taunts, avatars, badge) | [ ] In Progress — backend + client code complete, backend verified live (WS + REST); client UI **not yet verified on-device**; real billing (Bazaar/Myket) not built |
-| 23 | Admin Panel (web, RTL Persian) | [ ] In Progress — A1 (backend auth/sessions/roles/audit) complete; A2 (frontend scaffold/shell/login/embedding) complete; A3 (dashboard) complete; A4 (users & economy, ban) complete; A5 (content & catalogue) complete; A6 notifications (admin → push + in-app messages, push-permission tracking) complete in code, live-checked locally, **client side not yet verified on-device** — A6's **matches page** (read-only list + detail, see § Admin Panel) is done in code, its live-rooms page and A7 not started; the «پیشنهاد کلمات» page (`/admin/content/words`) belongs to Phase 24, see § Word Suggestions; A8 (product analytics — self-hosted behaviour events + retention, see § Product Analytics) complete in code, client side **not yet verified on-device**. Plan and per-stage status in **ADMIN_PLAN.md** (stages A1–A8, one per session) |
-| 24 | Word Suggestions & Dictionary Delta | [ ] In Progress — **24a complete** (backend + admin panel «پیشنهاد کلمات», verified live locally, **deployed to prod 2026-10-27** (together with the legal pages; migration 015 applied)); **24b complete in code** (Flutter: dictionary delta, report/flag/suggest UI, «پیشنهادهای من», reward face) — unit/widget-tested, **not yet verified on a device**. See § Word Suggestions (Phase 24) |
-| 25 | Scoring & Ranking (Elo «جام», streak/ZWNJ fixes, Freeze removal, Daily fairness) | [ ] In Progress — **S1 complete** (2026-11-10: match streak resets on every mistake, the half-space is not a letter in scoring, Freeze removed; Go + Flutter tested, backend rebuilt locally, **not deployed, not verified on a device**). **S2 complete in code** (2026-11-10: Elo «جام» backend — migration 019, `RatingService`, `rating_update` WS event, weekly/all-time/friends boards on the rating, `/profile/stats` rating fields, read-only rating in the admin panel; Go + panel tested with real Postgres, backend rebuilt locally; **not deployed — deploy together with S3, right after a Saturday reset**; no live 1v1 match played against it). **S3 complete** (2026-11-10: Flutter client for the rating — ZOver «جام» card, ZBoard relabelled, ZProfile rating card, ZVersus ratings; analyze clean, unit/widget-tested, **verified on two Android emulators** against the local backend: one full 1v1 + one AI-fallback game, both result screens, the weekly/all-time/friends boards and the profile; **not deployed — S2 + S3 deploy together, right after a Saturday reset**). **S4 complete** (2026-11-10: the matchmaking AI fallback level comes from the player's rating on the server, AI-fallback games touch only XP + the daily streak (no `total_score` either), a read-only «same opponent» flag on the admin user page; Go + panel tested, backend rebuilt locally; **not deployed — S2 + S3 + S4 deploy together**). **S5 complete** (2026-11-10: Daily Challenge fairness — the board, rank and prizes use the free attempt only; the server recomputes an uploaded Daily score from per-word times + streaks and rejects a mismatch; Go + Flutter + panel tested, backend rebuilt locally and checked live over HTTP, local Drift DB v3; **not deployed — ships with S2 + S3 + S4**, **not verified on a device**). **S6 complete** (2026-11-10: the ×2 long-word cliff is replaced by a flat `max(0, letters − 6) × 15` in **every** mode, one Go scorer; the Daily recompute still accepts a pre-S6 ×2 trace; plus naming/threshold cleanup agreed the same day: the level bar says «تجربه» not «امتیاز», the 1v1 result leads with the «جام» card and drops the opponent's points, «مجموع امتیاز» removed from the profile, the all-time board needs 5 rated games instead of 10; Go + Flutter + panel tested, backend rebuilt locally and checked live over HTTP; **not deployed — ships with S2–S5**, **not verified on a device**). S7 not started. Plan and per-stage status in **SCORING_PLAN.md** (stages S1–S7, one per session) |
-
----
+| 1–16 | Flutter core/game/auth/lobby/leaderboard/friends/daily/monetization; backend foundation → push | Complete |
+| 17 | Visual Redesign (زنجیر) | In progress — Stages 1–5 verified on device; Stage 6 (multiplayer game-over/overlays on tokens) needs a live multiplayer match; Stage 7 partial (shared-widget goldens + token lint done, chain-renderer goldens remaining) |
+| 18–21 | Bug Fixes · Multiplayer Lives & Best-of-5 · Progression & Lobby Economy · Production Readiness | Not started |
+| 22 | Premium Perks | In progress — backend + client code complete, backend verified live; client UI not verified on a device; Bazaar billing built, not verified (Myket not built) |
+| 23 | Admin Panel (**ADMIN_PLAN.md**) | In progress — A1–A5, A6 notifications + matches page, A8 analytics done (A6/A8 client sides unverified on a device); live-rooms page and A7 (TOTP, audit viewer) not started |
+| 24 | Word Suggestions & Dictionary Delta | 24a deployed to prod 2026-10-27; 24b (Flutter) built, not verified on a device |
+| 25 | Scoring & Ranking (**SCORING_PLAN.md**) | S1–S6 complete (streak/ZWNJ fixes, Freeze removed, Elo «جام», rating client, AI-fallback level + `total_score` rules, Daily fairness, flat long-word bonus). Go/Flutter/panel tested and rebuilt locally; S3 verified on two emulators. **Not deployed — S2–S6 deploy together, right after a Saturday reset.** S5/S6 not verified on a device. S7 not started |
 
 ## 🧱 Tech Stack
 
@@ -65,66 +50,6 @@ A production-ready word-chain mobile game (Shiritori-style).
 | Push Notifications | Firebase Cloud Messaging (FCM) — Android + iOS via `firebase_messaging` Flutter package |
 | Sharing | `share_plus` Flutter package |
 | Local DB (Flutter) | Drift 2 — type-safe SQLite ORM; tables: `local_matches`, `local_used_words`, `local_player_stats`, `local_powerup_cache`, `local_analytics_events` (schema v3) |
-
----
-
-## 📁 Final Project Structure (target)
-
-```
-wordchain/
-├── CLAUDE.md
-├── .env.example
-├── backend/
-│   ├── cmd/server/main.go
-│   ├── internal/
-│   │   ├── config/
-│   │   ├── handler/
-│   │   ├── service/
-│   │   ├── repository/
-│   │   ├── ws/
-│   │   ├── engine/
-│   │   │   └── data/
-│   │   │       ├── fa.txt                       ← Persian dictionary
-│   │   ├── scheduler/                          ← background jobs
-│   │   └── middleware/
-│   ├── migrations/
-│   ├── Dockerfile
-│   └── docker-compose.yml
-└── client/
-    ├── pubspec.yaml
-    ├── assets/
-    │   └── words/fa.txt
-    └── lib/
-        ├── main.dart
-        ├── core/
-        │   ├── di/
-        │   ├── network/
-        │   ├── router/
-        │   ├── database/
-        │   │   ├── app_database.dart
-        │   │   └── daos/
-        │   │       ├── match_dao.dart
-        │   │       ├── used_word_dao.dart
-        │   │       ├── stats_dao.dart
-        │   │       └── powerup_cache_dao.dart
-        │   ├── services/
-        │   │   ├── dictionary_service.dart
-        │   │   ├── sync_service.dart
-        │   │   ├── websocket_service.dart
-        │   │   ├── monetization_service.dart
-        │   │   ├── notification_service.dart
-        │   │   └── share_service.dart
-        │   └── theme/
-        └── features/
-            ├── auth/
-            ├── home/
-            ├── game/
-            ├── lobby/
-            ├── daily/
-            ├── leaderboard/
-            ├── friends/
-            └── profile/
-```
 
 ---
 
@@ -206,13 +131,9 @@ Defaults above are tunable in `internal/config/config.go` and via `GameConstants
 ### Lives (Phase 17, Flutter-only)
 - **Solo Classic and Daily Challenge** give the player `GameConstants.soloLives` (**2**) lives. A mistake (invalid word or timeout) with lives remaining costs a life and the match continues; the match ends when lives reach 0. So "first invalid move loses" above applies to these modes only once lives are exhausted.
 - **Not applied** to vs-AI or 1v1 multiplayer. Multiplayer is server-authoritative and the Go WS protocol has no lives concept — the canvas's «۲ جان» chip is intentionally omitted from ZVersus until the backend supports it.
-- **Daily has no word limit** (the 20-word `dailyMaxWords` / `config.MaxDailyWords` cap was removed 2026-11-04: lives already end every run, and the cap made top players tie on score). Because the run length is now unbounded, the server no longer trusts the upload: `GameService.CreateSoloGame` runs `service.ValidateDailyChain` (`service/daily_chain.go`) on every `mode: daily` upload to `POST /game/solo` — first word starts with the day's start letter, each word passes `engine.ValidateMove` (chars, ≥2 letters, link to the previous word, no repeats, dictionary incl. the admin overlay), at most `config.DailyChainSafetyCap` (200, a hidden abuse backstop) words, and `score` ≤ the sum of each word's maximum possible turn score (`maxTurnScore`: base + full speed bonus + streak bonus, plus the larger of the flat long-word bonus and the legacy pre-S6 ×2 for 7+ letters (always the ×2), so an old app's run passes too; the server has no per-word timings so it bounds the score, it cannot recompute it). A failure is `400 invalid_daily_chain` (Persian entry in `error_messages.dart`), checked **before** anything is stored, so it does not consume the free attempt. Note `SyncService` skips a 4xx-rejected row permanently, so a legitimate game that trips the check (e.g. a word the client dictionary delta has but the server overlay lacks) would never upload. Tests: `service/daily_chain_test.go`.
-- **Daily fairness (Phase 25 S5, 2026-11-10):**
-  - **Free attempt only.** `DailyRepository.GetDailyLeaderboard` / `GetUserRank` / `GetTodayBest` filter `attempt_number = 1` (`repository.FreeAttempt`), and `RunDailyPayout` reads the same board, so a paid retry (attempt 2) neither ranks nor earns the rank prize or the `daily_done` completion prize on its own. `GET /daily` still returns both attempts and `your_best` over both (the personal record); `today_best` and `rank` are by the free attempt. Client: the result hero says «رتبهٔ N با تلاش اول» once a retry exists, `DailyCompareCard` and the retry button carry a line «رتبه و جایزه فقط با تلاش اول حساب می‌شه» / «تلاش دوباره رتبه و جایزه رو عوض نمی‌کنه، فقط رکورد خودته», the «جدول امروز» note and the rules tile («بار دوم ۲۵ سکه، بدون رتبه») say it too. Admin Daily detail: the board column is «امتیاز تلاش رایگان» with a note; the stats tile «بهترین امتیاز» is over all attempts and is labelled so.
-  - **The server recomputes the score.** The app uploads, for `mode: daily` only, `word_times_ms[]` (whole milliseconds per player word) and `word_streaks[]` (the match streak *before* each word — the server cannot see the lost lives / shields that reset it). `service.ValidateDailyScore` (after `ValidateDailyChain`, which still does the word and lenient-bound checks) requires one entry per chain word, each time within `config.DailyWordMinMs` (300) … `(TurnTimerClassicSec + ExtraTimeBonusSec) × 1000 + DailyWordSlackMs` (25 000), each streak either 0 (reset) or the previous streak + 1 (the first is 0), and `engine.CalculateScore` summed over the words == the uploaded score — **or** the pre-S6 formula (`legacyTurnScore` in `service/daily_chain.go`: the same turn score without the flat bonus, doubled from 7 letters) summed over the same chain, so a trace from an app installed before S6 still uploads (never a mix of the two inside one chain); else `400 invalid_daily_chain` (before anything is stored, so no attempt is consumed). `engine.CalculateScore` is a bit-for-bit mirror of `GameBloc.calculateScore` (`engine/scorer_test.go` and `test/features/game/score_trace_test.dart` share one table of vectors — change both together). The legacy ×2 branch is deleted together with the no-trace lenient path once old apps are no longer supported. An upload **without** the two arrays (an older app) keeps the lenient upper-bound check only; the trace is also kept in `matches.game_state` (`word_times_ms`, `word_streaks`). Timings are still client-reported: this closes «post the maximum score» (a score the chain cannot produce) and sub-human timings, not a client that fakes every timing to ~300 ms.
-  - **Client trace.** `local_matches.score_trace` (Drift schema **v3**, nullable text, JSON `{"t":[ms…],"s":[streak…]}`, `features/game/data/score_trace.dart`) is appended per accepted word in the same transaction as the chain (`GameRepository.recordAcceptedWord(…, responseMs:, streak:)`, called from `GameBloc` for the player's words only; the vs-AI AI-word call passes nothing). `SyncService` sends `word_times_ms` / `word_streaks` for `mode == 'daily'` only when the trace has exactly one entry per chain word (`ScoreTrace.covers`). A **resumed** solo/Daily run now gets its score back from the trace (`GameBloc.scoreFromTrace`); before, a resumed match restarted from 0 because the row only learns its score at game end. A run resumed from a pre-v3 row has no matching trace, keeps score 0 as before and uploads under the lenient bound. The v2→v3 upgrade is exercised in `score_trace_test.dart` against a real file database.
-  - **Tests:** `service/daily_chain_test.go` (`TestValidateDailyScore`), `service/daily_fairness_test.go` (real Postgres: board/rank/today-best/payout ignore the retry, `GetDailyInfo`, `CreateSoloGame` accept/reject/old-app), `engine/scorer_test.go`, `test/features/game/{score_trace,game_bloc_score_trace}_test.dart`, daily screen/board tests. Verified live over HTTP against the rebuilt local backend (exact trace → 201; off-by-one, 100 ms, bad streak → 400; old-app upload → 201; a paid retry of 663 left the board at 582 while `your_best` read 663).
-  - **Goldens:** regenerated `daily_before_{light,dark}` and `daily_board_{light,320_dark}` (their text changed and they pass on a clean HEAD here). `daily_after_*` / `after + retried` already fail on this Linux box on a clean HEAD and were not touched — **they will differ on a machine where they pass (hero pill, compare-card note, retry-button note): regenerate there.
+- **Daily has no word limit** (the 20-word cap was removed 2026-11-04). Because runs are unbounded the server does not trust the upload: `POST /game/solo` with `mode: daily` runs `service.ValidateDailyChain` (start letter, `engine.ValidateMove` per word, ≤`config.DailyChainSafetyCap` 200 words, score ≤ per-word maximum) and `service.ValidateDailyScore` (recomputes the score from the uploaded `word_times_ms[]` + `word_streaks[]`; mismatch → `400 invalid_daily_chain`, checked before anything is stored so no attempt is consumed). Old apps without the trace keep the lenient bound; the pre-S6 ×2 scoring is still accepted.
+- **Daily fairness:** only the **free attempt** (attempt 1) ranks, appears on the board and earns prizes; a paid retry (attempt 2) is a personal best only (`repository.FreeAttempt`). The client keeps a per-word trace in `local_matches.score_trace` (Drift v3). `engine.CalculateScore` mirrors `GameBloc.calculateScore` — change both together (shared vectors in `engine/scorer_test.go` and `test/features/game/score_trace_test.dart`).
+- Full detail (rules, error codes, tests, goldens): **docs/daily-challenge.md**.
 
 ### Multiplayer shared chain
 In any multiplayer match (vs AI or 1v1), **both players contribute to a single shared word chain**:
@@ -247,193 +168,11 @@ Match ends when the player submits an invalid word, the timer hits 0, or they ta
 
 ## 🗄️ Database Schema
 
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(32) UNIQUE,               -- NULL until signup completes (first verify-otp)
-    phone VARCHAR(11) UNIQUE NOT NULL,         -- normalized 09XXXXXXXXX (Iran mobile)
-    otp_code CHAR(4),
-    otp_expires_at TIMESTAMPTZ,
-    otp_attempts SMALLINT NOT NULL DEFAULT 0,
-    otp_sent_at TIMESTAMPTZ,                   -- last send, for the resend cooldown
-    phone_verified_at TIMESTAMPTZ,             -- NULL = signup not yet completed
-    referral_code VARCHAR(6) UNIQUE,           -- NULL until signup completes
-    referred_by UUID REFERENCES users(id),     -- NULL if no referrer linked
-    coins INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
+Source of truth: the numbered migrations in `backend/migrations/` (embedded, run at startup). Core tables: `users`, `matches`, `match_players`, `player_stats` (incl. `xp`, `rating`, `rated_games`, `peak_rating`, `total_score`), `rating_history`, `powerup_inventory`, `daily_challenges`, `daily_challenge_attempts` (PK `(user_id, challenge_date, attempt_number)`; 1 = free/ranked, 2 = paid retry), `friendships`, `friend_challenges`, `device_tokens`, `weekly_leaderboard_rewards`, plus `inbox_rewards`, `inbox_messages`, `taunts`, `avatars`, `admin_*`, `analytics_*`, `word_suggestion*`, `dictionary_overrides`, `app_settings`, `store_purchases`. The original SQL of the first tables is kept in **docs/database-schema.md**.
 
-CREATE TABLE matches (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mode VARCHAR(20) NOT NULL,        -- classic, daily
-    status VARCHAR(20) NOT NULL,      -- pending, active, finished, abandoned
-    winner_id UUID REFERENCES users(id),
-    game_state JSONB,
-    started_at TIMESTAMPTZ,
-    ended_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
+## 📱 Local Database (Flutter / Drift)
 
-CREATE TABLE match_players (
-    match_id UUID REFERENCES matches(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id),
-    score INTEGER DEFAULT 0,
-    is_ai BOOLEAN DEFAULT false,
-    continue_used BOOLEAN DEFAULT false,
-    joined_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (match_id, user_id)
-);
-
-CREATE TABLE player_stats (
-    user_id UUID PRIMARY KEY REFERENCES users(id),
-    total_matches INTEGER DEFAULT 0,
-    wins INTEGER DEFAULT 0,
-    longest_word TEXT,
-    best_match_streak INTEGER DEFAULT 0,
-    daily_streak INTEGER DEFAULT 0,
-    longest_daily_streak INTEGER DEFAULT 0,
-    last_played_date DATE,
-    total_score BIGINT NOT NULL DEFAULT 0,      -- 008: lifetime 1v1 word points (profile stat since S2)
-    xp BIGINT NOT NULL DEFAULT 0,               -- 009
-    rating INT NOT NULL DEFAULT 1000,           -- 019: Elo «جام»
-    rated_games INT NOT NULL DEFAULT 0,         -- 019: games that moved the rating
-    peak_rating INT NOT NULL DEFAULT 1000,      -- 019
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 019: one row per player per rated 1v1 match; the PK makes a re-apply a no-op.
-CREATE TABLE rating_history (
-    match_id UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id),
-    opponent_id UUID NOT NULL REFERENCES users(id),
-    rating_before INT NOT NULL,
-    rating_after INT NOT NULL,
-    delta INT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (match_id, user_id)
-);  -- + index (user_id, created_at): pair cap and profile history
-
-CREATE TABLE powerup_inventory (
-    user_id UUID REFERENCES users(id),
-    powerup_type VARCHAR(20) NOT NULL,
-    quantity INTEGER DEFAULT 0,
-    PRIMARY KEY (user_id, powerup_type)
-);
-
-CREATE TABLE daily_challenges (
-    challenge_date DATE PRIMARY KEY,
-    seed BIGINT NOT NULL,
-    start_letter CHAR(1) NOT NULL
-);
-
-CREATE TABLE daily_challenge_attempts (
-    user_id UUID REFERENCES users(id),
-    challenge_date DATE REFERENCES daily_challenges(challenge_date),
-    attempt_number INTEGER NOT NULL DEFAULT 1,  -- 1 = free (the only one ranked and paid a prize), 2 = paid retry (personal best only)
-    score INTEGER NOT NULL,
-    chain_length INTEGER NOT NULL,
-    word_chain TEXT[] NOT NULL DEFAULT '{}',
-    completed_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (user_id, challenge_date, attempt_number)
-);
-
-CREATE TABLE friendships (
-    requester_id UUID REFERENCES users(id),
-    addressee_id UUID REFERENCES users(id),
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',  -- pending, accepted, declined
-    created_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (requester_id, addressee_id)
-);
-
-CREATE TABLE friend_challenges (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    challenger_id UUID REFERENCES users(id),
-    challenged_id UUID REFERENCES users(id),
-    mode VARCHAR(20) NOT NULL,
-    match_id UUID REFERENCES matches(id),
-    status VARCHAR(20) DEFAULT 'pending',  -- pending, accepted, declined, expired
-    created_at TIMESTAMPTZ DEFAULT now(),
-    expires_at TIMESTAMPTZ NOT NULL        -- created_at + 24h
-);
-
-CREATE TABLE device_tokens (
-    user_id UUID REFERENCES users(id),
-    token TEXT NOT NULL,
-    platform VARCHAR(10) NOT NULL,  -- ios, android
-    updated_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (user_id, token)
-);
-
-CREATE TABLE weekly_leaderboard_rewards (
-    week_start DATE NOT NULL,
-    user_id UUID REFERENCES users(id),
-    rank INTEGER NOT NULL,
-    coins_awarded INTEGER NOT NULL,
-    awarded_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (week_start, user_id)
-);
-```
-
----
-
-## 📱 Local Database Schema (Flutter / Drift)
-
-All tables live in a single Drift database (`AppDatabase`) at `core/database/app_database.dart`. Schema version starts at `1`; increment and add a `MigrationStrategy` step on every change. Run `dart run build_runner build` after schema edits.
-
-```dart
-class LocalMatches extends Table {
-  IntColumn     get id           => integer().autoIncrement()();
-  TextColumn    get remoteId     => text().nullable()();         // null until synced
-  TextColumn    get mode         => text()();                    // classic
-  TextColumn    get opponentType => text()();                    // solo | ai_easy | ai_medium | ai_hard
-  TextColumn    get status       => text()();                    // active | finished | abandoned
-  IntColumn     get score        => integer().withDefault(const Constant(0))();
-  IntColumn     get chainLength  => integer().withDefault(const Constant(0))();
-  TextColumn    get wordChain    => text().withDefault(const Constant('[]'))(); // JSON List<String>
-  BoolColumn    get synced       => boolean().withDefault(const Constant(false))();
-  DateTimeColumn get startedAt   => dateTime()();
-  DateTimeColumn get endedAt     => dateTime().nullable()();
-  TextColumn    get scoreTrace   => text().nullable()();         // v3: per-word times + streaks (Daily upload), see § Daily fairness
-}
-
-class LocalUsedWords extends Table {
-  IntColumn  get matchId => integer()();   // FK → LocalMatches.id
-  TextColumn get word    => text()();
-  @override
-  Set<Column> get primaryKey => {matchId, word};
-}
-
-class LocalPlayerStats extends Table {
-  IntColumn     get id                 => integer().withDefault(const Constant(1))();
-  IntColumn     get totalMatches       => integer().withDefault(const Constant(0))();
-  IntColumn     get wins               => integer().withDefault(const Constant(0))();
-  IntColumn     get bestScore          => integer().withDefault(const Constant(0))();
-  IntColumn     get bestMatchStreak    => integer().withDefault(const Constant(0))();
-  IntColumn     get dailyStreak        => integer().withDefault(const Constant(0))();
-  IntColumn     get longestDailyStreak => integer().withDefault(const Constant(0))();
-  TextColumn    get longestWord        => text().nullable()();
-  DateTimeColumn get lastPlayedDate    => dateTime().nullable()();
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class LocalPowerupCache extends Table {
-  TextColumn     get powerupType  => text()();                    // hint | extra_time | shield (freeze removed 2026-11-10)
-  IntColumn      get quantity     => integer().withDefault(const Constant(0))();
-  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
-  @override
-  Set<Column> get primaryKey => {powerupType};
-}
-```
-
-### DAO responsibilities
-
-| DAO | Key methods |
-|---|---|
-| `MatchDao` | `createMatch`, `updateMatch`, `getActiveMatch`, `getUnsyncedMatches`, `markSynced(id, remoteId)` |
-| `UsedWordDao` | `insertWord(matchId, word)`, `isWordUsed(matchId, word) → bool`, `deleteWordsForMatch(matchId)` |
-| `StatsDao` | `getStats`, `upsertStats`, `mergeWithRemote(RemoteStats)` — takes MAX of each numeric field |
-| `PowerupCacheDao` | `getAll`, `setQuantity(type, qty)`, `refreshFromRemote(List<RemotePowerup>)` |
+One Drift database (`AppDatabase`, `core/database/app_database.dart`, schema **v3**; bump the version and add a `MigrationStrategy` step on every change, then `dart run build_runner build`). Tables: `local_matches` (incl. nullable `score_trace`, v3), `local_used_words`, `local_player_stats`, `local_powerup_cache`, `local_analytics_events`. Column definitions and DAO responsibilities: **docs/local-database.md** (and the table classes themselves).
 
 ### Sync strategy (`SyncService`)
 
@@ -554,16 +293,12 @@ turn_score   = base_score + speed_bonus + streak_bonus + long_bonus
 
 ---
 
-## 📲 OTP delivery & the SMS switch (2026-10-31)
+## 📲 OTP delivery & the SMS switch
 
-- **Delivery:** `KavenegarClient.SendOTP` calls `GET https://api.kavenegar.com/v1/{KEY}/verify/lookup.json?receptor=09…&token=<code>&template=<KAVENEGAR_OTP_TEMPLATE>&type=sms` (docs: kavenegar.com/rest.html#sms-Lookup). The template must exist **and be approved** in the Kavenegar panel and contain `%token`. Success = HTTP 200 **and** `return.status == 200`; anything else is a `*service.KavenegarError{Code}` (424 template not found/unapproved, 418 no credit, 403 bad key, 411 bad receptor, 451 IP rate limit…), logged with the provider status only — never the key, token or body (network errors are stripped of the URL, which embeds the key). Env: `KAVENEGAR_API_KEY`, `KAVENEGAR_OTP_TEMPLATE` (local `docker-compose.yml` now passes both; `backend/.env` previously had misspelled `KAVEHNEGAR_*` names that nothing read).
-- **The switch:** `app_settings` table (migration `016`), key `otp_sms_enabled` (missing row = on), `service.SettingsService` (5 s cache, own writes refresh at once; a DB error keeps the last value / defaults to *on* so a failure never opens the bypass). While it is **off** — or no Kavenegar key is set — `AuthService.smsBypass` is true: `send-otp` stores `1111` and sends **nothing**; `verify-otp` accepts `1111` (only that code) for any phone that exists, skipping the stored-code / expiry / attempt-lockout checks, even if a real code was sent just before the switch went off. Turning SMS back on closes it again. The resend cooldown and daily cap still apply. If Kavenegar rejects a send, `send-otp` answers `502 sms_failed` (Persian entry in `error_messages.dart`) and clears the stored code and cooldown (`UserRepository.ClearOTP`) so the player can retry at once.
-- **Security:** with the switch off, anyone who knows a phone number can sign in to that account with `1111`. Hence: **owner-only** (`PUT /api/v1/admin/settings/otp {sms_enabled, reason}`, reason required, audit action `settings.otp_sms`; `GET` is open to every admin role and returns `{sms_enabled, provider_configured, bypass_active, dev_code, updated_at, updated_by}`), a typed confirmation in the panel, and it must be switched back on after testing. The `X-Admin-Key` script path counts as owner.
-- **Panel:** nav «تنظیمات» → `/admin/settings` (`pages/Settings.tsx`, `lib/settings.ts`).
-- **Tests:** `service/kavenegar_test.go` (fake server: request shape, provider errors, no key leak), `service/settings_test.go`, `service/otp_bypass_test.go` (real Postgres), `admin/src/pages/Settings.test.tsx`.
-- **Prod:** `deploy/sites/wordchain/compose.yml` already forwards the two variables, but `KAVENEGAR_OTP_TEMPLATE` falls back to the code default `wordchain-otp` when empty — set `KAVENEGAR_API_KEY` and `KAVENEGAR_OTP_TEMPLATE=zanjir` in `/opt/wordchain/.env`, then `bash scripts/deploy_backend.sh` (migration 016 runs at startup). **A real SMS to a handset has not been sent yet** (the key was checked against the API with an invalid receptor: accepted, `411`); the template name `zanjir` is unconfirmed until the first real send.
-
----
+- Delivery: Kavenegar Verify Lookup (`service/kavenegar.go`); env `KAVENEGAR_API_KEY`, `KAVENEGAR_OTP_TEMPLATE` (prod `zanjir`, unconfirmed). **No real handset send has been made yet.**
+- Switch: `app_settings.otp_sms_enabled` (migration 016), changed in the admin panel (`/admin/settings`, **owner-only**, reason required, audited). While it is **off** (or no API key is set) `send-otp` sends nothing and `verify-otp` accepts `1111` for any existing phone — anyone who knows a number can sign in, so switch SMS back on after testing.
+- A rejected send answers `502 sms_failed` and clears the stored code and cooldown.
+- Full detail, tests and prod setup: **docs/otp-sms.md**.
 
 ## 🔐 Guest Mode & Auth Strategy
 
@@ -660,58 +395,32 @@ No energy systems, no artificial wait timers, no interstitial ads during an acti
 
 ---
 
-## 🛒 Cafe Bazaar billing & release (2026-10-31)
+## 🛒 Cafe Bazaar billing
 
-Full release checklist, Bazaar-panel steps, store-listing text: **`docs/bazaar-release.md`**.
-
-- **Products** (`config.StoreProducts`, mirrored by `StoreProducts` in `client/lib/core/services/store_purchase_service.dart` and by the Bazaar panel): consumables `coins_100/350/1500` (+100/350/1500 coins), subscription `premium_monthly`. **«Remove ads» is not sold** — the app has no ad-free state. Prices live in the Bazaar panel; the buy sheet's price labels (`profile_sheets.dart`) must match them.
-- **Client:** Poolakey through a **vendored** `flutter_poolakey` (`client/third_party/flutter_poolakey`, Apache-2.0; only `android/build.gradle` differs from 2.2.0+1.0.0 because upstream's buildscript pulled AGP 7.4.2/jcenter and broke the build; JitPack is declared in `android/build.gradle.kts`). `core/services/billing_gateway.dart` wraps it. **The vendored plugin's native `connect` never completes the Dart call** (the result arrives only via `onSucceed`/`onFailed`), so `PoolakeyGateway.connect()` must not `await` it — it waits for the callbacks with an 8 s timeout (the first version awaited it and every buy button hung silently). The coin shop is one dialog, `showBuyCoinsDialog` (`features/profile/view/widgets/buy_coins_dialog.dart`, canvas `ZCoinShop` frames 17a/17b): pack picker (middle pack preselected, «٪ به‌صرفه‌تر» tags computed from the pack prices), the pay button turns into «در حال اتصال به کافه‌بازار…» with a spinner while the purchase runs (dialog cannot be closed then), then a «N سکه اضافه شد!» state; a cancelled/failed purchase toasts and returns to the picker. The canvas' «رسید به پیامک» and «درگاه بانکی» claims were replaced with true copy. The old blocking progress dialog is gone; a subscription purchase shows an info toast «در حال اتصال…» and `_LoadedView._purchasing` still ignores a second tap. Goldens: `test/features/profile/buy_coins_dialog_golden_test.dart`. (`BillingItem` carries the signed receipt `receiptJson` + `signature`); `StorePurchaseService` (`buy`, `restore`) buys with the account id as payload, posts `{product_id, purchase_data, signature}` to the server, updates the balance, and **only then consumes** a coin pack. `restore()` (sign-in, launch, app resume, throttled 5 min) verifies+consumes packs left unconsumed after a crash and re-verifies the subscription (renewals). Profile `_purchase` sends guests to `/login?return=/profile`. `MonetizationService` now only keeps the local coin balance used by the solo «continue with coins» flow (still a mock — see Known gaps).
-- **Server:** `POST /api/v1/payments/bazaar/verify {product_id, purchase_data, signature}` (auth) → `PurchaseService.VerifyBazaar` → `BazaarRSAVerifier` → `PurchaseRepository`. **No Bazaar developer-API/OAuth client is used** (the panel only offers an RSA key): Bazaar signs each purchase receipt (Poolakey `originalJson` + `dataSignature`, SHA1withRSA) and the server checks it offline with the app's public RSA key, then trusts the **signed** `productId`/`purchaseToken`/`packageName`/`purchaseState`/`developerPayload`, never the request fields. Migration `018_store_purchases`, unique `(store, purchase_token)`: a coin pack credits **once per token** (repeat = `already_processed:true`, 0 coins, so the client can still consume), a token belongs to the first account that redeems it (`409 purchase_already_claimed`), refunded receipts, another package/product and a forged or tampered signature are `400 purchase_invalid`, a mismatching `developerPayload` is `409 purchase_already_claimed`. **Subscriptions:** the receipt has no expiry, so a purchase is worth `config.PremiumPeriod` (30 days) from the signed `purchaseTime` (capped at now), and every verified report of a still-listed subscription keeps `premium_until` at least `config.PremiumReverifyWindow` (72 h) ahead of now (`premium_until = max(current, purchaseTime+30d, now+72h)`; never shortened). The client re-reports at sign-in and every resume (`restore`); a renewal whose receipt keeps the old purchase time is carried by the 72 h window, a lapsed subscription stops being reported and premium ends 30 days after the last purchase time (+ up to 72 h). (A first version granted only the 72 h window — a real purchase showed 3 days; fixed 2026-11-03.) A modified client could replay an old signed receipt to keep premium (cosmetic perk only); closing that needs the developer API. Errors: `400 unknown_product|purchase_invalid`, `409 purchase_already_claimed`, `503 payments_unavailable` (key not set/unparsable) — all with Persian entries in `error_messages.dart`.
-- **Config:** `BAZAAR_PACKAGE_NAME` (default `com.ataei.zanjir`), `BAZAAR_RSA_PUBLIC_KEY` (base64 key from the Bazaar panel → in-app payments; compose files forward them; payments are off until the key is set). On the client the same key goes into `PoolakeyGateway.rsaKey` (`billing_gateway.dart`, a public constant like set-game's; empty = no on-device check, the server still verifies; **currently empty — paste the com.ataei.zanjir key**) and is passed to `FlutterPoolakey.connect`.
-- **Android release signing:** `client/android/key.properties` (gitignored; template `key.properties.example`) → `~/keystores/zanjir-release.jks`, alias `zanjir`. A release build without it fails by design. **Back the keystore up** — Bazaar updates must use the same key. Version is `1.0.0+5`.
-- **Tests:** `service/purchases_test.go` (real Postgres; the test plays Bazaar with a generated RSA key: idempotent credit, forged/tampered/other-package/other-product/refunded/foreign-token/payload rejection, subscription window never shortens, unconfigured key), `client/test/core/services/store_purchase_service_test.dart` (buy/verify/consume order, cancel, Bazaar missing, paid-but-offline, restore).
-- **NOT verified:** a real purchase. The receipt JSON field names (`productId`, `purchaseToken`, `packageName`, `purchaseState`, `developerPayload`) are assumed from Poolakey's `PurchaseInfo`; nothing has run on a device with the Bazaar app, and `BAZAAR_RSA_PUBLIC_KEY` is not yet set in prod. Deploy and run the test plan in `docs/bazaar-release.md` §5 before announcing.
-
----
+- Products (`config.StoreProducts`, mirrored in `store_purchase_service.dart` and the Bazaar panel): coin packs `coins_100/350/1500`, subscription `premium_monthly`. «Remove ads» is not sold.
+- Client: vendored `flutter_poolakey` (`client/third_party/`); `PoolakeyGateway.connect()` must **not** `await` the native connect (it never completes — wait for the callbacks with a timeout). `StorePurchaseService` buys, posts the signed receipt, and only then consumes a coin pack; `restore()` runs at sign-in/launch/resume.
+- Server: `POST /payments/bazaar/verify {product_id, purchase_data, signature}` checks the receipt offline with the app's RSA public key (`BAZAAR_RSA_PUBLIC_KEY`, `BAZAAR_PACKAGE_NAME`; `503 payments_unavailable` until set) and trusts only the signed fields. Credit is idempotent per purchase token (unique `(store, purchase_token)`); a subscription is 30 days from the signed purchase time, kept ≥72 h ahead on every verified report.
+- Release signing: `client/android/key.properties` (gitignored) → `~/keystores/zanjir-release.jks`; back the keystore up. Version `1.0.0+5`.
+- **Not verified:** a real purchase; receipt field names are assumed from Poolakey; the RSA key is not set in prod nor in `PoolakeyGateway.rsaKey`.
+- Full detail: **docs/bazaar-billing.md**; release checklist: **docs/bazaar-release.md**.
 
 ## 👑 Premium Perks (Phase 22)
 
-Cosmetic/social only — **never gameplay advantages** (no free power-ups in multiplayer, no entry-fee discounts, no matchmaking edge).
-
-- **State:** `users.premium_until` (TIMESTAMPTZ, migration `010_premium_perks`) — premium ⇔ `premium_until > now()`. It is set **server-side only**; no client endpoint can grant it. **Cafe Bazaar billing is built** (§ Cafe Bazaar billing; Myket / other gateways are not), and the admin panel can still grant premium (Users → user detail → premium grant/revoke; extends any remaining time). Manual coin top-ups: the same page (coins ±, or a claimable `admin_gift` reward). The old `grant_premium.sh` / `grant_coins.sh` SSH scripts were deleted (2026-10-27). The profile «اشتراک ویژه» button now buys `premium_monthly` through Cafe Bazaar (§ Cafe Bazaar billing); the old `MockMonetizationService.purchase` that faked success is gone.
-- **Catalogues are server-managed (add/remove with no app release).** Taunts live in the `taunts` table (`id`, Persian `text`, `sort_order`), avatars in `avatars` (`id`, image `BYTEA`, `content_type`, `sort_order`). Nothing is compiled into the server or bundled in the APK (the 16 avatar PNGs were removed from `client/assets/`; the originals are kept as seed data in `scripts/seed/avatars/`). `service.CatalogService` serves reads from a 30 s in-memory copy that admin writes invalidate. **Public:** `GET /perks/catalog` (`{taunts:[{id,text}], avatars:[{id}]}`, picker order) and `GET /avatars/:id/image` (ETag + `max-age=86400`, so a replaced image reaches clients within a day). **Admin** (header `X-Admin-Key` = `ADMIN_API_KEY`; unset ⇒ routes 404): `PUT /admin/taunts/:id` `{text, sort_order?}` (add or edit), `DELETE /admin/taunts/:id`, `PUT /admin/avatars/:id` (multipart `image` PNG/JPEG/WebP ≤ `config.AvatarMaxBytes` 256 KB, sniffed from the bytes; optional `sort_order`), `DELETE /admin/avatars/:id` (also clears it from every user who picked it). Ids: lowercase `[a-z][a-z0-9_]`, taunt ≤ 32 / avatar ≤ 24 chars; taunt text ≤ `config.TauntMaxTextRunes` (60). **Use `bash scripts/perks_admin.sh list | taunt add|rm | avatar add|rm | seed`** — it runs curl on the production host over SSH against `127.0.0.1:18080` and reads `ADMIN_API_KEY` from `/opt/wordchain/.env` there (the key never crosses the network; `WORDCHAIN_API=… ADMIN_API_KEY=…` targets a local backend instead). The admin panel (Phase 23, A5) manages the same catalogues from `/admin` (reorder, uploads with usage counts; sessions must give a reason — the key script need not). **Prod:** `ADMIN_API_KEY` is set in `/opt/wordchain/.env` and the 16 seed avatars were uploaded (2026-10-11). nginx also exposes `/api/v1/admin/*` publicly — key/session-protected, but keep using the SSH script for key access. Client: `core/services/perks_catalog_service.dart` (`PerksCatalogService.cached` / `.refresh()`, last good copy in `shared_preferences`, never throws) feeds the taunt sheet and avatar picker; `AvatarTile` loads `GET /avatars/:id/image` with `Image.network` and keeps the initial as placeholder/error fallback (no disk image cache yet — `cached_network_image` would add one). Removing an avatar or taunt takes effect immediately for new picks; clients with a stale list just fail to load the image (initial shown) or the server ignores the taunt id.
-- **Taunts (1v1 multiplayer):** premium players *send* preset messages, everyone *receives* them (the free-user exposure is the upsell). Client sends `send_taunt {taunt: id}`; `Room.processTaunt` ignores IDs missing from the catalogue (`TauntLookup`), re-checks the subscription on every send (`PerkLookup.GetPerks`, DB lookup outside the room lock), and enforces `config.TauntCooldownSec` (5 s) + `config.TauntMaxPerMatch` (8) per player. The broadcast `taunt` event carries `text` as well as the id, so a client with a stale catalogue still shows a newly added taunt. Preset IDs only — **never free text**. UI (`features/game/view/widgets/z_taunt_tray.dart`): chunky `ZTauntButton` beside ZVersus' input card (crown badge for premium, lock for free players), `ZTauntTray` (a `showZDialog` card; sub-line states the real cooldown/cap from `GameConstants.tauntCooldownSec/tauntMaxPerMatch`; chips locked for free players), the latest taunt is an amber pill **inside the chain** under the sender's last word (`ZVersusChain` → `ZBubbleChain(taunt:)`, 3 s, sender's side and disc; no word from the sender yet → under the newest word) driven by `GameActive.tauntId/tauntFromMe/tauntSeq`. A `taunt_rejected` reply shows a toast with the real rule. `game_start.state` sends `premium` + `avatars` + `usernames` (userID → username, humans only; `Room.usernameState`, `RoomDeps.Usernames`) for both players, so ZVersus shows the opponent's username (`GameActive.opponentUsername`); «حریف» remains only for the AI fallback (no username) or an old server.
-- **Avatars:** 16 IDs (`config.AvatarIDs`, opaque keys — the names no longer describe the art) rendered by `AvatarTile(avatarId:)` from the server-hosted image — the seed art is DiceBear **Lorelei** (by Lisa Wischofsky, **CC0 1.0**, no attribution required), seeds `zanjir-<id>`, calm-smile mouths only, pastel backgrounds; regenerate with `https://api.dicebear.com/9.x/lorelei/png?seed=zanjir-<id>&size=256&backgroundType=solid&backgroundColor=b6e3f4,c0aede,ffd5dc,ffdfbf,d1d4f9&mouth=happy01,happy02,happy03,happy04,happy05,happy06,happy13`. Swap for commissioned illustrations later with `perks_admin.sh avatar add <same id> <file>`. Picker: ZProfile → «تغییر آواتار» (premium) → `PATCH /profile/avatar`. `GetPerks` returns `avatar_id` only while premium is active, so a lapsed subscription silently falls back to the initial. Shown in ZProfile, ZVersus (via `game_start.state.avatars`), the **leaderboard** (all three tabs: `LeaderboardEntry.avatar_id` per row + `player_avatar_id` for the self row, via `LeaderboardService.attachAvatars`) and the **Friends tab** (read from the friends-leaderboard row the client already fetches for the weekly score; `GET /friends` itself carries no avatar). Not in the lobby's friend rows yet.
-- **Badge:** crown icon next to the name in ZProfile and in the ZVersus score pill (`game_start.state.premium`).
-- **Not built:** the 200 coins/week grant, a subscription-expiry push, the premium badge in the friends list (avatars are shown there; no premium flag is sent), the Flutter purchase flow.
-
----
+Cosmetic/social only — never gameplay advantages.
+- `users.premium_until` is set server-side only (Bazaar purchase or admin grant); premium ⇔ `premium_until > now()`.
+- Taunts (`taunts` table) and avatars (`avatars` table, image `BYTEA`) are server-managed, with no app release needed: public `GET /perks/catalog`, `GET /avatars/:id/image`; admin writes via the panel or `scripts/perks_admin.sh`.
+- 1v1 taunts: premium players send preset IDs only (`send_taunt`), everyone receives; the server enforces `TauntCooldownSec` and `TauntMaxPerMatch`. Avatars are picked in ZProfile (premium) and shown in profile, ZVersus, leaderboards and the Friends tab. Badge: a crown beside the name.
+- Not built: the 200 coins/week grant, a subscription-expiry push, a premium badge in the friends list.
+- Full detail: **docs/premium-perks.md**.
 
 ## 🛠️ Admin Panel (Phase 23)
 
-Web panel (React, RTL Persian, embedded in the Go binary) for operators. Plan, visual system and per-stage status/log: **ADMIN_PLAN.md** (stages A1–A7, one per session). **Stages A1 (backend), A2 (frontend scaffold, shell, login, embedding), A3 (dashboard), A4 (users & economy, ban) and A5 (content & catalogue) are done**; the remaining pages behind the nav are placeholders until A6–A7.
-
-- **Frontend (`admin/`, A2):** React 18 + TypeScript + Vite + Tailwind v4 (+ Radix, TanStack Query, React Router, `date-fns-jalali`), RTL Persian, Estedad font. Commands (run from the repo root): `pnpm -C admin install` · `pnpm -C admin dev` (http://localhost:5173/admin/, proxies `/api` to :8080) · `pnpm -C admin typecheck && pnpm -C admin lint && pnpm -C admin test` · `pnpm -C admin build` (writes `backend/internal/adminui/dist`, clearing it first). Rules: colours only from `src/styles/tokens.css` (hex anywhere else fails `src/test/lint-rules.test.ts`), logical CSS only (no `ml-/pr-/left-/right-`), Persian digits via `lib/fa.ts`, Jalali dates in Iran time, backend error codes mapped to Persian in `lib/errors.ts`, all requests through `lib/api.ts` (cookie + `X-Requested-With` header + 401 → login). `/admin/kit` (dev server only) is a component gallery.
-- **Dashboard (A3):** read-only `GET /api/v1/admin/dashboard/summary` (users total/new/premium, coins in circulation, today's matches by bucket, daily participants, unclaimed rewards, live rooms/players via `Hub.Snapshot()`, matchmaking queue length, FCM configured flag) and `GET /admin/dashboard/timeseries?days=30` (1–90; per Iran-time day: signups, matches by bucket, daily attempts, coins claimed) — any admin role; `service/admin_dashboard.go`. Match buckets are derived (solo+on-device AI / 1v1 / online AI fallback / daily); the server cannot split solo from on-device AI. Charts use **Apache ECharts** (`echarts` + `echarts-for-react`, tree-shaken in `components/charts/EChart.tsx`, colours read from the CSS tokens at runtime via `useChartColors`); the dashboard route is lazy-loaded and refreshes every 60 s.
-- **Users & economy (A4):** reads for any role — `GET /api/v1/admin/users?q=&filter=premium|banned|new&sort=created|coins|xp|matches|username&order=&page=&page_size=` and `GET /admin/users/:id` (profile, stats incl. `rating`/`rated_games`/`peak_rating`, level progress, referrer/referred, last rewards/matches/daily attempts). Mutations need role ≥ operator, a required `reason` (3–200 chars) and write an audit row (`user.coins|premium_grant|premium_revoke|rename|avatar_clear|ban|unban`): `POST /users/:id/coins {mode: direct|reward, amount, reason}` (`direct` = atomic ± on the balance, `409 insufficient_coins` below zero; `reward` = claimable inbox reward of kind `admin_gift`), `POST /users/:id/premium {action: grant|revoke, days, reason}` (grant extends any remaining time), `PATCH /users/:id/username`, `POST /users/:id/avatar/clear`, `POST /users/:id/ban|unban`. Phones are masked (`0912*****67`) **server-side** for non-owners, who also cannot search by phone; OTP codes are never read. Code: `handler|service|repository/admin_users.go`; panel: `pages/Users.tsx`, `pages/UserDetail.tsx`, `pages/users/`, generic `components/ui/ReasonDialog.tsx` (typed confirmation for ban and premium revoke).
-- **Ban (migration `013_user_ban`: `users.banned_at`, `ban_reason`):** a banned account gets `403 account_banned` on `verify-otp` (checked before the code), `refresh`, every `RequireAuth` request (one PK lookup, no cache — immediate), the WS handshake, queue join and challenge create (`ensureCanAffordEntry`). Leaderboards hide banned users (all-time in SQL; weekly/friends dropped on read — the Redis score stays so an unban restores it; the weekly payout therefore skips them). `account_banned` is in `error_messages.dart`. **Not done:** a socket already inside a room is not kicked (effective at the next API call/handshake), and `send-otp` still texts a banned phone.
-- **Content & catalogue (A5):** reads for any role — `GET /api/v1/admin/taunts`, `/avatars` (uncached; with bytes/type and `users`/`active_users` per avatar plus the size/type limits), `/avatars/:id/usage`, `/daily?from=&to=` (default today-29…today+7; max 120 days, up to 60 days ahead), `/daily/:date` (stats, ranking, newest 100 attempts, payout status), `/leaderboards/weekly|alltime?limit=` (≤100; banned players hidden like in the app) and `/leaderboards/rewards?weeks=`. Mutations (role ≥ operator, audited, **panel sessions must send a `reason`**; the `X-Admin-Key` script path may omit it): the existing `PUT/DELETE /taunts|avatars/:id` (reason in the JSON body / multipart form field; avatar delete audits `users_cleared`), new `POST /taunts/reorder {ids, reason}` (every taunt exactly once, else `409 catalog_changed`) and `PATCH /daily/:date {start_letter, reason}` — **future days only** (today/past → `409 date_not_editable`, enforced in SQL too), letter must be in `engine.DailyStartLetters()` (`400 invalid_letter`); a future day the scheduler has not generated yet is created with `seed = date.Unix()` so the scheduler leaves it alone. Audit actions: `taunt.save|delete|reorder`, `avatar.save|delete`, `daily.start_letter`. Payout status is derived from the `daily_done` reward rows (`paid`/`pending`/`missed`/`not_due`/`no_players`), not just the Redis flag. Code: `handler|service|repository/admin_content.go` (+ `perks_catalog.go`); panel: `pages/Taunts.tsx`, `Avatars.tsx`, `Daily.tsx`, `DailyDetail.tsx`, `Leaderboards.tsx`, `lib/content.ts`. Taunt reordering uses `@dnd-kit` (pinned) with keyboard support and up/down buttons.
-- **Same-opponent flag (Phase 25 S4):** `GET /admin/users/:id` also returns `same_opponent {flagged, window_days, rated_games, top_games, top_opponent}`, computed from `rating_history` over the last `config.SameOpponentWindowDays` (7) days: flagged when more than half of the rated games (and at least `config.SameOpponentMinGames` = 4) were against one opponent. Panel: yellow banner + a line in the «بازی» card (`UserDetail.tsx`). Read-only advisory — no auto-ban, no audit row. Tests: `service/same_opponent_test.go`.
-- **Matches (A6, 2026-11-09):** `/admin/matches` (nav «مسابقه‌ها», `pages/Matches.tsx`, `MatchDetail.tsx`, `pages/matches/parts.tsx`, `lib/matches.ts`) — read-only, any role. `GET /api/v1/admin/matches?q=&kind=solo|versus|ai|daily&status=active|finished|abandoned|pending&from=&to=&page=&page_size=` (newest first, default 25, max 100; `pending` rooms hidden unless asked for; `q` = match id, or a player's username (partial) / user id; `from`/`to` are inclusive Iran days `YYYY-MM-DD`; anything unknown = `400 validation_error`) and `GET /admin/matches/:id` (`404 match_not_found`, also for a malformed id). Rows carry derived `kind` (same rule as the dashboard — solo vs on-device AI cannot be told apart), players (username, score, `is_ai`, `continue_used`, `rating_before`/`rating_after`/`rating_delta` from `rating_history` — null when unrated; humans first), `winner_id` (empty = draw), `duration_sec`, `chain_length` and, in the detail, `word_chain` from `game_state` (empty list when none stored; multiplayer stores `{word_chain, scores}`, solo/daily `{word_chain, score}`). No phone numbers are returned; player names link to the user page, and the user page's «مسابقه‌ها» tab links to the match. The word chain is shared in 1v1/vs-AI and `game_state` does not record who played which word, so the detail shows the chain unattributed. Code: `handler|service|repository/admin_matches.go`. Tests: `service/admin_matches_test.go` (real Postgres), `handler/admin_matches_test.go`, `admin/src/pages/Matches.test.tsx`. Not built: the live-rooms page (`/live`, still a placeholder) and the owner-only «close room».
-- **Notifications (A6, 2026-10-31):** `/admin/notifications` — see § Admin Notifications.
-- **Settings (2026-10-31):** `/admin/settings` (owner changes, any role reads) — the OTP SMS on/off switch, see § OTP delivery & the SMS switch.
-- **Embedding/serving:** the build is embedded with `//go:embed all:dist` (`backend/internal/adminui`; only `dist/.gitkeep` is committed) and served by `handler.AdminUIHandler` at `/admin` and `/admin/*` with SPA fallback, immutable caching for `assets/`, strict CSP, `X-Frame-Options: DENY`; it 404s like the API when no admin/key exists and obeys `ADMIN_IP_ALLOWLIST`; without a build it answers 503 "panel not built". **A backend rebuild is needed after every panel build** (`pnpm -C admin build && cd backend && docker compose up -d --build app`). `scripts/deploy_backend.sh` builds the panel (`pnpm -C admin install --frozen-lockfile && build`) before building the image, so Node/pnpm and Docker must be available on the deploy machine. **Public URL: `https://amirabbasataei.ir/admin/`**. The panel is always served at `/admin/` on the backend's own origin — the short-lived `/zanjir` prefix (`PANEL_PREFIX`, `lib/base.ts`) was removed when Zanjir took over the whole domain.
-- **Accounts:** `admin_users` (migration `012_admin`: username, bcrypt hash cost 12, `role` ∈ `owner|operator|viewer`, `totp_secret` (unused until A7), `disabled_at`, `last_login_at`). Entirely separate from player `users` and player JWTs. Password 10–72 chars; username `^[a-z][a-z0-9_.-]{2,31}$`.
-- **Sessions:** server-side in Redis — `admin:sess:<64-hex token>` → `{admin_id, role, created_at}`, idle TTL `ADMIN_SESSION_TTL` (2h, sliding) capped by an absolute 12h (`config.AdminSessionAbsoluteTTL`); `admin:sessions:<admin_id>` is a set of live tokens for revoke-all. Cookie `zanjir_admin`: httpOnly, `SameSite=Strict`, `Path=/`, `Secure` only when the request is TLS/`X-Forwarded-Proto: https` (there is no TLS yet). Every request re-reads the admin row, so disabling an admin or changing their role applies immediately; password change/disable also end all their sessions.
-- **Auth routes:** `POST /api/v1/admin/auth/login` `{username, password}` (public; 404 while no admin exists and no key is set) · `POST /admin/auth/logout` · `GET /admin/auth/me` (`{admin:{id,username,role,last_login_at,via:"session"|"key"}}`). Login failures are deliberately indistinguishable (`401 invalid_credentials`, same bcrypt cost for unknown users). **Throttling:** failed logins counted per IP (5) and per username (10) per 15 min → `429 rate_limited` + `Retry-After`.
-- **Middleware (`middleware/admin.go`):** `RequireAdmin(key, sessions)` accepts the session cookie **or** `X-Admin-Key` (actor `script`, role owner, so `scripts/perks_admin.sh` keeps working). Cookie-authenticated mutating requests (and login) must send `X-Requested-With: zanjir-admin` (`403 csrf_required`); key requests are exempt. `RequireRole(min)` → `403 insufficient_role`; `RequireAdminIP(allowlist)`. Taunt/avatar write routes now require role ≥ operator.
-- **Audit:** `service.AuditService.Record(ctx, actor, action, target, payload)` writes `admin_audit_log` (actor, optional admin_id, action, target, JSONB payload, ip). Currently recorded: `auth.login`, `auth.login_failed`, `auth.login_blocked`, `auth.logout`, `taunt.save|delete`, `avatar.save|delete`, `user.*` (A4, see above). New admin mutations must record an entry.
-- **Error codes** stay English (operator-only, `adminError`); the panel maps them to Persian.
-- **Accounts CLI:** `cmd/adminctl` (built into the image at `/adminctl`): `create-user <username> [role]`, `set-password`, `disable`, `enable`; the password is prompted without echo (or read from stdin when not a TTY), never taken from argv. Prod: `bash scripts/admin_user.sh <username> [role]` (also `--set-password|--disable|--enable <username>`), which SSHes in and runs it via `docker compose exec`. Locally: `docker compose exec app /adminctl create-user <name> owner`.
-- **Prod (2026-10-11):** deployed; first owner `amirabbas` created non-interactively (initial password was in root-only `/root/zanjir-admin-credentials.txt`, to be deleted after saving); `ADMIN_SESSION_TTL` / `ADMIN_IP_ALLOWLIST` can be set in `/opt/wordchain/.env` (already wired in `deploy/sites/wordchain/compose.yml`). nginx rate-limits `POST /api/v1/admin/auth/login` (5/min per IP) on top of the app's lockout. **HTTPS:** on since 2026-10-13; plain `http://` is redirected to https. `ClientIP()` still trusts all proxies (gin default), which is now safe in prod because nginx is the only entry and **overwrites** `X-Forwarded-For` with the real visitor IP (ArvanCloud ranges trusted via `set_real_ip_from`). A7 adds mandatory TOTP and the audit viewer.
-- **Tests:** `service/admin_auth_test.go` (miniredis + `testutil.FakeAdminStore`: login, lockout, idle/absolute expiry, revocation), `middleware/admin_test.go`, `handler/admin_auth_test.go`.
-
----
+React + TypeScript + Vite + Tailwind v4 RTL Persian panel in `admin/`, embedded in the Go binary (`backend/internal/adminui`) and served at `https://amirabbasataei.ir/admin/`. Plan and per-stage log: **ADMIN_PLAN.md**; full reference: **docs/admin-panel.md**.
+- Commands (from repo root): `pnpm -C admin install` · `pnpm -C admin dev` · `pnpm -C admin typecheck && pnpm -C admin lint && pnpm -C admin test` · `pnpm -C admin build`. **A backend rebuild is needed after every panel build.**
+- Rules: colours only from `src/styles/tokens.css`, logical CSS only, Persian digits via `lib/fa.ts`, Jalali dates in Iran time, all requests through `lib/api.ts`, backend error codes mapped to Persian in `lib/errors.ts`.
+- Auth: separate `admin_users` (roles `owner|operator|viewer`), Redis sessions (cookie `zanjir_admin`, CSRF header `X-Requested-With: zanjir-admin`), or `X-Admin-Key` (acts as owner, for scripts). Mutations need role ≥ operator and a `reason` from panel sessions. **Every new admin mutation must write an `admin_audit_log` entry** (`AuditService.Record`). Admin error codes stay English.
+- Pages done: dashboard, users & economy + ban, content & catalogue, matches (read-only), notifications, settings, word suggestions (Phase 24), product analytics (A8). Not built: live rooms (`/live`), A7 (mandatory TOTP, audit viewer).
+- Accounts: `cmd/adminctl` (`create-user`, `set-password`, `disable`, `enable`); prod via `bash scripts/admin_user.sh`.
 
 ## 🔋 Power-up Reference
 
@@ -804,83 +513,30 @@ All sent via FCM HTTP v1 API. Tokens registered at login (with the OS permission
 
 ---
 
-## 📣 Admin Notifications (admin stage A6, 2026-10-31)
+## 📣 Admin Notifications
 
-The panel page «اعلان‌ها» (`/admin/notifications`, nav «اعلان‌ها»; `pages/Notifications.tsx`, `pages/notifications/*`, `lib/notifications.ts`) sends a **push** (FCM), an **in-app message**, or both, to **everyone, a group, or specific users**. Tabs: ارسال اعلان · سابقهٔ ارسال · وضعیت مجوز اعلان. Reads (reach, preview, history) are open to every admin role; sending needs role ≥ operator and writes audit action `notification.send`. Code: `handler|service|repository/admin_notifications.go` (+ `repository/inbox.go`, `handler/inbox.go`).
-
-- **Who has allowed push — now explicit.** Before this, a `device_tokens` row proved nothing: FCM issues a token even when the player refused the OS permission, and the app registered the token at every start. Migration 017 adds `device_tokens.permission` = `granted | denied | not_determined` (reported by the app: `NotificationService.permissionState()` via `getNotificationSettings`, sent as `permission` on `POST /notifications/token`, re-sent on every app resume so a change in system settings is picked up) or `unknown` (rows from before the column; an old client that omits the field never overwrites a known value). An account's push state is its best device: `granted > unknown > denied > not_determined`, or `none` (no device — guests and accounts that never opened the app signed in). Visible in the panel in three places: the **وضعیت مجوز اعلان** tab (counts + share per state, devices by platform), the live **audience preview** in the composer, and the user page (state badge + devices; tokens are never exposed). `GET /admin/notifications/reach` backs the tab.
-- **Delivery rule:** a push goes to devices with permission `granted` or `unknown` of non-banned, signed-up accounts; `denied` / `not_determined` / no device only receive the in-app message. A push-only send to an audience with nobody deliverable is refused (`409 no_push_recipients`); push while FCM is not configured is refused (`409 fcm_not_configured`) instead of silently "sending". The OS permission is asked only once, from the Friends tab (`maybeAskNotificationPermission`) — expect low `granted` numbers until that moves (follow-up).
-- **Audience** (`repository.NotifAudience`): `all`; `segment` {premium any|yes|no, activity any|active|inactive + days 1–365 (by `player_stats.last_played_date`, Iran day), joined_within_days, push any|enabled (a `granted` device)|disabled}; `users` {user_ids ≤ 200, validated to exist and not be banned}. Banned accounts, unfinished signups and the system AI user are never recipients. `POST /admin/notifications/preview {audience}` sizes it (recipients + the permission breakdown) as the operator edits.
-- **Send** (`POST /admin/notifications {title ≤60, body ≤240, route, channels:[push|inapp], audience}`): the campaign row and every in-app `inbox_messages` row are created in one transaction (one row per recipient → per-user read state); the push is delivered **in the background** by `NotificationService.SendBatch` (8 workers, 15 min cap) and the outcome (accounts, devices, sent, failed, dead tokens removed) is written to the campaign; history rows refresh while `sending`. A restart mid-delivery marks leftovers `interrupted` (`FailStaleCampaigns` at startup). An identical title+body within 2 min is refused (`409 duplicate_recent`); sending to **all** needs a typed confirmation in the panel. `route` is whitelisted (`config.NotifRoutes`: /home /daily /friends /leaderboard /rewards /profile /messages) and travels as FCM `data.route` (the app already deep-links on it) and with the in-app message. Limits are in `config.Notif*`.
-- **Dead tokens:** only FCM's explicit `404 … UNREGISTERED` deletes a token (a bare 404 can mean a wrong project id and must never wipe tokens); `400 INVALID_ARGUMENT` keeps it.
-- **In-app messages (player side):** `GET /inbox` lists unread messages from the last 30 days (`config.InboxMessageTTL`, ≤ 50), `POST /inbox/:id/read` marks one read (idempotent; another player's or a malformed id is a silent no-op). Flutter: `features/messages/data/inbox_repository.dart`, `MessagesState.announcements` (counted in the bell badge), `AnnouncementTile` on `/messages` above the invitations — «باشه» marks it read, «نمایش» (only when it has a route) opens the screen and marks it read. A failing inbox fetch never hides friend requests. Guests have no inbox (no account to address).
-- **Not built / follow-ups:** scheduled sends, per-user read receipts for segment sends (the history shows the read count), rich content/images, an unsubscribe/mute setting, moving the permission prompt out of the Friends tab, a "re-ask" nudge for `not_determined`/`denied` players, running the send path on a real device (iOS also needs `GoogleService-Info.plist` + APNs key).
-- **Tests:** `service/admin_notifications_test.go` (real Postgres: permission breakdown, segment filters, push + in-app send, specific users, banned/unknown rejected, validation, deliverable check, duplicate guard, reach/history, permission upsert), `handler/inbox_notifications_test.go`, `admin/src/pages/Notifications.test.tsx`, `client/test/features/messages/inbox_messages_test.dart`. Verified live against the local backend: preview/reach/send/history over HTTP and the FCM failure path (fake token → `400 INVALID_ARGUMENT`, kept). **Not verified:** a push actually arriving on a device, and the Flutter permission report (no device here).
+Panel page `/admin/notifications` sends a push (FCM), an in-app message, or both to everyone, a segment, or chosen users (role ≥ operator, audit `notification.send`). Pushes go only to devices with permission `granted`/`unknown` (`device_tokens.permission`, migration 017, reported by the app on every resume); push while FCM is unconfigured is refused (`409 fcm_not_configured`). Player side: `GET /inbox`, `POST /inbox/:id/read`; messages appear on `/messages`. Routes are whitelisted in `config.NotifRoutes`. A push actually arriving on a device is **not verified**. Full detail: **docs/admin-notifications.md**.
 
 ## 📈 Product Analytics (admin stage A8)
 
-Self-hosted behaviour events + retention, shown in the admin panel page «تحلیل رفتار» (`/admin/analytics`). **No Firebase Analytics** (user's choice; Google is unreliable from Iran) and **no ClickHouse** (the prod host is 1 vCPU / 2 GB shared) — plain Postgres: a monthly-partitioned raw table plus rollups. Moving to ClickHouse later is a copy job (append-only table, stable schema). Original plan: **ANALYTICS_PLAN.md**.
+Self-hosted behaviour events + retention (no Firebase Analytics, no ClickHouse); panel page `/admin/analytics`. Plan: **ANALYTICS_PLAN.md**; full detail: **docs/product-analytics.md**.
+- Client `AnalyticsService.trackEvent(AnalyticsEvent.x, {props})` writes to Drift `local_analytics_events`; `flush()` uploads to the public `POST /analytics/events` (never during `/game`). Identity is a random `install_id`; the server stamps `user_id` from the JWT, never from the body.
+- Event names are a fixed vocabulary — adding one means touching **three** places: Dart `AnalyticsEvent`, Go `service.AnalyticsEventNames`, and the panel's `lib/analytics.ts` `EVENT_LABEL` (pinned by a test). **No phone, free text or word contents in props.**
+- Storage: monthly-partitioned `analytics_events` (unique on `(client_event_id, ts)`), rollups per Iran day kept forever, raw rows 6 months; the scheduler maintains partitions and rollups.
+- Not built: a user opt-out switch (the privacy page says so honestly — update it when one ships).
 
-- **Identity:** `install_id` (random UUID in `shared_preferences`, key `analytics_install_id`) tracks guests, who are most players. The server stamps `user_id` from the JWT on the upload request — **never from the body** — and links the install to the account (`analytics_installs.user_id`, latest account wins, a guest batch never unlinks), so a guest's pre-signup funnel joins up with the account. A bad/expired token is treated as a guest (the request still succeeds).
-- **Client** (`core/services/analytics_service.dart`): `trackEvent(AnalyticsEvent.x, {props})` (a no-op until `AnalyticsService` is in get_it, so blocs/cubits need no constructor changes in tests) writes to the Drift table `local_analytics_events` — never straight to the network, so tracking works offline, survives a kill, and costs nothing during a solo/AI game. `flush()` uploads ≤100 events per request (≤5 requests per flush) and deletes rows only after a 2xx; a `400` drops the batch (it can never succeed), anything else keeps it. Flush triggers: app background, app foreground, every 60 s **except while on `/game`**, after a game ends, after login/signup. The buffer is capped at 5 000 rows (oldest dropped). **Sessions** = one foreground stint (`session_start` on launch/resume, `session_end {duration_ms}` on background). **Screens:** `RouterScreenTracker` listens to the GoRouter delegate (this also covers the bottom-nav tabs and `go()`; a `NavigatorObserver` would miss tab switches) and records `screen_view {duration_ms}` for the screen being left; background time is not counted, and a backgrounded screen is closed and re-entered on resume (so views are slightly over-counted, durations are right). Screen names are route paths (`/home`, `/game`, …); the splash is ignored.
-- **Vocabulary** (fixed enum; the server drops unknown names, so add both sides — Dart `AnalyticsEvent`, Go `service.AnalyticsEventNames`, panel `lib/analytics.ts` `EVENT_LABEL`, which a test pins): `app_open session_start session_end screen_view signup login identify game_start game_end continue_used powerup_used daily_start daily_end queue_join queue_leave match_found ad_watched purchase_tap share friend_request challenge_sent word_suggest`. Daily Challenge games emit `daily_start/end` **instead of** `game_start/end`. `game_end` props: `mode opponent result(win|loss|finished) reason words score duration_ms`. **No phone, free text or word contents in props** (privacy; the privacy page discloses analytics, § Legal Pages). No opt-out switch yet.
-- **Where events fire:** `GameBloc` (`_trackGameStart` in the solo path and `_handleWsGameStart`; `_trackGameEnd` from `_saveAndEmitFinal` and `_handleWsGameOver`, guarded to once per match; continue; power-ups), `LobbyCubit` (queue/match), `AuthCubit.verifyOtp` (signup/login + identify + flush), `AdService.showRewardedAd` (only when rewarded), `ShareService`, `FriendsRepository`, ZProfile `_purchase`. A game left mid-way has a start but no end (= abandonment).
-- **Ingest** (`POST /api/v1/analytics/events`, public; `handler|service|repository/analytics.go`): body `{install_id, platform, app_version, events:[{client_event_id, name, ts(ms), session_id, screen, props}]}`; ≤100 events, ≤256 KB (`config.Analytics*`), props ≤1 KB JSON object, `duration_ms` must be a number 0..24 h (else dropped from props), screen `[A-Za-z0-9_/:.-]{1,64}`. A malformed event is *counted in `rejected`*, not a batch error, so one unknown name from a newer client cannot make a queue retry forever; a bad envelope is `400 validation_error`. Response `{data:{accepted, rejected}}` — duplicates are neither. Client timestamps outside [now−7 d, now+5 min] are replaced by server time (a wrong device clock must not file events in a far-off partition). Redis rate limit: 30 requests/min per install and 600/min per IP (carriers NAT many players), failing open if Redis is down → `429 rate_limited`.
-- **Storage** (migration `014_analytics`): `analytics_events` is `PARTITION BY RANGE (ts)` by month — **`ts`, not `server_ts`**, because a unique index on a partitioned table must include the partition key and `(client_event_id, ts)` is the only pair that is identical on a client retry, which is what makes ingest idempotent (`ON CONFLICT DO NOTHING`; deviation from ANALYTICS_PLAN.md). Indexes: BRIN on `ts`, `(install_id, ts)`, `(user_id, ts)`, `(name, ts)`. `analytics_installs` (install → user, Iran-date `first_seen`/`last_seen`; `first_seen` only moves earlier because offline batches arrive late). Rollups, all keyed by Iran day: `analytics_daily_active (day, install_id, user_id, events)`, `analytics_daily_counts (day, name, count, uniques)`, `analytics_daily_screens (day, screen, views, total_ms, median_ms)`, `analytics_daily_sessions (day, sessions, total_ms)`. Partitions: the migration creates last/this/next month; `main` ensures them at startup and the scheduler every 5 min (an insert with no partition fails).
-- **Scheduler** (`service.AnalyticsMaintenanceService`, off the ticker goroutine, one pass at a time): every 5 min ensure partitions; every 15 min `RefreshRecent` (rebuild today's + yesterday's rollups — the panel is up to 15 min behind); once per Iran day (Redis flag `analytics:rollup:<date>`) `RunDailyPass` rebuilds the previous `config.AnalyticsRollupLookbackDays` (8) days (late offline uploads) and drops raw partitions ending before `config.AnalyticsRawRetentionMonths` (6) months ago. Rollups are kept forever. `RollupAnalyticsDay` is idempotent (delete + insert in one transaction).
-- **Admin API** (any role, read-only; `handler|service|repository/admin_analytics.go`): `GET /api/v1/admin/analytics/overview?days=` (DAU/WAU/MAU, stickiness = DAU÷MAU, new installs, avg session of the last 7 days, daily series), `/retention?from=&to=&by=install|user` (cohort × D0..D30; cohort = first-seen day for installs, first signed-in active day for users; `null` = that day hasn't happened; cached 5 min in Redis), `/funnel?steps=a,b,c&days=` (2–6 steps; **raw events**, per install, each step's first occurrence at/after the previous step's), `/screens?days=` (views, average and *approximate* median — views-weighted mean of the daily medians), `/events?days=&names=` (daily counts), `/users/:id/timeline` and `/installs/:id/timeline` (`?before=&limit≤500`; the user timeline covers every linked install, so the guest history before signup is included). `days` is 1..90, a bad parameter is `400 validation_error`.
-- **Panel** (`admin/src/pages/Analytics.tsx`, `analytics/Timeline.tsx`, `InstallTimeline.tsx`, `lib/analytics.ts`): tabs نمای کلی · بازگشت کاربران (heat map, blends the blue token over the surface) · قیف · صفحه‌ها · رویدادها; a «رفتار» tab on `UserDetail`; `/analytics/installs/:id` for a guest. Nav item «تحلیل رفتار».
-- **Build/ops:** the uploaded `app_version` is `version+build` read via `package_info_plus` (`core/services/app_version.dart`, also shown on the splash) in `AnalyticsService.start()` (`unknown` if it cannot be read). Migration 014 is applied by the normal deploy. After the first prod deploy the panel shows data once the first 15-minute rollup has run.
-- **Not built / follow-ups:** an opt-out switch in ZProfile (the privacy page says honestly that none exists — update it when one ships); `identify` is also implicit (every batch carries the JWT) so existing signed-in users link on their next upload; on-device verification of the Flutter tracker (see ADMIN_PLAN.md § A8 log); the Drift v1→v2 migration has only been compiled, not run on a real upgrade.
+## 📝 Word Suggestions (Phase 24)
 
----
+Players report missing words (and flag bad AI words); an admin approves in the panel («پیشنهاد کلمات», `/admin/content/words`); approved words reach every mode without an app release. Reward 25 coins (`config.CoinWordSuggestion`) for the earliest signed-in reporter of an approved `add`; guests may report but earn nothing; no reward for removals. 24a (backend + panel) is on prod; 24b (Flutter) is built but **not verified on a device**.
+- Go: `fa.txt` is the immutable base; an atomic overlay (`engine.ApplyOverrides`, loaded from `dictionary_overrides`) holds added/removed/AI-blocked words and every validator honours it. Single server instance assumed.
+- API: `POST /words/suggestions` (public, optional Bearer; guests send the analytics `install_id`), `GET /words/suggestions/mine`, `GET /dictionary/delta?since=N`; admin routes under `/admin/words/*` and `/admin/dictionary/*` (audited).
+- Client: `DictionaryDeltaService` applies the cached delta at start and refreshes on resume; reporting UI lives in `features/words/` (ZOver pill, flag dialog, missing-word toast in lives modes, Profile card, «پیشنهادهای من»).
+- Fold approved words into `fa.txt` at release with `bash scripts/sync_dictionary.sh [--dry-run]`, review `git diff`, redeploy, ship a client build.
+- Full detail, tests, goldens and to-dos: **docs/word-suggestions.md**.
 
-## 📝 Word Suggestions (Phase 24 — 24a and 24b built, on-device check pending)
+## 📜 Legal Pages — Terms & Privacy
 
-Why: `fa.txt` (24k words) can never be complete; a valid word rejected as `not_in_dictionary` costs the player a game. Players report missing words, an admin approves them, and approved words reach **all** modes without an app release (multiplayer instantly; solo/vs-AI through a dictionary delta the app fetches). Players can also flag AI words that are unreal or inappropriate. **Decisions (2026-10-27):** reward **25 coins** per approved word (`config.CoinWordSuggestion`); **guests may report** but earn nothing; **no reward for removal reports**; sessions 24a (backend + panel) and 24b (Flutter).
-
-- **Still do a final dictionary top-up before launch** (same policy as § Appendix: Dictionary) — the report loop covers the long tail, it does not replace curation. The curated-list decision (no 162k list) stands.
-
-### 24a — built (backend + admin panel)
-- **Migration `015_word_suggestions`:** `word_suggestions` (unique `(word, kind)`, kind `add|remove`, status `pending|approved|rejected`, `outcome` add|remove|ai_block, denormalised `reporters` count, review note/by/at); `word_suggestion_reports` (PK `(suggestion_id, reporter_key)`, key `u:<user id>` or `i:<install id>` so a player counts once; `reason` not_a_word|inappropriate for removals); `dictionary_overrides` (`word` PK, `present`, `ai_blocked`, `seq` from `dictionary_overrides_seq`) — one row per changed word holding its desired state. Suggestion ids have gaps (a repeat report's upsert burns a sequence value) — harmless.
-- **Go engine (`engine/dictionary.go`):** `fa.txt` stays the immutable base map; an atomic copy-on-write **overlay** (`engine.ApplyOverrides([]Override)`) holds added/removed/ai-blocked words, so every WS move and AI turn reads lock-free and an admin approval is live immediately. `IsValid`, `SuggestWord`, `SelectAIWord` all honour it; `IsAIBlocked`, `InBase` are exported. There is deliberately **no** embedded list of curation-rejected words (`rejected_words.txt` / `IsKnownRejected` were removed 2026-11-09: it auto-refused valid player suggestions with `409 word_already_reviewed`; every `add` report now reaches the admin queue, where the policy `warnings` still flag conjugations/plurals). Overrides are loaded at startup (`service.DictionaryService.Load`, `main.go`) — **single server instance assumed** (each instance would need to re-Load).
-- **Player endpoints (public, `handler/words.go`):** `POST /words/suggestions` `{word, kind: add|remove, reason (remove only), install_id}` — Bearer token optional (valid → the account is the reporter, bad → guest; a guest must send a UUID `install_id`, the same one as analytics) → `{status:"pending", already_reported}`. Rules: ≤`WordSuggestMaxRunes` (30), Persian chars/≥2 letters (`400 invalid_word`); `add` of a word already valid → `409 word_in_dictionary`; `remove` of a word not in the dictionary → `409 word_unknown`; an already-decided suggestion, or an already AI-blocked word → `409 word_already_reviewed`; Redis daily caps per reporter (`WordSuggestPerDay` 10) and per IP (`WordSuggestPerIPPerDay` 60), Iran day, fail-open → `429 rate_limited`. `GET /words/suggestions/mine` (auth) lists the player's reports with `status`, `outcome`, `rewarded`. `GET /dictionary/delta?since=N` → `{seq, more, reset, changes:[{word, present, ai_blocked}]}` served from memory (`no-store`), ≤`DictDeltaMaxRows` per call (loop while `more`); `reset:true` = the client's seq is ahead of the server's, drop the cached delta first. Persian entries for the new `respondError` codes are already in `client/lib/core/utils/error_messages.dart`.
-- **Reward:** created **inside the approval transaction** for the earliest signed-in reporter (`inbox_rewards` kind `word_suggestion`, ref = word, detail = word, `coins` 25, claimed via the normal `/rewards` flow), plus a Persian FCM push (`AdminWordService.notifyApproved`). Idempotent via the `(user, kind, ref)` unique key.
-- **Admin API (`handler|service/admin_words.go`, `repository/words.go`; reads any role, writes role ≥ operator, all audited as `word.approve|reject|set|dismiss_miss`):** `GET /admin/words/suggestions?status=pending|approved|rejected|all&kind=&q=&sort=reporters|recent&page=&page_size=` (rows carry `in_dictionary`, `ai_blocked` and policy `warnings`: `suffix_of_known`, `verb_prefix`, `ends_in_hamza`; plus `pending:{add,remove}` counts), `GET /admin/words/suggestions/:id` (with reporters), `POST /admin/words/suggestions/:id/approve {outcome, note}` (removals need `outcome` `remove|ai_block`; **`remove` requires a reason**, every other note is optional but ≥3 chars when given), `POST …/:id/reject {note}`, `POST /admin/words/bulk {ids ≤100, action: approve|reject, note}` (removals cannot be approved in bulk; failures reported per id), `POST /admin/dictionary/words {word, action: add|remove|ai_block|ai_unblock, reason}` (manual edit; reason required for panel sessions, optional for the key script), `GET /admin/dictionary/lookup?word=`, `GET /admin/dictionary/export` (words to fold into `fa.txt`: added / removed / ai_blocked), `GET /admin/dictionary/misses` + `POST …/misses/dismiss`. Approving an `add` also drops the word from the misses tally.
-- **Misses tally:** `ws.Room` reports every multiplayer `not_in_dictionary` rejection (word only, no user) to `service.WordMissService` (Redis zset `dict:misses`, capped at `WordMissesKeep` 5000, fire-and-forget) via `RoomDeps.WordMisses`.
-- **Panel (`admin/src/pages/Words.tsx`, `pages/words/*`, `lib/words.ts`; nav «پیشنهاد کلمات», `/admin/content/words`):** tabs پیشنهاد افزودن · گزارش حذف (both mounted so the tab badges show pending counts) · ردشده‌ها در بازی · ویرایش مستقیم (lookup, edit, export). Queue: search, status and sort filters, a «پیشنهاددهنده» column (2026-11-10: the first 3 signed-in reporters as links to the user page + «N مهمان» + «+N» for the rest — `reporter_list`/`guest_reporters` on each queue row, filled by `WordRepository.attachReporters`; the detail endpoint lists everyone), per-row approve/reject, «انتخاب همهٔ بدون هشدار» + bulk approve/reject, link to vajehyab for each word; removal rows offer «مسدود برای AI» (ai_block) and «حذف از دیکشنری» (typed confirmation + reason).
-- **Tests:** `engine/overlay_test.go`; `repository/words_test.go` (real Postgres via `TEST_DATABASE_URL`); `service/words_test.go` (submit rules, rate limit, delta, approval + push, removal outcomes, bulk, manual edits, warnings); `ws/word_miss_test.go`; `admin/src/pages/Words.test.tsx`. Verified live against the local Docker backend (guest + signed-in submit, approve → delta + reward row, ai_block, panel UI approve).
-- **Deploying 24a:** `bash scripts/deploy_backend.sh` (rebuilds the panel too). Nothing needs configuring; migration 015 runs at startup. **Deployed to prod 2026-10-27** (migration 015 applied at startup; no live check of the word-suggestion endpoints was made on prod).
-- **Folding into fa.txt at release:** take the panel's export, append `added` to both `fa.txt` copies (byte-identical), delete `removed` from both; `ai_blocked` words stay in the file and in the overlay. **`bash scripts/sync_dictionary.sh [--dry-run]` does this** (2026-11-09): fetches `GET /admin/dictionary/export` from prod over SSH (same mechanism as `perks_admin.sh`; `WORDCHAIN_API` + `ADMIN_API_KEY` for a local backend), merges into both files, keeps them sorted in code-point order and idempotent, refuses non-Persian words and diverged copies. Afterwards review `git diff`, redeploy the backend and ship a client build. Tested against a fake export server only, not against prod.
-
-### 24b — Flutter client (built; not verified on a device)
-- **Dictionary delta (`core/services/dictionary_delta_service.dart`):** `DictionaryDeltaService.start()` (called from `main()` right after DI, before `AdService.init`) applies the cached delta (`shared_preferences` key `dictionary_delta_v1`: `{seq, changes:[{w,p,a}]}`) synchronously, then refreshes in the background (`GET /dictionary/delta?since=<seq>`, loops while `more`, ≤20 pages, honours `reset` by dropping the cache) and again on every app resume (throttled to once per 10 min, `minRefreshGap`). It never throws and never gates the first frame; offline = the last delta. `DictionaryService` gained `applyChanges(Iterable<DictionaryChange>)`, `aiBlocked` and a `DictionaryService.withWords(...)` test constructor; `selectAIWord` skips `aiBlocked` words (the player may still type them). Known edge: after a server `reset` the words applied earlier in the same run stay until the next start.
-- **Reporting (`features/words/`):** `WordSuggestionsRepository` (`suggestWord`, `flagWord(word, WordFlagReason.notAWord|inappropriate)`, `mine()`; guests send the analytics `install_id`, signed-in players are attributed by the Bearer token; errors → Persian via `errorMessageFor`), `WordReportCubit` (idle/sending/sent/failed; tracks the new analytics event `word_suggest {kind, source: game_over|chain|profile}` — added to the Dart enum, Go `AnalyticsEventNames` and the panel's `EVENT_LABEL` + its pinning test), `MyWordReportsCubit`. v1 is online-only (a failed send shows the Persian reason; no offline outbox).
-- **ZOver (`features/words/view/z_over_report_word.dart`, wired in `z_over_screen.dart`):** in the loss body, when the player's own word was refused as `not_in_dictionary` (`rejectedWord` set, not `'???'`, `iWon != true`), a pill ««X» درست بود؟ گزارش بده» reports it in one tap and turns into «گزارش شد؛ ممنون» + a toast (a guest is told the reward needs an account). Never offered for wrong-letter / already-used / too-short / timeout. After a game with an opponent (1v1 or vs-AI, both loss and win bodies) a link «کلمه‌ای اشتباه یا نامناسب بود؟» opens `FlagWordDialog` (pick a chain word + reason → removal report); solo has none. **`GameBloc` now keeps the server's last `word_rejected` (`_lastWsRejection`) so a multiplayer loss carries `rejectedWord`/`rejectionReason`** (before, the 1v1 subtitle showed ««» توی فرهنگ لغت نبود» with an empty word); it survives the `game_over` that follows a declined continue.
-- **Lives modes (solo + Daily Challenge) — report toast (`features/words/view/missing_word_toast.dart`):** these modes keep playing after a mistake, and Daily has no result screen (`ZOverScreen` is a transitional frame that auto-navigates to `/daily`), so a word refused as `not_in_dictionary` cannot be reported from ZOver there. Instead `showMissingWordToast(context, word)` shows an info `ZToast` — «X» تو لغات ما نبود، می‌خوای گزارش کنی؟ — with a ✓ beside the ✕ (label «گزارش بده», 7 s) that sends the word as an `add` suggestion (`WordReportCubit`, analytics `source: life_lost`) and confirms with a success/error toast. `GameBloc` keeps the refused word in `GameActive.lastMistakeWord` (set with `lastMistakeReason`, null for a timeout, cleared on the next accepted word). `_GameView` (`game_screen.dart`) fires it when `livesRemaining` drops with reason `not_in_dictionary`, and also on the Daily Challenge's *final* loss (`GameOver` with `mode == 'daily'`); the toast lives on the root overlay, so it survives the navigation to `/daily`. A solo game's final loss still uses the ZOver pill. Tests: `test/features/words/missing_word_toast_test.dart`, `test/features/game/game_bloc_life_lost_word_test.dart`, action cases in `z_toast_test.dart`. **Not verified on a device.**
-- **Profile (`profile_word_card.dart`, `suggest_word_dialog.dart`, `my_word_reports_dialog.dart`):** a card «کلمه‌ای کم داریم؟» between the invite card/guest upsell and the settings row — «پیشنهاد کلمه» (for everyone; local checks via `DictionaryService.hasValidChars`, ≥2 letters, "already in the game") and, signed in, «پیشنهادهای من» (status per report: در انتظار بررسی / اضافه شد / رد شد / حذف شد / برای هوش مصنوعی مسدود شد, plus «سکه در جوایز»). Reward text uses `GameConstants.wordSuggestionCoins` (25, mirrors `config.CoinWordSuggestion`).
-- **Rewards:** `rewardFace` renders kind `word_suggestion` («پاداش پیشنهاد کلمه», the word from `detail`, teal «ک» disc).
-- **Tests:** `test/core/services/dictionary_delta_service_test.dart`, `test/features/words/*`, `test/features/game/game_bloc_rejected_word_test.dart`, `test/features/rewards/reward_format_word_test.dart`, new cases in `z_over_screen_test.dart` (the harness now registers a fake `WordSuggestionsRepository` — any test that renders a loss with a `not_in_dictionary` rejection needs one).
-- **Goldens:** the four `z_profile_*` goldens were regenerated (the new card moves the layout; they passed on a clean HEAD here). **The `z_over_screen` win/loss-final goldens will also differ on a machine where they pass** (the flag link adds a row) — regenerate them there (`flutter test test/features/game/z_over_screen_test.dart --update-goldens`); on this Linux box those four, plus the solo/play/friends/login/daily/home/splash/bottom-nav/shared-widget goldens, already fail on a clean HEAD, so they were not touched.
-- **Still to do:** verify on a device/emulator (guest + signed-in report from ZOver and from the profile; approve in the panel and watch the word become valid in solo after the next resume; reward appears in `/rewards`); an offline outbox for reports; the privacy text now exists and covers reported words (§ Legal Pages); no opt-out switch for the new analytics event.
-- **Risks:** moderation load (mitigated by ranking and the policy warnings), reward farming (approval-gated + limits), brief client/server dictionary drift (multiplayer stays authoritative), offensive text stored in reports.
-
----
-
-## 📜 Legal Pages — Terms & Privacy (2026-10-27)
-
-Public, no-login pages: **`https://amirabbasataei.ir/terms`** («قوانین و مقررات استفاده») and **`/privacy`** («سیاست حریم خصوصی»). Required by Cafe Bazaar / Myket as the privacy-policy URL. **The text is a draft that has not been reviewed by a lawyer** — see the review list below.
-
-- **Hosting (option a):** server-rendered once at startup and **embedded in the Go binary** (`backend/internal/legal`, handler `handler.LegalHandler` in `handler/legal.go`, mounted in `main.go` after `/health`). It ships with `scripts/deploy_backend.sh`; **no nginx change** (nginx already proxies `/` to the backend). Routes: `GET|HEAD /terms`, `/privacy`, `/legal/assets/:name` (never `/api/v1/*` or `/admin`). Unknown paths keep gin's plain 404. ETag + `max-age=3600` on pages, `max-age=86400` on assets.
-- **Content lives in** `legal/templates/terms.html` and `privacy.html` (Go `html/template` fragments, `{{define "body"}}`), wrapped by `layout.html` and styled by `legal.css`. Headings are `<h2 id="…">`; **the table of contents is generated from them** (`buildTOC`), so add a section by adding an `<h2 id>`; it is auto-numbered in Persian digits (CSS counter). Owner name, contact email, version and date are constants in `legal/legal.go` (`Version`/`VersionFa`, `UpdatedISO`/`UpdatedJal`/`UpdatedFa`, `OwnerFa`, `ContactMail`). **When the text changes materially, bump `Version` + the date together** (current: **1.1, 1405/08/12 = 2026-11-03** — v1.1 added Cafe Bazaar payments); a future re-acceptance flow can compare against it.
-- **Design:** ZColors light/dark tokens as CSS variables (`prefers-color-scheme`), Vazirmatn 400/700 as self-hosted **WOFF2** (`legal/assets/`, converted from `client/assets/fonts`; OFL.txt is served beside them), RTL, ~65ch measure, sticky TOC on ≥900px and a collapsible one on phones (both rendered, one hidden; no JS), skip link, 44dp nav targets, print stylesheet. No external scripts/fonts/requests. **CSP is strict**: `default-src 'none'; style-src 'sha256-<hash of legal.css>'; font-src 'self'; …` — the stylesheet is inline and allowed by hash (computed at startup), so don't add inline `style=` attributes or scripts. The runtime image has no MIME database, so asset content types are set explicitly in `NewLegalHandler`.
-- **Tests:** `handler/legal_test.go` (200 + content type + headers, no external resources, TOC ↔ headings, HEAD/304, assets, no collision with `/api` and `/admin`, unknown paths 404).
-- **Client links:** `core/services/legal_links.dart` (`LegalLinks`, `LegalDoc.terms|privacy`, registered in get_it; URLs = `DioClient.baseUrl` + `/terms|/privacy`, so an `API_BASE_URL` build opens its own backend; opener injectable for tests; `url_launcher` with `LaunchMode.externalApplication` — plain Android intent / iOS `openURL`, no Google services). `openLegalDoc(context, doc)` (`core/widgets/legal_doc_opener.dart`) shows a Persian `ZToast` (`legalPageOpenFailedMessage`) when the browser cannot be launched. Entry points: the login sentence («با ورود، **قوانین** و **حریم خصوصی** زنجیر را می‌پذیرم.», `features/auth/view/widgets/legal_consent_text.dart`, two inline spans; inline links are exempt from the 44dp rule, line height raised to 1.9) and two 44dp `ProfileChunkButton`s at the bottom of ZProfile's settings (`ProfileSettings.onTerms/onPrivacy`, guests too). Tests: `test/core/services/legal_links_test.dart`, `terms and privacy links` group in `z_login_screen_test.dart`, `legal links` group in `z_profile_screen_test.dart`.
-- **What the pages claim (keep it true; update both pages when a fact changes):** phone + OTP via Kavenegar, 13+, one account per phone; guests play on-device but **anonymous analytics events are still sent** and local matches (even pre-login ones) are uploaded after sign-in; self-hosted analytics with a random install ID, linked to the account after sign-in, raw events 6 months, daily rollups (which include the install/user id) with **no expiry**, **no opt-out switch**; reported words stored with the reporter; third parties = Kavenegar, FCM (messaging only), Tapsell (rewarded ads, Android; its own policy linked), ArvanCloud, own server; nginx logs 14 days; DB backups 7 daily + 4 weekly; preset taunts only, no free chat; coins virtual/non-refundable; **payments go through Cafe Bazaar** (coin packs and the monthly subscription; we hold no card data, only the purchase receipt: product, purchase token, account, time — kept while the account exists; the terms explain the 30-day subscription period, that Bazaar handles renewal/cancel/refunds, and the claim-by-email route for a purchase that did not arrive; the privacy page lists Bazaar as a third party; admins can still grant premium); accounts can be banned; **no in-app account deletion** — deletion is by email to the owner with a 30-day promise (unimplemented operationally: there is no delete tooling, FKs on `matches`/`match_players` mean it must anonymise); governing law Iran.
-- **Not built / follow-ups:** an in-app «حذف حساب» flow (and the admin tooling behind the manual process); an opt-out switch for analytics; recording «accepted terms vX at time T» on the user (display-only for now: the login sentence is the only acceptance; add `users.terms_version/terms_accepted_at` + a `verify-otp` field when the text next changes); the Tapsell SDK is initialised with `setUserConsent(true)` and no consent screen (see `AdService.init`); clean up stale unverified-phone rows; nothing here has been checked on a device.
-- **Lawyer-review list:** the limitation-of-liability clause, the governing-law/jurisdiction line, the under-18 guardian wording, the account-ban / loss-of-coins terms, the 30-day deletion commitment, retention periods stated as commitments, the Tapsell consent handling, and whether an individual may publish without a registered entity or e-commerce (enamad) notice.
-
----
+Public pages `https://amirabbasataei.ir/terms` and `/privacy` (required by Bazaar/Myket), embedded in the Go binary (`backend/internal/legal`, `handler/legal.go`; content in `legal/templates/*.html`, strict CSP — no inline styles or scripts). **The text is an unreviewed draft** (lawyer-review list in the docs). When the text changes materially bump `Version` + date in `legal/legal.go` (current 1.1, 2026-11-03), and keep the claims true (analytics disclosure, third parties, no in-app account deletion, Bazaar payments). Client links via `LegalLinks` / `openLegalDoc` (login sentence and two ZProfile buttons). Full detail: **docs/legal-pages.md**.
 
 ## 🎓 Tutorial
 
@@ -897,9 +553,8 @@ Public, no-login pages: **`https://amirabbasataei.ir/terms`** («قوانین و
 - **All-time («همیشه», `type=alltime`):** `player_stats.rating` DESC (ties: more rated games, older account), only players with ≥ `config.RatingMinGamesForBoard` (**5**, lowered from 10 on 2026-11-10 so one number explains both this board and the weekly prize) rated games; banned + AI excluded in SQL. Rows: `score` = rating, `games` = rated games.
 - **Friends (`type=friends`):** the caller + accepted, non-banned friends by rating (no stats row = 1000); `player_rank` is now the caller's place **among friends** (fixes todo.md 2.13 for this board).
 - **Response:** `{entries, player_rank, player_score, player_games, player_avatar_id}` (+ `player_wins` on the weekly board). `player_rank` 0 = not on that board (no rated game this week / < 5 rated games); `player_score` is still the weekly Δ or the rating. The weekly rank of the caller counts banned players above them (as before S2).
-- **ZBoard client (`features/leaderboard/`, S3):** four tabs — «این هفته» (`type=global`: the week's **net جام**, signed «+۱۶» / «−۱۲», sub-line «۸ بازی · ۴ برد»), «امروز» (`GET /daily/leaderboard`, today's Daily Challenge, word points; rows carry `chain_length`, no avatar, no player score), «همیشه» (`type=alltime`: the rating, sub-line «N بازی»), «دوستان» (`type=friends`: friends by rating; `fetchFriends()` now trusts the server's `player_rank`/`player_score`). `LeaderboardEntry.games/wins` and `LeaderboardResult.playerGames/playerWins` carry the new fields; `boardScoreText/boardRowSub/selfSubtitle` (`board_parts.dart`) format them (the signed weekly value is laid out LTR). The weekly note adds the prize rule («جایزه برای کسیه که ۵ بازی کرده و جام این هفته‌اش مثبته»); the pinned self row says what the prize still needs («برای جایزه N بازی دیگه لازمه» / «… جام این هفته‌ات باید مثبت بشه»). **All-time provisional state:** a player with < 5 rated games has rank 0, the row still shows their rating and says «بعد از ۵ بازی رتبه می‌گیری. تا الان N بازی کردی.»; an empty all-time board shows «هنوز کسی رتبه نگرفته». Thresholds come from `GameConstants.weeklyMinRatedGames` (5) / `ratingMinGamesForBoard` (5) / `ratingPairCapPerDay` (3) / `ratingStart` (1000), mirrors of `config.*`. Each tab loads on demand and fails on its own; the weekly note shows the real prizes and the countdown to the Saturday 00:00 Iran-time reset (`untilIranWeekReset`). Per-stage detail in REDESIGN_PLAN.md § ZBoard and § Rating client (S3).
-- **«جام» elsewhere in the client (S3):** `GameBloc` parses `game_start.state.ratings` (`GameActive.myRating/opponentRating`; an opponent missing from a ratings map that holds mine is the AI fallback → `opponentIsAi`) and the follow-up WS `rating_update` (`_handleWsRatingUpdate` → `GameOver.rating` = `RatingChange{before, after, delta}` from `features/game/data/rating_change.dart`, `ratingPairCap` for `reason: pair_cap`; ignored unless the bloc is already in `GameOver`, so a late update lands on the result screen that is up). ZOver (1v1 only, win and loss bodies; **in a 1v1 loss the card leads** and `ZOverScoreCard(compact: true)` follows with a smaller «امتیاز کلمه‌ها», the opponent's points are not shown — they do not decide a 1v1; vs-AI keeps «امتیاز این دست» + «امتیاز حریف»; the XP chip is «تجربه»): `ZOverRatingCard` (`features/game/view/widgets/z_over_rating.dart`) — teal/coral chip «+۱۶» / «−۱۲» beside «جام تو ۱٬۰۱۶» and «قبلاً ۱٬۰۰۰»; pair cap → neutral «۰» chip + «امروز ۳ بار با این حریف بازی کردی. بازی‌های بعدیِ امروز جام نداره.»; AI fallback → «بازی با هوش مصنوعی جام نداره»; nothing while the update is on its way, after a draw or a failed rating write. ZVersus pill: each side's rating after the name (`ZVersusPill.myRating/opponentRating`). ZProfile (signed-in): `ProfileRatingCard` — big indigo «جام تو» tile with «بیشترین جام» and «بازی با جام» beside it (`ProfileStats.rating/ratedGames/peakRating`; `totalScore` is still parsed but not shown). No canvas frame exists for any of these (the canvas predates the rating); they are derived from the tokens.
-- **Admin panel (read-only):** the user page shows «جام» (rating, peak, rated games), the match detail shows each player's «جام ±N ← after» (from `rating_history`; `rating_before/after/delta` are null for unrated matches), «جدول امتیازات» shows the weekly net Δ / wins / games and the all-time rating.
+- **Client:** ZBoard has four tabs — «این هفته» (`type=global`, net جام of the week), «امروز» (`GET /daily/leaderboard`, word points), «همیشه» (`type=alltime`, rating), «دوستان» (`type=friends`). Thresholds are mirrored in `GameConstants` (`weeklyMinRatedGames` 5, `ratingMinGamesForBoard` 5, `ratingPairCapPerDay` 3, `ratingStart` 1000). The «جام» also shows on ZOver (1v1: `ZOverRatingCard`, fed by the WS `rating_update`), the ZVersus pill and ZProfile (`ProfileRatingCard`). Full client detail: **docs/rating-client.md**.
+- **Admin panel (read-only):** the user page shows rating/peak/rated games, the match detail shows each player's «جام ±N», the leaderboards page shows the weekly Δ and all-time rating.
 
 **Weekly reset (Saturday 00:00 Iran time = end of Friday, the Iranian week):**
 1. Read up to `config.WeeklyPrizeScanLimit` (200) weekly rows; the prizes go to the first 3 **eligible** players in board order — net Δ > 0 and ≥ `config.WeeklyMinRatedGames` (5) rated games that week — ranked 1–3 among the eligible (`service.WeeklyPrizeWinners`) → insert `weekly_leaderboard_rewards` (idempotent)
@@ -916,7 +571,6 @@ Tests written **inside the phase that introduces the code**.
 **Backend (Go):** Unit tests for `engine/`, `service/`, `scheduler/`. Repository tests use a real Postgres: `testutil.NewPostgres` creates a fresh migrated database on the server named by `TEST_DATABASE_URL` (locally `postgres://wordchain:wordchain@localhost:5433/wordchain?sslmode=disable`, port 5433 per `docker-compose.override.yml`) and skips when it is unset — `testcontainers-go` is not a dependency. Handler tests use `httptest` with stubbed service. WS tests use `httptest.Server` with real client. Target ≥ 70% coverage on `engine/` and `service/`.
 
 **Flutter:** Widget tests for each screen's primary states. Bloc/Cubit tests via `bloc_test`. Golden tests for `WordChainList` and `TimerBar`. Mock `DictionaryService`, `WebSocketService`, `NotificationService` — do not load the real wordlist.
-
 
 ---
 
@@ -969,10 +623,7 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 - ZProfile no longer draws the canvas's «صدا و لرزش» and «یادآور» toggles (nothing was persisted, no reminder scheduled — rebuilt 2026-10-25 without them); add them back only together with a real setting.
 - **`player_stats.wins` and `best_match_streak` are never written** (the server's only stats writers are `IncrementMatchStats` — `total_matches` + `longest_word`, solo/AI/daily uploads only — and `RecordGamePlayed`/`AddXP`), and local `wins` is never incremented, so a «برد» stat would always read 0 and ZProfile shows none. «بلندترین زنجیر» is the local `bestMatchStreak` (max of local chain length and the server's 0). `total_matches` does not count 1v1 games. `GET /profile/stats` sends no coin balance (the coin pill reads `AuthCubit.coins`).
 - Kavenegar SMS delivery: client implemented against the Lookup docs and tested against a fake server; no real handset send yet (see § OTP delivery & the SMS switch). Dev bypass `1111` is the admin-panel switch.
-- **FCM setup (done client-side, Firebase project `zanjir-269aa`):** `main.dart` initialises Firebase with `DefaultFirebaseOptions` and, while a user is signed in, registers the token (`NotificationService.registerToken`, also on token refresh). The OS permission is **not** asked at launch: the first time a signed-in user opens the Friends tab (on the view's first build — the shell builds a branch lazily, so the bottom-nav tap that opens it first fires on `TabRefreshBus` before the tab's listener exists — and on later taps), `maybeAskNotificationPermission` (`core/widgets/notification_permission_dialog.dart`) shows an explainer dialog once (flag in `shared_preferences`) and requests permission only if they accept. **Profile switch «اعلان‌ها»** (`features/profile/view/widgets/profile_notifications_switch.dart`, signed-in only, beside «حالت شب»; both are `ProfileSwitchButton`s): on = the player's in-app choice (`NotificationService.isEnabled()`, `shared_preferences` key `notifications_enabled`, default on) **and** OS permission granted; re-read on a profile-tab tap and on app resume. Switching **off** is an opt-out (`setEnabled(false)` stores the flag and returns at once — the switch flips immediately; unregistering the device on the server and deleting the FCM token run in the background, since FCM can be unreachable for seconds — and `registerToken`/`_postToken`/foreground toasts are all gated by the flag; in-app messages are unaffected; the admin panel then sees the account as push state `none`); the Friends-tab prompt is never shown after an opt-out. While a switch-on is in flight (OS prompt, token registration) the switch thumb is a spinner (`ProfileSwitchButton(busy:)`) and taps are ignored. Switching **on** stores the choice and, if the OS has not granted the permission, shows the same explainer dialog before the OS prompt (`askNotificationPermissionWithExplainer`, shared with the Friends tab); a refusal that the OS will no longer re-prompt (iOS after one refusal, Android after two) gets a toast pointing to the system settings (no `app_settings` package, so it cannot open that page). ZProfile's «خروج از حساب» is a full-width solid-coral `ProfileChunkButton(destructive: true)` and «کد دعوت داری؟» is full width above it. `AuthCubit.logout` deregisters it first. Foreground pushes (`foregroundStream`) show as an info `ZToast` on the root overlay (6 s; title + body as the grey second line) — reached through `rootNavigatorKey` (`core/router/app_router.dart`, passed to `GoRouter`) because the listener in `main.dart` sits above `MaterialApp` and has no overlay of its own — and each one also calls `MessagesCubit.refresh()`, so a pushed invitation updates the bell and Friends-tab badge at once (before, they only reloaded on a tab tap/Home load). All pushes use the `info` kind (FCM carries no type; a backend `data.kind` would be needed for error/coin styles). Opening `/game` clears the toast (`ZToast.dismiss()`). **Server delivery needs the service-account key:** download it from Firebase console → Project settings → Service accounts → Generate new private key and save it as `backend/secrets/fcm-service-account.json` (gitignored, mounted at `/secrets`), then `docker compose up -d --build app`. Until then sends are logged no-ops. **Dev caveat:** in Iran the Docker container can't reach Google (only the host does, via Nekoray), so FCM sends time out from the container; fine from a foreign server. Automatic pushes (friend request, streak, …) carry no `data.route` yet, so tapping one just opens the app (admin-composed pushes can carry one); iOS also needs `GoogleService-Info.plist` + APNs key (not done).
-
----
-
+- **FCM / push:** Firebase project `zanjir-269aa`; `main.dart` initialises Firebase in the background and registers the token while signed in (Firebase/push calls must never gate the first frame). The OS permission is asked once from the Friends tab behind an explainer dialog; the Profile «اعلان‌ها» switch is an in-app opt-out. Foreground pushes show as an info `ZToast` (never on `/game` — they go to `MessagesCubit.addMissed` instead). Server delivery needs `backend/secrets/fcm-service-account.json` (gitignored); without it sends are logged no-ops, and in Iran the local Docker container cannot reach Google. Automatic pushes carry no `data.route` yet; iOS still needs `GoogleService-Info.plist` + an APNs key. Full detail: **docs/push-fcm.md**.
 ## ⚠️ Important Notes for Claude Code
 
 - **After any backend change, rebuild and restart the backend** (locally it runs in Docker: `cd backend && docker compose up -d --build app`; production: `bash scripts/deploy_backend.sh`) and **always update CLAUDE.md** .
@@ -1019,14 +670,6 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 
 ---
 
-## 📎 Appendix: Dictionary & Word Frequency List
+## 📎 Appendix: Dictionary
 
-**Persian dictionary (`fa.txt`)** — the only word data in the project. 24,178 words, one word per line, no spaces, no teh marbuta (ة) or diacritics. Stored at `backend/internal/engine/data/fa.txt` and `client/assets/words/fa.txt` (byte-identical). History: 162,626 (noisy) → 17,414 in commit `2758a1c` → 17,321 → 21,527 on 2026-10-09 → 24,199 on 2026-10-13.
-
-**Decision (2026-10-09): the curated list is final; do not restore the 162k list.** It is the 17.3k curated list plus 4,205 words that passed *all* of: present in the Hunspell `fa` dictionary (or Wiktionary lemma) **and** OpenSubtitles frequency ≥ 30, not a verb conjugation/plural/colloquial spelling, then a manual review of every candidate. Policy: countries/cities/historic figures in, foreign first names out; infinitives and bare past forms («رفت») in, personal conjugations and imperatives out; no words ending in ء. The words rejected in that review were kept in `output/dictionary/rejected_words.txt` (untracked, offline only) so a future rebuild does not re-add them — the server no longer embeds or consults the list; the added words are visible in `git diff` of `fa.txt`. Source licenses (Hunspell fa, Wiktionary, OpenSubtitles) were **not** checked — verify before commercial release. Trap letters stay ژ ظ ث ذ ض (still the five rarest starts: 33–69 words).
-
-**2026-10-13 top-up (+2,673 words, appended at the end of `fa.txt`):** from a 453k-word candidate dump (`distinct_words.txt`, untracked, ordered roughly by quality). Pipeline: Persian letters + ZWNJ only, ≥3 letters, not already in `fa.txt`/`rejected_words.txt`; dropped anything that is `known word + clitic/plural/ezafe/است/comparative`, `می/نمی` forms, `ب/ن` verb forms, Arabic `ال…` phrases; kept only candidates with evidence (Hunspell and (OpenSubtitles freq ≥ 30 or file rank < 30k), or rank < 20k) and then hand-picked every word (infinitives incl. compound verbs, compounds, nisba adjectives, adverbs, cities/provinces/historic names; no words ending in ء). Colloquial, foreign-name and conjugated forms were rejected. Trap letters unchanged (still the five rarest starts: 38–75 words).
-
-**2026-11-04 two-letter pass (−42 / +21 words):** lowering the minimum length to 2 exposed the 218 two-letter entries that came along unreviewed in the original 17k list (they could never be played under the ≥3 rule). Removed 42 non-words/abbreviations/archaisms (آک اب ار ام بث بخ بش بغ بل بژ بک تپ خن دک رج رق رل سک شم طل عز غث فغ فم فژ لس لش لم لپ لچ مص مع مف مل نچ ود ور چم چو کپ کژ پز) and inserted (in code-point order, like the rest of the file) 21 common words that were missing (از او را که یک سه شد زد بز قو ژن ژل وی هی ری قم دی کی سی خز آخ — function words, numbers, one bare past form each of شدن/زدن, a few nouns/cities); 197 two-letter words remain, reviewed by hand with no external frequency source, so expect gaps — the word-suggestion loop covers them. The daily start-letter pool still counts only ≥3-letter words (`dailyLetterMinWordLen`), so letters/seeds are unchanged.
-
-The English `word_freq_ranks.txt` and `engine/frequency.go` were deleted — there is no English data left in the project.
+`fa.txt` is the only word data: ~24k curated Persian words, one per line, in `backend/internal/engine/data/` and `client/assets/words/` (byte-identical). **Decision (2026-10-09): the curated list is final — never restore the 162k list.** Policy: infinitives and bare past forms in, personal conjugations/plurals/imperatives out, no words ending in ء, no foreign first names. Two-letter words (minimum length is 2) were reviewed by hand and gaps are expected; the word-suggestion loop covers them. Trap letters (ژ ظ ث ذ ض) are the rarest word starts. History and the full policy: **docs/dictionary.md**.
