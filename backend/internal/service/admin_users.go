@@ -57,6 +57,7 @@ type adminUserStore interface {
 	UserMatches(ctx context.Context, id string, limit int) ([]repository.AdminUserMatch, error)
 	UserDailyAttempts(ctx context.Context, id string, limit int) ([]repository.AdminDailyAttempt, error)
 	UserPushDevices(ctx context.Context, id string) ([]repository.PushDevice, error)
+	UserRatedOpponents(ctx context.Context, id string, since time.Time) ([]repository.AdminOpponentGames, error)
 	AdjustCoins(ctx context.Context, id string, delta int) (int, error)
 	ExtendPremium(ctx context.Context, id string, days int) (time.Time, error)
 	RevokePremium(ctx context.Context, id string) error
@@ -215,21 +216,50 @@ func phoneFragment(text string) string {
 // AdminUserDetail is the whole user page in one payload.
 type AdminUserDetail struct {
 	AdminUserItem
-	ReferralCode  string         `json:"referral_code"`
-	BanReason     string         `json:"ban_reason"`
-	JoinedAt      *time.Time     `json:"joined_at"`
-	XPInLevel     int64          `json:"xp_in_level"`
-	XPForNext     int64          `json:"xp_for_next"`
-	Stats         userStatsView  `json:"stats"`
-	FriendsCount  int            `json:"friends_count"`
-	DeviceTokens  int            `json:"device_tokens"`
-	Push          pushView       `json:"push"`
-	Referrer      *userRef       `json:"referrer"`
-	ReferredCount int            `json:"referred_count"`
-	Referred      []referredView `json:"referred"`
-	Rewards       []rewardView   `json:"rewards"`
-	Matches       []matchView    `json:"matches"`
-	DailyAttempts []dailyView    `json:"daily_attempts"`
+	ReferralCode  string           `json:"referral_code"`
+	BanReason     string           `json:"ban_reason"`
+	JoinedAt      *time.Time       `json:"joined_at"`
+	XPInLevel     int64            `json:"xp_in_level"`
+	XPForNext     int64            `json:"xp_for_next"`
+	Stats         userStatsView    `json:"stats"`
+	FriendsCount  int              `json:"friends_count"`
+	DeviceTokens  int              `json:"device_tokens"`
+	Push          pushView         `json:"push"`
+	Referrer      *userRef         `json:"referrer"`
+	ReferredCount int              `json:"referred_count"`
+	Referred      []referredView   `json:"referred"`
+	Rewards       []rewardView     `json:"rewards"`
+	Matches       []matchView      `json:"matches"`
+	DailyAttempts []dailyView      `json:"daily_attempts"`
+	SameOpponent  sameOpponentView `json:"same_opponent"`
+}
+
+// sameOpponentView is the read-only collusion signal: how concentrated the
+// player's recent rated games are on one opponent. Flagged is advisory only.
+type sameOpponentView struct {
+	Flagged     bool     `json:"flagged"`
+	WindowDays  int      `json:"window_days"`
+	RatedGames  int      `json:"rated_games"`  // rated games in the window
+	TopGames    int      `json:"top_games"`    // of which against the top opponent
+	TopOpponent *userRef `json:"top_opponent"` // nil when there were no rated games
+}
+
+// SameOpponentSignal flags a player whose rated games in the window are mostly
+// (strictly more than half) against one opponent. `counts` is ordered by games
+// descending. Fewer than config.SameOpponentMinGames games is never flagged.
+func SameOpponentSignal(counts []repository.AdminOpponentGames) sameOpponentView {
+	v := sameOpponentView{WindowDays: config.SameOpponentWindowDays}
+	for _, c := range counts {
+		v.RatedGames += c.Games
+	}
+	if len(counts) == 0 {
+		return v
+	}
+	top := counts[0]
+	v.TopGames = top.Games
+	v.TopOpponent = &userRef{ID: top.OpponentID, Username: top.OpponentUsername}
+	v.Flagged = v.RatedGames >= config.SameOpponentMinGames && top.Games*2 > v.RatedGames
+	return v
 }
 
 // pushView says whether this account can be pushed: the best permission state
@@ -337,8 +367,14 @@ func (s *AdminUserService) Detail(ctx context.Context, role, id string) (*AdminU
 		return nil, fmt.Errorf("AdminUserService.Detail: %w", err)
 	}
 
+	opponents, err := s.store.UserRatedOpponents(ctx, id, s.now().AddDate(0, 0, -config.SameOpponentWindowDays))
+	if err != nil {
+		return nil, fmt.Errorf("AdminUserService.Detail: %w", err)
+	}
+
 	level := config.LevelFromXP(d.XP)
 	out := &AdminUserDetail{
+		SameOpponent:  SameOpponentSignal(opponents),
 		AdminUserItem: s.item(d.AdminUserRow, role),
 		ReferralCode:  d.ReferralCode, BanReason: d.BanReason, JoinedAt: d.PhoneVerifiedAt,
 		XPInLevel: d.XP - config.XPForLevel(level), XPForNext: config.XPForLevel(level+1) - config.XPForLevel(level),

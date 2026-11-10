@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -26,6 +26,7 @@ const USER: Detail = {
   ],
   matches: [{ id: 'm1', mode: 'classic', status: 'finished', kind: 'versus', score: 120, won: true, at: '2026-10-04T10:00:00Z', ended_at: null, player_count: 2 }],
   daily_attempts: [{ date: '2026-10-05', attempt: 1, score: 300, chain_length: 12, completed_at: '2026-10-05T10:00:00Z' }],
+  same_opponent: { flagged: false, window_days: 7, rated_games: 5, top_games: 2, top_opponent: { id: '55555555-5555-5555-5555-555555555555', username: 'pal' } },
 }
 
 function setup(role: 'viewer' | 'operator' | 'owner', detail: Detail = USER, onPost?: (url: string, init: RequestInit) => Response) {
@@ -114,6 +115,19 @@ describe('UserDetail', () => {
     await userEvent.type(within(dialog).getByLabelText(/را تایپ کنید/), 'ali_player')
     await userEvent.click(within(dialog).getByRole('button', { name: 'مسدود کن' }))
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('این کاربر از قبل مسدود است.')
+  })
+
+  it('shows the same-opponent flag only when the server raises it', async () => {
+    setup('viewer')
+    await screen.findByText('ali_player')
+    expect(screen.queryByTestId('same-opponent-flag')).toBeNull()
+    vi.unstubAllGlobals()
+    cleanup()
+
+    setup('viewer', { ...USER, same_opponent: { ...USER.same_opponent, flagged: true, rated_games: 9, top_games: 6 } })
+    const flag = await screen.findByTestId('same-opponent-flag')
+    expect(flag).toHaveTextContent('۶ از ۹ بازی رتبه‌دارِ ۷ روز اخیر')
+    expect(within(flag).getByRole('link', { name: 'pal' })).toHaveAttribute('href', '/users/55555555-5555-5555-5555-555555555555')
   })
 
   it('a banned user offers unban and shows the reason', async () => {

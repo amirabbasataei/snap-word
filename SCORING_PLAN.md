@@ -1,6 +1,6 @@
 # Scoring & ranking — plan (Phase 25)
 
-> **Status (2026-11-10): S1, S2 and S3 done (not deployed — S2 + S3 ship together); S4–S7 not started.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
+> **Status (2026-11-10): S1–S4 done (not deployed — S2 + S3 + S4 ship together); S5–S7 not started.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
 
 ## Why
 
@@ -98,7 +98,10 @@ Work:
 - All copy in informal Persian per CLAUDE.md; Persian digits; tests assert exact strings; regenerate only the affected goldens.
 
 ### S4 — Anti-abuse & fallback AI by rating
-**Status: not started.**
+**Status: done 2026-11-10** (backend + admin panel; Go and panel tests green, backend rebuilt locally, admin API checked live against the local DB; **not deployed — ships with S2 + S3, ask before doing it**). Decisions beyond the plan:
+- **The server ignores any client `difficulty`** on `POST /match/queue` (old apps may still send it; the field is accepted and dropped, `invalid_difficulty` can no longer be returned). The level is read when the fallback fires (not at queue join), from the player's rating: `config.FallbackAILevels` + `service.FallbackAIDifficulty`. A new account (1000) therefore gets **medium**, not easy; a failed rating lookup also falls back to 1000.
+- **Test found a leak:** AI-fallback games were still feeding `player_stats.total_score` (the profile's «مجموع امتیاز», documented as lifetime *1v1* points). `ws.Room.finalizeToDB` now skips `AddTotalScore` in AI rooms, so they touch only XP + the daily streak. Tests: `ws/ai_fallback_test.go` (real Postgres; AI game = exactly streak + xp, no rating call; the human-vs-human control also gets `total_score` and the rating).
+- **Same-opponent flag:** `GET /admin/users/:id` now returns `same_opponent {flagged, window_days, rated_games, top_games, top_opponent}` from `rating_history` of the last 7 days (pair-capped games write no row, so they are not counted). Flagged = strictly more than 50 % against one opponent **and** at least `config.SameOpponentMinGames` (4) rated games in the window — the minimum is my addition (a single game would otherwise be 100 %). Read-only, no auto-ban, no audit row. Panel: a yellow banner on the user page (with a link to the opponent) and a «بازی با یک حریف» line in the «بازی» card. Both players of a colluding pair get flagged. Tests: `service/same_opponent_test.go`, `admin/src/pages/UserDetail.test.tsx`.
 
 - Fallback AI level chosen **by the server** from the player's rating (< 1000 easy, 1000–1199 medium, ≥ 1200 hard; `config.FallbackAILevels`). Today the client sends no `difficulty`, so it is always easy.
 - Confirm AI-fallback games touch only XP + daily streak (no weekly/all-time/rating) — S2 already skips them; add a test.

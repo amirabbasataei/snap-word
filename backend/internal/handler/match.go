@@ -21,8 +21,9 @@ func NewMatchHandler(svc *service.MatchmakingService) *MatchHandler {
 }
 
 type joinQueueRequest struct {
-	Mode       string `json:"mode"       binding:"required"`
-	Difficulty string `json:"difficulty"`
+	Mode string `json:"mode" binding:"required"`
+	// Old apps may still send "difficulty"; the server ignores it — the
+	// fallback AI level comes from the player's rating (config.FallbackAILevels).
 }
 
 // JoinQueue handles POST /api/v1/match/queue.
@@ -42,15 +43,7 @@ func (h *MatchHandler) JoinQueue(c *gin.Context) {
 		respondError(c, http.StatusBadRequest, "invalid_mode", "mode must be classic")
 		return
 	}
-	if req.Difficulty == "" {
-		req.Difficulty = "easy"
-	}
-	if !service.ValidateDifficulty(req.Difficulty) {
-		respondError(c, http.StatusBadRequest, "invalid_difficulty", "difficulty must be easy, medium, or hard")
-		return
-	}
-
-	roomID, isAI, err := h.svc.Join(c.Request.Context(), userID, req.Mode, req.Difficulty)
+	roomID, isAI, err := h.svc.Join(c.Request.Context(), userID, req.Mode)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInsufficientCoins):

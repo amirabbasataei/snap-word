@@ -128,6 +128,22 @@ var AIDifficulties = map[string]AIDifficulty{
 	},
 }
 
+// FallbackAILevel maps a minimum rating to the AI difficulty a player gets when
+// matchmaking falls back to the AI (Phase 25 S4).
+type FallbackAILevel struct {
+	MinRating  int
+	Difficulty string
+}
+
+// FallbackAILevels is ordered by MinRating ascending: the last entry whose
+// MinRating the player's rating reaches wins. < 1000 easy, 1000–1199 medium,
+// ≥ 1200 hard. The server alone decides; a client-sent difficulty is ignored.
+var FallbackAILevels = []FallbackAILevel{
+	{MinRating: 0, Difficulty: "easy"},
+	{MinRating: 1000, Difficulty: "medium"},
+	{MinRating: 1200, Difficulty: "hard"},
+}
+
 // Game tuning defaults — read from this package in handlers and services.
 // Change values here; never scatter magic numbers elsewhere.
 const (
@@ -178,6 +194,15 @@ const (
 	CoinHint      = 10
 	CoinExtraTime = 15
 	CoinShield    = 20 // not in the original spec's price list; priced above Extra Time
+)
+
+// Anti-abuse signal on the admin user page (Phase 25 S4; read-only, no
+// auto-ban): a player is flagged when MORE than half of their rated games in the
+// last SameOpponentWindowDays days were against one opponent, once they have at
+// least SameOpponentMinGames such games (below that the share is noise).
+const (
+	SameOpponentWindowDays = 7
+	SameOpponentMinGames   = 4
 )
 
 // Skill rating («جام», Phase 25 S2): Elo for 1v1 human games only. AI-fallback

@@ -63,6 +63,9 @@ func (f *fakeUserStore) UserMatches(context.Context, string, int) ([]repository.
 func (f *fakeUserStore) UserPushDevices(context.Context, string) ([]repository.PushDevice, error) {
 	return nil, nil
 }
+func (f *fakeUserStore) UserRatedOpponents(context.Context, string, time.Time) ([]repository.AdminOpponentGames, error) {
+	return nil, nil
+}
 func (f *fakeUserStore) UserDailyAttempts(context.Context, string, int) ([]repository.AdminDailyAttempt, error) {
 	return nil, nil
 }

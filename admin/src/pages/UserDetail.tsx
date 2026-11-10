@@ -128,6 +128,19 @@ function Loaded({ user }: { user: Detail }) {
         </div>
       )}
 
+      {user.same_opponent.flagged && user.same_opponent.top_opponent && (
+        <div role="status" className="rounded-card border border-yellow px-5 py-3 text-sm" data-testid="same-opponent-flag">
+          <p className="font-medium text-yellow">بازی‌های رتبه‌دار این کاربر بیشتر با یک حریف بوده است.</p>
+          <p className="mt-1 text-muted">
+            {formatNumber(user.same_opponent.top_games)} از {formatNumber(user.same_opponent.rated_games)} بازی رتبه‌دارِ {formatNumber(user.same_opponent.window_days)} روز اخیر با{' '}
+            <Link to={`/users/${user.same_opponent.top_opponent.id}`} className="text-blue hover:underline">
+              {user.same_opponent.top_opponent.username || 'بدون نام'}
+            </Link>
+            . این فقط یک نشانه است و کاری به‌صورت خودکار انجام نمی‌شود. بررسی دستی لازم است.
+          </p>
+        </div>
+      )}
+
       <Tabs defaultValue="summary">
         <TabsList className="overflow-x-auto">
           <TabsTrigger value="summary">خلاصه</TabsTrigger>
@@ -229,6 +242,11 @@ function SummaryTab({ user }: { user: Detail }) {
             <Fact label="مجموع امتیاز بازی‌های آنلاین">{formatNumber(s.total_score)}</Fact>
             <Fact label="جام">
               {formatNumber(s.rating)} (رکورد {formatNumber(s.peak_rating)}، {formatNumber(s.rated_games)} بازی رتبه‌دار)
+            </Fact>
+            <Fact label="بازی با یک حریف">
+              {user.same_opponent.rated_games === 0
+                ? `بازی رتبه‌داری در ${formatNumber(user.same_opponent.window_days)} روز اخیر نیست`
+                : `${formatNumber(user.same_opponent.top_games)} از ${formatNumber(user.same_opponent.rated_games)} بازی در ${formatNumber(user.same_opponent.window_days)} روز اخیر`}
             </Fact>
           </dl>
         </CardBody>

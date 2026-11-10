@@ -23,8 +23,12 @@ var queueModes = []string{"classic"}
 
 type queueEntry struct {
 	UserID     string    `json:"user_id"`
-	Difficulty string    `json:"difficulty"`
 	EnqueuedAt time.Time `json:"enqueued_at"`
+}
+
+// RatingLookup reads current ratings; implemented by *RatingService.
+type RatingLookup interface {
+	RatingsOf(ctx context.Context, userIDs []string) (map[string]int, error)
 }
 
 type matchResult struct {
@@ -44,16 +48,18 @@ type MatchmakingService struct {
 	rdb      *redis.Client
 	hub      *ws.Hub
 	userRepo *repository.UserRepository
+	ratings  RatingLookup // picks the fallback AI level; nil = always the first level
 
 	mu      sync.Mutex
 	waiters map[string]*matchWaiter // userID → in-flight Join waiter
 }
 
-func NewMatchmakingService(rdb *redis.Client, hub *ws.Hub, userRepo *repository.UserRepository) *MatchmakingService {
+func NewMatchmakingService(rdb *redis.Client, hub *ws.Hub, userRepo *repository.UserRepository, ratings RatingLookup) *MatchmakingService {
 	s := &MatchmakingService{
 		rdb:      rdb,
 		hub:      hub,
 		userRepo: userRepo,
+		ratings:  ratings,
 		waiters:  make(map[string]*matchWaiter),
 	}
 	go s.runBackground()
@@ -63,7 +69,7 @@ func NewMatchmakingService(rdb *redis.Client, hub *ws.Hub, userRepo *repository.
 // Join adds userID to the queue for mode and blocks until a match is made.
 // On success it returns the roomID to connect to via WebSocket and whether
 // the opponent is an AI.
-func (s *MatchmakingService) Join(ctx context.Context, userID, mode, difficulty string) (string, bool, error) {
+func (s *MatchmakingService) Join(ctx context.Context, userID, mode string) (string, bool, error) {
 	if err := ensureCanAffordEntry(ctx, s.userRepo, userID); err != nil {
 		return "", false, err
 	}
@@ -87,7 +93,7 @@ func (s *MatchmakingService) Join(ctx context.Context, userID, mode, difficulty 
 		s.mu.Unlock()
 	}()
 
-	entry := queueEntry{UserID: userID, Difficulty: difficulty, EnqueuedAt: time.Now()}
+	entry := queueEntry{UserID: userID, EnqueuedAt: time.Now()}
 	b, _ := json.Marshal(entry)
 	if err := s.rdb.RPush(ctx, queueKeyPrefix+mode, b).Err(); err != nil {
 		return "", false, fmt.Errorf("Join: rpush: %w", err)
@@ -202,10 +208,7 @@ func (s *MatchmakingService) processQueue(mode string) {
 	for _, pe := range stale {
 		s.rdb.LRem(ctx, queueKeyPrefix+mode, 1, pe.raw) //nolint:errcheck
 
-		difficulty := pe.entry.Difficulty
-		if difficulty == "" {
-			difficulty = "easy"
-		}
+		difficulty := s.fallbackDifficulty(ctx, pe.entry.UserID)
 
 		roomID := newRoomID()
 		room := s.hub.GetOrCreateRoom(roomID, mode)
@@ -220,6 +223,24 @@ func (s *MatchmakingService) processQueue(mode string) {
 
 		s.notify(pe.entry.UserID, matchResult{roomID: roomID, isAI: true})
 	}
+}
+
+// fallbackDifficulty picks the AI level from the player's current rating. A
+// failed lookup falls back to the player's default rating, never to an error:
+// the player has already waited the full fallback window.
+func (s *MatchmakingService) fallbackDifficulty(ctx context.Context, userID string) string {
+	rating := config.RatingStart
+	if s.ratings != nil {
+		lookupCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		m, err := s.ratings.RatingsOf(lookupCtx, []string{userID})
+		if err != nil {
+			slog.Error("matchmaking: rating lookup failed", "player", userID, "error", err)
+		} else if r, ok := m[userID]; ok {
+			rating = r
+		}
+	}
+	return FallbackAIDifficulty(rating)
 }
 
 func (s *MatchmakingService) notify(userID string, result matchResult) {

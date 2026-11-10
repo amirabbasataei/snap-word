@@ -88,6 +88,14 @@ export interface UserDetail extends UserItem {
     player_count: number
   }[]
   daily_attempts: { date: string; attempt: number; score: number; chain_length: number; completed_at: string }[]
+  /** Read-only collusion signal over the last `window_days` days of rated games. */
+  same_opponent: {
+    flagged: boolean
+    window_days: number
+    rated_games: number
+    top_games: number
+    top_opponent: { id: string; username: string } | null
+  }
 }
 
 export function avatarUrl(u: { avatar_id: string; premium: boolean }): string | undefined {

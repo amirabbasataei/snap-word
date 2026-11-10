@@ -1165,6 +1165,15 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 		slog.Error("ws: SaveGameState failed", "room", r.id, "error", err)
 	}
 
+	// An AI-fallback game is practice: it feeds XP and the daily streak only,
+	// never the lifetime 1v1 total, the rating or the boards.
+	vsAI := false
+	for _, pid := range r.playersSnapshot() {
+		if pid == config.SystemAIUserID {
+			vsAI = true
+		}
+	}
+
 	for playerID, score := range scores {
 		if err := r.deps.MatchRepo.UpdatePlayerScore(ctx, r.id, playerID, score); err != nil {
 			slog.Error("ws: UpdatePlayerScore failed", "room", r.id, "player", playerID, "error", err)
@@ -1186,12 +1195,19 @@ func (r *Room) finalizeToDB(winnerID string, chain []string, scores map[string]i
 				slog.Error("ws: AddXP failed", "room", r.id, "player", playerID, "error", err)
 			}
 		}
-		if r.deps.LeaderboardSvc != nil {
+		if r.deps.LeaderboardSvc != nil && !vsAI {
 			if err := r.deps.LeaderboardSvc.AddTotalScore(ctx, playerID, score); err != nil {
 				slog.Error("ws: AddTotalScore failed", "room", r.id, "player", playerID, "error", err)
 			}
 		}
 	}
+}
+
+// playersSnapshot returns a copy of the player order under the room lock.
+func (r *Room) playersSnapshot() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.playerOrder...)
 }
 
 func (r *Room) sendCurrentState(client *Client) {

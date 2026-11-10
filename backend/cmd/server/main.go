@@ -117,7 +117,7 @@ func main() {
 		Rating:         ratingApplier{ratingSvc},
 	})
 
-	matchSvc := service.NewMatchmakingService(rdb, hub, userRepo)
+	matchSvc := service.NewMatchmakingService(rdb, hub, userRepo, ratingSvc)
 
 	challengeRepo := repository.NewChallengeRepository(db)
 	dailyRepo := repository.NewDailyRepository(db)

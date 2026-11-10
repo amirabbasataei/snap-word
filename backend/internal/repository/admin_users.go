@@ -397,6 +397,38 @@ func (r *AdminRepository) UserDailyAttempts(ctx context.Context, id string, limi
 	return out, rows.Err()
 }
 
+// AdminOpponentGames is how many rated games a user played against one opponent.
+type AdminOpponentGames struct {
+	OpponentID       string
+	OpponentUsername string
+	Games            int
+}
+
+// UserRatedOpponents counts the user's rated games since `since`, grouped by
+// opponent (most games first). Pair-capped games write no rating_history row,
+// so they are not counted.
+func (r *AdminRepository) UserRatedOpponents(ctx context.Context, id string, since time.Time) ([]AdminOpponentGames, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT rh.opponent_id, COALESCE(u.username, ''), count(*)
+		 FROM rating_history rh JOIN users u ON u.id = rh.opponent_id
+		 WHERE rh.user_id = $1 AND rh.created_at >= $2
+		 GROUP BY rh.opponent_id, u.username
+		 ORDER BY count(*) DESC, rh.opponent_id`, id, since)
+	if err != nil {
+		return nil, fmt.Errorf("AdminRepository.UserRatedOpponents: %w", err)
+	}
+	defer rows.Close()
+	out := []AdminOpponentGames{}
+	for rows.Next() {
+		var o AdminOpponentGames
+		if err := rows.Scan(&o.OpponentID, &o.OpponentUsername, &o.Games); err != nil {
+			return nil, fmt.Errorf("AdminRepository.UserRatedOpponents scan: %w", err)
+		}
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
 // AdjustCoins adds delta (negative to take coins away) to the balance in one
 // statement and returns the new balance. A deduction below zero changes
 // nothing and returns ErrInsufficientCoins.
