@@ -106,7 +106,7 @@ void main() {
       expect(find.text('اولین کلمه رو بنویس'), findsOneWidget);
       expect(find.text('نوبت تو'), findsOneWidget);
       expect(find.text('حریف هوشمند · متوسط'), findsOneWidget);
-      expect(find.text('۷ حرف به بالا = دوبرابر'), findsOneWidget);
+      expect(find.text('از حرف ۷، هر حرف ۱۵ امتیاز'), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
       // Guest avatar disc.
       expect(find.widgetWithText(ZDiscAvatar, 'ت'), findsOneWidget);
@@ -215,7 +215,7 @@ void main() {
           tester
               .widget<AnimatedOpacity>(
                 find.ancestor(
-                  of: find.text('۷ حرف · دوبرابر'),
+                  of: find.textContaining('کلمهٔ بلند ·'),
                   matching: find.byType(AnimatedOpacity),
                 ),
               )
@@ -227,6 +227,11 @@ void main() {
       await tester.enterText(find.byType(TextField), 'سرگرمیها');
       await tester.pump(const Duration(milliseconds: 300));
       expect(tagOpacity(), 1);
+      // 8 letters: two past the sixth → 2 × 15.
+      expect(find.text('کلمهٔ بلند · ۳۰ امتیاز بیشتر'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'سرگرمیه');
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('کلمهٔ بلند · ۱۵ امتیاز بیشتر'), findsOneWidget);
     });
 
     testWidgets('back button asks before ending the game', (tester) async {

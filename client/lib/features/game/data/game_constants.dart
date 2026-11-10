@@ -30,7 +30,7 @@ abstract final class GameConstants {
   static const int ratingStart = 1000;
   static const int ratingPairCapPerDay = 3;
   static const int weeklyMinRatedGames = 5;
-  static const int ratingMinGamesForBoard = 10;
+  static const int ratingMinGamesForBoard = 5;
   static const int continueWindowSec = 15;
   static const int reconnectGraceSec = 30; // server holds the room this long
   static const int continueCostCoins = 25;
@@ -89,9 +89,12 @@ abstract final class GameConstants {
   // REDESIGN_PLAN.md §5's "Decision-table items resolved for this stage".
   static const int soloLives = 2;
 
-  // Phase 17 — long-word bonus (see REDESIGN_PLAN.md §1 decision 4).
-  static const int longWordBonusMinLength = 7;
-  static const double longWordBonusMultiplier = 2.0;
+  // Long-word bonus (SCORING_PLAN.md S6): no bonus up to [longWordBonusFrom]
+  // letters, then [longWordBonusPerLetter] points per extra letter, added to
+  // the turn score in every mode. Mirrors `config.LongWordBonusFrom` /
+  // `LongWordBonusPerLetter`; the server recomputes Daily scores with them.
+  static const int longWordBonusFrom = 6;
+  static const int longWordBonusPerLetter = 15;
 
   /// How long a room waits for its second player before the server cancels it
   /// (mirrors `config.RoomWaitTimeoutSec`).

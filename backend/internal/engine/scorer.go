@@ -19,13 +19,18 @@ func LetterCount(word string) int {
 //	base_score   = letters(word) × 10
 //	speed_bonus  = max(0, (timeLimitSec - responseTimeSec) × 2)
 //	streak_bonus = streak >= 3 ? base_score × 0.5 : 0
+//	long_bonus   = max(0, letters − LongWordBonusFrom) × LongWordBonusPerLetter
 //
 // Letters are counted with LetterCount (runes, ZWNJ excluded), like the
 // Flutter scorer. There is no rarity bonus: no Persian word-frequency list exists.
 //
 // streak is the count of consecutive successful submissions before this word.
+// Every mode scores with this one function: multiplayer (ws.Room) and the
+// Daily recompute (service.ValidateDailyScore). It mirrors Flutter's
+// GameBloc.calculateScore exactly (same float math, same truncation).
 func CalculateScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int {
-	base := LetterCount(word) * 10
+	letters := LetterCount(word)
+	base := letters * 10
 
 	speedBonus := (timeLimitSec - responseTimeSec) * 2
 	if speedBonus < 0 {
@@ -37,20 +42,15 @@ func CalculateScore(word string, responseTimeSec float64, streak int, timeLimitS
 		streakBonus = float64(base) * 0.5
 	}
 
-	return base + int(speedBonus) + int(streakBonus)
+	return base + int(speedBonus) + int(streakBonus) + LongWordBonus(letters)
 }
 
-// CalculateSoloScore is the score of one word in the on-device modes (solo,
-// vs-AI, Daily Challenge): CalculateScore with the long-word multiplier from
-// config.LongWordBonusMinLen letters. It mirrors Flutter's
-// GameBloc.calculateScore exactly (same float math, same truncation); the
-// server uses it to recompute an uploaded Daily score from the word timings.
-// Multiplayer (ws.Room) still uses CalculateScore alone. SCORING_PLAN.md S6
-// replaces the multiplier.
-func CalculateSoloScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int {
-	score := CalculateScore(word, responseTimeSec, streak, timeLimitSec)
-	if LetterCount(word) >= config.LongWordBonusMinLen {
-		score *= config.LongWordBonusMult
+// LongWordBonus is the flat bonus a word of the given letter count earns:
+// nothing up to config.LongWordBonusFrom letters, then
+// config.LongWordBonusPerLetter for every letter beyond it.
+func LongWordBonus(letters int) int {
+	if letters <= config.LongWordBonusFrom {
+		return 0
 	}
-	return score
+	return (letters - config.LongWordBonusFrom) * config.LongWordBonusPerLetter
 }

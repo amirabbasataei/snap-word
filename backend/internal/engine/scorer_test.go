@@ -88,11 +88,11 @@ func TestLetterCountSkipsHalfSpace(t *testing.T) {
 	}
 }
 
-// soloScoreVectors are shared with the Flutter test
-// (client/test/features/game/game_bloc_score_vectors_test.dart): the server
-// recomputes an uploaded Daily score with CalculateSoloScore, so both sides
-// must produce these exact numbers.
-var soloScoreVectors = []struct {
+// scoreVectors are shared with the Flutter test
+// (client/test/features/game/score_trace_test.dart): every mode scores with
+// CalculateScore, and the server recomputes an uploaded Daily score with it,
+// so both sides must produce these exact numbers.
+var scoreVectors = []struct {
 	name   string
 	word   string
 	ms     int
@@ -105,18 +105,31 @@ var soloScoreVectors = []struct {
 	{"slow answer has no speed bonus", "کتاب", 15000, 0, 40},
 	{"slower than the limit stays at base", "کتاب", 16000, 0, 40},
 	{"fastest answer truncates 29.4", "آب", 300, 5, 59},
-	{"seven letters double", "دانشگاه", 2500, 4, 260},
+	{"seven letters: +15", "دانشگاه", 2500, 4, 145},
+	{"nine letters: +45", "دانشجویان", 3000, 0, 159},
+	{"ten letters with streak: +60", "کتابخانه‌ها", 4000, 3, 232},
 	{"half-space is not a letter", "می‌روم", 1234, 0, 77},
-	{"six letters with a half-space do not double", "آب‌بازی", 5000, 0, 80},
+	{"six letters with a half-space get no bonus", "آب‌بازی", 5000, 0, 80},
+	{"seven letters counting a half-space: +15", "می‌خواهم", 15000, 0, 85},
 }
 
-func TestCalculateSoloScoreVectors(t *testing.T) {
-	for _, v := range soloScoreVectors {
+func TestCalculateScoreVectors(t *testing.T) {
+	for _, v := range scoreVectors {
 		t.Run(v.name, func(t *testing.T) {
-			got := CalculateSoloScore(v.word, float64(v.ms)/1000.0, v.streak, 15)
+			got := CalculateScore(v.word, float64(v.ms)/1000.0, v.streak, 15)
 			if got != v.want {
-				t.Fatalf("CalculateSoloScore(%q, %dms, streak %d) = %d, want %d", v.word, v.ms, v.streak, got, v.want)
+				t.Fatalf("CalculateScore(%q, %dms, streak %d) = %d, want %d", v.word, v.ms, v.streak, got, v.want)
 			}
 		})
+	}
+}
+
+func TestLongWordBonus(t *testing.T) {
+	// Smooth, not a cliff: nothing up to 6 letters, then +15 per letter.
+	want := map[int]int{0: 0, 3: 0, 6: 0, 7: 15, 8: 30, 9: 45, 12: 90}
+	for letters, bonus := range want {
+		if got := LongWordBonus(letters); got != bonus {
+			t.Errorf("LongWordBonus(%d) = %d, want %d", letters, got, bonus)
+		}
 	}
 }

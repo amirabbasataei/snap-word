@@ -1092,9 +1092,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     // used to assume. The mismatched cast threw on every game_start (typed
     // 'String' is not a subtype of 'Map<String, dynamic>'), which silently
     // broke every multiplayer match before it could render; the current_turn
-    // mismatch separately meant `isMyTurn` always fell back to true. No
-    // username is sent over WS at all, so opponentUsername stays null here —
-    // ZVersusActiveScreen already falls back to a generic "حریف" label.
+    // mismatch separately meant `isMyTurn` always fell back to true.
+    // `usernames` (userID → username) names the human players; the AI
+    // fallback is absent, so opponentUsername stays null and ZVersus shows
+    // the generic "حریف" label.
     final players = (gameState['players'] as List<dynamic>?) ?? [];
     final mode = gameState['mode'] as String? ?? 'classic';
     _entryFee = gameState['entry_fee'] as int? ?? 0;
@@ -1125,11 +1126,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         opponentId.isNotEmpty &&
         !ratings.containsKey(opponentId);
 
+    final usernames =
+        (gameState['usernames'] as Map<String, dynamic>?) ?? const {};
+    final opponentUsername =
+        opponentId.isEmpty ? null : usernames[opponentId] as String?;
+
     emit(
       GameActive(
         localMatchId: -1,
         mode: mode,
         opponentType: 'multiplayer',
+        opponentUsername:
+            (opponentUsername?.isEmpty ?? true) ? null : opponentUsername,
         wordChain: const [],
         wordScores: const [],
         score: 0,
@@ -1649,9 +1657,15 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             .clamp(0.0, double.infinity)
             .toInt();
     final streakBonus = streak >= 3 ? (baseScore * 0.5).toInt() : 0;
-    final turnScore = baseScore + speedBonus + streakBonus;
-    return letters >= GameConstants.longWordBonusMinLength
-        ? (turnScore * GameConstants.longWordBonusMultiplier).toInt()
-        : turnScore;
+    return baseScore + speedBonus + streakBonus + longWordBonus(letters);
   }
+
+  /// The flat bonus a word of [letters] letters earns: nothing up to
+  /// `GameConstants.longWordBonusFrom`, then `longWordBonusPerLetter` for each
+  /// letter beyond it. Mirrors Go's `engine.LongWordBonus`.
+  static int longWordBonus(int letters) =>
+      letters <= GameConstants.longWordBonusFrom
+          ? 0
+          : (letters - GameConstants.longWordBonusFrom) *
+              GameConstants.longWordBonusPerLetter;
 }

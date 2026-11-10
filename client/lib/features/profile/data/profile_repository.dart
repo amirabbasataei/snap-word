@@ -22,7 +22,7 @@ class ProfileStats {
   final int xpForNext;
 
   /// «جام» (Elo, starts at 1000), its peak, the games that moved it, and the
-  /// lifetime 1v1 word points («مجموع امتیاز»). Signed-in players only.
+  /// lifetime 1v1 word points (no longer shown in the app). Signed-in players only.
   final int rating;
   final int ratedGames;
   final int peakRating;

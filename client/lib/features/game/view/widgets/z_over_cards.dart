@@ -23,17 +23,22 @@ class ZOverStat {
 }
 
 /// «امتیاز این دست» + the big score, the [stats] as a two-column grid of
-/// wash tiles, and an optional [bar] underneath.
+/// wash tiles, and an optional [bar] underneath. In a 1v1 the points do not
+/// decide the winner (the first mistake does) and the «جام» card is the
+/// result, so there the score is [compact]: a smaller number under the label
+/// «امتیاز کلمه‌ها».
 class ZOverScoreCard extends StatelessWidget {
   final int score;
   final List<ZOverStat> stats;
   final Widget? bar;
+  final bool compact;
 
   const ZOverScoreCard({
     super.key,
     required this.score,
     required this.stats,
     this.bar,
+    this.compact = false,
   });
 
   @override
@@ -56,7 +61,7 @@ class ZOverScoreCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'امتیاز این دست',
+                    compact ? 'امتیاز کلمه‌ها' : 'امتیاز این دست',
                     style: TextStyle(
                       color: z.ink60,
                       fontWeight: FontWeight.w800,
@@ -68,7 +73,7 @@ class ZOverScoreCard extends StatelessWidget {
                     style: TextStyle(
                       color: z.ink,
                       fontWeight: FontWeight.w900,
-                      fontSize: 46,
+                      fontSize: compact ? 32 : 46,
                       height: 1.1,
                     ),
                   ),

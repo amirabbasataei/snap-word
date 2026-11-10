@@ -71,6 +71,7 @@ void main() {
   Future<void> start({
     required Map<String, dynamic> ratings,
     String opponent = _them,
+    Map<String, dynamic>? usernames,
   }) async {
     SharedPreferences.setMockInitialValues({});
     ws = _FakeWs();
@@ -97,6 +98,7 @@ void main() {
         'mode': 'classic',
         'current_turn': _me,
         'ratings': ratings,
+        if (usernames != null) 'usernames': usernames,
       },
     });
     await _settle();
@@ -131,6 +133,25 @@ void main() {
         expect(active.opponentIsAi, isFalse);
       },
     );
+  });
+
+  group('game_start usernames', () {
+    test('the opponent\'s username reaches the active state', () async {
+      await start(
+        ratings: {_me: 1000, _them: 1000},
+        usernames: {_me: 'sara', _them: 'ali_99'},
+      );
+      expect((bloc.state as GameActive).opponentUsername, 'ali_99');
+    });
+
+    test('no username (AI fallback, old server): stays null', () async {
+      await start(
+        ratings: {_me: 1000},
+        opponent: _ai,
+        usernames: {_me: 'sara'},
+      );
+      expect((bloc.state as GameActive).opponentUsername, isNull);
+    });
   });
 
   group('rating_update', () {

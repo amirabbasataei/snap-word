@@ -14,11 +14,37 @@ import (
 // rules or claims a score the chain cannot have produced.
 var ErrInvalidDailyChain = errors.New("invalid_daily_chain")
 
+// Legacy long-word rule, from before SCORING_PLAN.md S6: a word of 7+
+// letters had its whole turn score doubled. Apps installed before S6 shipped
+// still score Daily runs this way, so the server accepts a trace that
+// matches it (see ValidateDailyScore). It lives here, not in engine/config,
+// so nothing new can use it; delete it, with the legacy branch of
+// ValidateDailyScore, once old apps are no longer supported.
+const (
+	legacyLongWordMinLen = 7
+	legacyLongWordMult   = 2
+)
+
+// legacyTurnScore is the pre-S6 score of one Daily word: today's formula
+// without the flat long-word bonus, doubled from 7 letters. (The doubling was
+// an integer ×2.0 truncated, which is exact.)
+func legacyTurnScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int {
+	letters := engine.LetterCount(word)
+	score := engine.CalculateScore(word, responseTimeSec, streak, timeLimitSec) - engine.LongWordBonus(letters)
+	if letters >= legacyLongWordMinLen {
+		score *= legacyLongWordMult
+	}
+	return score
+}
+
 // maxTurnScore is the highest score one accepted word can earn in the
-// Flutter scorer: base + the fullest speed bonus + the streak bonus, times the
-// long-word multiplier. An upload without word timings (an app older than
-// SCORING_PLAN.md S5) cannot be recomputed, so this bound is all the server
-// can check for it; uploads with timings go through ValidateDailyScore.
+// Flutter scorer: base + the fullest speed bonus + the streak bonus, then
+// either the current flat long-word bonus or the legacy ×2, whichever is
+// larger (for a 7+ letter word that is always the ×2). An upload without word
+// timings (an app older than SCORING_PLAN.md S5) cannot be recomputed, so
+// this bound is all the server can check for it; it therefore accepts runs
+// scored by the old formula as well as the new one. Uploads with timings go
+// through ValidateDailyScore.
 //
 // It deliberately still counts the half-space (ZWNJ) as a letter, as the
 // scorers did before 2026-11-10: a run uploaded by an older app was scored
@@ -28,10 +54,14 @@ func maxTurnScore(word string) int {
 	letters := utf8.RuneCountInString(word)
 	base := letters * 10
 	score := base + config.TurnTimerClassicSec*2 + base/2
-	if letters >= config.LongWordBonusMinLen {
-		score *= config.LongWordBonusMult
+	legacy := score
+	if letters >= legacyLongWordMinLen {
+		legacy *= legacyLongWordMult
 	}
-	return score
+	if current := score + engine.LongWordBonus(letters); current > legacy {
+		return current
+	}
+	return legacy
 }
 
 // ValidateDailyChain checks a Daily Challenge upload the way the client
@@ -87,7 +117,7 @@ type DailyTrace struct {
 }
 
 // ValidateDailyScore recomputes the score of a Daily chain from its trace with
-// the exact formula the app uses (engine.CalculateSoloScore) and rejects a
+// the exact formula the app uses (engine.CalculateScore), or the pre-S6 ×2 rule an older app still uses, and rejects a
 // mismatch or an implausible trace. It runs after ValidateDailyChain, which
 // has already checked the words themselves.
 //
@@ -105,7 +135,7 @@ func ValidateDailyScore(chain []string, score int, trace DailyTrace) error {
 	// allows one per Daily run; a resumed run gets a fresh allowance).
 	maxMs := (config.TurnTimerClassicSec+config.ExtraTimeBonusSec)*1000 + config.DailyWordSlackMs
 
-	total := 0
+	total, legacyTotal := 0, 0
 	for i, w := range chain {
 		ms, streak := trace.TimesMs[i], trace.Streaks[i]
 		if ms < config.DailyWordMinMs || ms > maxMs {
@@ -120,10 +150,14 @@ func ValidateDailyScore(chain []string, score int, trace DailyTrace) error {
 		if streak < 0 || (streak != 0 && streak != prev+1) {
 			return fmt.Errorf("%w: word %d streak %d does not follow %d", ErrInvalidDailyChain, i, streak, prev)
 		}
-		total += engine.CalculateSoloScore(w, float64(ms)/1000.0, streak, config.TurnTimerClassicSec)
+		sec := float64(ms) / 1000.0
+		total += engine.CalculateScore(w, sec, streak, config.TurnTimerClassicSec)
+		legacyTotal += legacyTurnScore(w, sec, streak, config.TurnTimerClassicSec)
 	}
-	if total != score {
-		return fmt.Errorf("%w: score %d, recomputed %d", ErrInvalidDailyChain, score, total)
+	// An app installed before S6 scored with the ×2 rule. The whole chain
+	// must match one formula or the other; a mix is never accepted.
+	if total != score && legacyTotal != score {
+		return fmt.Errorf("%w: score %d, recomputed %d (legacy rule %d)", ErrInvalidDailyChain, score, total, legacyTotal)
 	}
 	return nil
 }

@@ -152,7 +152,7 @@ func TestCreateSoloGameDailyRecomputesScore(t *testing.T) {
 	streaks := []int{0, 1, 0, 1} // a life was lost before the third word
 	score := 0
 	for i, w := range chain {
-		score += engine.CalculateSoloScore(w, float64(times[i])/1000, streaks[i], config.TurnTimerClassicSec)
+		score += engine.CalculateScore(w, float64(times[i])/1000, streaks[i], config.TurnTimerClassicSec)
 	}
 	in := func(offset time.Duration, score int, t, s []int) service.SoloGameInput {
 		return service.SoloGameInput{Mode: "daily", Score: score, WordChain: chain,
@@ -187,6 +187,37 @@ func TestCreateSoloGameDailyRecomputesScore(t *testing.T) {
 	loose := score - 7
 	if _, _, err := svc.CreateSoloGame(ctx, oldUser, in(0, loose, nil, nil)); err != nil {
 		t.Fatalf("no trace (old app): %v", err)
+	}
+
+	// An app installed before S6 scored long words with the old ×2 rule and
+	// uploads a trace computed that way: still accepted, on a day of its own
+	// (this player has no attempt yet).
+	const legacyUser = "43000000-0000-0000-0000-000000000003"
+	if _, err := db.Exec(`INSERT INTO users (id, phone, username, phone_verified_at) VALUES ($1,'09150000003','legacy',now())`, legacyUser); err != nil {
+		t.Fatal(err)
+	}
+	legacyChain := []string{"دانشگاه", "هواپیما", "اتوبوس"}
+	lt, ls := []int{3000, 4000, 5000}, []int{0, 1, 2}
+	legacyScore, newScore := 0, 0
+	for i, w := range legacyChain {
+		sec := float64(lt[i]) / 1000
+		newScore += engine.CalculateScore(w, sec, ls[i], config.TurnTimerClassicSec)
+		legacyScore += (engine.CalculateScore(w, sec, ls[i], config.TurnTimerClassicSec) - engine.LongWordBonus(engine.LetterCount(w)))
+		if engine.LetterCount(w) >= 7 {
+			legacyScore += engine.CalculateScore(w, sec, ls[i], config.TurnTimerClassicSec) - engine.LongWordBonus(engine.LetterCount(w))
+		}
+	}
+	if legacyScore == newScore {
+		t.Fatal("test is vacuous: both formulas agree")
+	}
+	legacyIn := service.SoloGameInput{Mode: "daily", Score: legacyScore, WordChain: legacyChain,
+		StartedAt: started, EndedAt: started.Add(time.Minute), WordTimesMs: lt, WordStreaks: ls}
+	// The chain starts with د, not the day's letter, so it needs its own day.
+	if _, err := db.Exec(`UPDATE daily_challenges SET start_letter='د' WHERE challenge_date=$1`, date); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.CreateSoloGame(ctx, legacyUser, legacyIn); err != nil {
+		t.Fatalf("old-formula trace (app from before S6): %v", err)
 	}
 }
 

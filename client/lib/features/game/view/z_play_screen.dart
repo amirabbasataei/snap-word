@@ -55,7 +55,7 @@ class ZPlayActiveScreen extends StatelessWidget {
       footer: ZGameFooter(
         state: state,
         opponentLabel: 'حریف هوشمند',
-        longWordMinLength: GameConstants.longWordBonusMinLength,
+        longWordMinLength: GameConstants.longWordBonusFrom + 1,
       ),
     );
   }
@@ -151,7 +151,7 @@ class _LevelChip extends StatelessWidget {
   }
 }
 
-/// «۷ حرف به بالا = دوبرابر» — the long-word bonus rule of vs-AI/solo play.
+/// «از حرف ۷، هر حرف ۱۵ امتیاز» — the long-word bonus rule.
 class _BonusChip extends StatelessWidget {
   const _BonusChip();
 
@@ -163,7 +163,8 @@ class _BonusChip extends StatelessWidget {
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Text(
-        '${toPersianDigits(GameConstants.longWordBonusMinLength)} حرف به بالا = دوبرابر',
+        'از حرف ${toPersianDigits(GameConstants.longWordBonusFrom + 1)}، '
+        'هر حرف ${toPersianDigits(GameConstants.longWordBonusPerLetter)} امتیاز',
         style: TextStyle(
           color: z.onAmber,
           fontWeight: FontWeight.w900,

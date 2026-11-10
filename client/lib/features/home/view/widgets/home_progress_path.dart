@@ -37,7 +37,7 @@ class HomeProgressPath extends StatelessWidget {
     final zs = context.zs;
     return Semantics(
       label:
-          'سطح ${toPersianDigits(level)}، ${xpLabel(xpInLevel, xpForNext)} امتیاز',
+          'سطح ${toPersianDigits(level)}، ${xpLabel(xpInLevel, xpForNext)} تجربه',
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,

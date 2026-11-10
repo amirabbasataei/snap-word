@@ -1184,3 +1184,13 @@ The canvas redrew the Home mascot to match the other screens; the app still had 
 - **ZProfile:** `ProfileRatingCard` between the XP bar and the stat grid (signed-in only), laid out like the grid (big tile + list).
 - **ZVersus:** the pill shows each side's rating after the name; the 64 dp side width still holds «حریف ۱۰۱۶».
 - **Flagged:** the win body now exceeds 812 dp tall phones' viewport by the width of the card, so the «کلمه‌ای اشتباه…» link scrolls under the footer on the shortest layouts (the body scrolls; nothing overflows).
+
+## Phase 25 S6 — scoring wording and the long-word cue (2026-11-10)
+
+No canvas frame covers these; they are derived from the tokens.
+- **Long-word cue** (`_LongWordCue` in `z_game_shared.dart`, «رباربود» over the input card): «کلمهٔ بلند · N امتیاز بیشتر», N = `GameBloc.longWordBonus(letters)` of the typed word (hidden it names the 7-letter bonus). Visible from `GameConstants.longWordBonusFrom + 1` letters. It replaced «۷ حرف · دوبرابر» and is now shown on ZVersus too (multiplayer scores the bonus since S6). ZPlay's chip: «از حرف ۷، هر حرف ۱۵ امتیاز».
+- **Three numbers, three words:** «امتیاز» = what one game scores, «تجربه» = the sum that fills the level bar (profile bar + ring semantics, home chip, ZOver reward chip), «جام» = the 1v1 rating.
+- **ZOver, 1v1 loss:** `ZOverRatingCard` is the first card; `ZOverScoreCard(compact: true)` follows with «امتیاز کلمه‌ها» at 32 sp and no «امتیاز حریف» (points do not decide a 1v1). vs-AI and solo are unchanged. The win body keeps its chips; only the XP chip label changed.
+- **ZProfile:** the rating card dropped «مجموع امتیاز» (≈ the experience). `ProfileStats.totalScore` is still parsed.
+- **ZBoard:** the all-time rank threshold is 5 rated games (`GameConstants.ratingMinGamesForBoard`), the same as the weekly prize.
+- Goldens regenerated (they passed on a clean HEAD): `z_profile_free_light`, `z_profile_premium_dark`, `z_over_win_rating_light`, `z_over_loss_rating_dark`. The other goldens of these screens already fail on a clean HEAD here.

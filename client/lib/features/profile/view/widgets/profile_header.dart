@@ -266,7 +266,7 @@ class _Avatar extends StatelessWidget {
           signedIn
               ? 'سطح ${toPersianDigits(level)}؛ '
                   '${formatPersianNumber(xpInLevel)} از '
-                  '${formatPersianNumber(xpForNext)} امتیاز'
+                  '${formatPersianNumber(xpForNext)} تجربه'
               : 'مهمان',
       child: SizedBox(
         width: ProfileHeader.ringSize,

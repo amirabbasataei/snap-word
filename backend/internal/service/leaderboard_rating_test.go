@@ -191,9 +191,9 @@ func setRating(t *testing.T, db *sql.DB, id string, rating, games int) {
 func TestAllTimeBoard_RatingWithMinGames(t *testing.T) {
 	svc, _, db := newBoardEnv(t)
 	ctx := context.Background()
-	setRating(t, db, lbA, 1100, 10)
-	setRating(t, db, lbB, 1100, 25) // same rating, more games → above A
-	setRating(t, db, lbC, 1300, 9)  // one game short of the board
+	setRating(t, db, lbA, 1100, config.RatingMinGamesForBoard)   // exactly the minimum
+	setRating(t, db, lbB, 1100, 25)                              // same rating, more games → above A
+	setRating(t, db, lbC, 1300, config.RatingMinGamesForBoard-1) // one game short of the board
 	setRating(t, db, lbD, 950, 40)
 	setRating(t, db, lbBanned, 2000, 50)
 	setRating(t, db, config.SystemAIUserID, 3000, 999)
@@ -215,11 +215,11 @@ func TestAllTimeBoard_RatingWithMinGames(t *testing.T) {
 		t.Fatalf("row 0 %+v", top[0])
 	}
 
-	if st, err := svc.AllTimeStanding(ctx, lbA); err != nil || st.Rank != 2 || st.Score != 1100 || st.Games != 10 {
+	if st, err := svc.AllTimeStanding(ctx, lbA); err != nil || st.Rank != 2 || st.Score != 1100 || st.Games != config.RatingMinGamesForBoard {
 		t.Fatalf("standing A %+v %v", st, err)
 	}
 	// Not on the board yet: rank 0, but rating and games are reported.
-	if st, _ := svc.AllTimeStanding(ctx, lbC); st.Rank != 0 || st.Score != 1300 || st.Games != 9 {
+	if st, _ := svc.AllTimeStanding(ctx, lbC); st.Rank != 0 || st.Score != 1300 || st.Games != config.RatingMinGamesForBoard-1 {
 		t.Fatalf("standing C %+v", st)
 	}
 	if st, _ := svc.AllTimeStanding(ctx, lbBanned); st.Rank != 0 {

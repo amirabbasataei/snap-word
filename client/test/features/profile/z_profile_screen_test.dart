@@ -449,9 +449,9 @@ void main() {
       expect(find.text('۱٬۰۶۸'), findsOneWidget);
       expect(find.text('بازی با جام'), findsOneWidget);
       expect(find.text('۱۴'), findsOneWidget);
-      // «مجموع امتیاز» stays, now beside the rating.
-      expect(find.text('مجموع امتیاز'), findsOneWidget);
-      expect(find.text('۱۸٬۴۲۰'), findsOneWidget);
+      // The lifetime word points are no longer shown (≈ the experience).
+      expect(find.text('مجموع امتیاز'), findsNothing);
+      expect(find.text('۱۸٬۴۲۰'), findsNothing);
     });
 
     testWidgets('a player with no rated game starts on 1000', (tester) async {
@@ -1133,12 +1133,12 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel(RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ امتیاز$')),
+        find.bySemanticsLabel(RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ تجربه$')),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ امتیاز تا سطح ۱۳$'),
+          RegExp(r'^سطح ۱۲؛ ۶۲۰ از ۱٬۰۰۰ تجربه تا سطح ۱۳$'),
         ),
         findsOneWidget,
       );

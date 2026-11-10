@@ -38,7 +38,7 @@ class ProfileXpBar extends StatelessWidget {
         label:
             'سطح ${toPersianDigits(level)}؛ '
             '${formatPersianNumber(xpInLevel)} از '
-            '${formatPersianNumber(xpForNext)} امتیاز تا سطح '
+            '${formatPersianNumber(xpForNext)} تجربه تا سطح '
             '${toPersianDigits(level + 1)}',
         excludeSemantics: true,
         child: SizedBox(

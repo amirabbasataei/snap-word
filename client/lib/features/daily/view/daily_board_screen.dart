@@ -134,10 +134,7 @@ class _DailyBoardView extends StatelessWidget {
                         username: username,
                         selfAvatarId: state.selfAvatarId,
                         now: (clock ?? DateTime.now)(),
-                        extraNoteLines: [
-                          'همهٔ شرکت‌کننده‌ها ${toPersianDigits(GameConstants.dailyCompletePrize)} سکه می‌گیرن',
-                          'جدول با تلاش اول ساخته می‌شه. تلاش دوباره رتبه رو عوض نمی‌کنه.',
-                        ],
+                        extraNoteLines: [],
                       );
                     },
                   ),

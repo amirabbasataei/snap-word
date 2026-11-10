@@ -112,6 +112,7 @@ func main() {
 		XPSvc:          gameSvc,
 		Coins:          userRepo,
 		Perks:          userRepo,
+		Usernames:      userRepo,
 		Taunts:         catalogSvc,
 		WordMisses:     wordMissSvc,
 		Rating:         ratingApplier{ratingSvc},

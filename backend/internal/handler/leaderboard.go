@@ -23,7 +23,7 @@ func NewLeaderboardHandler(svc *service.LeaderboardService) *LeaderboardHandler 
 // Get handles GET /api/v1/leaderboard?type=global&limit=100   (this week's net «جام»)
 //
 //	and      GET /api/v1/leaderboard?type=friends&limit=100  (friends by rating)
-//	and      GET /api/v1/leaderboard?type=alltime&limit=100  (rating, ≥ 10 rated games)
+//	and      GET /api/v1/leaderboard?type=alltime&limit=100  (rating, ≥ 5 rated games)
 //
 // player_rank / player_score / player_games are the caller's own row on that
 // board (player_wins on the weekly board only); player_rank is 0 when the

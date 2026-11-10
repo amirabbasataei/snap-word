@@ -9,8 +9,9 @@ import 'package:wordchain/features/game/data/game_repository.dart';
 import 'package:wordchain/features/game/data/score_trace.dart';
 
 /// The same vectors as backend/internal/engine/scorer_test.go
-/// (`soloScoreVectors`): the server recomputes an uploaded Daily score with
-/// its own copy of this formula, so both must give these exact numbers.
+/// (`scoreVectors`): every mode scores with this formula and the server
+/// recomputes an uploaded Daily score with its own copy, so both must give
+/// these exact numbers.
 const _vectors = <(String, String, int, int, int)>[
   ('plain', 'سلام', 4000, 0, 62),
   ('streak bonus from three', 'سلام', 4000, 3, 82),
@@ -18,18 +19,28 @@ const _vectors = <(String, String, int, int, int)>[
   ('slow answer has no speed bonus', 'کتاب', 15000, 0, 40),
   ('slower than the limit stays at base', 'کتاب', 16000, 0, 40),
   ('fastest answer truncates 29.4', 'آب', 300, 5, 59),
-  ('seven letters double', 'دانشگاه', 2500, 4, 260),
+  ('seven letters: +15', 'دانشگاه', 2500, 4, 145),
+  ('nine letters: +45', 'دانشجویان', 3000, 0, 159),
+  ('ten letters with streak: +60', 'کتابخانه‌ها', 4000, 3, 232),
   ('half-space is not a letter', 'می‌روم', 1234, 0, 77),
-  ('six letters with a half-space do not double', 'آب‌بازی', 5000, 0, 80),
+  ('six letters with a half-space get no bonus', 'آب‌بازی', 5000, 0, 80),
+  ('seven letters counting a half-space: +15', 'می‌خواهم', 15000, 0, 85),
 ];
 
 void main() {
-  group('calculateScore matches the Go engine.CalculateSoloScore vectors', () {
+  group('calculateScore matches the Go engine.CalculateScore vectors', () {
     for (final (name, word, ms, streak, want) in _vectors) {
       test(name, () {
         expect(GameBloc.calculateScore(word, ms / 1000.0, streak, 15), want);
       });
     }
+  });
+
+  test('longWordBonus is smooth: nothing to 6 letters, then +15 each', () {
+    const want = {0: 0, 3: 0, 6: 0, 7: 15, 8: 30, 9: 45, 12: 90};
+    want.forEach((letters, bonus) {
+      expect(GameBloc.longWordBonus(letters), bonus, reason: '$letters');
+    });
   });
 
   group('ScoreTrace', () {

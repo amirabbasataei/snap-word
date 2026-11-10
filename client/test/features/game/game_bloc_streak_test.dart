@@ -122,13 +122,13 @@ void main() {
     test('the half-space is not a letter', () {
       expect(GameBloc.letterCount('آب‌بازی'), 6);
       expect(GameBloc.letterCount('کتاب'), 4);
-      // 6 letters + ZWNJ: base 60, no long-word ×2.
+      // 6 letters + ZWNJ: base 60, no long-word bonus.
       expect(GameBloc.calculateScore('آب‌بازی', limit, 0, limit), 60);
     });
 
     test('the long-word bonus counts letters only', () {
-      // 8 letters, no half-space → ×2.
-      expect(GameBloc.calculateScore('کتابخانه', limit, 0, limit), 80 * 2);
+      // 8 letters, no half-space → base 80 + 2 × 15.
+      expect(GameBloc.calculateScore('کتابخانه', limit, 0, limit), 80 + 30);
     });
 
     test('the streak bonus needs three words before this one', () {

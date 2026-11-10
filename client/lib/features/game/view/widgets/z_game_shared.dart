@@ -519,8 +519,9 @@ class ZWordInput extends StatefulWidget {
   final bool chunky;
 
   /// Chunky only: once the typed word has at least this many letters, an
-  /// amber «۷ حرف · دوبرابر» tag floats over the card — the scoring rule
-  /// (`GameConstants.longWordBonus*`) made visible while typing. Null = no tag.
+  /// amber «کلمهٔ بلند · N امتیاز بیشتر» tag floats over the card with the
+  /// bonus this word would earn (`GameBloc.longWordBonus`) — the scoring rule
+  /// made visible while typing. Null = no tag.
   final int? longWordMinLength;
 
   /// Chunky thinking card only: a widget standing at its end (the mascot of
@@ -752,11 +753,14 @@ class _ZWordInputState extends State<ZWordInput> {
           end: 14,
           child: ValueListenableBuilder<TextEditingValue>(
             valueListenable: _controller,
-            builder:
-                (context, value, _) => _LongWordCue(
-                  visible: GameBloc.letterCount(value.text.trim()) >= min,
-                  minLength: min,
-                ),
+            builder: (context, value, _) {
+              final letters = GameBloc.letterCount(value.text.trim());
+              return _LongWordCue(
+                visible: letters >= min,
+                // Hidden, it still names the smallest bonus.
+                bonus: GameBloc.longWordBonus(letters < min ? min : letters),
+              );
+            },
           ),
         ),
       ],
@@ -868,17 +872,17 @@ class _ZWordInputState extends State<ZWordInput> {
 }
 
 /// Canvas `pop` tag over the input card: scales/fades in while the typed word
-/// is long enough for the double-score bonus.
+/// is long enough for the long-word bonus, naming the points it adds.
 class _LongWordCue extends StatelessWidget {
   final bool visible;
-  final int minLength;
+  final int bonus;
 
-  const _LongWordCue({required this.visible, required this.minLength});
+  const _LongWordCue({required this.visible, required this.bonus});
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final label = '${toPersianDigits(minLength)} حرف · دوبرابر';
+    final label = 'کلمهٔ بلند · ${toPersianDigits(bonus)} امتیاز بیشتر';
     final duration =
         homeReducedMotion(context)
             ? Duration.zero

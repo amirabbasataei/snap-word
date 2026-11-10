@@ -89,14 +89,83 @@ func TestValidateDailyChain(t *testing.T) {
 }
 
 func TestMaxTurnScoreLongWordBonus(t *testing.T) {
-	short := strings.Repeat("ا", config.LongWordBonusMinLen-1)
-	long := strings.Repeat("ا", config.LongWordBonusMinLen)
+	short := strings.Repeat("ا", legacyLongWordMinLen-1)
+	long := strings.Repeat("ا", legacyLongWordMinLen)
 	if got, want := maxTurnScore(short), 6*10+30+30; got != want {
 		t.Errorf("short word max = %d, want %d", got, want)
 	}
+	// The bound stays the old ×2 for 7+ letters: it must accept runs scored
+	// by an app from before S6 as well as the new flat bonus.
 	if got, want := maxTurnScore(long), (7*10+30+35)*2; got != want {
 		t.Errorf("long word max = %d, want %d", got, want)
 	}
+	for letters := 1; letters <= 20; letters++ {
+		w := strings.Repeat("ا", letters)
+		base := letters * 10
+		newMax := base + 30 + base/2 + engine.LongWordBonus(letters)
+		if got := maxTurnScore(w); got < newMax {
+			t.Errorf("%d letters: bound %d is below the new formula's maximum %d", letters, got, newMax)
+		}
+	}
+}
+
+// longChain has 7-, 7-, 6-, 9-, 7- and 6-letter words, so the old ×2 rule and
+// the new flat bonus score it differently.
+var longChain = []string{"دانشگاه", "هواپیما", "اتوبوس", "سیاستمدار", "رودخانه", "هزارپا"}
+
+func TestValidateDailyScoreLegacyDoubling(t *testing.T) {
+	if err := ValidateDailyChain("د", longChain, 1<<20); err != nil && !strings.Contains(err.Error(), "above the maximum") {
+		t.Fatalf("test chain is not valid: %v", err)
+	}
+	tr := DailyTrace{TimesMs: []int{3000, 4000, 5000, 6000, 2500, 7000}, Streaks: []int{0, 1, 2, 3, 4, 0}}
+	score := func(f func(w string, sec float64, streak int) int) int {
+		total := 0
+		for i, w := range longChain {
+			total += f(w, float64(tr.TimesMs[i])/1000, tr.Streaks[i])
+		}
+		return total
+	}
+	current := score(func(w string, sec float64, st int) int {
+		return engine.CalculateScore(w, sec, st, config.TurnTimerClassicSec)
+	})
+	legacy := score(func(w string, sec float64, st int) int {
+		return legacyTurnScore(w, sec, st, config.TurnTimerClassicSec)
+	})
+	if current == legacy {
+		t.Fatal("test is vacuous: both formulas agree")
+	}
+
+	t.Run("a trace scored with the new bonus is accepted", func(t *testing.T) {
+		if err := ValidateDailyScore(longChain, current, tr); err != nil {
+			t.Fatalf("expected ok, got %v", err)
+		}
+	})
+	t.Run("a trace scored by an app from before S6 is accepted", func(t *testing.T) {
+		if err := ValidateDailyScore(longChain, legacy, tr); err != nil {
+			t.Fatalf("expected ok, got %v", err)
+		}
+	})
+	t.Run("a mix of the two formulas is refused", func(t *testing.T) {
+		// First word new, the rest old.
+		first := engine.CalculateScore(longChain[0], 3, 0, config.TurnTimerClassicSec)
+		firstOld := legacyTurnScore(longChain[0], 3, 0, config.TurnTimerClassicSec)
+		mixed := legacy - firstOld + first
+		if err := ValidateDailyScore(longChain, mixed, tr); !errors.Is(err, ErrInvalidDailyChain) {
+			t.Fatalf("expected ErrInvalidDailyChain, got %v", err)
+		}
+	})
+	t.Run("neither formula plus one is refused", func(t *testing.T) {
+		for _, s := range []int{current + 1, legacy + 1, current - 1, legacy - 1} {
+			if err := ValidateDailyScore(longChain, s, tr); !errors.Is(err, ErrInvalidDailyChain) {
+				t.Fatalf("score %d: expected ErrInvalidDailyChain, got %v", s, err)
+			}
+		}
+	})
+	t.Run("the legacy score is within the lenient bound, the new one too", func(t *testing.T) {
+		if legacy > chainMax(longChain) || current > chainMax(longChain) {
+			t.Fatalf("bound %d below legacy %d / current %d", chainMax(longChain), legacy, current)
+		}
+	})
 }
 
 // traceFor builds a plausible trace for chain: 4 s per word, streak counting
@@ -107,7 +176,7 @@ func traceFor(chain []string) (DailyTrace, int) {
 	for i, w := range chain {
 		tr.TimesMs[i] = 4000
 		tr.Streaks[i] = i
-		total += engine.CalculateSoloScore(w, 4, i, config.TurnTimerClassicSec)
+		total += engine.CalculateScore(w, 4, i, config.TurnTimerClassicSec)
 	}
 	return tr, total
 }
@@ -129,7 +198,7 @@ func TestValidateDailyScore(t *testing.T) {
 			if i >= 5 {
 				tr2.Streaks[i] = i - 5
 			}
-			total += engine.CalculateSoloScore(w, 4, tr2.Streaks[i], config.TurnTimerClassicSec)
+			total += engine.CalculateScore(w, 4, tr2.Streaks[i], config.TurnTimerClassicSec)
 		}
 		if err := ValidateDailyScore(chain, total, tr2); err != nil {
 			t.Fatalf("expected ok, got %v", err)
@@ -143,7 +212,7 @@ func TestValidateDailyScore(t *testing.T) {
 		tr2.TimesMs[2] = 22000
 		total := 0
 		for i, w := range chain {
-			total += engine.CalculateSoloScore(w, float64(tr2.TimesMs[i])/1000, tr2.Streaks[i], config.TurnTimerClassicSec)
+			total += engine.CalculateScore(w, float64(tr2.TimesMs[i])/1000, tr2.Streaks[i], config.TurnTimerClassicSec)
 		}
 		if err := ValidateDailyScore(chain, total, tr2); err != nil {
 			t.Fatalf("expected ok, got %v", err)
@@ -188,7 +257,7 @@ func TestValidateDailyScore(t *testing.T) {
 		total := 0
 		for i, w := range chain {
 			fast.TimesMs[i] = config.DailyWordMinMs
-			total += engine.CalculateSoloScore(w, float64(config.DailyWordMinMs)/1000, fast.Streaks[i], config.TurnTimerClassicSec)
+			total += engine.CalculateScore(w, float64(config.DailyWordMinMs)/1000, fast.Streaks[i], config.TurnTimerClassicSec)
 		}
 		if total > chainMax(chain) {
 			t.Fatalf("exact %d above the bound %d", total, chainMax(chain))

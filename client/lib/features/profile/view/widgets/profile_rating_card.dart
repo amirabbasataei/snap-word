@@ -7,8 +7,9 @@ import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/profile/data/profile_repository.dart';
 
 /// «جام» — the Elo rating from `GET /profile/stats` (`rating`, `peak_rating`,
-/// `rated_games`) as a big indigo tile, with the best rating, the rated games
-/// and the lifetime word points («مجموع امتیاز», `total_score`) beside it.
+/// `rated_games`) as a big indigo tile, with the best rating and the rated
+/// games beside it. (The lifetime word points, `total_score`, are not shown:
+/// they are nearly the same number as the experience on the level bar.)
 /// Not in the canvas (it predates the rating); laid out like the stat grid
 /// under it. Signed-in players only — a guest has no rating.
 class ProfileRatingCard extends StatelessWidget {
@@ -24,7 +25,6 @@ class ProfileRatingCard extends StatelessWidget {
     final rows = [
       ('بیشترین جام', formatPersianNumber(stats.peakRating)),
       ('بازی با جام', formatPersianNumber(stats.ratedGames)),
-      ('مجموع امتیاز', formatPersianNumber(stats.totalScore)),
     ];
     final small = ZTypography.button.copyWith(
       fontSize: 12,

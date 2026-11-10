@@ -584,7 +584,7 @@ void main() {
       await goTo(tester, 'همیشه');
       expect(h.repo.count(BoardTab.allTime), 1);
       expect(find.text('جام همهٔ بازی‌های آنلاین'), findsOneWidget);
-      expect(find.text('بعد از ۱۰ بازی رتبه می‌گیری'), findsOneWidget);
+      expect(find.text('بعد از ۵ بازی رتبه می‌گیری'), findsOneWidget);
       expect(find.text('۱٬۴۸۰'), findsOneWidget);
 
       await goTo(tester, 'دوستان');
@@ -710,31 +710,32 @@ void main() {
       expect(find.text('جزو ده نفر برتری!'), findsOneWidget);
     });
 
-    testWidgets('all-time: under ten rated games — provisional, rating shown', (
-      tester,
-    ) async {
-      h.repo.results[BoardTab.allTime] = LeaderboardResult(
-        entries: _allTime().entries,
-        playerRank: 0,
-        playerScore: 1032,
-        playerGames: 4,
-      );
-      await open(tester);
-      await goTo(tester, 'همیشه');
-      expect(
-        find.text('بعد از ۱۰ بازی رتبه می‌گیری. تا الان ۴ بازی کردی.'),
-        findsOneWidget,
-      );
-      final self = find.byType(BoardSelfRow);
-      expect(
-        find.descendant(of: self, matching: find.text('—')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: self, matching: find.text('۱٬۰۳۲')),
-        findsOneWidget,
-      );
-    });
+    testWidgets(
+      'all-time: under five rated games — provisional, rating shown',
+      (tester) async {
+        h.repo.results[BoardTab.allTime] = LeaderboardResult(
+          entries: _allTime().entries,
+          playerRank: 0,
+          playerScore: 1032,
+          playerGames: 4,
+        );
+        await open(tester);
+        await goTo(tester, 'همیشه');
+        expect(
+          find.text('بعد از ۵ بازی رتبه می‌گیری. تا الان ۴ بازی کردی.'),
+          findsOneWidget,
+        );
+        final self = find.byType(BoardSelfRow);
+        expect(
+          find.descendant(of: self, matching: find.text('—')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: self, matching: find.text('۱٬۰۳۲')),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('all-time: nobody ranked yet', (tester) async {
       h.repo.results[BoardTab.allTime] = const LeaderboardResult(
@@ -747,7 +748,7 @@ void main() {
       await goTo(tester, 'همیشه');
       expect(find.text('هنوز کسی رتبه نگرفته'), findsOneWidget);
       expect(
-        find.text('بعد از ۱۰ بازی آنلاین رتبه می‌گیری. اولین نفر باش.'),
+        find.text('بعد از ۵ بازی آنلاین رتبه می‌گیری. اولین نفر باش.'),
         findsOneWidget,
       );
     });
@@ -1084,7 +1085,7 @@ void main() {
     test('all-time and friends have no prizes or clock', () {
       expect(BoardNote.lines(BoardTab.allTime, now), [
         'جام همهٔ بازی‌های آنلاین',
-        'بعد از ۱۰ بازی رتبه می‌گیری',
+        'بعد از ۵ بازی رتبه می‌گیری',
       ]);
       expect(BoardNote.lines(BoardTab.friends, now), ['جام تو و دوستانت']);
     });

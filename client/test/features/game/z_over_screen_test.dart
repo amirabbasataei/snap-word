@@ -458,13 +458,19 @@ void main() {
       expect(_rich('؟'), findsNothing);
     });
 
-    testWidgets('1v1 loss: opponent score and coin tiles, «باختی!»', (t) async {
+    testWidgets('1v1 loss: coin tile, smaller word points, «باختی!»', (
+      t,
+    ) async {
       h.register();
       await show(t, _versusLoss());
       expect(find.text('باختی!'), findsOneWidget);
       expect(find.text('«قلمم» توی فرهنگ لغت نبود.'), findsOneWidget);
-      expect(find.text('امتیاز حریف'), findsOneWidget);
-      expect(find.text(toPersianDigits(350)), findsOneWidget);
+      // The points do not decide a 1v1: the opponent's are left out and the
+      // player's own are the small «امتیاز کلمه‌ها» (the cup card leads).
+      expect(find.text('امتیاز حریف'), findsNothing);
+      expect(find.text(toPersianDigits(350)), findsNothing);
+      expect(find.text('امتیاز این دست'), findsNothing);
+      expect(find.text('امتیاز کلمه‌ها'), findsOneWidget);
       expect(find.text('سکه'), findsOneWidget);
       expect(find.text('−${toPersianDigits(20)}'), findsOneWidget);
       // No solo record in a duel.
@@ -709,7 +715,7 @@ void main() {
       expect(find.text('سکه · سود این بازی'), findsOneWidget);
       // XP is the game's score.
       expect(find.text('+${toPersianDigits(360)}'), findsOneWidget);
-      expect(find.text('امتیاز تجربه'), findsOneWidget);
+      expect(find.text('تجربه'), findsOneWidget);
       expect(find.text('بلندترین کلمه'), findsOneWidget);
       // Never invented: rounds, a level bar, a rematch.
       expect(find.textContaining('دست'), findsNothing);
@@ -759,7 +765,7 @@ void main() {
       h.register();
       await show(t, _over(iWon: true, score: 360, opponentScore: 240));
       expect(find.text('سکه · سود این بازی'), findsNothing);
-      expect(find.text('امتیاز تجربه'), findsOneWidget);
+      expect(find.text('تجربه'), findsOneWidget);
     });
 
     testWidgets('guest has no XP chip', (t) async {
@@ -769,7 +775,7 @@ void main() {
         _over(opponentType: 'ai_easy', score: 300, opponentScore: 100),
       );
       expect(find.text('بردی!'), findsOneWidget);
-      expect(find.text('امتیاز تجربه'), findsNothing);
+      expect(find.text('تجربه'), findsNothing);
       expect(find.byType(ZHudCoinPill), findsNothing);
     });
 

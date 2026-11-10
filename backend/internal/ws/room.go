@@ -91,6 +91,8 @@ type gameStartState struct {
 	Premium []string `json:"premium,omitempty"`
 	// Ratings maps each human player to their current rating («جام»).
 	Ratings map[string]int `json:"ratings,omitempty"`
+	// Usernames maps each human player to their username (the AI is omitted).
+	Usernames map[string]string `json:"usernames,omitempty"`
 }
 
 // PowerupDeductor deducts one power-up use from a player's inventory.
@@ -159,6 +161,7 @@ type RoomDeps struct {
 	XPSvc          XPRecorder
 	Coins          CoinLedger       // nil disables entry fees (tests)
 	Perks          PerkLookup       // nil disables premium perks (tests)
+	Usernames      UsernameLookup   // nil omits usernames from game_start (tests)
 	Taunts         TauntLookup      // nil disables taunts (tests)
 	WordMisses     WordMissRecorder // nil disables the missing-word tally (tests)
 	Rating         RatingApplier    // nil disables the rating (tests)
@@ -180,6 +183,12 @@ type TauntLookup interface {
 // repository.UserRepository.
 type PerkLookup interface {
 	GetPerks(ctx context.Context, userIDs []string) (map[string]repository.Perks, error)
+}
+
+// UsernameLookup resolves user IDs to usernames. Implemented by
+// repository.UserRepository.
+type UsernameLookup interface {
+	GetUsernames(ctx context.Context, userIDs []string) (map[string]string, error)
 }
 
 // Room manages a single multiplayer game session.
@@ -917,6 +926,7 @@ func (r *Room) startGame() {
 			Premium:     premium,
 			Avatars:     avatars,
 			Ratings:     r.ratingState(),
+			Usernames:   r.usernameState(),
 		},
 	}))
 
@@ -1117,6 +1127,36 @@ func (r *Room) applyRating(winnerID, loserID string) {
 	r.mu.Unlock()
 }
 
+// usernameState returns the humans' usernames for game_start, or nil.
+// Must be called with r.mu held (one short DB read, like perkState).
+func (r *Room) usernameState() map[string]string {
+	if r.deps.Usernames == nil {
+		return nil
+	}
+	var humans []string
+	for _, pid := range r.playerOrder {
+		if pid != config.SystemAIUserID {
+			humans = append(humans, pid)
+		}
+	}
+	if len(humans) == 0 {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	names, err := r.deps.Usernames.GetUsernames(ctx, humans)
+	if err != nil {
+		slog.Error("ws: username lookup failed", "room", r.id, "error", err)
+		return nil
+	}
+	for id, n := range names {
+		if n == "" {
+			delete(names, id)
+		}
+	}
+	return names
+}
+
 // ratingState returns the humans' current ratings for game_start, or nil.
 // Must be called with r.mu held (one short DB read, like perkState).
 func (r *Room) ratingState() map[string]int {
@@ -1238,6 +1278,7 @@ func (r *Room) sendCurrentState(client *Client) {
 			Premium:     premium,
 			Avatars:     avatars,
 			Ratings:     r.ratingState(),
+			Usernames:   r.usernameState(),
 		},
 	}))
 }

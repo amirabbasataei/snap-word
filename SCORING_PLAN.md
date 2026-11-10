@@ -1,6 +1,6 @@
 # Scoring & ranking — plan (Phase 25)
 
-> **Status (2026-11-10): S1–S5 done (not deployed — S2 + S3 + S4 + S5 ship together); S6–S7 not started.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
+> **Status (2026-11-10): S1–S6 done (not deployed — S2–S6 ship together); S7 not started.** One session per stage, in order. Update the status line of each stage (and CLAUDE.md's phase table) when it is done.
 
 ## Why
 
@@ -122,7 +122,14 @@ Work:
 - Timings are still client-reported; this closes the "post the max score" cheat, not a client that fakes its timings.
 
 ### S6 — Long-word bonus
-**Status: not started.**
+**Status: done 2026-11-10 (not deployed — ships with S2–S5; not verified on a device).**
+
+- **Decision:** `long_bonus = max(0, letters − 6) × 15` (`config.LongWordBonusFrom` 6 / `LongWordBonusPerLetter` 15, mirrored by `GameConstants.longWordBonusFrom/PerLetter`), added after the speed and streak bonuses. Simulated against the ×2 rule first: a fast 7-letter word 192 → 111 (a 6-letter one is 86), 9 letters 232 → 161; a six-word chain of 4–5-letter words is unchanged, a mixed chain (4,5,6,7,5,8) 692 → 539, a long chain (7,8,9,7,8,6) 1104 → 729. k=20 was the alternative (554 / 774).
+- **One scorer:** `engine.CalculateScore` now includes the bonus (`engine.LongWordBonus`), so multiplayer (`ws.Room`), solo, vs-AI and Daily score the same and XP means the same everywhere. `engine.CalculateSoloScore` and `config.LongWordBonusMinLen/Mult` are deleted; Flutter `GameBloc.calculateScore` / `longWordBonus` mirror it. Vectors (`engine/scorer_test.go` ↔ `score_trace_test.dart`) rewritten with 7-, 9- and 10-letter words and a half-space case.
+- **Old apps:** a trace computed with the ×2 rule (app installed before S6) is accepted by `ValidateDailyScore`: it recomputes the whole chain with the new formula, and if that does not match, once with `legacyTurnScore` (same turn score without the flat bonus, doubled from 7 letters, local constants in `service/daily_chain.go`). A mix of the two inside one chain is refused. The no-trace lenient bound `maxTurnScore` takes the larger of the two (always the old ×2 for 7+ letters). Both legacy pieces go once old apps are no longer supported. Cost: during the rollout window an old app's long-word run keeps its higher score on that day's board.
+- **UI:** the «رباربود» cue is «کلمهٔ بلند · N امتیاز بیشتر» (N = the typed word's bonus), ZPlay's chip «از حرف ۷، هر حرف ۱۵ امتیاز»; the cue is now shown in ZVersus too (multiplayer has the bonus).
+- **Done in the same session (agreed with the owner):** XP is called «تجربه» (level bar, home chip, ZOver chip) instead of «امتیاز»; in a 1v1 loss the «جام» card leads and the word points are a smaller «امتیاز کلمه‌ها» without the opponent's points; «مجموع امتیاز» is gone from the profile rating card; `config.RatingMinGamesForBoard` 10 → 5 (the all-time board then needs the same 5 rated games as the weekly prize).
+- **Verified:** `go test ./internal/...` (real Postgres), admin tests, Flutter tests for the touched files (the remaining failures are goldens/tests that already fail on a clean HEAD here; the four goldens that passed on HEAD and changed were regenerated), backend rebuilt and checked over HTTP: a new-formula Daily trace → 201, an old-×2 trace → 201, off-by-one and mixed → 400 `invalid_daily_chain`.
 
 - Replace the ×2 cliff at 7 letters (a fast 7-letter word ≈ 250 points vs ≈ 125 for 6) with a smooth bonus: `long_bonus = max(0, letters − 6) × 15`, added to the turn score (letters via `LetterCount`, S1). Exact numbers are a tuning decision — simulate a few typical chains before choosing.
 - Apply it in **both** scorers, so multiplayer, solo, vs-AI and Daily score the same (removes the "Flutter-only" note in CLAUDE.md). XP then means the same in every mode.

@@ -323,7 +323,10 @@ class _LossBody extends StatelessWidget {
     final stats = [
       ZOverStat('طول زنجیر', '${toPersianDigits(state.chainLength)} کلمه'),
       if (longest != null) ZOverStat('بلندترین', longest),
-      if (isDuel)
+      // Against the AI the points are the only number; in a 1v1 they do not
+      // decide the winner and the «جام» card is the result, so the
+      // opponent's points are left out there.
+      if (isDuel && !isVersus)
         ZOverStat('امتیاز حریف', toPersianDigits(state.opponentScore)),
       if (state.entryFee > 0)
         ZOverStat(
@@ -367,6 +370,16 @@ class _LossBody extends StatelessWidget {
               child: ZOverReportWord(word: refused),
             ),
           ),
+        // The cup result leads a 1v1 loss; the word points follow.
+        if (isVersus && ZOverRatingCard.shows(state))
+          ZOverEnter(
+            kind: ZOverEnterKind.up,
+            delayMs: 0,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: ZOverRatingCard(state: state),
+            ),
+          ),
         ZOverEnter(
           kind: ZOverEnterKind.up,
           delayMs: 600,
@@ -374,6 +387,7 @@ class _LossBody extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4, bottom: 8),
             child: ZOverScoreCard(
               score: state.score,
+              compact: isVersus,
               stats: stats,
               bar:
                   recordKnown && state.chainLength > 0
@@ -388,15 +402,6 @@ class _LossBody extends StatelessWidget {
             ),
           ),
         ),
-        if (isVersus && ZOverRatingCard.shows(state))
-          ZOverEnter(
-            kind: ZOverEnterKind.up,
-            delayMs: 0,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ZOverRatingCard(state: state),
-            ),
-          ),
         if (isDuel) ZOverFlagWordLink(chain: state.wordChain),
       ],
     );
@@ -441,7 +446,7 @@ class _WinBody extends StatelessWidget {
           ZOverChip(
             kind: ZOverChipKind.indigo,
             value: '+${toPersianDigits(state.score)}',
-            label: 'امتیاز تجربه',
+            label: 'تجربه',
           ),
         ),
       if (longest != null)

@@ -301,7 +301,7 @@ void main() {
       expect(crowns(), findsNWidgets(2));
     });
 
-    testWidgets('omits what nothing backs: lives, rounds, typing, long tag', (
+    testWidgets('omits what nothing backs: lives, rounds, typing', (
       tester,
     ) async {
       await _size(tester, 393, 852);
@@ -310,8 +310,27 @@ void main() {
       expect(find.textContaining('جان'), findsNothing);
       expect(find.textContaining('دست '), findsNothing);
       expect(find.textContaining('می‌نویسد'), findsNothing);
+    });
+
+    testWidgets('the long-word tag names the bonus the server will give', (
+      tester,
+    ) async {
+      await _size(tester, 393, 852);
+      await tester.pumpWidget(_screen(_state(words: 3)));
+      await _settle(tester);
       expect(find.textContaining('دوبرابر'), findsNothing);
-      expect(find.textContaining('۷ حرف'), findsNothing);
+      await tester.enterText(find.byType(TextField), 'سرگرمیها');
+      await tester.pump(const Duration(milliseconds: 300));
+      final tag = find.text('کلمهٔ بلند · ۳۰ امتیاز بیشتر');
+      expect(tag, findsOneWidget);
+      expect(
+        tester
+            .widget<AnimatedOpacity>(
+              find.ancestor(of: tag, matching: find.byType(AnimatedOpacity)),
+            )
+            .opacity,
+        1,
+      );
     });
 
     testWidgets('typing and sending a word dispatches WordSubmitted', (

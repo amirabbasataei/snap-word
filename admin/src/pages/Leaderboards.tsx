@@ -86,7 +86,7 @@ function BoardView({ kind, limit, onLimit }: { kind: 'weekly' | 'alltime'; limit
           {kind === 'weekly' && query.data?.resets_at
             ? `پایان هفته: ${formatJalaliDateTime(query.data.resets_at)} · جایزه برای سه نفر اولی که جام هفته‌شان مثبت است و دست‌کم ۵ بازی رتبه‌دار داشته‌اند`
             : kind === 'alltime'
-              ? 'جام (امتیاز مهارت) بازیکنانی که دست‌کم ۱۰ بازی رتبه‌دار داشته‌اند'
+              ? 'جام (امتیاز مهارت) بازیکنانی که دست‌کم ۵ بازی رتبه‌دار داشته‌اند'
               : ' '}
         </p>
         <Select
@@ -103,7 +103,7 @@ function BoardView({ kind, limit, onLimit }: { kind: 'weekly' | 'alltime'; limit
         loading={query.isPending}
         error={query.isError ? messageOf(query.error) : null}
         onRetry={() => void query.refetch()}
-        emptyText={kind === 'weekly' ? 'این هفته هنوز بازی رتبه‌داری ثبت نشده است.' : 'هنوز کسی ۱۰ بازی رتبه‌دار نداشته است.'}
+        emptyText={kind === 'weekly' ? 'این هفته هنوز بازی رتبه‌داری ثبت نشده است.' : 'هنوز کسی ۵ بازی رتبه‌دار نداشته است.'}
       />
     </Card>
   )

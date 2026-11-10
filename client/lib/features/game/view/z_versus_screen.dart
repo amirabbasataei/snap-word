@@ -26,8 +26,9 @@ export 'package:wordchain/features/game/view/widgets/z_taunt_tray.dart'
 ///
 /// Left out on purpose, because nothing backs them (REDESIGN_PLAN.md, todo.md
 /// § 1): the «۲ جان» lives chip (the server ends the match on the first
-/// mistake), the «دست N از ۵» round dots, the «… دارد می‌نویسد» typing bubble
-/// and the «کلمهٔ بلند · دوبرابر» tag (the Go scorer has no long-word bonus).
+/// mistake), the «دست N از ۵» round dots and the «… دارد می‌نویسد» typing
+/// bubble. The «کلمهٔ بلند · N امتیاز بیشتر» tag is shown: since S6 the Go
+/// scorer applies the same long-word bonus.
 /// The caller (game_screen.dart) wraps this in the continue-window and
 /// disconnected overlays.
 class ZVersusActiveScreen extends StatelessWidget {
@@ -41,7 +42,7 @@ class ZVersusActiveScreen extends StatelessWidget {
     final myInitial = avatarInitial(
       auth is AuthAuthenticated ? auth.username : null,
     );
-    // The WS game state carries no usernames yet, so this is «حریف» in practice.
+    // `game_start.state.usernames` names the opponent; null (AI fallback) shows «حریف».
     final opponentName = state.opponentUsername ?? 'حریف';
     final opponentInitial = avatarInitial(opponentName, fallback: 'ح');
 
@@ -102,6 +103,7 @@ class ZVersusActiveScreen extends StatelessWidget {
           opponentLabel: opponentName,
           powerups: const ['hint', 'extra_time', 'shield'],
           inputEnabled: !state.opponentContinueWindowActive,
+          longWordMinLength: GameConstants.longWordBonusFrom + 1,
           trailing: ZTauntButton(premium: state.myPremium),
           thinkingAccessory: const ZMascot(
             mood: ZMascotMood.thinking,
