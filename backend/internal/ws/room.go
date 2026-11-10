@@ -182,7 +182,6 @@ type Room struct {
 	// powerup state
 	powerupUsedInMatch map[string]map[string]bool // userID → type → used this match
 	shieldActive       map[string]bool
-	freezePending      string // userID whose next turn gets +5 s
 
 	// entry fee: charged to both humans when the game starts, settled once
 	feeCharged bool
@@ -457,10 +456,17 @@ func (r *Room) processUsePowerup(client *Client, powerupType string) {
 		return
 	}
 
+	// Checked before UseItem so an unknown type (e.g. "freeze" from an old
+	// app, removed 2026-11-10) is answered without charging anything.
 	switch powerupType {
-	case "hint", "freeze", "extra_time", "shield":
+	case "hint", "extra_time", "shield":
 	default:
 		slog.Warn("ws: invalid powerup type", "type", powerupType, "userID", client.userID)
+		r.sendTo(client.userID, mustMarshal(outMsg{
+			Type:    "powerup_rejected",
+			Powerup: powerupType,
+			Reason:  "unknown_powerup",
+		}))
 		return
 	}
 
@@ -517,9 +523,6 @@ func (r *Room) processUsePowerup(client *Client, powerupType string) {
 			By:      client.userID,
 		}))
 		return
-
-	case "freeze":
-		r.freezePending = r.opponentOf(client.userID)
 
 	case "extra_time":
 		remaining := time.Until(r.turnDeadline)
@@ -893,14 +896,7 @@ func (r *Room) startTurn() {
 	playerID := r.currentPlayerID()
 	turnSec := r.turnTimerSec()
 
-	// Apply freeze bonus to this player's timer if pending.
-	extraSec := 0.0
-	if r.freezePending == playerID {
-		extraSec = 5
-		r.freezePending = ""
-	}
-
-	totalDur := time.Duration((turnSec+extraSec)*1000) * time.Millisecond
+	totalDur := time.Duration(turnSec*1000) * time.Millisecond
 	r.turnDeadline = time.Now().Add(totalDur)
 	r.turnStartTime = time.Now()
 	r.turnSeq++
@@ -937,6 +933,10 @@ func (r *Room) triggerTurnTimeout(seq int, playerID string) {
 
 func (r *Room) handleLoss(playerID, reason string) {
 	// Must be called with r.mu held.
+
+	// A mistake (rejected word or timeout) ends the match streak, whether the
+	// shield negates it, a continue follows, or the game ends.
+	r.streaks[playerID] = 0
 
 	// Shield auto-activates before the loss event.
 	if r.shieldActive[playerID] {

@@ -98,7 +98,7 @@ class ZVersusActiveScreen extends StatelessWidget {
         child: ZGameFooter(
           state: state,
           opponentLabel: opponentName,
-          powerups: const ['hint', 'freeze', 'extra_time', 'shield'],
+          powerups: const ['hint', 'extra_time', 'shield'],
           inputEnabled: !state.opponentContinueWindowActive,
           trailing: ZTauntButton(premium: state.myPremium),
           thinkingAccessory: const ZMascot(

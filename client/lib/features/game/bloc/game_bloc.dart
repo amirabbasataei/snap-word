@@ -335,6 +335,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         emit(
           active.copyWith(
             livesRemaining: active.livesRemaining - 1,
+            streak: 0, // a mistake ends the match streak
             turnTimeRemaining: _timeLimitSec,
             lastMistakeReason: rejectionReason,
             lastMistakeWord: word,
@@ -357,7 +358,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             ? DateTime.now().difference(_turnStartTime!).inMilliseconds / 1000.0
             : _timeLimitSec.toDouble();
 
-    final turnScore = _calculateScore(
+    final turnScore = calculateScore(
       word,
       responseTimeSec,
       active.streak,
@@ -460,8 +461,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         return g.isMyTurn;
       case 'extra_time':
         return g.isMyTurn;
-      case 'freeze':
-        return g.isMultiplayer; // spec: N/A in solo and vs-AI
       case 'shield':
         return !g.shieldActive;
     }
@@ -604,6 +603,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     emit(
       active.copyWith(
         shieldActive: false,
+        // The shield saves the match, not the streak (same rule as ws.Room).
+        streak: 0,
         turnTimeRemaining: _timeLimitSec,
         powerupNotice: 'سپر اشتباهت رو خنثی کرد',
       ),
@@ -676,7 +677,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     // Calculate AI score
-    final turnScore = _calculateScore(
+    final turnScore = calculateScore(
       aiWord,
       _aiDifficulty.delayMs / 1000.0,
       0,
@@ -757,6 +758,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         emit(
           active.copyWith(
             livesRemaining: active.livesRemaining - 1,
+            streak: 0, // a mistake ends the match streak
             turnTimeRemaining: _timeLimitSec,
             lastMistakeReason: 'timeout',
             lastMistakeWord: null,
@@ -970,7 +972,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   static const _powerupNames = {
     'hint': 'راهنما',
-    'freeze': 'انجماد',
     'extra_time': 'وقت بیشتر',
     'shield': 'سپر',
   };
@@ -1558,20 +1559,25 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
   }
 
-  static int _calculateScore(
+  /// Letters in [word] for scoring: the half-space (ZWNJ, U+200C) is not a
+  /// letter. Mirrors Go `engine.LetterCount`.
+  static int letterCount(String word) => word.replaceAll('\u200c', '').length;
+
+  static int calculateScore(
     String word,
     double responseTimeSec,
     int streak,
     double timeLimitSec,
   ) {
-    final baseScore = word.length * 10;
+    final letters = letterCount(word);
+    final baseScore = letters * 10;
     final speedBonus =
         ((timeLimitSec - responseTimeSec) * 2)
             .clamp(0.0, double.infinity)
             .toInt();
     final streakBonus = streak >= 3 ? (baseScore * 0.5).toInt() : 0;
     final turnScore = baseScore + speedBonus + streakBonus;
-    return word.length >= GameConstants.longWordBonusMinLength
+    return letters >= GameConstants.longWordBonusMinLength
         ? (turnScore * GameConstants.longWordBonusMultiplier).toInt()
         : turnScore;
   }

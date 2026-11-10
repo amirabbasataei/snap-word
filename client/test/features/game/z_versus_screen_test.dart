@@ -13,6 +13,7 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_bubbles.dart';
+import 'package:wordchain/features/game/view/widgets/z_game_power.dart';
 import 'package:wordchain/features/game/view/widgets/z_taunt_tray.dart';
 import 'package:wordchain/features/game/view/z_versus_screen.dart';
 
@@ -163,7 +164,7 @@ void main() {
       expect(find.text('حریف'), findsOneWidget);
       expect(find.text('ورودی ۲۰ سکه'), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
-      for (final label in ['راهنما', 'انجماد حریف', 'وقت بیشتر', 'سپر']) {
+      for (final label in ['راهنما', 'وقت بیشتر', 'سپر']) {
         expect(find.text(label), findsOneWidget, reason: label);
       }
       // Signed-in initial on my disc, «ح» on the opponent's.
@@ -308,18 +309,14 @@ void main() {
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
     });
 
-    testWidgets('freeze is offered (a duel has an opponent to freeze)', (
+    testWidgets('three power-ups are offered (Freeze was removed)', (
       tester,
     ) async {
       await _size(tester, 393, 852);
-      final bloc = _FeeBloc(20);
-      await tester.pumpWidget(
-        _screen(_state(counts: const {'freeze': 1}), bloc: bloc),
-      );
+      await tester.pumpWidget(_screen(_state()));
       await _settle(tester);
-      await tester.tap(find.bySemanticsLabel(RegExp('^انجماد حریف')));
-      await tester.pump();
-      expect((bloc.events.single as PowerupRequested).type, 'freeze');
+      expect(find.byType(ZChunkyPowerupTile), findsNWidgets(3));
+      expect(find.text('انجماد حریف'), findsNothing);
     });
 
     testWidgets('back button asks before ending the game', (tester) async {

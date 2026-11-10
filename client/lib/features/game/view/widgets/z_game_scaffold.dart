@@ -86,8 +86,8 @@ class ZGameHeader extends StatelessWidget {
 /// The input card (with an optional [banner] above it), the chunky power-up
 /// row and the [ZPersianKeyboard] under them. [opponentLabel] set → the card shows «… در حال فکر کردن…»
 /// while it is the opponent's turn; [longWordMinLength] set → the
-/// double-score tag appears for long words. [powerups] picks the tiles (solo
-/// has no Freeze, a duel does); [trailing] sits beside the input card (the
+/// double-score tag appears for long words. [powerups] picks the tiles;
+/// [trailing] sits beside the input card (the
 /// taunt button of ZVersus); [thinkingAccessory] stands at the end of the
 /// «… در حال فکر کردن» card.
 class ZGameFooter extends StatefulWidget {

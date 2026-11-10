@@ -51,7 +51,7 @@ class HintRequested extends GameEvent {
 }
 
 class PowerupRequested extends GameEvent {
-  final String type; // hint | freeze | extra_time | shield
+  final String type; // hint | extra_time | shield
 
   const PowerupRequested(this.type);
 

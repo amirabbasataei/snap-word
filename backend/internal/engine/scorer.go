@@ -1,6 +1,16 @@
 package engine
 
-import "unicode/utf8"
+import (
+	"strings"
+	"unicode/utf8"
+)
+
+// LetterCount is the number of letters in word for scoring: runes, not bytes
+// (every Persian letter is 2 bytes in UTF-8), and the half-space (ZWNJ,
+// U+200C) is not a letter. Mirrors Flutter's GameBloc.letterCount.
+func LetterCount(word string) int {
+	return utf8.RuneCountInString(word) - strings.Count(word, string(zwnj))
+}
 
 // CalculateScore computes the score for a single word submission using the formula:
 //
@@ -8,13 +18,12 @@ import "unicode/utf8"
 //	speed_bonus  = max(0, (timeLimitSec - responseTimeSec) × 2)
 //	streak_bonus = streak >= 3 ? base_score × 0.5 : 0
 //
-// Letters are counted as runes, not bytes — every Persian letter is 2 bytes
-// in UTF-8. This matches the Flutter scorer's String.length for Persian text.
-// There is no rarity bonus: no Persian word-frequency list exists.
+// Letters are counted with LetterCount (runes, ZWNJ excluded), like the
+// Flutter scorer. There is no rarity bonus: no Persian word-frequency list exists.
 //
 // streak is the count of consecutive successful submissions before this word.
 func CalculateScore(word string, responseTimeSec float64, streak int, timeLimitSec float64) int {
-	base := utf8.RuneCountInString(word) * 10
+	base := LetterCount(word) * 10
 
 	speedBonus := (timeLimitSec - responseTimeSec) * 2
 	if speedBonus < 0 {

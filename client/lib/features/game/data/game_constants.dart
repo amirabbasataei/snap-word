@@ -42,10 +42,9 @@ abstract final class GameConstants {
   static const int splashReducedMs = 600;
 
   // Power-ups: a use comes out of the owned inventory first, otherwise it costs
-  // coins (server-authoritative). Mirror config.CoinHint/Freeze/ExtraTime/Shield.
+  // coins (server-authoritative). Mirror config.CoinHint/ExtraTime/Shield.
   static const Map<String, int> powerupCostCoins = {
     'hint': 10,
-    'freeze': 20,
     'extra_time': 15,
     'shield': 20,
   };

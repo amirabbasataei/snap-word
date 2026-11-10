@@ -18,6 +18,11 @@ var ErrInvalidDailyChain = errors.New("invalid_daily_chain")
 // Flutter scorer: base + the fullest speed bonus + the streak bonus, times the
 // long-word multiplier. The server never sees per-word timings, so this
 // bound — not an exact recomputation — is what it can check.
+//
+// It deliberately still counts the half-space (ZWNJ) as a letter, as the
+// scorers did before 2026-11-10: a run uploaded by an older app was scored
+// that way, and refusing it would make SyncService drop it for good. Counting
+// more letters only loosens an upper bound. SCORING_PLAN.md S5 replaces it.
 func maxTurnScore(word string) int {
 	letters := utf8.RuneCountInString(word)
 	base := letters * 10

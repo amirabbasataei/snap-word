@@ -13,7 +13,7 @@ import 'package:wordchain/core/widgets/z_icon.dart';
 /// corner badge. The badge shows the owned count, or — when none is owned —
 /// the coin price of one use (the canvas has no slot for it).
 class ZChunkyPowerupTile extends StatelessWidget {
-  final String type; // hint | freeze | extra_time | shield
+  final String type; // hint | extra_time | shield
   final int count;
   final String label;
   final bool enabled;
@@ -150,7 +150,7 @@ class _Disc extends StatelessWidget {
           height: 20,
         ),
       ),
-      // Not drawn in the solo canvas (multiplayer only): same disc recipe.
+      // Fallback for a type with no canvas icon: same disc recipe.
       _ => (z.teal, ZIcon('snowflake', size: 18, color: context.zs.outline)),
     };
     return Container(

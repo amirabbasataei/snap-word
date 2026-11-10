@@ -52,10 +52,10 @@ func TestCalculateScore(t *testing.T) {
 			want: 40,
 		},
 		{
-			name: "ZWNJ counts as one rune, matching Flutter's String.length",
-			// می‌روم = م ی ZWNJ ر و م = 6 runes → base=60
+			name: "ZWNJ is not a letter (Flutter's letterCount does the same)",
+			// می‌روم = م ی ZWNJ ر و م = 5 letters → base=50
 			word: "می‌روم", responseTimeSec: 15, streak: 0, timeLimitSec: 15,
-			want: 60,
+			want: 50,
 		},
 	}
 
@@ -67,5 +67,23 @@ func TestCalculateScore(t *testing.T) {
 					tt.word, tt.responseTimeSec, tt.streak, tt.timeLimitSec, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLetterCountSkipsHalfSpace(t *testing.T) {
+	cases := map[string]int{
+		"سیب":     3,
+		"آب‌بازی": 6, // آ ب ‌ ب ا ز ی — the ZWNJ is not a letter
+		"می‌روم":  5,
+		"":        0,
+	}
+	for word, want := range cases {
+		if got := LetterCount(word); got != want {
+			t.Errorf("LetterCount(%q) = %d, want %d", word, got, want)
+		}
+	}
+	// base = 6 letters × 10, not 7 × 10.
+	if got := CalculateScore("آب‌بازی", 15, 0, 15); got != 60 {
+		t.Errorf("CalculateScore(آب‌بازی) = %d, want 60", got)
 	}
 }

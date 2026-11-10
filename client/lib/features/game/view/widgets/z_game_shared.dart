@@ -241,7 +241,7 @@ class ZPowerupTile extends StatelessWidget {
 }
 
 /// The power-up row shared by ZSolo/ZPlay/ZVersus: one [ZPowerupTile] per entry
-/// in [types] (`hint`, `freeze`, `extra_time`, `shield`), wired to the bloc.
+/// in [types] (`hint`, `extra_time`, `shield`), wired to the bloc.
 /// Count = owned inventory; when empty a use costs coins (price shown). Guests
 /// see their free-hint allowance, and tapping anything else raises the upsell.
 class ZPowerupBar extends StatelessWidget {
@@ -261,7 +261,6 @@ class ZPowerupBar extends StatelessWidget {
 
   static const _labels = {
     'hint': 'راهنما',
-    'freeze': 'انجماد حریف',
     'extra_time': 'وقت بیشتر',
     'shield': 'سپر',
   };
@@ -271,8 +270,6 @@ class ZPowerupBar extends StatelessWidget {
     switch (type) {
       case 'hint':
         return ZIcon('lightbulb', size: 22, color: z.indigo);
-      case 'freeze':
-        return ZIcon('snowflake', size: 22, color: z.teal);
       case 'extra_time':
         return ZIcon('timer-reset', size: 22, color: z.amber);
       default:
@@ -757,7 +754,8 @@ class _ZWordInputState extends State<ZWordInput> {
             valueListenable: _controller,
             builder:
                 (context, value, _) => _LongWordCue(
-                  visible: value.text.trim().length >= min,
+                  visible:
+                      GameBloc.letterCount(value.text.trim()) >= min,
                   minLength: min,
                 ),
           ),

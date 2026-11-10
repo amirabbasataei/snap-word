@@ -45,6 +45,7 @@ A production-ready word-chain mobile game (Shiritori-style).
 | 22 | Premium Perks (taunts, avatars, badge) | [ ] In Progress — backend + client code complete, backend verified live (WS + REST); client UI **not yet verified on-device**; real billing (Bazaar/Myket) not built |
 | 23 | Admin Panel (web, RTL Persian) | [ ] In Progress — A1 (backend auth/sessions/roles/audit) complete; A2 (frontend scaffold/shell/login/embedding) complete; A3 (dashboard) complete; A4 (users & economy, ban) complete; A5 (content & catalogue) complete; A6 notifications (admin → push + in-app messages, push-permission tracking) complete in code, live-checked locally, **client side not yet verified on-device** — A6's **matches page** (read-only list + detail, see § Admin Panel) is done in code, its live-rooms page and A7 not started; the «پیشنهاد کلمات» page (`/admin/content/words`) belongs to Phase 24, see § Word Suggestions; A8 (product analytics — self-hosted behaviour events + retention, see § Product Analytics) complete in code, client side **not yet verified on-device**. Plan and per-stage status in **ADMIN_PLAN.md** (stages A1–A8, one per session) |
 | 24 | Word Suggestions & Dictionary Delta | [ ] In Progress — **24a complete** (backend + admin panel «پیشنهاد کلمات», verified live locally, **deployed to prod 2026-10-27** (together with the legal pages; migration 015 applied)); **24b complete in code** (Flutter: dictionary delta, report/flag/suggest UI, «پیشنهادهای من», reward face) — unit/widget-tested, **not yet verified on a device**. See § Word Suggestions (Phase 24) |
+| 25 | Scoring & Ranking (Elo «جام», streak/ZWNJ fixes, Freeze removal, Daily fairness) | [ ] In Progress — **S1 complete** (2026-11-10: match streak resets on every mistake, the half-space is not a letter in scoring, Freeze removed; Go + Flutter tested, backend rebuilt locally, **not deployed, not verified on a device**). S2–S7 not started. Plan and per-stage status in **SCORING_PLAN.md** (stages S1–S7, one per session) |
 
 ---
 
@@ -230,7 +231,7 @@ Apply identically in Go (`engine.ValidateMove`) and Flutter (`DictionaryService.
 6. **Dictionary check**: must exist in the Persian dictionary (`fa.txt`).
 
 ### Streak rules
-- **Match streak**: consecutive successful word submissions by the same player in one match. Resets on rejection/timeout. `streak_bonus` uses the count *before* the current word.
+- **Match streak**: consecutive successful word submissions by the same player in one match. Resets to 0 on every rejection/timeout: also when the shield negates it, when a life is lost (solo/daily) and after a continue (Go `ws.Room.handleLoss`; Flutter `GameBloc` lives branches and `_consumeShield`; fixed 2026-11-10, before that it never reset). The opponent's words do not reset it. `streak_bonus` uses the count *before* the current word.
 - **Daily streak**: consecutive calendar days (Iran time, UTC+3:30) with at least one completed game. Tracked server-side in `player_stats`.
 
 ### Solo end conditions
@@ -393,7 +394,7 @@ class LocalPlayerStats extends Table {
 }
 
 class LocalPowerupCache extends Table {
-  TextColumn     get powerupType  => text()();                    // hint | freeze | extra_time | shield
+  TextColumn     get powerupType  => text()();                    // hint | extra_time | shield (freeze removed 2026-11-10)
   IntColumn      get quantity     => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastSyncedAt => dateTime().nullable()();
   @override
@@ -477,7 +478,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 ```
 Client → Server:
   { "type": "submit_word",  "word": "apple" }
-  { "type": "use_powerup",  "powerup": "freeze" }
+  { "type": "use_powerup",  "powerup": "hint" | "extra_time" | "shield" }   ← any other type (incl. the removed "freeze") → `powerup_rejected` reason `unknown_powerup`, nothing charged
   { "type": "continue",     "method": "ad" | "coins" | "forfeit" }   ← must arrive within 15s of loss_event; `forfeit` (the loser declines) ends the game at once for the opponent, broadcasting `continue_decision` forfeit then `game_over`
   { "type": "forfeit" }                                   ← leave the match: while active or in a continue window the opponent wins immediately (`game_over` with winner/scores/payout; entry fee settled once). No-op in any other state, from spectators/stale connections, and when repeated or racing a timeout/disconnect (`Room.forfeit`/`resolveGame` are idempotent). Sent by the client when the player taps «تسلیم و خروج» (`GameBloc._onGameEnded`, multiplayer only)
   { "type": "send_taunt",   "taunt": "hurry_up" }         ← premium only; ID from the `taunts` table
@@ -492,7 +493,8 @@ Server → Client:
   { "type": "loss_event",           "player_id": "...", "reason": "invalid_word" | "timeout" }
   { "type": "continue_window",      "player_id": "...", "deadline_ms": 15000 }
   { "type": "continue_decision",    "player_id": "...", "decision": "continue" | "forfeit" }
-  { "type": "powerup_used",         "powerup": "freeze", "by": "..." }
+  { "type": "powerup_used",         "powerup": "shield", "by": "..." }
+  { "type": "powerup_rejected",     "powerup": "...", "reason": "insufficient_powerup" | "unknown_powerup" }  ← sender only
   { "type": "game_over",            "winner": "...", "scores": { ... } }
   { "type": "opponent_disconnected" }
   { "type": "taunt",                "player_id": "...", "taunt": "hurry_up", "text": "..." }  ← sent to both players
@@ -507,18 +509,19 @@ Client reconnect: exponential backoff (1s, 2s, 4s, capped at 8s) for up to 30 se
 ## 💰 Scoring Formula
 
 ```
-base_score   = letters(word) × 10          ← letters/runes, never UTF-8 bytes
+base_score   = letters(word) × 10          ← letters = runes minus the half-space (ZWNJ), never UTF-8 bytes
 speed_bonus  = max(0, (time_limit - response_time_sec) × 2)
 streak_bonus = streak >= 3 ? base_score × 0.5 : 0
 turn_score   = base_score + speed_bonus + streak_bonus
 ```
 
+- **Letters** (2026-11-10): `engine.LetterCount` (Go) / `GameBloc.letterCount` (Flutter) — runes minus ZWNJ (U+200C), so «آب‌بازی» is 6 letters. Before, the half-space scored +10 and pushed 759 words to the ×2 long-word bonus. The 2-letter minimum (`engine.ValidateMove`, `DictionaryService.isValid`, the bloc's `too_short` check) and the AI levels' minimum lengths still count the ZWNJ: harmless for players (no `fa.txt` word has < 2 real letters), but Hard AI's 6-letter minimum lets in 310 words with 5 real letters. The Daily upload bound `service.maxTurnScore` deliberately keeps counting ZWNJ (old apps scored that way; S5 replaces it).
 - **Long-word bonus (Phase 17, Flutter solo/AI only)**: words with ≥ `GameConstants.longWordBonusMinLength` (7) letters have their turn score multiplied by `longWordBonusMultiplier` (2.0) in `GameBloc._calculateScore`. The Go scorer does **not** apply it yet — multiplayer support is follow-up work.
 
 - `time_limit` is the turn timer for the current match variant.
 - `streak` is consecutive successes *before* this word.
 - **No rarity bonus.** It depended on an English word-frequency list (`word_freq_ranks.txt`), removed 2026-09-28 — no Persian frequency data exists. Go and Flutter scorers are now identical apart from the long-word bonus above.
-- Go counts letters with `utf8.RuneCountInString` (it previously used `len(word)`, i.e. bytes, which doubled every Persian multiplayer score).
+- Go counts letters with `engine.LetterCount` (runes; it once used `len(word)`, i.e. bytes, which doubled every Persian multiplayer score).
 
 ---
 
@@ -622,7 +625,7 @@ Every claimable prize is a row in `inbox_rewards` (migration `007`; `kind` = `re
 
 **Coin shortfall UX:** every blocked-by-coins action (queue join, challenge send/accept, daily retry, solo continue-with-coins, multiplayer `match_cancelled`/`insufficient_coins`) opens the shared `showInsufficientCoinsDialog` (`core/widgets/insufficient_coins_dialog.dart`), which lists real ways to earn coins (rewarded ad, Daily Challenge, invites, daily/streak rewards, winning a pot) with links to those screens. Mid-game power-up shortfalls keep the pause-aware `_NeedCoinsSheet` instead (navigating away would abandon the match). New coin-gated actions should call the dialog rather than a toast.
 
-**Spend:** Hint 10 · Freeze 20 · Extra Time 15 · Continue (Classic) 25 · Daily Challenge retry 25
+**Spend:** Hint 10 · Extra Time 15 · Shield 20 · Continue (Classic) 25 · Daily Challenge retry 25
 
 No energy systems, no artificial wait timers, no interstitial ads during an active game.
 
@@ -685,11 +688,12 @@ Web panel (React, RTL Persian, embedded in the Go binary) for operators. Plan, v
 | Power-up | Effect | Solo/AI limit | Multiplayer limit | Guest? |
 |---|---|---|---|---|
 | **Hint** | Suggests a valid word for the required starting letter | Unlimited | 1 per match | 5 per session (free) |
-| **Freeze** | Pauses opponent's timer +5s on their next turn | N/A | 1 per match | ❌ Registered only |
 | **Extra Time** | Adds 8s to current player's turn timer | Unlimited | 1 per match | ❌ Registered only |
 | **Shield** | Auto-negates next loss-causing event. Fires before continue prompt. Does not stack. | 1 per game | 1 per match | ❌ Registered only |
 
-**How a use is paid for (server-authoritative, `PowerupService.UseItem`):** owned inventory first; when the count is 0 it costs coins — Hint 10 · Freeze 20 · Extra Time 15 · Shield 20 (`config.PowerupPrice` / `GameConstants.powerupCostCoins`; Shield's price was not in the original spec). There is no separate shop yet, so inventory only grows via future rewards. The tile badge shows owned count, with the coin price beneath when it is 0. Solo/vs-AI apply the effect locally after the server call succeeds (Freeze is not offered there); multiplayer sends `use_powerup` over WS and the server answers `powerup_used` (with the caller's `coins`/`remaining`) or `powerup_rejected`. Guests: free Hint only; other tiles raise the register upsell.
+**How a use is paid for (server-authoritative, `PowerupService.UseItem`):** owned inventory first; when the count is 0 it costs coins — Hint 10 · Extra Time 15 · Shield 20 (`config.PowerupPrice` / `GameConstants.powerupCostCoins`; Shield's price was not in the original spec). There is no separate shop yet, so inventory only grows via future rewards. The tile badge shows owned count, with the coin price beneath when it is 0. Solo/vs-AI apply the effect locally after the server call succeeds; multiplayer sends `use_powerup` over WS and the server answers `powerup_used` (with the caller's `coins`/`remaining`) or `powerup_rejected`. Guests: free Hint only; other tiles raise the register upsell.
+
+**Freeze was removed (2026-11-10, SCORING_PLAN.md S1).** As built it was backwards (the tile said «انجماد حریف» but the server gave the *opponent's* next turn +5 s). Nobody could own one. The server answers an old app's `use_powerup freeze` with `powerup_rejected` (`unknown_powerup`) before `UseItem`, so nothing is charged.
 
 Both players' inventories are visible at match start. Multiplayer limits enforced server-side — server rejects any second use regardless of client state.
 
