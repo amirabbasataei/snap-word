@@ -18,6 +18,9 @@ class BoardResultView extends StatelessWidget {
   final String? selfAvatarId;
   final DateTime now;
 
+  /// The Daily type this board is (daily tab only; 1 classic).
+  final int dailyVariant;
+
   /// Lines appended to the [BoardNote] (the daily screen adds its
   /// participation prize).
   final List<String> extraNoteLines;
@@ -30,8 +33,19 @@ class BoardResultView extends StatelessWidget {
     required this.username,
     required this.selfAvatarId,
     required this.now,
+    this.dailyVariant = 1,
     this.extraNoteLines = const [],
   });
+
+  /// The player's own word count on the daily board (their entry, when it is
+  /// in the list).
+  int? _selfChain() {
+    if (tab != BoardTab.daily) return null;
+    for (final e in result.entries) {
+      if (e.userId == currentUserId) return e.chainLength;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +62,7 @@ class BoardResultView extends StatelessWidget {
                 tab: tab,
                 now: now,
                 dayNumber: result.dayNumber,
+                dailyVariant: dailyVariant,
                 extraLines: extraNoteLines,
               ),
               if (hasPodium)
@@ -86,6 +101,7 @@ class BoardResultView extends StatelessWidget {
               result.playerRank,
               result.playerScore,
               games: result.playerGames,
+              chain: _selfChain(),
             ),
           ),
         ),

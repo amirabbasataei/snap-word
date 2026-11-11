@@ -1,6 +1,7 @@
 part of 'leaderboard_cubit.dart';
 
-/// The board's tabs, in canvas order (this week · today · all time · friends).
+/// The board's tabs, in canvas order (this week · challenge · all time ·
+/// friends). [daily] is the Daily Challenge board, shown per type (variant).
 enum BoardTab { weekly, daily, allTime, friends }
 
 /// What the board shows. Tabs load on their own: [boards] holds every result
@@ -13,12 +14,20 @@ class LeaderboardState extends Equatable {
   final Set<BoardTab> loading;
   final String currentUserId;
 
+  /// Which Daily Challenge type the «چالش» tab shows (1 classic «حرف اول»,
+  /// 2 «حرف دوم», 3 «حرف سوم»). `boards[BoardTab.daily]` always holds this
+  /// type's board; [dailyBoards] remembers every type fetched so far.
+  final int dailyVariant;
+  final Map<int, LeaderboardResult> dailyBoards;
+
   const LeaderboardState({
     required this.currentUserId,
     this.tab = BoardTab.weekly,
     this.boards = const {},
     this.errors = const {},
     this.loading = const {},
+    this.dailyVariant = 1,
+    this.dailyBoards = const {},
   });
 
   LeaderboardResult? get current => boards[tab];
@@ -37,14 +46,26 @@ class LeaderboardState extends Equatable {
     Map<BoardTab, LeaderboardResult>? boards,
     Map<BoardTab, String>? errors,
     Set<BoardTab>? loading,
+    int? dailyVariant,
+    Map<int, LeaderboardResult>? dailyBoards,
   }) => LeaderboardState(
     currentUserId: currentUserId,
     tab: tab ?? this.tab,
     boards: boards ?? this.boards,
     errors: errors ?? this.errors,
     loading: loading ?? this.loading,
+    dailyVariant: dailyVariant ?? this.dailyVariant,
+    dailyBoards: dailyBoards ?? this.dailyBoards,
   );
 
   @override
-  List<Object?> get props => [tab, boards, errors, loading, currentUserId];
+  List<Object?> get props => [
+    tab,
+    boards,
+    errors,
+    loading,
+    currentUserId,
+    dailyVariant,
+    dailyBoards,
+  ];
 }

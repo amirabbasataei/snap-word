@@ -107,15 +107,22 @@ String? boardRowSub(BoardTab tab, LeaderboardEntry e) {
 /// from the rank, score and games the server returned — no deltas, no league.
 ///
 /// [games] is the player's rated games on this board (`player_games`).
-String selfSubtitle(BoardTab tab, int rank, int? score, {int? games}) {
+String selfSubtitle(
+  BoardTab tab,
+  int rank,
+  int? score, {
+  int? games,
+  int? chain,
+}) {
   const play = 'یه بازی آنلاین بزن';
   switch (tab) {
     case BoardTab.daily:
-      return rank <= 0
-          ? 'امروز هنوز چالش روزانه رو بازی نکردی'
-          : rank <= 10
-          ? 'جزو ده نفر برتر امروز!'
-          : '${toPersianDigits(rank - 10)} پله تا ده‌تای اول';
+      if (rank <= 0) return 'امروز هنوز چالش روزانه رو بازی نکردی';
+      final words =
+          chain == null ? '' : 'زنجیر ${toPersianDigits(chain)} کلمه · ';
+      return rank <= 10
+          ? '$wordsجزو ده نفر برتر امروز!'
+          : '$words${toPersianDigits(rank - 10)} پله تا ده‌تای اول';
     case BoardTab.friends:
       if (rank <= 0) return 'هنوز بازی آنلاین نکردی. $play';
       return rank == 1

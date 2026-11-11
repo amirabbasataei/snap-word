@@ -149,6 +149,8 @@ class _FakeBoards extends Fake implements LeaderboardRepository {
   final errors = <BoardTab, Object>{};
   final gates = <BoardTab, Completer<LeaderboardResult>>{};
   final calls = <BoardTab>[];
+  final dailyVariants = <int>[];
+  final dailyByVariant = <int, LeaderboardResult>{};
 
   Future<LeaderboardResult> _go(BoardTab tab) async {
     calls.add(tab);
@@ -169,7 +171,11 @@ class _FakeBoards extends Fake implements LeaderboardRepository {
   Future<LeaderboardResult> fetchDaily(
     String currentUserId, {
     int variant = 1,
-  }) => _go(BoardTab.daily);
+  }) {
+    dailyVariants.add(variant);
+    final other = dailyByVariant[variant];
+    return other != null ? Future.value(other) : _go(BoardTab.daily);
+  }
 
   @override
   Future<LeaderboardResult> fetchFriends() => _go(BoardTab.friends);
@@ -292,7 +298,7 @@ void main() {
       await open(tester);
       expect(find.byType(ZRibbonTitle), findsOneWidget);
       expect(find.text('جدول'), findsOneWidget);
-      for (final label in ['این هفته', 'امروز', 'همیشه', 'دوستان']) {
+      for (final label in ['این هفته', 'چالش', 'همیشه', 'دوستان']) {
         expect(find.text(label), findsOneWidget);
       }
       expect(find.byType(BoardPodium), findsOneWidget);
@@ -558,7 +564,7 @@ void main() {
         loadDailyBoardFailedMessage,
       );
       await open(tester);
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       expect(find.text(loadDailyBoardFailedMessage), findsOneWidget);
       await goTo(tester, 'این هفته');
       expect(find.byType(BoardPodium), findsOneWidget);
@@ -567,7 +573,7 @@ void main() {
       expect(find.byType(BoardPodium), findsOneWidget);
 
       h.repo.errors.clear();
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       expect(find.text('چالش روزانهٔ شمارهٔ ۴۲'), findsOneWidget);
     });
   });
@@ -579,7 +585,7 @@ void main() {
       await open(tester);
       expect(h.repo.calls, [BoardTab.weekly]);
 
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       expect(h.repo.calls, [BoardTab.weekly, BoardTab.daily]);
       expect(find.text('چالش روزانهٔ شمارهٔ ۴۲'), findsOneWidget);
 
@@ -601,7 +607,7 @@ void main() {
       tester,
     ) async {
       await open(tester);
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       final gate = h.repo.gates[BoardTab.weekly] = Completer();
       await tester.tap(find.text('این هفته'));
       await tester.pump();
@@ -622,7 +628,7 @@ void main() {
         isSemantics(isButton: true, isSelected: true),
       );
       expect(
-        tester.getSemantics(find.bySemanticsLabel('امروز')),
+        tester.getSemantics(find.bySemanticsLabel('چالش')),
         isSemantics(isButton: true, isSelected: false),
       );
       handle.dispose();
@@ -632,7 +638,7 @@ void main() {
       tester,
     ) async {
       await open(tester);
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       expect(find.text('چالش روزانهٔ شمارهٔ ۴۲'), findsOneWidget);
       expect(find.text('جایزهٔ سه نفر اول: ۱۰۰ · ۶۰ · ۳۰ سکه'), findsOneWidget);
       expect(
@@ -648,7 +654,7 @@ void main() {
       tester,
     ) async {
       await open(tester);
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       expect(find.text('۴ پله تا ده‌تای اول'), findsOneWidget);
       expect(
         find.descendant(
@@ -670,7 +676,7 @@ void main() {
     testWidgets('daily: my own entry gives the score', (tester) async {
       h.repo.results[BoardTab.daily] = _daily(me: true);
       await open(tester);
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       expect(
         find.descendant(
           of: find.byType(BoardSelfRow),
@@ -678,9 +684,72 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('جزو ده نفر برتر امروز!'), findsOneWidget);
-      // The player's own row in the list carries the chain too.
+      // The own row's sub-line carries the player's word count too.
+      expect(
+        find.text('زنجیر ۱۱ کلمه · جزو ده نفر برتر امروز!'),
+        findsOneWidget,
+      );
+      // …and so does their entry in the list.
       expect(find.text('زنجیر ۱۱ کلمه'), findsOneWidget);
+    });
+
+    testWidgets('daily: three types, one board each, the podium shows words', (
+      tester,
+    ) async {
+      h.repo.dailyByVariant[2] = LeaderboardResult(
+        entries: [
+          _e(1, 'u5', 'سارا', 700, chain: 9),
+          _e(2, 'me-1', 'آرش', 500, chain: 7),
+          _e(3, 'u6', 'کیان', 300, chain: 4),
+        ],
+        playerRank: 2,
+        playerScore: 500,
+        dayNumber: 42,
+      );
+      await open(tester);
+      await goTo(tester, 'چالش');
+      expect(find.byType(DailyVariantTabs), findsOneWidget);
+      expect(h.repo.dailyVariants, [1]);
+      // Podium: the first three show their word count under the name.
+      expect(
+        find.descendant(
+          of: find.byType(BoardPodium),
+          matching: find.text('زنجیر ۲۰ کلمه'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(BoardPodium),
+          matching: find.text('زنجیر ۱۶ کلمه'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('حرف دوم'));
+      await _settle(tester);
+      expect(h.repo.dailyVariants, [1, 2]);
+      expect(find.text('سارا'), findsOneWidget);
+      expect(find.text('پریسا'), findsNothing);
+      expect(find.text('چالش روزانهٔ شمارهٔ ۴۲ · حرف دوم'), findsOneWidget);
+      expect(find.text('زنجیر ۹ کلمه'), findsOneWidget);
+
+      // Back to the first: its board is shown at once from the cache.
+      await tester.tap(find.text('حرف اول'));
+      await tester.pump();
+      expect(find.text('پریسا'), findsOneWidget);
+      await _settle(tester);
+    });
+
+    testWidgets('the types are only offered on the challenge tab', (
+      tester,
+    ) async {
+      await open(tester);
+      expect(find.byType(DailyVariantTabs), findsNothing);
+      await goTo(tester, 'چالش');
+      expect(find.byType(DailyVariantTabs), findsOneWidget);
+      await goTo(tester, 'همیشه');
+      expect(find.byType(DailyVariantTabs), findsNothing);
     });
 
     testWidgets(
@@ -692,11 +761,11 @@ void main() {
           dayNumber: 42,
         );
         await open(tester);
-        await goTo(tester, 'امروز');
+        await goTo(tester, 'چالش');
         expect(find.text('امروز هنوز کسی بازی نکرده'), findsOneWidget);
         await tester.tap(find.text('چالش روزانه'));
         await _settle(tester);
-        expect(h.routes, ['/daily']);
+        expect(h.routes, ['/daily?variant=1']);
       },
     );
 
@@ -832,7 +901,7 @@ void main() {
       tester,
     ) async {
       await open(tester);
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       final gate = h.repo.gates[BoardTab.daily] = Completer();
       h.bus.notify(MainTab.board);
       await tester.pump();
@@ -842,7 +911,10 @@ void main() {
       expect(h.repo.count(BoardTab.daily), 2);
       gate.complete(_daily(me: true));
       await _settle(tester);
-      expect(find.text('جزو ده نفر برتر امروز!'), findsOneWidget);
+      expect(
+        find.text('زنجیر ۱۱ کلمه · جزو ده نفر برتر امروز!'),
+        findsOneWidget,
+      );
       // Only the visible tab was reloaded.
       expect(h.repo.count(BoardTab.weekly), 1);
     });
@@ -923,7 +995,7 @@ void main() {
     }
 
     Future<void> visitAll(WidgetTester tester) async {
-      for (final tab in ['این هفته', 'امروز', 'همیشه', 'دوستان']) {
+      for (final tab in ['این هفته', 'چالش', 'همیشه', 'دوستان']) {
         await goTo(tester, tab);
         expect(tester.takeException(), isNull, reason: tab);
         await tester.drag(find.byType(ListView), const Offset(0, -3000));
@@ -1139,7 +1211,7 @@ void main() {
 
     testWidgets('daily light', (tester) async {
       await open(tester, w: 360, hgt: 640);
-      await goTo(tester, 'امروز');
+      await goTo(tester, 'چالش');
       await shot(tester, 'z_board_daily_light');
     });
 

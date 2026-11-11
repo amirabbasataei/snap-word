@@ -149,6 +149,7 @@ class _DailyBoardView extends StatelessWidget {
                         username: username,
                         selfAvatarId: state.selfAvatarId,
                         now: (clock ?? DateTime.now)(),
+                        dailyVariant: variant,
                         extraNoteLines: [],
                       );
                     },

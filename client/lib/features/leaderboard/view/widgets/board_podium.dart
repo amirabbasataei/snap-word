@@ -74,6 +74,7 @@ class _Pedestal extends StatelessWidget {
     final z = context.z;
     final zs = context.zs;
     final first = place == 1;
+    final sub = tab == BoardTab.daily ? boardRowSub(tab, entry) : null;
     final disc = first ? 66.0 : 56.0;
     final (discFill, onDisc) = switch (place) {
       1 => (z.indigo, z.onIndigo),
@@ -136,6 +137,7 @@ class _Pedestal extends StatelessWidget {
       excludeSemantics: true,
       label:
           'رتبهٔ ${toPersianDigits(place)}: ${isolate(entry.username)}، '
+          '${sub == null ? '' : '$sub، '}'
           '${boardScoreSpoken(tab, entry.score)}${mine ? '، تو' : ''}',
       child: MediaQuery.withClampedTextScaling(
         maxScaleFactor: 1.3,
@@ -206,6 +208,21 @@ class _Pedestal extends StatelessWidget {
                           color: onBlock,
                         ),
                       ),
+                      if (sub != null)
+                        // The record: how many words the run chained.
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            sub,
+                            maxLines: 1,
+                            style: ZTypography.metaLabel.copyWith(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              height: 1.3,
+                              color: scoreColor,
+                            ),
+                          ),
+                        ),
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: BoardScoreText(

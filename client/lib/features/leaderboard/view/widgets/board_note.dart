@@ -6,6 +6,7 @@ import 'package:wordchain/core/utils/iran_time.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
 
 /// A short, true statement of what the visible board counts — and, where the
@@ -19,6 +20,10 @@ class BoardNote extends StatelessWidget {
 
   /// The Daily Challenge number (daily tab only).
   final int? dayNumber;
+
+  /// The Daily type (daily tab only): named in the first line when it is not
+  /// the classic one.
+  final int dailyVariant;
   final DateTime now;
 
   /// Extra lines under the tab's own (a screen that knows something more).
@@ -29,6 +34,7 @@ class BoardNote extends StatelessWidget {
     required this.tab,
     required this.now,
     this.dayNumber,
+    this.dailyVariant = 1,
     this.extraLines = const [],
   });
 
@@ -40,6 +46,7 @@ class BoardNote extends StatelessWidget {
     BoardTab tab,
     DateTime now, {
     int? dayNumber,
+    int dailyVariant = 1,
   }) => switch (tab) {
     BoardTab.weekly => [
       prizeLine(GameConstants.weeklyPrizeCoins),
@@ -48,9 +55,8 @@ class BoardNote extends StatelessWidget {
       'جدول تا ${formatCountdownFa(untilIranWeekReset(now))} دیگه ریست می‌شه',
     ],
     BoardTab.daily => [
-      dayNumber == null
-          ? 'چالش روزانهٔ امروز'
-          : 'چالش روزانهٔ شمارهٔ ${toPersianDigits(dayNumber)}',
+      '${dayNumber == null ? 'چالش روزانهٔ امروز' : 'چالش روزانهٔ شمارهٔ ${toPersianDigits(dayNumber)}'}'
+          '${dailyVariant > 1 ? ' · ${linkVariantName(dailyVariant)}' : ''}',
       prizeLine(GameConstants.dailyPrizeCoins),
       'تا پایان امروز ${formatCountdownFa(untilIranMidnight(now))} مونده',
     ],
@@ -64,7 +70,10 @@ class BoardNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final z = context.z;
-    final text = [...lines(tab, now, dayNumber: dayNumber), ...extraLines];
+    final text = [
+      ...lines(tab, now, dayNumber: dayNumber, dailyVariant: dailyVariant),
+      ...extraLines,
+    ];
     return ChunkyBox(
       fill: z.surface,
       depth: 0,

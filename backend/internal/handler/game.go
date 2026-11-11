@@ -36,6 +36,9 @@ type createSoloRequest struct {
 	// before each word. Optional — older apps omit them.
 	WordTimesMs []int `json:"word_times_ms"`
 	WordStreaks []int `json:"word_streaks"`
+	// Daily only: the link position the run was played at (1 classic, 2/3
+	// the harder variants). Missing/0 = an app older than the variants.
+	DailyVariant int `json:"daily_variant"`
 }
 
 type matchResponse struct {
@@ -89,14 +92,15 @@ func (h *GameHandler) CreateSolo(c *gin.Context) {
 	slog.Info("game/solo upload", "userID", userID, "mode", req.Mode, "score", req.Score)
 
 	in := service.SoloGameInput{
-		Mode:        req.Mode,
-		Score:       req.Score,
-		WordChain:   req.WordChain,
-		LongestWord: req.LongestWord,
-		StartedAt:   req.StartedAt,
-		EndedAt:     req.EndedAt,
-		WordTimesMs: req.WordTimesMs,
-		WordStreaks: req.WordStreaks,
+		Mode:         req.Mode,
+		Score:        req.Score,
+		WordChain:    req.WordChain,
+		LongestWord:  req.LongestWord,
+		StartedAt:    req.StartedAt,
+		EndedAt:      req.EndedAt,
+		WordTimesMs:  req.WordTimesMs,
+		WordStreaks:  req.WordStreaks,
+		DailyVariant: req.DailyVariant,
 	}
 
 	match, alreadyExisted, err := h.gameSvc.CreateSoloGame(c.Request.Context(), userID, in)

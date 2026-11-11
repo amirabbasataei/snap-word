@@ -24,7 +24,7 @@ import 'package:wordchain/features/leaderboard/view/widgets/board_tabs.dart';
 /// list and the player's own row pinned underneath.
 ///
 /// Tabs: «این هفته» (`type=global`, the net «جام» of the week's rated games),
-/// «امروز» (`GET /daily/leaderboard`, today's Daily Challenge, word points),
+/// «چالش» (`GET /daily/leaderboard`, today's Daily Challenge, word points; three sub-tabs «حرف اول / دوم / سوم», one board per type),
 /// «همیشه» (`type=alltime`, the rating, ranked after ten rated games) and
 /// «دوستان» (`type=friends`, friends by rating). The canvas's «بلندترین زنجیر»
 /// sub-line is real only on the daily board (`chain_length`); the rating boards
@@ -139,6 +139,14 @@ class _BoardView extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 child: BoardTabs(selected: state.tab, onSelect: cubit.select),
               ),
+              if (state.tab == BoardTab.daily)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: DailyVariantTabs(
+                    selected: state.dailyVariant,
+                    onSelect: cubit.selectDailyVariant,
+                  ),
+                ),
               Expanded(
                 child: _TabBody(
                   state: state,
@@ -196,7 +204,9 @@ class _TabBody extends StatelessWidget {
     if (empty) {
       return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-        child: ZStateCard(child: _EmptyBoard(tab: tab)),
+        child: ZStateCard(
+          child: _EmptyBoard(tab: tab, dailyVariant: state.dailyVariant),
+        ),
       );
     }
 
@@ -207,14 +217,16 @@ class _TabBody extends StatelessWidget {
       username: username,
       selfAvatarId: state.selfAvatarId,
       now: now,
+      dailyVariant: state.dailyVariant,
     );
   }
 }
 
 class _EmptyBoard extends StatelessWidget {
   final BoardTab tab;
+  final int dailyVariant;
 
-  const _EmptyBoard({required this.tab});
+  const _EmptyBoard({required this.tab, required this.dailyVariant});
 
   @override
   Widget build(BuildContext context) {
@@ -228,7 +240,7 @@ class _EmptyBoard extends StatelessWidget {
         title: 'امروز هنوز کسی بازی نکرده',
         body: 'اولین نفر چالش روزانه باش!',
         actionLabel: 'چالش روزانه',
-        onAction: () => context.push('/daily'),
+        onAction: () => context.push('/daily?variant=$dailyVariant'),
       ),
       BoardTab.allTime => ZEmptyState(
         title: 'هنوز کسی رتبه نگرفته',

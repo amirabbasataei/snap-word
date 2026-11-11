@@ -8,16 +8,20 @@ part 'leaderboard_state.dart';
 class LeaderboardCubit extends Cubit<LeaderboardState> {
   final LeaderboardRepository _repo;
 
-  /// The Daily variant whose board [BoardTab.daily] loads (1 = classic; the
-  /// daily board route of a harder variant passes 2/3).
-  final int dailyVariant;
-
+  /// [dailyVariant] is the Daily type [BoardTab.daily] starts on (1 =
+  /// classic; the daily board route of a harder variant passes 2/3). The
+  /// leaderboard tab switches it with [selectDailyVariant].
   LeaderboardCubit({
     required LeaderboardRepository repository,
     required String currentUserId,
-    this.dailyVariant = 1,
+    int dailyVariant = 1,
   }) : _repo = repository,
-       super(LeaderboardState(currentUserId: currentUserId));
+       super(
+         LeaderboardState(
+           currentUserId: currentUserId,
+           dailyVariant: dailyVariant,
+         ),
+       );
 
   String get currentUserId => state.currentUserId;
 
@@ -30,6 +34,27 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
   Future<void> select(BoardTab tab) {
     emit(state.copyWith(tab: tab));
     return _fetch(tab, silent: true);
+  }
+
+  /// Switches the «چالش» tab to Daily type [variant] (1/2/3): its board
+  /// comes from the cache while a fresh one loads, else the tab shows a
+  /// spinner.
+  Future<void> selectDailyVariant(int variant) {
+    if (variant != state.dailyVariant) {
+      final cached = state.dailyBoards[variant];
+      emit(
+        state.copyWith(
+          dailyVariant: variant,
+          boards:
+              cached == null
+                  ? ({...state.boards}..remove(BoardTab.daily))
+                  : {...state.boards, BoardTab.daily: cached},
+          errors: {...state.errors}..remove(BoardTab.daily),
+          loading: {...state.loading}..remove(BoardTab.daily),
+        ),
+      );
+    }
+    return _fetch(BoardTab.daily, silent: true);
   }
 
   /// Reloads the visible tab. [silent] (a bottom-nav tab tap) never swaps the
@@ -50,9 +75,18 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     } else if (!hasData && !state.errors.containsKey(tab)) {
       emit(state.copyWith(loading: {...state.loading, tab}));
     }
+    final variant = state.dailyVariant;
     try {
-      final result = await _fetchTab(tab);
-      if (isClosed || _seq[tab] != seq) return;
+      final result = await _fetchTab(tab, variant);
+      if (isClosed) return;
+      // A Daily answer for a type the player already left still fills the
+      // cache, but never the visible board.
+      if (tab == BoardTab.daily) {
+        emit(
+          state.copyWith(dailyBoards: {...state.dailyBoards, variant: result}),
+        );
+      }
+      if (_seq[tab] != seq) return;
       emit(
         state.copyWith(
           boards: {...state.boards, tab: result},
@@ -81,10 +115,11 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     );
   }
 
-  Future<LeaderboardResult> _fetchTab(BoardTab tab) => switch (tab) {
-    BoardTab.weekly => _repo.fetchGlobal(),
-    BoardTab.daily => _repo.fetchDaily(currentUserId, variant: dailyVariant),
-    BoardTab.allTime => _repo.fetchAllTime(),
-    BoardTab.friends => _repo.fetchFriends(),
-  };
+  Future<LeaderboardResult> _fetchTab(BoardTab tab, int variant) =>
+      switch (tab) {
+        BoardTab.weekly => _repo.fetchGlobal(),
+        BoardTab.daily => _repo.fetchDaily(currentUserId, variant: variant),
+        BoardTab.allTime => _repo.fetchAllTime(),
+        BoardTab.friends => _repo.fetchFriends(),
+      };
 }
