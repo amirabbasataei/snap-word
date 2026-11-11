@@ -20,6 +20,7 @@ import 'package:wordchain/features/game/view/z_play_screen.dart';
 import 'package:wordchain/features/game/view/z_solo_screen.dart';
 import 'package:wordchain/features/game/view/z_versus_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_opp_deciding.dart';
+import 'package:wordchain/features/game/view/widgets/z_exit_confirm.dart';
 import 'package:wordchain/features/words/view/missing_word_toast.dart';
 
 class GameRouteArgs {
@@ -148,6 +149,27 @@ class _GameView extends StatelessWidget {
         curr.rejectedWord != null;
   }
 
+  Widget _activeScreen(GameActive state) {
+    if (state.opponentType == 'solo') return ZSoloActiveScreen(state: state);
+    if (state.isVsAI) return ZPlayActiveScreen(state: state);
+    // Material ancestor for the overlays' Text — outside a Scaffold they
+    // otherwise render with the yellow double-underline debug style.
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        children: [
+          ZVersusActiveScreen(state: state),
+          if (state.opponentContinueWindowActive)
+            ZOppDecidingOverlay(
+              remaining: state.opponentContinueWindowRemaining,
+              lossReason: state.opponentLossReason,
+            ),
+          if (state.opponentDisconnected) const _DisconnectedBanner(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGame(BuildContext context) {
     return BlocConsumer<GameBloc, GameState>(
       listenWhen:
@@ -243,27 +265,14 @@ class _GameView extends StatelessWidget {
         if (state is GameOver) return ZOverScreen(state: state);
 
         if (state is GameActive) {
-          if (state.opponentType == 'solo') {
-            return ZSoloActiveScreen(state: state);
-          }
-          if (state.isVsAI) {
-            return ZPlayActiveScreen(state: state);
-          }
-          // Material ancestor for the overlays' Text — outside a Scaffold they
-          // otherwise render with the yellow double-underline debug style.
-          return Material(
-            type: MaterialType.transparency,
-            child: Stack(
-              children: [
-                ZVersusActiveScreen(state: state),
-                if (state.opponentContinueWindowActive)
-                  ZOppDecidingOverlay(
-                    remaining: state.opponentContinueWindowRemaining,
-                    lossReason: state.opponentLossReason,
-                  ),
-                if (state.opponentDisconnected) const _DisconnectedBanner(),
-              ],
-            ),
+          // The system back button / gesture asks the same question as the
+          // top-bar back button instead of leaving the running game.
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) zShowEndGameDialog(context);
+            },
+            child: _activeScreen(state),
           );
         }
 
