@@ -368,7 +368,7 @@ class _KeyState extends State<_Key> {
     // Each letter has its own slight pitch, steady from press to press.
     Sfx.play(
       widget.sound,
-      rate: widget.sound == Sound.key ? 0.94 + (widget.label.hashCode % 7) * 0.02 : 1.0,
+      rate: widget.sound == Sound.key ? KeyPitch.rateFor(widget.label.hashCode) : 1.0,
     );
     widget.onPress();
   }

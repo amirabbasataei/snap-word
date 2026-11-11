@@ -1,5 +1,6 @@
-import 'dart:ui' show AppLifecycleState;
+import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show AppLifecycleState;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,8 +9,11 @@ import 'package:wordchain/core/services/audio_service.dart';
 class FakeOutput implements AudioOutput {
   final log = <String>[];
 
+  /// When set, [init] does not finish until it completes.
+  Completer<void>? initGate;
+
   @override
-  Future<void> init() async {}
+  Future<void> init() async => initGate?.future;
   @override
   void playSfx(Sound sound, double volume, double rate) =>
       log.add('sfx:${sound.file}@$rate');
@@ -62,6 +66,50 @@ void main() {
     audio.play(Sound.tap);
     audio.play(Sound.tap);
     expect(out.log, ['sfx:tap@1.0']);
+  });
+
+  test('keyboard sounds are never debounced: fast typing plays every press', () {
+    audio.play(Sound.key, rate: KeyPitch.rateFor(1));
+    audio.play(Sound.key, rate: KeyPitch.rateFor(1));
+    audio.play(Sound.keyBack);
+    audio.play(Sound.keyBack);
+    audio.play(Sound.keySend);
+    audio.play(Sound.keySend);
+    expect(out.log.length, 6);
+  });
+
+  test('a sound asked for before init finished plays when it did', () async {
+    final gate = Completer<void>();
+    final slow = FakeOutput()..initGate = gate;
+    final early = AudioService(prefs: prefs, output: slow);
+    final init = early.init();
+    early.play(Sound.keySend);
+    expect(slow.log, isEmpty);
+    gate.complete();
+    await init;
+    expect(slow.log, ['sfx:key_send@1.0']);
+  });
+
+  test('a failed init drops sounds quietly and never throws', () async {
+    final broken = _BrokenOutput();
+    final dead = AudioService(prefs: prefs, output: broken);
+    await dead.init();
+    expect(() => dead.play(Sound.tap), returnsNormally);
+    expect(broken.played, 0);
+  });
+
+  test('key pitch: one voice per step, stable per letter', () {
+    expect(Sound.key.voices, KeyPitch.steps);
+    for (var i = 0; i < KeyPitch.steps; i++) {
+      expect(pickVoice(Sound.key, KeyPitch.rateFor(i), 99), i);
+    }
+    expect(KeyPitch.rateFor(KeyPitch.steps + 2), KeyPitch.rateFor(2));
+    expect(KeyPitch.rateFor(-1), KeyPitch.rateFor(KeyPitch.steps - 1));
+  });
+
+  test('other sounds rotate through their voices', () {
+    expect([for (var i = 0; i < 5; i++) pickVoice(Sound.tick, 1.0, i)], [0, 1, 0, 1, 0]);
+    expect(pickVoice(Sound.keySend, 1.0, 7), 0);
   });
 
   test('music follows the requested track and does not restart', () async {
@@ -123,4 +171,12 @@ void main() {
     expect(() => Sfx.play(Sound.tap), returnsNormally);
     expect(() => Sfx.music(MusicTrack.menu), returnsNormally);
   });
+}
+
+class _BrokenOutput extends FakeOutput {
+  int played = 0;
+  @override
+  Future<void> init() async => throw StateError('no audio engine');
+  @override
+  void playSfx(Sound sound, double volume, double rate) => played++;
 }
