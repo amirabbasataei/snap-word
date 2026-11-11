@@ -40,7 +40,7 @@ type Config struct {
 
 // Load reads all values from environment variables, falling back to safe defaults.
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		Port:              getEnv("PORT", "8080"),
 		DatabaseURL:       getEnv("DATABASE_URL", "postgres://wordchain:wordchain@localhost:5432/wordchain?sslmode=disable"),
 		RedisURL:          getEnv("REDIS_URL", "redis://localhost:6379/0"),
@@ -65,6 +65,19 @@ func Load() *Config {
 		BazaarPackageName:  getEnv("BAZAAR_PACKAGE_NAME", "com.ataei.zanjir"),
 		BazaarRSAPublicKey: getEnv("BAZAAR_RSA_PUBLIC_KEY", ""),
 	}
+	cfg.KavenegarAPIKey = smsKeyForEnv(cfg.Env, cfg.KavenegarAPIKey)
+	return cfg
+}
+
+// smsKeyForEnv drops the Kavenegar key outside prod, so a local or test
+// server never sends a real OTP SMS (a local .env copied from prod, plus the
+// SMS switch being on in the local DB, once texted a made-up number). With no
+// key, send-otp sends nothing and verify-otp accepts the fixed code 1111.
+func smsKeyForEnv(env, key string) string {
+	if env != "prod" {
+		return ""
+	}
+	return key
 }
 
 func getEnv(key, fallback string) string {
@@ -142,6 +155,33 @@ var FallbackAILevels = []FallbackAILevel{
 	{MinRating: 0, Difficulty: "easy"},
 	{MinRating: 1000, Difficulty: "medium"},
 	{MinRating: 1200, Difficulty: "hard"},
+}
+
+// Daily Challenge variants («نوع چالش»). A variant is the letter position
+// that links two words: the next word's Nth letter (half-spaces not counted)
+// must equal the previous word's last letter, and the first word carries the
+// day's letter at that position. 1 is the classic rule. Each variant is its
+// own daily: its own free attempt, paid retry, board and prizes. Mirrors
+// GameConstants.dailyVariants / dailyTurnTimerSec.
+const (
+	DailyVariantClassic = 1
+	DailyVariantMax     = 3
+)
+
+// DailyVariantTimerSec is each variant's turn timer: a fixed 2nd or 3rd letter
+// is much slower to find than a first letter.
+var DailyVariantTimerSec = map[int]int{1: TurnTimerClassicSec, 2: 20, 3: 25}
+
+// IsDailyVariant reports whether v is a known Daily Challenge variant.
+func IsDailyVariant(v int) bool { return v >= DailyVariantClassic && v <= DailyVariantMax }
+
+// DailyTurnTimerSec is the turn timer of Daily variant v (the classic timer
+// for an unknown one).
+func DailyTurnTimerSec(v int) int {
+	if t, ok := DailyVariantTimerSec[v]; ok {
+		return t
+	}
+	return TurnTimerClassicSec
 }
 
 // Game tuning defaults — read from this package in handlers and services.

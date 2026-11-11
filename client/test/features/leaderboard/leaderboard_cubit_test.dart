@@ -35,8 +35,10 @@ class _Repo extends Fake implements LeaderboardRepository {
   Future<LeaderboardResult> fetchAllTime() => _answer('allTime');
 
   @override
-  Future<LeaderboardResult> fetchDaily(String currentUserId) =>
-      _answer('daily');
+  Future<LeaderboardResult> fetchDaily(
+    String currentUserId, {
+    int variant = 1,
+  }) => _answer('daily');
 
   @override
   Future<LeaderboardResult> fetchFriends() => _answer('friends');

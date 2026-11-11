@@ -32,7 +32,8 @@ Long per-feature notes moved out of this file on 2026-11-10; each section below 
 | 22 | Premium Perks | In progress — backend + client code complete, backend verified live; client UI not verified on a device; Bazaar billing built, not verified (Myket not built) |
 | 23 | Admin Panel (**ADMIN_PLAN.md**) | In progress — A1–A5, A6 notifications + matches page, A8 analytics done (A6/A8 client sides unverified on a device); live-rooms page and A7 (TOTP, audit viewer) not started |
 | 24 | Word Suggestions & Dictionary Delta | 24a deployed to prod 2026-10-27; 24b (Flutter) built, not verified on a device |
-| 25 | Scoring & Ranking (**SCORING_PLAN.md**) | S1–S6 complete (streak/ZWNJ fixes, Freeze removed, Elo «جام», rating client, AI-fallback level + `total_score` rules, Daily fairness, flat long-word bonus). Go/Flutter/panel tested and rebuilt locally; S3 verified on two emulators. **Not deployed — S2–S6 deploy together, right after a Saturday reset.** S5/S6 not verified on a device. S7 not started |
+| 25 | Scoring & Ranking (**SCORING_PLAN.md**) | S1–S6 complete (streak/ZWNJ fixes, Freeze removed, Elo «جام», rating client, AI-fallback level + `total_score` rules, Daily fairness, flat long-word bonus). Go/Flutter/panel tested; S3 verified on two emulators. **Deployed to prod 2026-11-11** (mid-week, not after a Saturday reset: ~20 users, so the unpaid legacy weekly key was accepted). S5/S6 not verified on a device. S7 not started |
+| 26 | Daily Challenge variants («حرف دوم / حرف سوم») | Built 2026-11-10: Go + migration 020, Flutter, panel; tests pass (Go incl. real Postgres; Flutter failures = the pre-existing golden set). **Deployed to prod 2026-11-11** with S2–S6 (migration 020), **not verified on a device**. Detail: docs/daily-challenge.md § Variants |
 
 ## 🧱 Tech Stack
 
@@ -49,7 +50,7 @@ Long per-feature notes moved out of this file on 2026-11-10; each section below 
 | Logging | Go: `slog` (structured JSON in prod, text in dev). Flutter: `logger` package. |
 | Push Notifications | Firebase Cloud Messaging (FCM) — Android + iOS via `firebase_messaging` Flutter package |
 | Sharing | `share_plus` Flutter package |
-| Local DB (Flutter) | Drift 2 — type-safe SQLite ORM; tables: `local_matches`, `local_used_words`, `local_player_stats`, `local_powerup_cache`, `local_analytics_events` (schema v3) |
+| Local DB (Flutter) | Drift 2 — type-safe SQLite ORM; tables: `local_matches`, `local_used_words`, `local_player_stats`, `local_powerup_cache`, `local_analytics_events` (schema v5) |
 
 ---
 
@@ -122,7 +123,7 @@ Do not invent layouts — if a screen is covered by a design file, follow it. If
 | Variant | Opponent options | Turn timer | End condition |
 |---|---|---|---|
 | **Classic** | Solo, AI, 1v1 Multiplayer | 15s per turn | First invalid/timeout move loses; one continue per player allowed |
-| **Daily Challenge** | **Solo only** | 15s per turn | Out of lives (see Lives below) — **no word limit** (the old 20-word cap was removed 2026-11-04); score posted to the daily leaderboard (the **free attempt** only ranks and earns prizes; a paid retry is a personal best) |
+| **Daily Challenge** | **Solo only** | 15s per turn (variants: 20s / 25s) | Out of lives (see Lives below) — **no word limit** (the old 20-word cap was removed 2026-11-04); score posted to the daily leaderboard (the **free attempt** only ranks and earns prizes; a paid retry is a personal best) |
 
 **Daily Challenge never appears in the multiplayer lobby.**
 
@@ -133,6 +134,7 @@ Defaults above are tunable in `internal/config/config.go` and via `GameConstants
 - **Not applied** to vs-AI or 1v1 multiplayer. Multiplayer is server-authoritative and the Go WS protocol has no lives concept — the canvas's «۲ جان» chip is intentionally omitted from ZVersus until the backend supports it.
 - **Daily has no word limit** (the 20-word cap was removed 2026-11-04). Because runs are unbounded the server does not trust the upload: `POST /game/solo` with `mode: daily` runs `service.ValidateDailyChain` (start letter, `engine.ValidateMove` per word, ≤`config.DailyChainSafetyCap` 200 words, score ≤ per-word maximum) and `service.ValidateDailyScore` (recomputes the score from the uploaded `word_times_ms[]` + `word_streaks[]`; mismatch → `400 invalid_daily_chain`, checked before anything is stored so no attempt is consumed). Old apps without the trace keep the lenient bound; the pre-S6 ×2 scoring is still accepted.
 - **Daily fairness:** only the **free attempt** (attempt 1) ranks, appears on the board and earns prizes; a paid retry (attempt 2) is a personal best only (`repository.FreeAttempt`). The client keeps a per-word trace in `local_matches.score_trace` (Drift v3). `engine.CalculateScore` mirrors `GameBloc.calculateScore` — change both together (shared vectors in `engine/scorer_test.go` and `test/features/game/score_trace_test.dart`).
+- **Variants (Phase 26, 2026-11-10):** tapping «چالش روزانه» on Home opens `showDailyTypeDialog` (`features/home/view/widgets/home_daily_dialog.dart`; AI-level-dialog look, no start button: tapping a card picks it, ✓ on types played today). Variant N = the letter position that links words: the next word's Nth letter (ZWNJ not counted) must be the previous word's last letter, and the first word carries the day's letter at position N (`engine.LetterAt` / `ValidateMoveAt`, `DictionaryService.letterAt`). 1 classic · 2 «حرف دوم» 20 s · 3 «حرف سوم» 25 s (`config.DailyVariantTimerSec` / `GameConstants.dailyVariantTimerSec`). **Each variant is its own daily**: own free attempt, paid retry, board and prizes (reward `ref` = date for 1, `date/vN` otherwise). The day's letter is reused unless < 10 words carry it at that position (`engine.DailyVariantStartLetter`; only «آ» at position 2 today). Routes `/daily?variant=N`, `/daily/board?variant=N`; ZBoard's «امروز» tab stays classic. Home's daily-ribbon dot clears once **any** type was played today (`played_variants`). `GET /rewards` items carry `daily_variant` (2/3, from the ref via `service.DailyVariantFromRef`; omitted for classic) so the prize card reads «چالش «حرف دوم» دیروز».
 - Full detail (rules, error codes, tests, goldens): **docs/daily-challenge.md**.
 
 ### Multiplayer shared chain
@@ -172,7 +174,7 @@ Source of truth: the numbered migrations in `backend/migrations/` (embedded, run
 
 ## 📱 Local Database (Flutter / Drift)
 
-One Drift database (`AppDatabase`, `core/database/app_database.dart`, schema **v3**; bump the version and add a `MigrationStrategy` step on every change, then `dart run build_runner build`). Tables: `local_matches` (incl. nullable `score_trace`, v3), `local_used_words`, `local_player_stats`, `local_powerup_cache`, `local_analytics_events`. Column definitions and DAO responsibilities: **docs/local-database.md** (and the table classes themselves).
+One Drift database (`AppDatabase`, `core/database/app_database.dart`, schema **v5**; bump the version and add a `MigrationStrategy` step on every change, then `dart run build_runner build`). Tables: `local_matches` (incl. nullable `score_trace`, v3; `link_position` default 1, v4; nullable `start_letter`, v5 — the Daily's first letter, so a run resumed before its first word still checks it), `local_used_words`, `local_player_stats`, `local_powerup_cache`, `local_analytics_events`. Column definitions and DAO responsibilities: **docs/local-database.md** (and the table classes themselves).
 
 ### Sync strategy (`SyncService`)
 
@@ -216,7 +218,7 @@ SyncService.sync()  ← idempotent; no-op if guest; safe to call on every app re
 
 **Leaderboard:** `GET /leaderboard?type=global&limit=100` · `GET /leaderboard?type=alltime&limit=100` · `GET /leaderboard?type=friends&limit=100` — all ranked by the rating since S2, see § Leaderboard
 
-**Daily Challenge:** `GET /daily` · `GET /daily/leaderboard` · `POST /daily/retry`
+**Daily Challenge:** `GET /daily` · `GET /daily/leaderboard` · `POST /daily/retry` — all take `?variant=1|2|3` (default 1; else `400 invalid_daily_variant`); `GET /daily` also returns `variant`, `turn_timer_sec`, `played_variants`
 
 **Friends:** `POST /friends/request` · `GET /friends` · `GET /friends/requests` · `POST /friends/respond` · `DELETE /friends/:friendId`
 
@@ -296,7 +298,7 @@ turn_score   = base_score + speed_bonus + streak_bonus + long_bonus
 ## 📲 OTP delivery & the SMS switch
 
 - Delivery: Kavenegar Verify Lookup (`service/kavenegar.go`); env `KAVENEGAR_API_KEY`, `KAVENEGAR_OTP_TEMPLATE` (prod `zanjir`, unconfirmed). **No real handset send has been made yet.**
-- Switch: `app_settings.otp_sms_enabled` (migration 016), changed in the admin panel (`/admin/settings`, **owner-only**, reason required, audited). While it is **off** (or no API key is set) `send-otp` sends nothing and `verify-otp` accepts `1111` for any existing phone — anyone who knows a number can sign in, so switch SMS back on after testing.
+- Switch: `app_settings.otp_sms_enabled` (migration 016), changed in the admin panel (`/admin/settings`, **owner-only**, reason required, audited). While it is **off** (or no API key is set — and the key is **ignored whenever `ENV` ≠ `prod`**, `config.smsKeyForEnv`, so a local/dev server never sends SMS) `send-otp` sends nothing and `verify-otp` accepts `1111` for any existing phone — anyone who knows a number can sign in, so switch SMS back on after testing.
 - A rejected send answers `502 sms_failed` and clears the stored code and cooldown.
 - Full detail, tests and prod setup: **docs/otp-sms.md**.
 
@@ -560,7 +562,7 @@ Public pages `https://amirabbasataei.ir/terms` and `/privacy` (required by Bazaa
 1. Read up to `config.WeeklyPrizeScanLimit` (200) weekly rows; the prizes go to the first 3 **eligible** players in board order — net Δ > 0 and ≥ `config.WeeklyMinRatedGames` (5) rated games that week — ranked 1–3 among the eligible (`service.WeeklyPrizeWinners`) → insert `weekly_leaderboard_rewards` (idempotent)
 2. Award coins: 1st →500, 2nd →300, 3rd →100 (claimable inbox rewards)
 3. Send push notifications to rewarded users
-4. Delete the three weekly keys **and the legacy `leaderboard:global:weekly` key, unpaid** — so deploy S2+S3 right after a Saturday reset (the legacy key then holds only hours of games)
+4. Delete the three weekly keys **and the legacy `leaderboard:global:weekly` key, unpaid** (S2+S3 were deployed mid-week on 2026-11-11, so the first reset after that dropped a few days of legacy points, accepted with ~20 users)
 
 ---
 
@@ -599,7 +601,7 @@ flutter test
 ```
 
 - **Production host (`root@185.110.191.158`, Ubuntu 26.04, 1 vCPU, 2 GB RAM + 2 GB swap) is a shared multi-site host** (Zanjir, Ham-Ketab on `varaqa.ir`, more to come). Layout, port map, adding a site, HTTPS, backups and recovery: **`docs/server-runbook.md`**; design/history: `docs/server-plan.md`. Everything server-side comes from `deploy/` in this repo: `deploy/host/` → `/opt/infra` (shared PostGIS Postgres `infra-postgres`, nginx shared config + per-site files, systemd timers, `new-site` / `site-https` / `site-db` / `pg-backup` / `pg-restore-test` / `arvan-ips-refresh`), applied with `bash scripts/host_sync.sh`; `deploy/sites/wordchain/compose.yml` → `/opt/wordchain/compose.yml` (app + Redis; DB = database/role `wordchain` on the shared Postgres, host `postgres` on the external `infra` network). Secrets only in root-only `/opt/*/.env` (all rotated 2026-10-11) and `/opt/wordchain/secrets/fcm-service-account.json`. Only nginx is public: `https://amirabbasataei.ir` (through ArvanCloud; edge HTTPS enabled and verified 2026-10-13: valid cert, HTTP/2, API/admin/WS route all reachable; plain `http://` is 301-redirected to https by the origin's :80 server, ACME exempt) (the legacy `:8080` listener was removed 2026-10-13 — no installed clients remain); the app binds `127.0.0.1:18080`; unknown hosts are dropped; ufw allows 22/80/443 (a stale 8080 allow rule may remain, harmless); SSH is key-only. Nightly backups (`/var/backups/infra`, 7 daily + 4 weekly, weekly restore test). **Redeploy: `bash scripts/deploy_backend.sh`** (`--dry-run`, `--logs`): builds the panel and a `linux/amd64` image **locally**, ships it with `docker save | ssh docker load`, sets `APP_IMAGE` in `/opt/wordchain/.env`, `docker compose up -d app`, polls `/health`; the server never builds images (that hung the old rsync+build deploy). **Client:** `DioClient.baseUrl` defaults to `https://amirabbasataei.ir` (WS (`wss://`) and avatar URLs derive from it; `--dart-define=API_BASE_URL=http://10.0.2.2:8080` for a local backend); Android cleartext is allowed only in the debug manifest (local dev backend); release builds are HTTPS-only.
-- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels), `010_premium_perks` (adds `users.premium_until` + `users.avatar_id`), `011_perks_catalog` (`taunts` + `avatars` tables; seeds the 9 taunts, avatars are uploaded with `scripts/perks_admin.sh seed`), `012_admin` (`admin_users` + `admin_audit_log`), `013_user_ban` (`users.banned_at` + `ban_reason`), `014_analytics` (partitioned `analytics_events` + `analytics_installs` + `analytics_daily_*` rollups), `015_word_suggestions` (`word_suggestions`, `word_suggestion_reports`, `dictionary_overrides`), `016_app_settings` (`app_settings` key/value; first key `otp_sms_enabled`), `017_admin_notifications` (`device_tokens.permission`, `notification_campaigns`, `inbox_messages`), `018_store_purchases` (`store_purchases`, Bazaar purchase ledger), `019_rating` (`player_stats.rating`/`rated_games`/`peak_rating` + `rating_history`, Phase 25 S2).
+- Migrations are embedded via `io/fs` (`backend/migrations/embed.go`) and auto-run at server startup. Current set: `001_init`, `002_friend_challenge_room`, `003_phone_auth_referral` (drops email/password, adds phone/OTP/referral columns), `004_ai_system_user`, `005_daily_retries`, `006_referral_rewards` (superseded by `007_inbox_rewards`), `008_total_score` (adds `player_stats.total_score` for the all-time board), `009_xp` (adds `player_stats.xp` for profile levels), `010_premium_perks` (adds `users.premium_until` + `users.avatar_id`), `011_perks_catalog` (`taunts` + `avatars` tables; seeds the 9 taunts, avatars are uploaded with `scripts/perks_admin.sh seed`), `012_admin` (`admin_users` + `admin_audit_log`), `013_user_ban` (`users.banned_at` + `ban_reason`), `014_analytics` (partitioned `analytics_events` + `analytics_installs` + `analytics_daily_*` rollups), `015_word_suggestions` (`word_suggestions`, `word_suggestion_reports`, `dictionary_overrides`), `016_app_settings` (`app_settings` key/value; first key `otp_sms_enabled`), `017_admin_notifications` (`device_tokens.permission`, `notification_campaigns`, `inbox_messages`), `018_store_purchases` (`store_purchases`, Bazaar purchase ledger), `019_rating` (`player_stats.rating`/`rated_games`/`peak_rating` + `rating_history`, Phase 25 S2), `020_daily_variants` (`variant` in the keys of `daily_challenge_attempts` and `daily_retries`, Phase 26).
 - **Ads (Tapsell Mediation, Android only):** the app key is a manifest placeholder in `client/android/app/build.gradle.kts`; the rewarded zone id is the built-in `defaultValue` of `AdZones.rewarded` in `core/services/ad_service.dart`, so a plain `flutter run` / `flutter build apk --split-per-abi` has ads (a zone id is shipped inside the APK anyway, not a secret). `--dart-define=TAPSELL_REWARDED_ZONE=…` (or `--dart-define-from-file=tapsell.json`, still gitignored) overrides it; an empty override disables ads. Policy: only player-initiated rewarded ads — no interstitials and no banners (the Tapsell banner is a native overlay that leaked across screens and covered `ZBottomNav`; removed).
 
 ---
@@ -659,7 +661,7 @@ Tracked in detail in REDESIGN_PLAN.md; listed here so they aren't lost.
 | `FCM_PROJECT_ID` | yes | `wordchain-prod` | Firebase project ID |
 | `FCM_SERVICE_ACCOUNT_JSON` | yes | (path or inline JSON) | Service account for FCM auth |
 | `GAME_EPOCH_DATE` | no | `2025-01-01` | Day #1 for Daily Challenge numbering |
-| `KAVENEGAR_API_KEY` | no | (Kavenegar panel API key) | OTP SMS delivery. Empty = dev no-op (logs instead of sending; `1111` accepted) |
+| `KAVENEGAR_API_KEY` | no | (Kavenegar panel API key) | OTP SMS delivery, **prod only** (ignored unless `ENV=prod`). Empty = dev no-op (logs instead of sending; `1111` accepted) |
 | `KAVENEGAR_OTP_TEMPLATE` | no | `zanjir` | Verify Lookup template name (default in code: `wordchain-otp`), approved in the Kavenegar panel, uses `%token` |
 | `OTP_CODE_TTL` | no | `2m` | OTP code expiry |
 | `OTP_RESEND_COOLDOWN` | no | `120s` | Minimum time between OTP sends to the same phone |

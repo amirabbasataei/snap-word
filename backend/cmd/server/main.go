@@ -87,6 +87,9 @@ func main() {
 	ratingSvc := service.NewRatingService(ratingRepo, leaderboardSvc)
 
 	kavenegarClient := service.NewKavenegarClient(cfg)
+	if !kavenegarClient.Configured() {
+		slog.Info("otp sms off: send-otp sends nothing, code 1111 is accepted", "env", cfg.Env)
+	}
 	authSvc := service.NewAuthService(userRepo, kavenegarClient, rdb, cfg)
 	gameSvc := service.NewGameService(matchRepo, statsRepo, streakSvc, repository.NewDailyRepository(db))
 	powerupSvc := service.NewPowerupService(powerupRepo, userRepo)

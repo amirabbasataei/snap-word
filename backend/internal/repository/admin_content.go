@@ -136,6 +136,7 @@ type AdminDailyStats struct {
 	Players   int
 	Attempts  int
 	Retries   int // paid second attempts bought (daily_retries)
+	FreeRuns  int // free attempts over all variants: one completion prize each
 	BestScore int
 	AvgScore  float64
 }
@@ -151,6 +152,10 @@ FROM daily_challenge_attempts WHERE challenge_date = $1`, date).Scan(&s.Players,
 	if err := r.db.QueryRowContext(ctx, `SELECT count(*) FROM daily_retries WHERE challenge_date = $1`, date).Scan(&s.Retries); err != nil {
 		return s, fmt.Errorf("AdminRepository.DailyStats retries: %w", err)
 	}
+	if err := r.db.QueryRowContext(ctx, `SELECT count(*) FROM daily_challenge_attempts WHERE challenge_date = $1 AND attempt_number = $2`,
+		date, FreeAttempt).Scan(&s.FreeRuns); err != nil {
+		return s, fmt.Errorf("AdminRepository.DailyStats free runs: %w", err)
+	}
 	return s, nil
 }
 
@@ -158,6 +163,7 @@ FROM daily_challenge_attempts WHERE challenge_date = $1`, date).Scan(&s.Players,
 type AdminDayAttempt struct {
 	UserID      string
 	Username    string
+	Variant     int
 	Attempt     int
 	Score       int
 	ChainLength int
@@ -168,7 +174,7 @@ type AdminDayAttempt struct {
 // DailyAttempts returns the newest attempts of the day, with their word chains.
 func (r *AdminRepository) DailyAttempts(ctx context.Context, date time.Time, limit int) ([]AdminDayAttempt, error) {
 	rows, err := r.db.QueryContext(ctx, `
-SELECT a.user_id, COALESCE(u.username, ''), a.attempt_number, a.score, a.chain_length, a.word_chain, a.completed_at
+SELECT a.user_id, COALESCE(u.username, ''), a.variant, a.attempt_number, a.score, a.chain_length, a.word_chain, a.completed_at
 FROM daily_challenge_attempts a JOIN users u ON u.id = a.user_id
 WHERE a.challenge_date = $1
 ORDER BY a.completed_at DESC LIMIT $2`, date, limit)
@@ -180,7 +186,7 @@ ORDER BY a.completed_at DESC LIMIT $2`, date, limit)
 	for rows.Next() {
 		var a AdminDayAttempt
 		var wc pq.StringArray
-		if err := rows.Scan(&a.UserID, &a.Username, &a.Attempt, &a.Score, &a.ChainLength, &wc, &a.CompletedAt); err != nil {
+		if err := rows.Scan(&a.UserID, &a.Username, &a.Variant, &a.Attempt, &a.Score, &a.ChainLength, &wc, &a.CompletedAt); err != nil {
 			return nil, fmt.Errorf("AdminRepository.DailyAttempts scan: %w", err)
 		}
 		a.WordChain = []string(wc)
@@ -204,7 +210,7 @@ func (r *AdminRepository) DailyRewards(ctx context.Context, date time.Time) (Adm
 	rows, err := r.db.QueryContext(ctx, `
 SELECT kind, count(*), count(claimed_at), COALESCE(sum(coins), 0)
 FROM inbox_rewards
-WHERE kind IN ('daily_done', 'daily_rank') AND ref = $1
+WHERE kind IN ('daily_done', 'daily_rank') AND (ref = $1 OR ref LIKE $1 || '/v%')
 GROUP BY kind`, date.Format("2006-01-02"))
 	if err != nil {
 		return out, fmt.Errorf("AdminRepository.DailyRewards: %w", err)

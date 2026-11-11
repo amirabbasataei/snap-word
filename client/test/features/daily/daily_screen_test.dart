@@ -49,6 +49,9 @@ class _Harness {
   final visited = <String>[];
   final extras = <Object?>[];
 
+  /// The variant `/daily` is opened with (Home's type picker).
+  int variant = 1;
+
   Future<void> register({FakeStats? stats}) async {
     GetIt.I
       ..registerSingleton<AuthCubit>(_Auth())
@@ -68,7 +71,10 @@ class _Harness {
     final router = GoRouter(
       initialLocation: '/daily',
       routes: [
-        GoRoute(path: '/daily', builder: (_, _) => DailyScreen(clock: _now)),
+        GoRoute(
+          path: '/daily',
+          builder: (_, _) => DailyScreen(clock: _now, variant: variant),
+        ),
         for (final path in [
           '/game',
           '/daily/board',
@@ -843,6 +849,53 @@ void main() {
       );
       await open(tester);
       await shot(tester, 'daily_error_light');
+    });
+  });
+
+  group('a harder variant (2nd letter)', () {
+    setUp(() {
+      h.variant = 2;
+      h.repo.challenge = dailyChallenge(variant: 2, letter: 'ا');
+    });
+
+    testWidgets('loads its own daily and says the rule', (tester) async {
+      await open(tester);
+      expect(h.repo.loadedVariant, 2);
+      expect(find.text('چالش روزانه · حرف دوم'), findsOneWidget);
+      expect(find.text('حرف دوم کلمهٔ اول'), findsOneWidget);
+      expect(find.text('حرف دوم هر کلمه = حرف آخر کلمهٔ قبلی'), findsOneWidget);
+      expect(find.text('۲۰ ثانیه'), findsOneWidget);
+      expect(find.text('حرف شروع امروز'), findsNothing);
+    });
+
+    testWidgets('start opens the game linked on the 2nd letter', (
+      tester,
+    ) async {
+      await open(tester);
+      await tapText(tester, 'شروع چالش امروز');
+      await _settle(tester);
+      final args = h.extras.single as GameRouteArgs;
+      expect(
+        (args.mode, args.startLetter, args.linkPosition),
+        ('daily', 'ا', 2),
+      );
+    });
+
+    testWidgets('the board is the variant\'s own', (tester) async {
+      await open(tester);
+      await tapText(tester, 'دیدن جدول امروز');
+      await _settle(tester);
+      expect(h.visited, ['/daily/board?variant=2']);
+    });
+
+    testWidgets('the paid retry is bought for the variant', (tester) async {
+      h.repo.challenge = dailyChallenge(played: true, variant: 2, letter: 'ا');
+      await open(tester);
+      expect(find.textContaining('حرف دوم «ا»'), findsOneWidget);
+      await tapText(tester, 'امتحان دوباره · ۲۵ سکه');
+      await _settle(tester);
+      expect(h.repo.retriedVariant, 2);
+      expect((h.extras.single as GameRouteArgs).linkPosition, 2);
     });
   });
 }

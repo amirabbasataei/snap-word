@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"wordchain/backend/internal/config"
@@ -17,6 +18,8 @@ var (
 	ErrNoDailyChallenge    = errors.New("no_daily_challenge")
 	ErrDailyNotAttempted   = errors.New("not_attempted")
 	ErrDailyAlreadyRetried = errors.New("already_retried")
+	// ErrInvalidDailyVariant: a variant outside 1..config.DailyVariantMax.
+	ErrInvalidDailyVariant = errors.New("invalid_daily_variant")
 )
 
 type DailyAttemptInfo struct {
@@ -29,13 +32,18 @@ type DailyAttemptInfo struct {
 type DailyInfo struct {
 	ChallengeDate string
 	DayNumber     int
-	StartLetter   string
-	TodayBest     int // top free-attempt score of the day (the board's first row)
-	YourBest      int // the caller's best over both attempts (a paid retry counts here)
-	DailyStreak   int
-	Attempt       *DailyAttemptInfo
-	RetryAttempt  *DailyAttemptInfo
-	Rank          *int // by the free attempt only; a paid retry never changes it
+	Variant       int    // the link position this info is about (1 = classic)
+	StartLetter   string // the letter the first word carries at position Variant
+	TurnTimerSec  int
+	// PlayedVariants are the variants the caller has a free attempt at today,
+	// ascending — the type picker marks them.
+	PlayedVariants []int
+	TodayBest      int // top free-attempt score of the day (the board's first row)
+	YourBest       int // the caller's best over both attempts (a paid retry counts here)
+	DailyStreak    int
+	Attempt        *DailyAttemptInfo
+	RetryAttempt   *DailyAttemptInfo
+	Rank           *int // by the free attempt only; a paid retry never changes it
 }
 
 type DailyService struct {
@@ -66,7 +74,10 @@ func NewDailyService(
 	}, nil
 }
 
-func (s *DailyService) GetDailyInfo(ctx context.Context, userID string) (*DailyInfo, error) {
+func (s *DailyService) GetDailyInfo(ctx context.Context, userID string, variant int) (*DailyInfo, error) {
+	if !config.IsDailyVariant(variant) {
+		return nil, ErrInvalidDailyVariant
+	}
 	today := todayIran()
 
 	ch, err := s.dailyRepo.GetChallenge(ctx, today)
@@ -79,19 +90,24 @@ func (s *DailyService) GetDailyInfo(ctx context.Context, userID string) (*DailyI
 
 	dayNumber := int(today.Sub(s.epoch).Hours()/24) + 1
 
-	todayBest, err := s.dailyRepo.GetTodayBest(ctx, today)
+	todayBest, err := s.dailyRepo.GetTodayBest(ctx, today, variant)
 	if err != nil {
 		return nil, fmt.Errorf("GetDailyInfo: %w", err)
 	}
 
-	attempts, err := s.dailyRepo.GetUserAttempts(ctx, userID, today)
+	attempts, err := s.dailyRepo.GetUserAttempts(ctx, userID, today, variant)
+	if err != nil {
+		return nil, fmt.Errorf("GetDailyInfo: %w", err)
+	}
+
+	played, err := s.dailyRepo.PlayedVariants(ctx, userID, today)
 	if err != nil {
 		return nil, fmt.Errorf("GetDailyInfo: %w", err)
 	}
 
 	var rank *int
 	if len(attempts) > 0 {
-		rank, err = s.dailyRepo.GetUserRank(ctx, today, userID)
+		rank, err = s.dailyRepo.GetUserRank(ctx, today, variant, userID)
 		if err != nil {
 			return nil, fmt.Errorf("GetDailyInfo: %w", err)
 		}
@@ -104,12 +120,15 @@ func (s *DailyService) GetDailyInfo(ctx context.Context, userID string) (*DailyI
 	}
 
 	info := &DailyInfo{
-		ChallengeDate: today.Format("2006-01-02"),
-		DayNumber:     dayNumber,
-		StartLetter:   ch.StartLetter,
-		TodayBest:     todayBest,
-		DailyStreak:   dailyStreak,
-		Rank:          rank,
+		ChallengeDate:  today.Format("2006-01-02"),
+		DayNumber:      dayNumber,
+		Variant:        variant,
+		StartLetter:    engine.DailyVariantStartLetter(ch.StartLetter, ch.Seed, variant),
+		TurnTimerSec:   config.DailyTurnTimerSec(variant),
+		PlayedVariants: played,
+		TodayBest:      todayBest,
+		DailyStreak:    dailyStreak,
+		Rank:           rank,
 	}
 
 	yourBest := 0
@@ -129,12 +148,16 @@ func (s *DailyService) GetDailyInfo(ctx context.Context, userID string) (*DailyI
 	return info, nil
 }
 
-// Retry deducts DailyRetryCoins from the user's balance. Returns an error if the
-// user has not yet played today or has already used their retry.
-func (s *DailyService) Retry(ctx context.Context, userID string) error {
+// Retry deducts DailyRetryCoins from the user's balance for a second attempt
+// at one variant. Returns an error if the user has not yet played that variant
+// today or has already used its retry.
+func (s *DailyService) Retry(ctx context.Context, userID string, variant int) error {
+	if !config.IsDailyVariant(variant) {
+		return ErrInvalidDailyVariant
+	}
 	today := todayIran()
 
-	attempts, err := s.dailyRepo.GetUserAttempts(ctx, userID, today)
+	attempts, err := s.dailyRepo.GetUserAttempts(ctx, userID, today, variant)
 	if err != nil {
 		return fmt.Errorf("Retry: %w", err)
 	}
@@ -152,7 +175,7 @@ func (s *DailyService) Retry(ctx context.Context, userID string) error {
 		return ErrDailyNotAttempted
 	}
 
-	fresh, err := s.dailyRepo.RecordRetry(ctx, userID, today)
+	fresh, err := s.dailyRepo.RecordRetry(ctx, userID, today, variant)
 	if err != nil {
 		return fmt.Errorf("Retry: %w", err)
 	}
@@ -160,7 +183,7 @@ func (s *DailyService) Retry(ctx context.Context, userID string) error {
 		return ErrDailyAlreadyRetried
 	}
 	if err := s.userRepo.SpendCoins(ctx, userID, config.DailyRetryCoins); err != nil {
-		if delErr := s.dailyRepo.DeleteRetry(ctx, userID, today); delErr != nil {
+		if delErr := s.dailyRepo.DeleteRetry(ctx, userID, today, variant); delErr != nil {
 			slog.Error("Retry: rollback failed", "userID", userID, "error", delErr)
 		}
 		return err
@@ -194,52 +217,116 @@ func todayIran() time.Time {
 	return config.IranDate(time.Now())
 }
 
-// DailyBoard is today's Daily Challenge ranking.
+// DailyBoard is today's ranking of one Daily Challenge variant.
 type DailyBoard struct {
 	ChallengeDate string
 	DayNumber     int
+	Variant       int
 	Entries       []*repository.DailyBoardRow
 	MyRank        *int
 }
 
-// Leaderboard returns today's ranking (each player's free attempt) and the
-// caller's own rank.
-func (s *DailyService) Leaderboard(ctx context.Context, userID string, limit int) (*DailyBoard, error) {
+// Leaderboard returns today's ranking of one variant (each player's free
+// attempt) and the caller's own rank on it.
+func (s *DailyService) Leaderboard(ctx context.Context, userID string, variant, limit int) (*DailyBoard, error) {
+	if !config.IsDailyVariant(variant) {
+		return nil, ErrInvalidDailyVariant
+	}
 	today := todayIran()
-	entries, err := s.dailyRepo.GetDailyLeaderboard(ctx, today, limit)
+	entries, err := s.dailyRepo.GetDailyLeaderboard(ctx, today, variant, limit)
 	if err != nil {
 		return nil, fmt.Errorf("Leaderboard: %w", err)
 	}
-	rank, err := s.dailyRepo.GetUserRank(ctx, today, userID)
+	rank, err := s.dailyRepo.GetUserRank(ctx, today, variant, userID)
 	if err != nil {
 		return nil, fmt.Errorf("Leaderboard: %w", err)
 	}
 	return &DailyBoard{
 		ChallengeDate: today.Format("2006-01-02"),
 		DayNumber:     int(today.Sub(s.epoch).Hours()/24) + 1,
+		Variant:       variant,
 		Entries:       entries,
 		MyRank:        rank,
 	}, nil
 }
 
-// RunDailyPayout pays the prizes for a finished challenge day (called after
-// Iran midnight): every finisher gets the completion prize, the top 3 an
-// extra rank prize. Ranks come from the free attempt only — a paid retry can
-// not buy a better one. Both are claimable inbox messages, idempotent per
-// (user, kind, date), so re-running is safe.
-func (s *DailyService) RunDailyPayout(ctx context.Context, date time.Time) error {
-	rows, err := s.dailyRepo.GetDailyLeaderboard(ctx, date, 1<<30)
-	if err != nil {
-		return fmt.Errorf("RunDailyPayout: %w", err)
+// DailyRewardRef is the inbox_rewards ref of a Daily payout: the date for
+// the classic variant (as before variants existed, so a re-run never pays a
+// day twice), the date plus "/v<N>" for the others.
+func DailyRewardRef(date time.Time, variant int) string {
+	ref := date.Format("2006-01-02")
+	if variant != config.DailyVariantClassic {
+		ref += "/v" + strconv.Itoa(variant)
 	}
-	dateStr := date.Format("2006-01-02")
+	return ref
+}
+
+// DailyVariantFromRef is the variant a Daily payout ref (DailyRewardRef)
+// belongs to: N for "date/vN", classic for a bare date or anything else.
+func DailyVariantFromRef(ref string) int {
+	_, v, ok := strings.Cut(ref, "/v")
+	if !ok {
+		return config.DailyVariantClassic
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || !config.IsDailyVariant(n) {
+		return config.DailyVariantClassic
+	}
+	return n
+}
+
+// dailyVariantTitle names a harder variant in push text («حرف دوم»); empty for
+// the classic one.
+func dailyVariantTitle(variant int) string {
+	switch variant {
+	case 2:
+		return "حرف دوم"
+	case 3:
+		return "حرف سوم"
+	}
+	return ""
+}
+
+// RunDailyPayout pays the prizes for a finished challenge day (called after
+// Iran midnight), separately for every variant: each finisher of a variant
+// gets its completion prize, the top 3 of each variant an extra rank prize.
+// Ranks come from the free attempt only — a paid retry can not buy a better
+// one. All are claimable inbox messages, idempotent per (user, kind, ref), so
+// re-running is safe.
+func (s *DailyService) RunDailyPayout(ctx context.Context, date time.Time) error {
+	var firstErr error
+	players := 0
+	for v := config.DailyVariantClassic; v <= config.DailyVariantMax; v++ {
+		n, err := s.payoutVariant(ctx, date, v)
+		players += n
+		if err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	if firstErr != nil {
+		return fmt.Errorf("RunDailyPayout: %w", firstErr)
+	}
+	slog.Info("daily payout complete", "date", date.Format("2006-01-02"), "players", players)
+	return nil
+}
+
+func (s *DailyService) payoutVariant(ctx context.Context, date time.Time, variant int) (int, error) {
+	rows, err := s.dailyRepo.GetDailyLeaderboard(ctx, date, variant, 1<<30)
+	if err != nil {
+		return 0, fmt.Errorf("payoutVariant %d: %w", variant, err)
+	}
+	ref := DailyRewardRef(date, variant)
 	rankCoins := map[int]int{1: config.CoinDailyRank1, 2: config.CoinDailyRank2, 3: config.CoinDailyRank3}
+	doneTitle, rankTitle := "چالش روزانه تموم شد", "جایزه چالش روزانه"
+	if t := dailyVariantTitle(variant); t != "" {
+		doneTitle, rankTitle = doneTitle+"، "+t, rankTitle+"، "+t
+	}
 
 	var firstErr error
 	award := func(userID, kind, detail string, coins int, title, body string) {
-		created, err := s.userRepo.CreateInboxReward(ctx, userID, kind, dateStr, detail, coins)
+		created, err := s.userRepo.CreateInboxReward(ctx, userID, kind, ref, detail, coins)
 		if err != nil {
-			slog.Error("daily payout: CreateInboxReward failed", "userID", userID, "kind", kind, "error", err)
+			slog.Error("daily payout: CreateInboxReward failed", "userID", userID, "kind", kind, "variant", variant, "error", err)
 			if firstErr == nil {
 				firstErr = err
 			}
@@ -251,18 +338,12 @@ func (s *DailyService) RunDailyPayout(ctx context.Context, date time.Time) error
 	}
 
 	for _, row := range rows {
-		award(row.UserID, repository.RewardDailyDone, "", config.CoinDailyComplete,
-			"چالش روزانه تمام شد",
+		award(row.UserID, repository.RewardDailyDone, "", config.CoinDailyComplete, doneTitle,
 			fmt.Sprintf("%s سکه گرفتی، از صندوق جایزه‌ها بردارش.", faNum(config.CoinDailyComplete)))
 		if coins, ok := rankCoins[row.Rank]; ok {
-			award(row.UserID, repository.RewardDailyRank, strconv.Itoa(row.Rank), coins,
-				"جایزه چالش روزانه",
+			award(row.UserID, repository.RewardDailyRank, strconv.Itoa(row.Rank), coins, rankTitle,
 				fmt.Sprintf("در چالش دیروز نفر %s شدی و %s سکه گرفتی! از صندوق جایزه‌ها بردارش.", faNum(row.Rank), faNum(coins)))
 		}
 	}
-	if firstErr != nil {
-		return fmt.Errorf("RunDailyPayout: %w", firstErr)
-	}
-	slog.Info("daily payout complete", "date", dateStr, "players", len(rows))
-	return nil
+	return len(rows), firstErr
 }

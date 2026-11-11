@@ -8,6 +8,23 @@ import 'daily_fakes.dart';
 
 void main() {
   group('DailyChallenge', () {
+    test('fromJson reads the variant, its timer and the played types', () {
+      final c = DailyChallenge.fromJson({
+        'challenge_date': '2026-11-10',
+        'day_number': 5,
+        'variant': 2,
+        'turn_timer_sec': 20,
+        'played_variants': [1, 2],
+        'start_letter': 'ن',
+      });
+      expect((c.variant, c.turnTimerSec), (2, 20));
+      expect(c.playedVariants, [1, 2]);
+      // A server older than the variants sends none of them: classic.
+      final old = DailyChallenge.fromJson({'start_letter': 'ن'});
+      expect((old.variant, old.turnTimerSec), (1, 15));
+      expect(old.playedVariants, isEmpty);
+    });
+
     test('no attempt: nothing to show or retry', () {
       final c = dailyChallenge();
       expect(c.hasAttempted, isFalse);

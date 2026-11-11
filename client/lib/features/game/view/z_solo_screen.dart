@@ -8,6 +8,7 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_chain.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_scaffold.dart';
@@ -55,6 +56,7 @@ class _ZSoloActiveScreenState extends State<ZSoloActiveScreen> {
         words: state.wordChain,
         scores: state.wordScores,
         nextStartLetter: state.nextStartLetter,
+        linkPosition: state.linkPosition,
       ),
       footer: ZGameFooter(state: state, banner: _mistakeBanner(context, state)),
     );
@@ -101,9 +103,12 @@ class _Header extends StatelessWidget {
           score: state.score,
           title: isDaily ? 'چالش روزانه' : 'تک‌نفره',
           // Daily is a fixed, once-a-day variant — no mode toggle (switching
-          // would silently abandon the tracked attempt).
+          // would silently abandon the tracked attempt). A harder variant
+          // names its link letter and has a longer timer.
           subtitle:
-              '${toPersianDigits(GameConstants.classicTurnTimerSec)} ثانیه',
+              state.linkPosition > 1
+                  ? '${linkVariantName(state.linkPosition)} · ${toPersianDigits(GameConstants.turnTimerSecFor(state.mode, state.linkPosition))} ثانیه'
+                  : '${toPersianDigits(GameConstants.turnTimerSecFor(state.mode, state.linkPosition))} ثانیه',
           compact: compact,
         ),
       ),

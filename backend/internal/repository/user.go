@@ -331,6 +331,7 @@ const (
 type InboxReward struct {
 	ID        string
 	Kind      string
+	Ref       string // idempotency key, e.g. a Daily payout's "date[/vN]"
 	Detail    string
 	Coins     int
 	Claimed   bool
@@ -356,7 +357,7 @@ func (r *UserRepository) CreateInboxReward(ctx context.Context, userID, kind, re
 // ListRewards returns the user's rewards, newest first: every unclaimed one,
 // plus claimed ones only if claimed at or after claimedSince.
 func (r *UserRepository) ListRewards(ctx context.Context, userID string, claimedSince time.Time) ([]*InboxReward, error) {
-	const q = `SELECT id, kind, detail, coins, claimed_at IS NOT NULL, created_at
+	const q = `SELECT id, kind, ref, detail, coins, claimed_at IS NOT NULL, created_at
 		FROM inbox_rewards
 		WHERE user_id = $1 AND (claimed_at IS NULL OR claimed_at >= $2)
 		ORDER BY created_at DESC LIMIT 100`
@@ -369,7 +370,7 @@ func (r *UserRepository) ListRewards(ctx context.Context, userID string, claimed
 	var out []*InboxReward
 	for rows.Next() {
 		var rw InboxReward
-		if err := rows.Scan(&rw.ID, &rw.Kind, &rw.Detail, &rw.Coins, &rw.Claimed, &rw.CreatedAt); err != nil {
+		if err := rows.Scan(&rw.ID, &rw.Kind, &rw.Ref, &rw.Detail, &rw.Coins, &rw.Claimed, &rw.CreatedAt); err != nil {
 			return nil, fmt.Errorf("ListRewards scan: %w", err)
 		}
 		out = append(out, &rw)

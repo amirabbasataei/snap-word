@@ -6,6 +6,7 @@ import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/motion.dart';
 import 'package:wordchain/core/widgets/z_mascot.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
 
 /// The hero of the pre-game screen (canvas `ZDailyBeforeA`): today's start
@@ -16,7 +17,10 @@ import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
 class DailyLetterHero extends StatelessWidget {
   final String letter;
 
-  const DailyLetterHero({super.key, required this.letter});
+  /// The letter position it sits at in the first word (a Daily variant).
+  final int position;
+
+  const DailyLetterHero({super.key, required this.letter, this.position = 1});
 
   static const height = 330.0;
 
@@ -106,7 +110,9 @@ class DailyLetterHero extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        'حرف شروع امروز',
+                        position > 1
+                            ? '${linkVariantName(position)} کلمهٔ اول'
+                            : 'حرف شروع امروز',
                         style: ZTypography.metaLabel.copyWith(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w800,

@@ -60,7 +60,7 @@ type adminContentStore interface {
 
 type adminDailyReader interface {
 	GetChallenge(ctx context.Context, date time.Time) (*repository.DailyChallengeRow, error)
-	GetDailyLeaderboard(ctx context.Context, date time.Time, limit int) ([]*repository.DailyBoardRow, error)
+	GetDailyLeaderboard(ctx context.Context, date time.Time, variant, limit int) ([]*repository.DailyBoardRow, error)
 }
 
 type adminBoards interface {
@@ -297,6 +297,7 @@ func (s *AdminContentService) DailyCalendar(ctx context.Context, fromRaw, toRaw 
 }
 
 type DailyBoardItem struct {
+	Variant     int    `json:"variant"` // the Daily variant's board (1 classic, 2/3 2nd/3rd letter)
 	Rank        int    `json:"rank"`
 	UserID      string `json:"user_id"`
 	Username    string `json:"username"`
@@ -308,6 +309,7 @@ type DailyBoardItem struct {
 type DailyAttemptItem struct {
 	UserID      string    `json:"user_id"`
 	Username    string    `json:"username"`
+	Variant     int       `json:"variant"`
 	Attempt     int       `json:"attempt"`
 	Score       int       `json:"score"`
 	ChainLength int       `json:"chain_length"`
@@ -374,9 +376,19 @@ func (s *AdminContentService) DailyDetail(ctx context.Context, dateRaw string) (
 	out.Stats.Players, out.Stats.Attempts, out.Stats.Retries = stats.Players, stats.Attempts, stats.Retries
 	out.Stats.BestScore, out.Stats.AvgScore = stats.BestScore, stats.AvgScore
 
-	board, err := s.daily.GetDailyLeaderboard(ctx, date, adminDailyBoardLimit)
-	if err != nil {
-		return nil, fmt.Errorf("AdminContentService.DailyDetail: %w", err)
+	// Every variant has its own board; they are listed one after the other,
+	// each row tagged with its variant.
+	var board []*repository.DailyBoardRow
+	var boardVariants []int
+	for v := config.DailyVariantClassic; v <= config.DailyVariantMax; v++ {
+		rows, err := s.daily.GetDailyLeaderboard(ctx, date, v, adminDailyBoardLimit)
+		if err != nil {
+			return nil, fmt.Errorf("AdminContentService.DailyDetail: %w", err)
+		}
+		board = append(board, rows...)
+		for range rows {
+			boardVariants = append(boardVariants, v)
+		}
 	}
 	ids := make([]string, len(board))
 	for i, b := range board {
@@ -391,7 +403,7 @@ func (s *AdminContentService) DailyDetail(ctx context.Context, dateRaw string) (
 	out.Board = make([]DailyBoardItem, len(board))
 	for i, b := range board {
 		_, isBanned := banned[b.UserID]
-		out.Board[i] = DailyBoardItem{Rank: b.Rank, UserID: b.UserID, Username: b.Username, Score: b.Score,
+		out.Board[i] = DailyBoardItem{Variant: boardVariants[i], Rank: b.Rank, UserID: b.UserID, Username: b.Username, Score: b.Score,
 			ChainLength: b.ChainLength, Banned: isBanned}
 	}
 
@@ -401,11 +413,12 @@ func (s *AdminContentService) DailyDetail(ctx context.Context, dateRaw string) (
 	}
 	out.Attempts = make([]DailyAttemptItem, len(attempts))
 	for i, a := range attempts {
-		out.Attempts[i] = DailyAttemptItem{UserID: a.UserID, Username: a.Username, Attempt: a.Attempt, Score: a.Score,
+		out.Attempts[i] = DailyAttemptItem{UserID: a.UserID, Username: a.Username, Variant: a.Variant, Attempt: a.Attempt, Score: a.Score,
 			ChainLength: a.ChainLength, WordChain: a.WordChain, CompletedAt: a.CompletedAt}
 	}
 
-	if out.Payout, err = s.payout(ctx, date, today, stats.Players); err != nil {
+	// One completion prize per (player, variant) free run.
+	if out.Payout, err = s.payout(ctx, date, today, stats.FreeRuns); err != nil {
 		return nil, err
 	}
 	return out, nil

@@ -153,10 +153,12 @@ export interface DailyDetail extends Omit<DailyDay, 'attempts'> {
   seed: number
   eligible_letters: string[]
   stats: { players: number; attempts: number; retries: number; best_score: number; avg_score: number }
-  board: { rank: number; user_id: string; username: string; score: number; chain_length: number; banned: boolean }[]
+  /** Every Daily variant has its own board; rows of all variants, each tagged. */
+  board: { variant: number; rank: number; user_id: string; username: string; score: number; chain_length: number; banned: boolean }[]
   attempts: {
     user_id: string
     username: string
+    variant: number
     attempt: number
     score: number
     chain_length: number
@@ -233,4 +235,15 @@ export function useWeeklyRewards() {
     queryKey: ['admin', 'content', 'board', 'rewards'],
     queryFn: ({ signal }) => api<WeeklyRewards>('/leaderboards/rewards', { signal }),
   })
+}
+
+/** Daily Challenge variants: the letter position that links two words. */
+export const DAILY_VARIANT_LABEL: Record<number, string> = {
+  1: 'کلاسیک',
+  2: 'حرف دوم',
+  3: 'حرف سوم',
+}
+
+export function dailyVariantLabel(v: number | undefined): string {
+  return DAILY_VARIANT_LABEL[v ?? 1] ?? `نوع ${v}`
 }

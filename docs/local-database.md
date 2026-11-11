@@ -20,6 +20,8 @@ class LocalMatches extends Table {
   DateTimeColumn get startedAt   => dateTime()();
   DateTimeColumn get endedAt     => dateTime().nullable()();
   TextColumn    get scoreTrace   => text().nullable()();         // v3: per-word times + streaks (Daily upload), see § Daily fairness
+  IntColumn     get linkPosition => integer().withDefault(const Constant(1))(); // v4: Daily variant (1 classic, 2/3)
+  TextColumn    get startLetter  => text().nullable()();         // v5: Daily first letter, read on resume
 }
 
 class LocalUsedWords extends Table {

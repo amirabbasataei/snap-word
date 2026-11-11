@@ -38,12 +38,12 @@ func TestDailyRankingUsesFreeAttemptOnly(t *testing.T) {
 		attempt int
 		score   int
 	}{{a, 1, 100}, {a, 2, 900}, {b, 1, 300}, {c, 1, 200}, {c, 2, 250}} {
-		if err := dailyRepo.InsertAttempt(ctx, at.user, date, at.attempt, at.score, []string{"سلام"}); err != nil {
+		if err := dailyRepo.InsertAttempt(ctx, at.user, date, 1, at.attempt, at.score, []string{"سلام"}); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	board, err := dailyRepo.GetDailyLeaderboard(ctx, date, 10)
+	board, err := dailyRepo.GetDailyLeaderboard(ctx, date, 1, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,10 +53,10 @@ func TestDailyRankingUsesFreeAttemptOnly(t *testing.T) {
 	if board[2].Score != 100 || board[2].Rank != 3 {
 		t.Fatalf("a paid retry leaked into the board: %+v", board[2])
 	}
-	if rank, _ := dailyRepo.GetUserRank(ctx, date, a); rank == nil || *rank != 3 {
+	if rank, _ := dailyRepo.GetUserRank(ctx, date, 1, a); rank == nil || *rank != 3 {
 		t.Fatalf("alice rank = %v, want 3", rank)
 	}
-	if best, _ := dailyRepo.GetTodayBest(ctx, date); best != 300 {
+	if best, _ := dailyRepo.GetTodayBest(ctx, date, 1); best != 300 {
 		t.Fatalf("today best = %d, want 300 (free attempts only)", best)
 	}
 
@@ -109,7 +109,7 @@ func TestDailyInfoKeepsPersonalBestButFreeRank(t *testing.T) {
 		attempt int
 		score   int
 	}{{a, 1, 100}, {a, 2, 900}, {b, 1, 300}} {
-		if err := dailyRepo.InsertAttempt(ctx, at.user, today, at.attempt, at.score, []string{"سلام"}); err != nil {
+		if err := dailyRepo.InsertAttempt(ctx, at.user, today, 1, at.attempt, at.score, []string{"سلام"}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -118,7 +118,7 @@ func TestDailyInfoKeepsPersonalBestButFreeRank(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	info, err := daily.GetDailyInfo(ctx, a)
+	info, err := daily.GetDailyInfo(ctx, a, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +167,7 @@ func TestCreateSoloGameDailyRecomputesScore(t *testing.T) {
 	if _, _, err := svc.CreateSoloGame(ctx, user, in(0, score, times, nil)); !errors.Is(err, service.ErrInvalidDailyChain) {
 		t.Fatalf("half a trace: want ErrInvalidDailyChain, got %v", err)
 	}
-	attempts, _ := dailyRepo.GetUserAttempts(ctx, user, date)
+	attempts, _ := dailyRepo.GetUserAttempts(ctx, user, date, 1)
 	if len(attempts) != 0 {
 		t.Fatalf("a rejected run stored %d attempts", len(attempts))
 	}

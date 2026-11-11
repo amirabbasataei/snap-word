@@ -17,6 +17,10 @@ class RewardItem {
   final bool claimed;
   final DateTime createdAt;
 
+  /// The Daily type a daily_done / daily_rank prize was for (1 classic, 2/3
+  /// the harder variants). The server sends it only for 2 and 3.
+  final int dailyVariant;
+
   const RewardItem({
     required this.id,
     required this.kind,
@@ -24,6 +28,7 @@ class RewardItem {
     required this.coins,
     required this.claimed,
     required this.createdAt,
+    this.dailyVariant = 1,
   });
 
   factory RewardItem.fromJson(Map<String, dynamic> json) => RewardItem(
@@ -35,6 +40,7 @@ class RewardItem {
     createdAt:
         DateTime.tryParse(json['created_at'] as String? ?? '') ??
         DateTime.now(),
+    dailyVariant: json['daily_variant'] as int? ?? 1,
   );
 
   RewardItem asClaimed() => RewardItem(
@@ -44,6 +50,7 @@ class RewardItem {
     coins: coins,
     claimed: true,
     createdAt: createdAt,
+    dailyVariant: dailyVariant,
   );
 }
 

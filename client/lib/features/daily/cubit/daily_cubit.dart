@@ -9,7 +9,10 @@ part 'daily_state.dart';
 class DailyCubit extends Cubit<DailyState> {
   final DailyRepository _repo;
 
-  DailyCubit({required DailyRepository repository})
+  /// The Daily variant this screen is about (1 classic, 2/3 the harder ones).
+  final int variant;
+
+  DailyCubit({required DailyRepository repository, this.variant = 1})
     : _repo = repository,
       super(const DailyInitial());
 
@@ -24,7 +27,7 @@ class DailyCubit extends Cubit<DailyState> {
             state is DailyRetryAvailable);
     if (!keep) emit(const DailyLoading());
     try {
-      final challenge = await _repo.getDailyChallenge();
+      final challenge = await _repo.getDailyChallenge(variant: variant);
       if (isClosed) return;
       emit(
         challenge.hasAttempted
@@ -66,7 +69,7 @@ class DailyCubit extends Cubit<DailyState> {
     final challenge = current.challenge;
     emit(DailyAttempted(challenge: challenge, retrying: true));
     try {
-      await _repo.retryChallenge();
+      await _repo.retryChallenge(variant: variant);
       if (isClosed) return;
       emit(DailyRetryAvailable(challenge: challenge));
     } on DailyException catch (e) {

@@ -16,6 +16,7 @@ import 'package:wordchain/features/friends/view/z_friends_screen.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
 import 'package:wordchain/features/messages/view/messages_screen.dart';
 import 'package:wordchain/features/rewards/view/rewards_screen.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/home/view/home_screen.dart';
 import 'package:wordchain/features/leaderboard/view/z_board_screen.dart';
@@ -62,6 +63,15 @@ String _afterLogin(Uri uri, Object? extra) {
   return safe ? raw : '/home';
 }
 
+/// The Daily variant of a `variant=` query value: a known one, else classic.
+@visibleForTesting
+int dailyVariantFrom(String? raw) {
+  final v = int.tryParse(raw ?? '');
+  return v != null && GameConstants.dailyVariants.contains(v)
+      ? v
+      : GameConstants.dailyVariantClassic;
+}
+
 /// The router's single redirect rule (see [buildAppRouter]).
 @visibleForTesting
 String? authRedirect({
@@ -79,9 +89,13 @@ String? authRedirect({
   // The OTP page cannot be rebuilt without its args (e.g. a restored route).
   if (uri.path == '/login/otp' && extra is! OtpVerifyArgs) return '/login';
 
-  // Daily challenge requires authentication
+  // Daily challenge requires authentication. A picked variant
+  // (`/daily?variant=2`) survives the sign-in.
   if (path.startsWith('/daily') && authState is! AuthAuthenticated) {
-    return '/login?return=/daily';
+    final variant = uri.queryParameters['variant'];
+    return variant == null
+        ? '/login?return=/daily'
+        : '/login?return=${Uri.encodeComponent('/daily?variant=$variant')}';
   }
 
   return null;
@@ -147,7 +161,10 @@ GoRouter buildAppRouter() {
       ),
       GoRoute(
         path: '/daily/board',
-        builder: (context, state) => const DailyBoardScreen(),
+        builder:
+            (context, state) => DailyBoardScreen(
+              variant: dailyVariantFrom(state.uri.queryParameters['variant']),
+            ),
       ),
       GoRoute(
         path: '/messages',
@@ -179,7 +196,13 @@ GoRouter buildAppRouter() {
         },
       ),
       GoRoute(path: '/lobby', builder: (context, state) => const LobbyScreen()),
-      GoRoute(path: '/daily', builder: (context, state) => const DailyScreen()),
+      GoRoute(
+        path: '/daily',
+        builder:
+            (context, state) => DailyScreen(
+              variant: dailyVariantFrom(state.uri.queryParameters['variant']),
+            ),
+      ),
     ],
   );
 }

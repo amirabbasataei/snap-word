@@ -32,6 +32,10 @@ class GameActive extends GameState {
   final int streak;
   final int turnTimeRemaining;
   final String? nextStartLetter;
+
+  /// The letter position of the next word that must be [nextStartLetter]:
+  /// 1 everywhere but a harder Daily variant (2 or 3).
+  final int linkPosition;
   final String? hintWord;
   final int guestHintUsesLeft;
   final bool continueUsed;
@@ -100,6 +104,7 @@ class GameActive extends GameState {
     required this.streak,
     required this.turnTimeRemaining,
     this.nextStartLetter,
+    this.linkPosition = 1,
     this.hintWord,
     required this.guestHintUsesLeft,
     required this.continueUsed,
@@ -178,6 +183,7 @@ class GameActive extends GameState {
           nextStartLetter == _sentinel
               ? this.nextStartLetter
               : nextStartLetter as String?,
+      linkPosition: linkPosition,
       hintWord: hintWord == _sentinel ? this.hintWord : hintWord as String?,
       guestHintUsesLeft: guestHintUsesLeft ?? this.guestHintUsesLeft,
       continueUsed: continueUsed ?? this.continueUsed,
@@ -239,6 +245,7 @@ class GameActive extends GameState {
     streak,
     turnTimeRemaining,
     nextStartLetter,
+    linkPosition,
     hintWord,
     guestHintUsesLeft,
     continueUsed,
@@ -308,6 +315,9 @@ class GameOver extends GameState {
   final RatingChange? rating;
   final bool ratingPairCap;
 
+  /// The run's link position (a Daily variant; 1 otherwise).
+  final int linkPosition;
+
   const GameOver({
     required this.localMatchId,
     required this.mode,
@@ -331,6 +341,7 @@ class GameOver extends GameState {
     this.opponentIsAi = false,
     this.rating,
     this.ratingPairCap = false,
+    this.linkPosition = 1,
   });
 
   GameOver copyWith({
@@ -363,6 +374,7 @@ class GameOver extends GameState {
       opponentIsAi: opponentIsAi,
       rating: rating ?? this.rating,
       ratingPairCap: ratingPairCap ?? this.ratingPairCap,
+      linkPosition: linkPosition,
     );
   }
 
@@ -395,6 +407,7 @@ class GameOver extends GameState {
     opponentIsAi,
     rating,
     ratingPairCap,
+    linkPosition,
   ];
 }
 

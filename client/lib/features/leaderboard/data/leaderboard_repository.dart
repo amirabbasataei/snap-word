@@ -103,9 +103,16 @@ class LeaderboardRepository {
   /// (Iran day). Entries carry `chain_length` but no avatar; the response has
   /// `my_rank` (null when the player has not played) and no score of its own,
   /// so the score comes from the player's entry when they are in the top 100.
-  Future<LeaderboardResult> fetchDaily(String currentUserId) async {
+  /// Today's board of Daily [variant] (1 = classic, the «امروز» tab).
+  Future<LeaderboardResult> fetchDaily(
+    String currentUserId, {
+    int variant = 1,
+  }) async {
     try {
-      final response = await _dio.get(ApiEndpoints.dailyLeaderboard);
+      final response = await _dio.get(
+        ApiEndpoints.dailyLeaderboard,
+        queryParameters: {'variant': variant},
+      );
       final data = response.data['data'] as Map<String, dynamic>;
       final entries =
           ((data['entries'] as List<dynamic>?) ?? [])

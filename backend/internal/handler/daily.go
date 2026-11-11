@@ -4,9 +4,11 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
+	"wordchain/backend/internal/config"
 	"wordchain/backend/internal/middleware"
 	"wordchain/backend/internal/repository"
 	"wordchain/backend/internal/service"
@@ -28,22 +30,46 @@ type dailyAttemptResponse struct {
 }
 
 type dailyChallengeResponse struct {
-	ChallengeDate string                `json:"challenge_date"`
-	DayNumber     int                   `json:"day_number"`
-	StartLetter   string                `json:"start_letter"`
-	TodayBest     int                   `json:"today_best"`
-	YourBest      int                   `json:"your_best"`
-	DailyStreak   int                   `json:"daily_streak"`
-	Attempt       *dailyAttemptResponse `json:"attempt"`
-	RetryAttempt  *dailyAttemptResponse `json:"retry_attempt"`
-	Rank          *int                  `json:"rank"`
+	ChallengeDate  string                `json:"challenge_date"`
+	DayNumber      int                   `json:"day_number"`
+	Variant        int                   `json:"variant"`
+	TurnTimerSec   int                   `json:"turn_timer_sec"`
+	PlayedVariants []int                 `json:"played_variants"`
+	StartLetter    string                `json:"start_letter"`
+	TodayBest      int                   `json:"today_best"`
+	YourBest       int                   `json:"your_best"`
+	DailyStreak    int                   `json:"daily_streak"`
+	Attempt        *dailyAttemptResponse `json:"attempt"`
+	RetryAttempt   *dailyAttemptResponse `json:"retry_attempt"`
+	Rank           *int                  `json:"rank"`
 }
 
-// GetDaily handles GET /api/v1/daily.
+// dailyVariantParam reads the Daily variant from the `variant` query
+// parameter; missing means the classic one (an app older than the variants).
+// It answers 400 invalid_daily_variant and returns false for anything else.
+func dailyVariantParam(c *gin.Context) (int, bool) {
+	raw := c.Query("variant")
+	if raw == "" {
+		return config.DailyVariantClassic, true
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || !config.IsDailyVariant(v) {
+		respondError(c, http.StatusBadRequest, "invalid_daily_variant", "unknown daily challenge variant")
+		return 0, false
+	}
+	return v, true
+}
+
+// GetDaily handles GET /api/v1/daily?variant=N (N = the link position, 1–3;
+// default 1).
 func (h *DailyHandler) GetDaily(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
+	variant, ok := dailyVariantParam(c)
+	if !ok {
+		return
+	}
 
-	info, err := h.svc.GetDailyInfo(c.Request.Context(), userID)
+	info, err := h.svc.GetDailyInfo(c.Request.Context(), userID, variant)
 	if errors.Is(err, service.ErrNoDailyChallenge) {
 		respondError(c, http.StatusNotFound, "no_daily_challenge", "today's challenge has not been set up yet")
 		return
@@ -54,14 +80,21 @@ func (h *DailyHandler) GetDaily(c *gin.Context) {
 		return
 	}
 
+	played := info.PlayedVariants
+	if played == nil {
+		played = []int{}
+	}
 	resp := dailyChallengeResponse{
-		ChallengeDate: info.ChallengeDate,
-		DayNumber:     info.DayNumber,
-		StartLetter:   info.StartLetter,
-		TodayBest:     info.TodayBest,
-		YourBest:      info.YourBest,
-		DailyStreak:   info.DailyStreak,
-		Rank:          info.Rank,
+		ChallengeDate:  info.ChallengeDate,
+		DayNumber:      info.DayNumber,
+		Variant:        info.Variant,
+		TurnTimerSec:   info.TurnTimerSec,
+		PlayedVariants: played,
+		StartLetter:    info.StartLetter,
+		TodayBest:      info.TodayBest,
+		YourBest:       info.YourBest,
+		DailyStreak:    info.DailyStreak,
+		Rank:           info.Rank,
 	}
 	if info.Attempt != nil {
 		resp.Attempt = toAttemptResp(info.Attempt)
@@ -73,11 +106,15 @@ func (h *DailyHandler) GetDaily(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-// Retry handles POST /api/v1/daily/retry.
+// Retry handles POST /api/v1/daily/retry?variant=N (default 1).
 func (h *DailyHandler) Retry(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
+	variant, ok := dailyVariantParam(c)
+	if !ok {
+		return
+	}
 
-	err := h.svc.Retry(c.Request.Context(), userID)
+	err := h.svc.Retry(c.Request.Context(), userID, variant)
 	switch {
 	case errors.Is(err, service.ErrDailyNotAttempted):
 		respondError(c, http.StatusBadRequest, "not_attempted", "complete today's challenge before retrying")
@@ -114,11 +151,16 @@ type dailyBoardEntry struct {
 	ChainLength int    `json:"chain_length"`
 }
 
-// GetLeaderboard handles GET /api/v1/daily/leaderboard: today's ranking.
+// GetLeaderboard handles GET /api/v1/daily/leaderboard?variant=N: today's
+// ranking of one variant (default 1).
 func (h *DailyHandler) GetLeaderboard(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
+	variant, ok := dailyVariantParam(c)
+	if !ok {
+		return
+	}
 
-	board, err := h.svc.Leaderboard(c.Request.Context(), userID, 100)
+	board, err := h.svc.Leaderboard(c.Request.Context(), userID, variant, 100)
 	if err != nil {
 		slog.Error("daily leaderboard failed", "userID", userID, "error", err)
 		respondError(c, http.StatusInternalServerError, "internal_error", "failed to load daily leaderboard")
@@ -134,6 +176,7 @@ func (h *DailyHandler) GetLeaderboard(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
 		"challenge_date": board.ChallengeDate,
 		"day_number":     board.DayNumber,
+		"variant":        board.Variant,
 		"entries":        entries,
 		"my_rank":        board.MyRank,
 	}})

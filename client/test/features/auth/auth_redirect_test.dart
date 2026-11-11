@@ -85,4 +85,21 @@ void main() {
       expect(go(p, _in), isNull, reason: p);
     }
   });
+
+  group('Daily variants', () {
+    test('a guest signs in with the picked variant kept', () {
+      final to = go('/daily?variant=3', _guest)!;
+      expect(Uri.parse(to).queryParameters['return'], '/daily?variant=3');
+      expect(go(to, _in), '/daily?variant=3');
+      expect(go('/daily', _guest), '/login?return=/daily');
+    });
+
+    test('dailyVariantFrom: a known variant, else classic', () {
+      expect(dailyVariantFrom('2'), 2);
+      expect(dailyVariantFrom('3'), 3);
+      for (final raw in [null, '', '0', '4', 'x', '-1']) {
+        expect(dailyVariantFrom(raw), 1, reason: '$raw');
+      }
+    });
+  });
 }

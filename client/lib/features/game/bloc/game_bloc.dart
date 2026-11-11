@@ -40,6 +40,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   DateTime? _turnStartTime;
   int _timeLimitSec = GameConstants.classicTurnTimerSec;
 
+  /// The letter position that links words in this solo/vs-AI run: 1, or a
+  /// harder Daily variant's 2/3. Multiplayer is always 1.
+  int _linkPosition = 1;
+
   AIDifficultyConfig _aiDifficulty = aiDifficulties['easy']!;
 
   // Multiplayer session state (reset on each GameStarted)
@@ -177,6 +181,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     _isMultiplayer = event.roomId != null;
     _myPlayerId = event.myPlayerId ?? '';
+    _linkPosition = 1;
     _powerupCounts = _isGuest ? const {} : await _loadPowerupCounts();
 
     if (_isMultiplayer) {
@@ -192,6 +197,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       String opponentType;
       List<String> wordChain;
       int score;
+      String? startLetter;
 
       if (event.resumeMatchId != null) {
         final match = await _gameRepository.getMatchById(event.resumeMatchId!);
@@ -202,6 +208,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         localMatchId = match.id;
         mode = match.mode;
         opponentType = match.opponentType;
+        _linkPosition = mode == 'daily' ? match.linkPosition : 1;
+        startLetter = match.startLetter;
         wordChain = List<String>.from(jsonDecode(match.wordChain) as List);
         // The match row only learns its score when the game ends, so a
         // resumed run restarted from 0. The score trace holds every turn's
@@ -212,14 +220,32 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         final trace = ScoreTrace.parse(match.scoreTrace);
         score =
             match.opponentType == 'solo' && trace.covers(wordChain)
-                ? scoreFromTrace(wordChain, trace)
+                ? scoreFromTrace(
+                  wordChain,
+                  trace,
+                  timeLimitSec: GameConstants.turnTimerSecFor(
+                    mode,
+                    _linkPosition,
+                  ),
+                )
                 : match.score;
       } else {
         mode = event.mode;
         opponentType = event.opponentType;
         wordChain = [];
         score = 0;
-        localMatchId = await _gameRepository.startLocalGame(mode, opponentType);
+        startLetter = event.startLetter;
+        _linkPosition =
+            mode == 'daily' &&
+                    GameConstants.dailyVariants.contains(event.linkPosition)
+                ? event.linkPosition
+                : 1;
+        localMatchId = await _gameRepository.startLocalGame(
+          mode,
+          opponentType,
+          linkPosition: _linkPosition,
+          startLetter: mode == 'daily' ? startLetter : null,
+        );
       }
 
       final vsAI = isVsAI(opponentType);
@@ -229,7 +255,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             aiDifficulties['easy']!;
       }
 
-      _timeLimitSec = GameConstants.classicTurnTimerSec;
+      _timeLimitSec = GameConstants.turnTimerSecFor(mode, _linkPosition);
       _turnStartTime = DateTime.now();
 
       final difficultyLabel =
@@ -251,7 +277,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           nextStartLetter:
               wordChain.isNotEmpty
                   ? wordChain.last[wordChain.last.length - 1]
-                  : event.startLetter,
+                  : startLetter,
+          linkPosition: _linkPosition,
           guestHintUsesLeft:
               _isGuest ? GameConstants.guestHintUsesPerSession : 999,
           continueUsed: false,
@@ -322,7 +349,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     } else if (!DictionaryService.hasValidChars(word)) {
       rejectionReason = 'invalid_characters';
     } else if (active.nextStartLetter != null &&
-        word[0] != active.nextStartLetter) {
+        DictionaryService.letterAt(word, active.linkPosition) !=
+            active.nextStartLetter) {
+      // The link is the first letter, or a Daily variant's 2nd/3rd one (a
+      // word too short to have it cannot link).
       rejectionReason = 'wrong_letter';
     } else if (await _gameRepository.isWordUsed(active.localMatchId, word)) {
       rejectionReason = 'already_used';
@@ -538,6 +568,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       final suggestions = _dictionaryService.suggestWords(
         active.nextStartLetter ?? 'a',
         exclude: active.wordChain.toSet(),
+        position: active.linkPosition,
       );
       if (suggestions.isEmpty) {
         emit(_withNotice(active, 'کلمهٔ پیشنهادی پیدا نشد'));
@@ -1472,6 +1503,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         GameOver(
           localMatchId: active.localMatchId,
           mode: active.mode,
+          linkPosition: active.linkPosition,
           opponentType: active.opponentType,
           reason: reason,
           rejectedWord: rejectedWord,
@@ -1513,6 +1545,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       {
         'mode': mode,
         'opponent': _trackedOpponent,
+        if (mode == 'daily') 'variant': _linkPosition,
         if (isVsAI(opponentType)) 'ai_level': resolveAIDifficulty(opponentType),
         if (resumed == true) 'resumed': true,
       },
@@ -1534,6 +1567,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       {
         'mode': mode,
         'opponent': _trackedOpponent,
+        if (mode == 'daily') 'variant': _linkPosition,
         'result': iWon == null ? 'finished' : (iWon ? 'win' : 'loss'),
         'reason': reason,
         'words': words,
@@ -1564,6 +1598,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final over = GameOver(
       localMatchId: localMatchId,
       mode: mode,
+      linkPosition: _isMultiplayer ? 1 : _linkPosition,
       reason: reason,
       rejectedWord: rejectedWord,
       rejectionReason: rejectionReason,
@@ -1630,15 +1665,20 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   /// The score a run had earned, recomputed from its [trace]. Only valid for
   /// a trace that [ScoreTrace.covers] the chain (a solo/Daily run, where
-  /// every chain word is the player's own).
-  static int scoreFromTrace(List<String> chain, ScoreTrace trace) {
+  /// every chain word is the player's own). [timeLimitSec] is the run's turn
+  /// timer (a Daily variant's own).
+  static int scoreFromTrace(
+    List<String> chain,
+    ScoreTrace trace, {
+    int timeLimitSec = GameConstants.classicTurnTimerSec,
+  }) {
     var total = 0;
     for (var i = 0; i < chain.length; i++) {
       total += calculateScore(
         chain[i],
         trace.timesMs[i] / 1000.0,
         trace.streaks[i],
-        GameConstants.classicTurnTimerSec.toDouble(),
+        timeLimitSec.toDouble(),
       );
     }
     return total;

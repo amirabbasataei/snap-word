@@ -76,6 +76,7 @@ const _faByCode = <String, String>{
   'already_retried': 'تلاش دوبارهٔ امروزت رو قبلاً استفاده کردی',
   'daily_attempt_not_allowed': 'تلاش‌های امروزت تموم شده',
   'invalid_daily_chain': 'نتیجهٔ چالش روزانه تأیید نشد',
+  'invalid_daily_variant': 'این نوع چالش وجود نداره',
 
   // Friends / challenges.
   'user_not_found': 'کاربری با این نام پیدا نشد',

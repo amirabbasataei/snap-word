@@ -70,7 +70,10 @@ class _Boards extends Fake implements LeaderboardRepository {
   final asked = <String>[];
 
   @override
-  Future<LeaderboardResult> fetchDaily(String currentUserId) async {
+  Future<LeaderboardResult> fetchDaily(
+    String currentUserId, {
+    int variant = 1,
+  }) async {
     asked.add(currentUserId);
     final g = gate;
     if (g != null) return g.future;

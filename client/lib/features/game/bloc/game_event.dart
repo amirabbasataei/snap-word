@@ -14,6 +14,10 @@ class GameStarted extends GameEvent {
   final String?
   startLetter; // daily challenge: forces the first required letter
 
+  /// Daily only: the letter position that links words (1 classic, 2/3 the
+  /// harder variants, `GameConstants.dailyVariants`). Ignored by other modes.
+  final int linkPosition;
+
   const GameStarted({
     required this.mode,
     required this.opponentType,
@@ -21,6 +25,7 @@ class GameStarted extends GameEvent {
     this.roomId,
     this.myPlayerId,
     this.startLetter,
+    this.linkPosition = 1,
   });
 
   @override
@@ -31,6 +36,7 @@ class GameStarted extends GameEvent {
     roomId,
     myPlayerId,
     startLetter,
+    linkPosition,
   ];
 }
 

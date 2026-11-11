@@ -16,7 +16,10 @@ import 'package:wordchain/features/game/data/game_constants.dart';
 /// does (15 s per turn; one free attempt that decides the rank, then a paid
 /// retry that only sets a personal record).
 class DailyRules extends StatelessWidget {
-  const DailyRules({super.key});
+  /// The Daily variant: its turn timer is longer from the 2nd letter on.
+  final int variant;
+
+  const DailyRules({super.key, this.variant = 1});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +67,7 @@ class DailyRules extends StatelessWidget {
                   ),
                 ),
                 title:
-                    '${toPersianDigits(GameConstants.classicTurnTimerSec)} ثانیه',
+                    '${toPersianDigits(GameConstants.dailyTurnTimerSec(variant))} ثانیه',
                 sub: 'برای هر نوبت، تکرار ممنوع',
               ),
             ),

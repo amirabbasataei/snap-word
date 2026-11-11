@@ -51,9 +51,11 @@ DailyChallenge dailyChallenge({
   int? rank = 3,
   String date = '2026-10-16',
   String letter = 'ب',
+  int variant = 1,
 }) => DailyChallenge(
   challengeDate: date,
   dayNumber: 42,
+  variant: variant,
   startLetter: letter,
   todaysBest: best,
   yourBest: attempt?.score ?? 0,
@@ -72,11 +74,16 @@ class FakeDailyRepo extends Fake implements DailyRepository {
   int loads = 0;
   int retries = 0;
 
+  /// The variant of the last load / retry call.
+  int? loadedVariant;
+  int? retriedVariant;
+
   FakeDailyRepo(this.challenge);
 
   @override
-  Future<DailyChallenge> getDailyChallenge() async {
+  Future<DailyChallenge> getDailyChallenge({int variant = 1}) async {
     loads++;
+    loadedVariant = variant;
     final gate = loadGate;
     if (gate != null) return gate.future;
     final error = loadError;
@@ -85,8 +92,9 @@ class FakeDailyRepo extends Fake implements DailyRepository {
   }
 
   @override
-  Future<void> retryChallenge() async {
+  Future<void> retryChallenge({int variant = 1}) async {
     retries++;
+    retriedVariant = variant;
     final gate = retryGate;
     if (gate != null) await gate.future;
     final error = retryError;

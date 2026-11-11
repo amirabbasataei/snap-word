@@ -126,7 +126,7 @@ class _AiLevelDialogState extends State<AiLevelDialog> {
                 ),
               ),
               const SizedBox(width: 10),
-              _CloseButton(onTap: widget.onClose),
+              HomeDialogCloseButton(onTap: widget.onClose),
             ],
           ),
           const SizedBox(height: 12),
@@ -153,10 +153,11 @@ class _AiLevelDialogState extends State<AiLevelDialog> {
   }
 }
 
-class _CloseButton extends StatelessWidget {
+/// The ✕ in the corner of Home's picker dialogs (AI level, Daily type).
+class HomeDialogCloseButton extends StatelessWidget {
   final VoidCallback onTap;
 
-  const _CloseButton({required this.onTap});
+  const HomeDialogCloseButton({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

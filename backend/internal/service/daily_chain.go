@@ -50,10 +50,10 @@ func legacyTurnScore(word string, responseTimeSec float64, streak int, timeLimit
 // scorers did before 2026-11-10: a run uploaded by an older app was scored
 // that way, and refusing it would make SyncService drop it for good. Counting
 // more letters only loosens an upper bound.
-func maxTurnScore(word string) int {
+func maxTurnScore(word string, timerSec int) int {
 	letters := utf8.RuneCountInString(word)
 	base := letters * 10
-	score := base + config.TurnTimerClassicSec*2 + base/2
+	score := base + timerSec*2 + base/2
 	legacy := score
 	if letters >= legacyLongWordMinLen {
 		legacy *= legacyLongWordMult
@@ -64,12 +64,18 @@ func maxTurnScore(word string) int {
 	return legacy
 }
 
-// ValidateDailyChain checks a Daily Challenge upload the way the client
-// played it: the first word starts with the day's start letter, every word
-// links to the previous one, none repeats, all pass engine.ValidateMove
-// (characters, length, dictionary), the chain stays under the safety cap, and
-// the score is not above what these words could earn.
-func ValidateDailyChain(startLetter string, chain []string, score int) error {
+// ValidateDailyChain checks a Daily Challenge upload of one variant the way
+// the client played it: the first word carries the variant's start letter at
+// the variant's position (the first letter for the classic one), every word
+// links to the previous one on that position, none repeats, all pass
+// engine.ValidateMoveAt (characters, length, dictionary), the chain stays
+// under the safety cap, and the score is not above what these words could
+// earn with the variant's timer.
+func ValidateDailyChain(startLetter string, variant int, chain []string, score int) error {
+	if !config.IsDailyVariant(variant) {
+		return fmt.Errorf("%w: unknown variant %d", ErrInvalidDailyChain, variant)
+	}
+	timerSec := config.DailyTurnTimerSec(variant)
 	if score < 0 {
 		return fmt.Errorf("%w: negative score", ErrInvalidDailyChain)
 	}
@@ -82,8 +88,8 @@ func ValidateDailyChain(startLetter string, chain []string, score int) error {
 		}
 		return nil
 	}
-	if !strings.HasPrefix(chain[0], startLetter) {
-		return fmt.Errorf("%w: first word does not start with %q", ErrInvalidDailyChain, startLetter)
+	if first := []rune(startLetter); len(first) != 1 || engine.LetterAt(chain[0], variant) != first[0] {
+		return fmt.Errorf("%w: first word does not have %q at position %d", ErrInvalidDailyChain, startLetter, variant)
 	}
 
 	used := make(map[string]bool, len(chain))
@@ -93,12 +99,12 @@ func ValidateDailyChain(startLetter string, chain []string, score int) error {
 		if w != strings.TrimSpace(w) {
 			return fmt.Errorf("%w: word %d has surrounding whitespace", ErrInvalidDailyChain, i)
 		}
-		if err := engine.ValidateMove(prev, w, used); err != nil {
+		if err := engine.ValidateMoveAt(prev, w, used, variant); err != nil {
 			return fmt.Errorf("%w: word %d: %v", ErrInvalidDailyChain, i, err)
 		}
 		used[w] = true
 		prev = w
-		maxScore += maxTurnScore(w)
+		maxScore += maxTurnScore(w, timerSec)
 	}
 	if score > maxScore {
 		return fmt.Errorf("%w: score %d above the maximum %d for this chain", ErrInvalidDailyChain, score, maxScore)
@@ -125,7 +131,8 @@ type DailyTrace struct {
 // refused, and so is a time faster than a human can type; but the timings and
 // streaks are still reported by the client, so someone who fakes them all to
 // the minimum still gets the highest score the chain allows.
-func ValidateDailyScore(chain []string, score int, trace DailyTrace) error {
+func ValidateDailyScore(variant int, chain []string, score int, trace DailyTrace) error {
+	timerSec := config.DailyTurnTimerSec(variant)
 	n := len(chain)
 	if len(trace.TimesMs) != n || len(trace.Streaks) != n {
 		return fmt.Errorf("%w: trace has %d times and %d streaks for %d words",
@@ -133,7 +140,7 @@ func ValidateDailyScore(chain []string, score int, trace DailyTrace) error {
 	}
 	// The longest a turn can run: the timer plus one Extra Time (the app
 	// allows one per Daily run; a resumed run gets a fresh allowance).
-	maxMs := (config.TurnTimerClassicSec+config.ExtraTimeBonusSec)*1000 + config.DailyWordSlackMs
+	maxMs := (timerSec+config.ExtraTimeBonusSec)*1000 + config.DailyWordSlackMs
 
 	total, legacyTotal := 0, 0
 	for i, w := range chain {
@@ -151,11 +158,15 @@ func ValidateDailyScore(chain []string, score int, trace DailyTrace) error {
 			return fmt.Errorf("%w: word %d streak %d does not follow %d", ErrInvalidDailyChain, i, streak, prev)
 		}
 		sec := float64(ms) / 1000.0
-		total += engine.CalculateScore(w, sec, streak, config.TurnTimerClassicSec)
-		legacyTotal += legacyTurnScore(w, sec, streak, config.TurnTimerClassicSec)
+		total += engine.CalculateScore(w, sec, streak, float64(timerSec))
+		legacyTotal += legacyTurnScore(w, sec, streak, float64(timerSec))
 	}
 	// An app installed before S6 scored with the ×2 rule. The whole chain
-	// must match one formula or the other; a mix is never accepted.
+	// must match one formula or the other; a mix is never accepted. Such an
+	// app only knows the classic variant.
+	if variant != config.DailyVariantClassic {
+		legacyTotal = -1
+	}
 	if total != score && legacyTotal != score {
 		return fmt.Errorf("%w: score %d, recomputed %d (legacy rule %d)", ErrInvalidDailyChain, score, total, legacyTotal)
 	}

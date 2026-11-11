@@ -1,5 +1,6 @@
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/z_dialog.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/rewards/data/rewards_repository.dart';
 
 /// How one prize reads on its card: the title and line of text, and the glyph
@@ -23,6 +24,11 @@ class RewardFace {
 RewardFace rewardFace(RewardItem item) {
   final coins = toPersianDigits(item.coins);
   final number = toPersianDigits(item.detail);
+  // «چالش دیروز», or «چالش «حرف دوم» دیروز» for a harder Daily type.
+  final daily =
+      item.dailyVariant > 1
+          ? 'چالش «${linkVariantName(item.dailyVariant)}» دیروز'
+          : 'چالش دیروز';
   switch (item.kind) {
     case 'streak':
       return RewardFace(
@@ -41,14 +47,14 @@ RewardFace rewardFace(RewardItem item) {
     case 'daily_rank':
       return RewardFace(
         title: 'جایزهٔ چالش روزانه',
-        body: 'در چالش دیروز رتبهٔ $number شدی! $coins سکه هدیه بگیر.',
+        body: 'در $daily رتبهٔ $number شدی! $coins سکه هدیه بگیر.',
         glyph: number,
         accent: ZDialogAccent.teal,
       );
     case 'daily_done':
       return RewardFace(
         title: 'جایزهٔ شرکت در چالش',
-        body: 'برای شرکت در چالش دیروز $coins سکه هدیه بگیر.',
+        body: 'برای شرکت در $daily $coins سکه هدیه بگیر.',
         glyph: 'چ',
         accent: ZDialogAccent.teal,
       );

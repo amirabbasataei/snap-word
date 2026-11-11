@@ -9,7 +9,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { roleAtLeast } from '@/layout/nav'
-import { useDailyDetail, type DailyDetail as Detail } from '@/lib/content'
+import { dailyVariantLabel, useDailyDetail, type DailyDetail as Detail } from '@/lib/content'
 import { ApiError, messageOf } from '@/lib/errors'
 import { formatJalaliDateTime, formatNumber } from '@/lib/fa'
 import { dayLabel, DayStatusBadges, LetterTile, PAYOUT_LABEL, StartLetterDialog } from './content/daily'
@@ -71,6 +71,7 @@ function Loaded({ day }: { day: Detail }) {
   const r = day.payout.rewards
 
   const board: Column<Detail['board'][number]>[] = [
+    { key: 'variant', header: 'نوع', cell: (b) => dailyVariantLabel(b.variant) },
     { key: 'rank', header: 'رتبه', cell: (b) => formatNumber(b.rank) },
     {
       key: 'user',
@@ -91,6 +92,7 @@ function Loaded({ day }: { day: Detail }) {
       header: 'بازیکن',
       cell: (a) => <Link to={`/users/${a.user_id}`} className="hover:text-blue">{a.username || '—'}</Link>,
     },
+    { key: 'variant', header: 'نوع', cell: (a) => dailyVariantLabel(a.variant) },
     { key: 'n', header: 'تلاش', cell: (a) => (a.attempt === 1 ? 'رایگان' : `${formatNumber(a.attempt)} (پولی)`) },
     { key: 'score', header: 'امتیاز', cell: (a) => formatNumber(a.score) },
     {
@@ -171,9 +173,9 @@ function Loaded({ day }: { day: Detail }) {
         <TabsContent value="board" className="pt-5">
           <Card>
             <p className="border-b border-border px-4 py-3 text-xs text-muted">
-              رتبه و جایزه فقط از تلاش رایگان حساب می‌شود. تلاش دوم (پولی) فقط بهترین امتیاز شخصی بازیکن را ثبت می‌کند و در این جدول نیست.
+              رتبه و جایزه فقط از تلاش رایگان حساب می‌شود. تلاش دوم (پولی) فقط بهترین امتیاز شخصی بازیکن را ثبت می‌کند و در این جدول نیست. هر نوع چالش (کلاسیک، حرف دوم، حرف سوم) جدول و جایزهٔ جداگانه دارد.
             </p>
-            <DataTable columns={board} rows={day.board} rowKey={(b) => b.user_id} emptyText="کسی در این روز بازی نکرده است." />
+            <DataTable columns={board} rows={day.board} rowKey={(b) => `${b.variant}-${b.user_id}`} emptyText="کسی در این روز بازی نکرده است." />
           </Card>
         </TabsContent>
         <TabsContent value="attempts" className="pt-5">
@@ -181,7 +183,7 @@ function Loaded({ day }: { day: Detail }) {
             <DataTable
               columns={attempts}
               rows={day.attempts}
-              rowKey={(a) => `${a.user_id}-${a.attempt}`}
+              rowKey={(a) => `${a.user_id}-${a.variant}-${a.attempt}`}
               emptyText="تلاشی ثبت نشده است."
             />
             {day.stats.attempts > day.attempts.length && (

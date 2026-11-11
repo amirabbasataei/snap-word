@@ -36,15 +36,23 @@ class GameRepository {
        _usedWordDao = usedWordDao,
        _dio = dio;
 
-  Future<int> startLocalGame(String mode, String opponentType) =>
-      _matchDao.createMatch(
-        LocalMatchesCompanion(
-          mode: Value(mode),
-          opponentType: Value(opponentType),
-          status: const Value('active'),
-          startedAt: Value(DateTime.now()),
-        ),
-      );
+  /// [linkPosition] is the letter position that links words (a Daily
+  /// variant; 1 otherwise).
+  Future<int> startLocalGame(
+    String mode,
+    String opponentType, {
+    int linkPosition = 1,
+    String? startLetter,
+  }) => _matchDao.createMatch(
+    LocalMatchesCompanion(
+      mode: Value(mode),
+      opponentType: Value(opponentType),
+      linkPosition: Value(linkPosition),
+      startLetter: Value(startLetter),
+      status: const Value('active'),
+      startedAt: Value(DateTime.now()),
+    ),
+  );
 
   Future<LocalMatche?> getActiveMatch() => _matchDao.getActiveMatch();
 

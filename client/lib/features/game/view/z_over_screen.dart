@@ -19,6 +19,7 @@ import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_scaffold.dart';
@@ -291,12 +292,17 @@ class _LossBody extends StatelessWidget {
   String _subtitle(String? requiredLetter) {
     switch (state.reason) {
       case 'timeout':
-        return requiredLetter != null
-            ? 'وقت تموم شد و کلمه‌ای با «$requiredLetter» نگفتی.'
-            : 'وقت تموم شد.';
+        final position = state.linkPosition;
+        return requiredLetter == null
+            ? 'وقت تموم شد.'
+            : position > 1
+            ? 'وقت تموم شد و کلمه‌ای که ${linkCue(requiredLetter, position)} باشه نگفتی.'
+            : 'وقت تموم شد و کلمه‌ای با «$requiredLetter» نگفتی.';
       case 'invalid_word':
         final word = state.rejectedWord ?? '';
         return switch (state.rejectionReason) {
+          'wrong_letter' when state.linkPosition > 1 =>
+            '«$word» حرف ${linkOrdinal(state.linkPosition)}ش درست نبود.',
           'wrong_letter' => '«$word» با حرف درست شروع نمی‌شد.',
           'already_used' => '«$word» قبلاً استفاده شده بود.',
           'too_short' => '«$word» خیلی کوتاه بود.',
@@ -360,6 +366,7 @@ class _LossBody extends StatelessWidget {
           tail: tail,
           tailStart: chain.length - tail.length,
           requiredLetter: requiredLetter,
+          linkPosition: state.linkPosition,
         ),
         if (canReport)
           ZOverEnter(
@@ -462,6 +469,7 @@ class _WinBody extends StatelessWidget {
               index: 3,
               fontSize: 20,
               color: z.ink,
+              linkPosition: state.linkPosition,
             ),
           ),
         ),

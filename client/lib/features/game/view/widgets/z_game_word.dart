@@ -34,21 +34,54 @@ Color zChainHueInk(BuildContext context, ZChainHue h) {
   };
 }
 
-/// [word] with its first and last letters in the accent of the chain
-/// position [index] (so two neighbours share the colour of the letter that
-/// links them); the rest in [color].
+/// [word] with its linking letters in the accent of the chain position
+/// [index] (so two neighbours share the colour of the letter that links
+/// them): the [linkPosition]-th letter (the first one, or a Daily variant's
+/// 2nd/3rd; half-spaces not counted) and the last one; the rest in [color].
 TextSpan zChainWordSpan(
   BuildContext context, {
   required String word,
   required int index,
   required double fontSize,
   required Color color,
+  int linkPosition = 1,
 }) {
   final chars = word.runes.toList();
-  String s(Iterable<int> r) => String.fromCharCodes(r);
-  final head = s(chars.take(1));
-  final tail = chars.length > 1 ? s(chars.skip(chars.length - 1)) : '';
-  final mid = chars.length > 2 ? s(chars.skip(1).take(chars.length - 2)) : '';
+  // Rune index of the linking letter: the first rune, or the
+  // [linkPosition]-th non-ZWNJ one (-1 when the word is shorter).
+  var link = linkPosition <= 1 ? 0 : -1;
+  if (linkPosition > 1) {
+    var n = 0;
+    for (var i = 0; i < chars.length; i++) {
+      if (chars[i] == 0x200C) continue;
+      if (++n == linkPosition) {
+        link = i;
+        break;
+      }
+    }
+  }
+  final last = chars.length - 1;
+  // A link that is also the last letter keeps the colour of the word before.
+  final inks = List<Color?>.filled(chars.length, null);
+  if (last > 0) inks[last] = zChainHueInk(context, zChainHueAt(index + 1));
+  if (link >= 0 && link < chars.length) {
+    inks[link] = zChainHueInk(context, zChainHueAt(index));
+  }
+
+  final spans = <TextSpan>[];
+  var from = 0;
+  for (var i = 1; i <= chars.length; i++) {
+    if (i == chars.length || inks[i] != inks[from]) {
+      final ink = inks[from];
+      spans.add(
+        TextSpan(
+          text: String.fromCharCodes(chars.sublist(from, i)),
+          style: ink == null ? null : TextStyle(color: ink),
+        ),
+      );
+      from = i;
+    }
+  }
   return TextSpan(
     style: TextStyle(
       color: color,
@@ -56,17 +89,7 @@ TextSpan zChainWordSpan(
       fontSize: fontSize,
       height: 1,
     ),
-    children: [
-      TextSpan(
-        text: head,
-        style: TextStyle(color: zChainHueInk(context, zChainHueAt(index))),
-      ),
-      TextSpan(text: mid),
-      TextSpan(
-        text: tail,
-        style: TextStyle(color: zChainHueInk(context, zChainHueAt(index + 1))),
-      ),
-    ],
+    children: spans,
   );
 }
 

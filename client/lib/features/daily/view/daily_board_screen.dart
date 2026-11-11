@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
-import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/z_dialog.dart';
 import 'package:wordchain/core/widgets/z_empty_state.dart';
 import 'package:wordchain/core/widgets/z_load_state.dart';
@@ -12,6 +11,7 @@ import 'package:wordchain/core/widgets/z_ribbon_title.dart';
 import 'package:wordchain/core/widgets/z_state_card.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_hud.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
 import 'package:wordchain/features/leaderboard/cubit/leaderboard_cubit.dart';
@@ -31,7 +31,10 @@ class DailyBoardScreen extends StatelessWidget {
   /// Clock for the countdown in the note; tests pass a fixed one.
   final DateTime Function()? clock;
 
-  const DailyBoardScreen({super.key, this.clock});
+  /// The Daily variant whose board this is (`/daily/board?variant=N`).
+  final int variant;
+
+  const DailyBoardScreen({super.key, this.clock, this.variant = 1});
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +46,13 @@ class DailyBoardScreen extends StatelessWidget {
           (_) => LeaderboardCubit(
             repository: getIt<LeaderboardRepository>(),
             currentUserId: userId,
+            dailyVariant: variant,
           )..select(BoardTab.daily),
-      child: _DailyBoardView(username: username, clock: clock),
+      child: _DailyBoardView(
+        username: username,
+        clock: clock,
+        variant: variant,
+      ),
     );
   }
 }
@@ -52,8 +60,13 @@ class DailyBoardScreen extends StatelessWidget {
 class _DailyBoardView extends StatelessWidget {
   final String username;
   final DateTime Function()? clock;
+  final int variant;
 
-  const _DailyBoardView({required this.username, required this.clock});
+  const _DailyBoardView({
+    required this.username,
+    required this.clock,
+    required this.variant,
+  });
 
   void _back(BuildContext context) {
     if (context.canPop()) {
@@ -80,10 +93,12 @@ class _DailyBoardView extends StatelessWidget {
                     children: [
                       ZGameBackButton(onTap: () => _back(context)),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Center(
                           child: ZRibbonTitle(
-                            'جدول امروز',
+                            variant > 1
+                                ? 'جدول امروز · ${linkVariantName(variant)}'
+                                : 'جدول امروز',
                             accent: ZDialogAccent.indigo,
                             expand: false,
                           ),

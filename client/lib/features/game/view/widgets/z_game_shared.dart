@@ -22,6 +22,7 @@ import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_repository.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 
 /// Shared pieces of the ZSolo/ZPlay/ZVersus game screens — header back
 /// button, timer row, powerup tile atom, dashed "next word" tile, and the
@@ -507,6 +508,10 @@ class ZDashedTile extends StatelessWidget {
 /// solid offset edge.
 class ZWordInput extends StatefulWidget {
   final String? startLetter;
+
+  /// Which letter of the word must be [startLetter] (1 = the first; a Daily
+  /// variant's 2/3 — the tile then carries a small position badge).
+  final int linkPosition;
   final bool enabled;
   final String? hintWord;
   final void Function(String word) onSubmit;
@@ -542,6 +547,7 @@ class ZWordInput extends StatefulWidget {
   const ZWordInput({
     super.key,
     this.startLetter,
+    this.linkPosition = 1,
     required this.enabled,
     this.hintWord,
     required this.onSubmit,
@@ -658,8 +664,9 @@ class _ZWordInputState extends State<ZWordInput> {
                 isCollapsed: true,
                 hintText:
                     widget.startLetter != null
-                        ? 'کلمه‌ای با «${widget.startLetter}»…'
+                        ? _letterHint(widget.startLetter!, widget.linkPosition)
                         : 'اولین کلمه رو بنویس…',
+
                 hintStyle: ZTypography.body.copyWith(color: z.ink40),
               ),
               onSubmitted: (_) => _submit(),
@@ -790,14 +797,26 @@ class _ZWordInputState extends State<ZWordInput> {
               width: 46,
               height: 46,
               alignment: Alignment.center,
-              child: Text(
-                letter,
-                style: TextStyle(
-                  color: z.onTeal,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 26,
-                  height: 1,
-                ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  Text(
+                    letter,
+                    style: TextStyle(
+                      color: z.onTeal,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                      height: 1,
+                    ),
+                  ),
+                  if (widget.linkPosition > 1)
+                    PositionedDirectional(
+                      top: -9,
+                      end: -9,
+                      child: _LinkPositionBadge(position: widget.linkPosition),
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 10),
@@ -830,7 +849,7 @@ class _ZWordInputState extends State<ZWordInput> {
                 isCollapsed: true,
                 hintText:
                     letter != null
-                        ? 'کلمه‌ای با «$letter»…'
+                        ? _letterHint(letter, widget.linkPosition)
                         : 'اولین کلمه رو بنویس…',
                 hintStyle: TextStyle(
                   color: z.ink60,
@@ -915,6 +934,46 @@ class _LongWordCue extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The field's hint: «کلمه‌ای با «ن»…», or «حرف دومش «ن»…» in a Daily variant.
+String _letterHint(String letter, int position) =>
+    position <= 1 ? 'کلمه‌ای با «$letter»…' : '${linkCue(letter, position)}…';
+
+/// «۲» — the small amber disc on the required-letter tile of a harder Daily
+/// variant: which letter of the word it has to be.
+class _LinkPositionBadge extends StatelessWidget {
+  final int position;
+
+  const _LinkPositionBadge({required this.position});
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    return Semantics(
+      label: 'حرف ${linkOrdinal(position)}',
+      excludeSemantics: true,
+      child: Container(
+        width: 20,
+        height: 20,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: z.amber,
+          shape: BoxShape.circle,
+          border: Border.all(color: context.zs.outline, width: 2),
+        ),
+        child: Text(
+          toPersianDigits(position),
+          style: TextStyle(
+            color: z.onAmber,
+            fontWeight: FontWeight.w900,
+            fontSize: 11,
+            height: 1,
           ),
         ),
       ),

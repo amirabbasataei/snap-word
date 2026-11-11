@@ -94,17 +94,21 @@ class DictionaryService {
   /// of collapsing both into a single `isValid` check.
   static bool hasValidChars(String word) => _allowedChars.hasMatch(word);
 
-  /// Valid words starting with [startLetter] that are not in [exclude]
-  /// (the words already played in the current chain).
+  /// Valid words that have [startLetter] at letter [position] (1 = the
+  /// first letter; a Daily variant links on the 2nd or 3rd) and are not in
+  /// [exclude] (the words already played in the current chain).
   List<String> suggestWords(
     String startLetter, {
     Set<String> exclude = const {},
+    int position = 1,
   }) {
     final letter = startLetter.trim();
     if (letter.isEmpty) return const [];
     final candidates = _words.where(
       (w) =>
-          w.startsWith(letter) &&
+          (position <= 1
+              ? w.startsWith(letter)
+              : letterAt(w, position) == letter) &&
           w.length >= _minLength &&
           !exclude.contains(w),
     );
@@ -114,6 +118,27 @@ class DictionaryService {
             .take(20)
             .toList();
     return preferred.isNotEmpty ? preferred : candidates.take(20).toList();
+  }
+
+  /// The [position]-th letter of [word] (1-based), not counting the
+  /// half-space (ZWNJ), or null when the word is shorter. Daily variants link
+  /// words on this letter. Mirrors Go `engine.LetterAt`.
+  static String? letterAt(String word, int position) {
+    if (position < 1) return null;
+    final cleaned = word.trim().replaceAll(_zwnj, '');
+    return position <= cleaned.length ? cleaned[position - 1] : null;
+  }
+
+  /// The index in [word] (code units, ZWNJ included) of its [position]-th
+  /// letter, or null when the word is shorter — for highlighting it.
+  static int? letterIndex(String word, int position) {
+    var n = 0;
+    for (var i = 0; i < word.length; i++) {
+      if (word[i] == _zwnj) continue;
+      n++;
+      if (n == position) return i;
+    }
+    return null;
   }
 
   /// Returns the last meaningful letter of a Persian word, stripping any

@@ -100,3 +100,48 @@ func ValidateMove(prevWord, newWord string, usedWords map[string]bool) error {
 
 	return nil
 }
+
+// LetterAt returns the pos-th letter of word (1-based), not counting the
+// half-space (ZWNJ), or 0 when the word has fewer letters. Daily Challenge
+// variants link words on this letter instead of the first one.
+func LetterAt(word string, pos int) rune {
+	if pos < 1 {
+		return 0
+	}
+	i := 0
+	for _, r := range strings.TrimSpace(word) {
+		if r == zwnj {
+			continue
+		}
+		i++
+		if i == pos {
+			return r
+		}
+	}
+	return 0
+}
+
+// ValidateMoveAt is ValidateMove for a chain linked on letter position pos
+// (a Daily Challenge variant): newWord's pos-th letter must equal prevWord's
+// last letter. A word with fewer than pos letters cannot link at all and is
+// ErrWrongLetter. pos 1 is exactly ValidateMove.
+func ValidateMoveAt(prevWord, newWord string, usedWords map[string]bool, pos int) error {
+	if pos <= 1 {
+		return ValidateMove(prevWord, newWord, usedWords)
+	}
+	// Characters and minimum length first, with the classic rules (no link).
+	if err := ValidateMove("", newWord, nil); err != nil && !errors.Is(err, ErrNotInDict) {
+		return err
+	}
+	newWord = strings.TrimSpace(newWord)
+	if prevWord != "" && LetterAt(newWord, pos) != LastLetter(prevWord) {
+		return ErrWrongLetter
+	}
+	if usedWords[newWord] {
+		return ErrAlreadyUsed
+	}
+	if !IsValid(newWord) {
+		return ErrNotInDict
+	}
+	return nil
+}

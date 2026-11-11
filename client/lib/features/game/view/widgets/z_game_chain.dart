@@ -7,6 +7,7 @@ import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/core/widgets/dashed_tile.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_scroll.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
 import 'package:wordchain/core/widgets/motion.dart';
@@ -39,11 +40,15 @@ class ZSpineChain extends StatefulWidget {
   /// Letter the next word must start with; null before the first word.
   final String? nextStartLetter;
 
+  /// Which letter of a word links it (1 = the first; a Daily variant's 2/3).
+  final int linkPosition;
+
   const ZSpineChain({
     super.key,
     required this.words,
     required this.scores,
     required this.nextStartLetter,
+    this.linkPosition = 1,
   });
 
   @override
@@ -88,10 +93,15 @@ class _ZSpineChainState extends State<ZSpineChain> {
                       _rampFonts.length - 1,
                     )],
                 animateIn: i >= _initialLength,
+                linkPosition: widget.linkPosition,
               ),
               const SizedBox(height: _rowGap),
             ],
-            _NextSlot(number: words.length + 1, letter: widget.nextStartLetter),
+            _NextSlot(
+              number: words.length + 1,
+              letter: widget.nextStartLetter,
+              position: widget.linkPosition,
+            ),
           ],
         ),
       ),
@@ -228,6 +238,7 @@ class _ChainRow extends StatelessWidget {
   final bool isLast;
   final double fontSize;
   final bool animateIn;
+  final int linkPosition;
 
   const _ChainRow({
     super.key,
@@ -237,6 +248,7 @@ class _ChainRow extends StatelessWidget {
     required this.isLast,
     required this.fontSize,
     required this.animateIn,
+    required this.linkPosition,
   });
 
   @override
@@ -268,6 +280,7 @@ class _ChainRow extends StatelessWidget {
                   index: index,
                   fontSize: fontSize,
                   color: z.ink,
+                  linkPosition: linkPosition,
                 ),
                 maxLines: 1,
                 softWrap: false,
@@ -309,20 +322,26 @@ class _ChainRow extends StatelessWidget {
 
 /// The pulsing dashed «حالا با «ا»» pill that marks where the next word goes
 /// (the dashed counterpart of a word tile; also used by the bubble chain).
+/// A Daily variant reads «حالا حرف دومش «ا»».
 class ZNextLetterSlot extends StatelessWidget {
   /// Letter the next word must start with; null before the first word.
   final String? letter;
 
-  const ZNextLetterSlot({super.key, required this.letter});
+  /// Which letter of the next word it must be (1 = the first).
+  final int position;
 
-  static String labelFor(String? letter) =>
-      letter != null ? 'حالا با «$letter»' : 'اولین کلمه رو بنویس';
+  const ZNextLetterSlot({super.key, required this.letter, this.position = 1});
+
+  static String labelFor(String? letter, [int position = 1]) =>
+      letter != null
+          ? 'حالا ${linkCue(letter, position)}'
+          : 'اولین کلمه رو بنویس';
 
   @override
   Widget build(BuildContext context) {
     final z = context.z;
     final zs = context.zs;
-    final label = labelFor(letter);
+    final label = labelFor(letter, position);
 
     Widget slot(double ms) {
       final k = HomeLoop.pingPong(ms, 900);
@@ -406,8 +425,13 @@ class ZNextLetterSlot extends StatelessWidget {
 class _NextSlot extends StatelessWidget {
   final int number;
   final String? letter;
+  final int position;
 
-  const _NextSlot({required this.number, required this.letter});
+  const _NextSlot({
+    required this.number,
+    required this.letter,
+    required this.position,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -419,7 +443,9 @@ class _NextSlot extends StatelessWidget {
           children: [
             _IndexPeg(number: number, dashed: true),
             const SizedBox(width: 10),
-            Flexible(child: ZNextLetterSlot(letter: letter)),
+            Flexible(
+              child: ZNextLetterSlot(letter: letter, position: position),
+            ),
             const SizedBox(width: 10 + ZGame.gamePointsWidth),
           ],
         ),

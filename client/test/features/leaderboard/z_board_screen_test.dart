@@ -166,8 +166,10 @@ class _FakeBoards extends Fake implements LeaderboardRepository {
   Future<LeaderboardResult> fetchAllTime() => _go(BoardTab.allTime);
 
   @override
-  Future<LeaderboardResult> fetchDaily(String currentUserId) =>
-      _go(BoardTab.daily);
+  Future<LeaderboardResult> fetchDaily(
+    String currentUserId, {
+    int variant = 1,
+  }) => _go(BoardTab.daily);
 
   @override
   Future<LeaderboardResult> fetchFriends() => _go(BoardTab.friends);

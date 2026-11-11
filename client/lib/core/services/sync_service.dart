@@ -65,6 +65,9 @@ class SyncService {
             'ended_at': _toRfc3339(match.endedAt!),
             if (withTrace) 'word_times_ms': trace.timesMs,
             if (withTrace) 'word_streaks': trace.streaks,
+            // Which daily this run belongs to (1 classic, 2/3 the harder
+            // variants); each has its own attempt and board.
+            if (match.mode == 'daily') 'daily_variant': match.linkPosition,
           },
         );
         final remoteId = response.data['data']['id'] as String;

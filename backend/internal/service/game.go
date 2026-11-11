@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"wordchain/backend/internal/config"
+	"wordchain/backend/internal/engine"
 	"wordchain/backend/internal/repository"
 )
 
@@ -37,6 +38,10 @@ type SoloGameInput struct {
 	// an older app: only the upper-bound check applies.
 	WordTimesMs []int `json:"word_times_ms"`
 	WordStreaks []int `json:"word_streaks"`
+	// DailyVariant (Daily only) is the link position the run was played at:
+	// 1 classic, 2/3 the harder variants. 0 (an app older than the variants)
+	// is the classic one.
+	DailyVariant int `json:"daily_variant"`
 }
 
 // soloGameState is stored as JSONB in matches.game_state.
@@ -45,6 +50,8 @@ type soloGameState struct {
 	Score       int      `json:"score"`
 	WordTimesMs []int    `json:"word_times_ms,omitempty"`
 	WordStreaks []int    `json:"word_streaks,omitempty"`
+	// DailyVariant is kept for Daily runs only.
+	DailyVariant int `json:"daily_variant,omitempty"`
 }
 
 // MatchWithPlayers bundles a match and its player rows for API responses.
@@ -65,11 +72,11 @@ func NewGameService(matchRepo *repository.MatchRepository, statsRepo *repository
 	return &GameService{matchRepo: matchRepo, statsRepo: statsRepo, streakSvc: streakSvc, dailyRepo: dailyRepo}
 }
 
-// dailyAttemptNumber decides which daily attempt slot an upload fills: 1 is
-// the free attempt, 2 requires a paid retry. Returns ErrDailyNotAllowed when
-// neither is available.
-func (s *GameService) dailyAttemptNumber(ctx context.Context, userID string, date time.Time) (int, error) {
-	attempts, err := s.dailyRepo.GetUserAttempts(ctx, userID, date)
+// dailyAttemptNumber decides which attempt slot of a daily variant an upload
+// fills: 1 is the free attempt, 2 requires a paid retry. Returns
+// ErrDailyNotAllowed when neither is available.
+func (s *GameService) dailyAttemptNumber(ctx context.Context, userID string, date time.Time, variant int) (int, error) {
+	attempts, err := s.dailyRepo.GetUserAttempts(ctx, userID, date, variant)
 	if err != nil {
 		return 0, err
 	}
@@ -77,7 +84,7 @@ func (s *GameService) dailyAttemptNumber(ctx context.Context, userID string, dat
 	case 0:
 		return 1, nil
 	case 1:
-		paid, err := s.dailyRepo.HasRetry(ctx, userID, date)
+		paid, err := s.dailyRepo.HasRetry(ctx, userID, date, variant)
 		if err != nil {
 			return 0, err
 		}
@@ -103,9 +110,17 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 
 	attemptNumber := 0
 	var challengeDate time.Time
+	variant := in.DailyVariant
 	if in.Mode == "daily" {
+		if variant == 0 {
+			variant = config.DailyVariantClassic
+		}
+		if !config.IsDailyVariant(variant) {
+			slog.Warn("CreateSoloGame: unknown daily variant", "userID", userID, "variant", variant)
+			return nil, false, fmt.Errorf("%w: unknown variant %d", ErrInvalidDailyChain, variant)
+		}
 		challengeDate = config.IranDate(in.StartedAt)
-		attemptNumber, err = s.dailyAttemptNumber(ctx, userID, challengeDate)
+		attemptNumber, err = s.dailyAttemptNumber(ctx, userID, challengeDate, variant)
 		if err != nil {
 			return nil, false, fmt.Errorf("CreateSoloGame daily: %w", err)
 		}
@@ -116,7 +131,8 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 		if cerr != nil {
 			return nil, false, fmt.Errorf("CreateSoloGame daily challenge: %w", cerr)
 		}
-		if verr := ValidateDailyChain(challenge.StartLetter, in.WordChain, in.Score); verr != nil {
+		startLetter := engine.DailyVariantStartLetter(challenge.StartLetter, challenge.Seed, variant)
+		if verr := ValidateDailyChain(startLetter, variant, in.WordChain, in.Score); verr != nil {
 			slog.Warn("CreateSoloGame: daily chain rejected", "userID", userID, "error", verr)
 			return nil, false, verr
 		}
@@ -124,7 +140,7 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 		// with only one half is malformed, not "an old app".
 		if in.WordTimesMs != nil || in.WordStreaks != nil {
 			trace := DailyTrace{TimesMs: in.WordTimesMs, Streaks: in.WordStreaks}
-			if verr := ValidateDailyScore(in.WordChain, in.Score, trace); verr != nil {
+			if verr := ValidateDailyScore(variant, in.WordChain, in.Score, trace); verr != nil {
 				slog.Warn("CreateSoloGame: daily score rejected", "userID", userID, "error", verr)
 				return nil, false, verr
 			}
@@ -134,6 +150,7 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 	state := soloGameState{WordChain: in.WordChain, Score: in.Score}
 	if in.Mode == "daily" { // the trace was validated above; other modes never keep it
 		state.WordTimesMs, state.WordStreaks = in.WordTimesMs, in.WordStreaks
+		state.DailyVariant = variant
 	}
 	gs, err := json.Marshal(state)
 	if err != nil {
@@ -154,7 +171,7 @@ func (s *GameService) CreateSoloGame(ctx context.Context, userID string, in Solo
 	}
 
 	if attemptNumber > 0 {
-		if err := s.dailyRepo.InsertAttempt(ctx, userID, challengeDate, attemptNumber, in.Score, in.WordChain); err != nil {
+		if err := s.dailyRepo.InsertAttempt(ctx, userID, challengeDate, variant, attemptNumber, in.Score, in.WordChain); err != nil {
 			return nil, false, fmt.Errorf("CreateSoloGame daily attempt: %w", err)
 		}
 	}

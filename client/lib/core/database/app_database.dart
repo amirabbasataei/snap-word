@@ -29,6 +29,16 @@ class LocalMatches extends Table {
   /// Challenge uploads it so the server can recompute the score. Null for
   /// rows from before v3; a trace shorter than the chain is never uploaded.
   TextColumn get scoreTrace => text().nullable()();
+
+  /// The letter position that links words in this run (v4): 1 for every mode
+  /// but a harder Daily variant (2 or 3, see `GameConstants.dailyVariants`).
+  /// Kept so a resumed run keeps its rule and the upload names its daily.
+  IntColumn get linkPosition => integer().withDefault(const Constant(1))();
+
+  /// The Daily Challenge's required first letter (v5), so a run resumed
+  /// before its first word still checks that word. Null for other modes and
+  /// for rows from before v5.
+  TextColumn get startLetter => text().nullable()();
 }
 
 class LocalUsedWords extends Table {
@@ -99,7 +109,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +118,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) await m.createTable(localAnalyticsEvents);
       // v3 adds one nullable column; no match or stats row is touched.
       if (from < 3) await m.addColumn(localMatches, localMatches.scoreTrace);
+      // v4 adds one column with a default (1 = classic); no row is touched.
+      if (from < 4) await m.addColumn(localMatches, localMatches.linkPosition);
+      // v5 adds one nullable column; no row is touched.
+      if (from < 5) await m.addColumn(localMatches, localMatches.startLetter);
     },
   );
 }

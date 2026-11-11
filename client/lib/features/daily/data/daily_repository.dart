@@ -38,6 +38,21 @@ class DailyAttempt {
 class DailyChallenge {
   final String challengeDate;
   final int dayNumber;
+
+  /// The variant this is about: the letter position that links words (1
+  /// classic, 2/3 the harder ones, `GameConstants.dailyVariants`). Each is its
+  /// own daily: attempt, retry, board and prizes.
+  final int variant;
+
+  /// The variant's turn timer (server-sent; the app mirrors it in
+  /// `GameConstants.dailyTurnTimerSec`).
+  final int turnTimerSec;
+
+  /// Variants the player has a free attempt at today (the type picker
+  /// marks them). Empty from a server older than the variants.
+  final List<int> playedVariants;
+
+  /// The letter the first word carries at position [variant].
   final String startLetter;
   final int todaysBest;
   final int yourBest;
@@ -49,6 +64,9 @@ class DailyChallenge {
   const DailyChallenge({
     required this.challengeDate,
     required this.dayNumber,
+    this.variant = 1,
+    this.turnTimerSec = 15,
+    this.playedVariants = const [],
     required this.startLetter,
     required this.todaysBest,
     required this.yourBest,
@@ -79,6 +97,13 @@ class DailyChallenge {
   factory DailyChallenge.fromJson(Map<String, dynamic> json) => DailyChallenge(
     challengeDate: json['challenge_date'] as String? ?? '',
     dayNumber: json['day_number'] as int? ?? 1,
+    variant: json['variant'] as int? ?? 1,
+    turnTimerSec: json['turn_timer_sec'] as int? ?? 15,
+    playedVariants:
+        (json['played_variants'] as List<dynamic>?)
+            ?.map((e) => (e as num).toInt())
+            .toList() ??
+        const [],
     startLetter: (json['start_letter'] as String? ?? 'a').toLowerCase(),
     todaysBest: json['today_best'] as int? ?? 0,
     yourBest: json['your_best'] as int? ?? 0,
@@ -102,9 +127,13 @@ class DailyRepository {
 
   DailyRepository({required Dio dio}) : _dio = dio;
 
-  Future<DailyChallenge> getDailyChallenge() async {
+  /// Today's challenge of [variant] (1 = classic).
+  Future<DailyChallenge> getDailyChallenge({int variant = 1}) async {
     try {
-      final response = await _dio.get(ApiEndpoints.daily);
+      final response = await _dio.get(
+        ApiEndpoints.daily,
+        queryParameters: {'variant': variant},
+      );
       return DailyChallenge.fromJson(
         response.data['data'] as Map<String, dynamic>,
       );
@@ -116,9 +145,13 @@ class DailyRepository {
     }
   }
 
-  Future<void> retryChallenge() async {
+  /// Buys the paid second attempt at [variant].
+  Future<void> retryChallenge({int variant = 1}) async {
     try {
-      await _dio.post(ApiEndpoints.dailyRetry);
+      await _dio.post(
+        ApiEndpoints.dailyRetry,
+        queryParameters: {'variant': variant},
+      );
     } on DioException catch (e) {
       throw DailyException(
         code: apiErrorCode(e),

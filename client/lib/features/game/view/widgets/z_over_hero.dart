@@ -10,6 +10,7 @@ import 'package:wordchain/core/widgets/motion.dart';
 import 'package:wordchain/core/widgets/z_mascot.dart';
 import 'package:wordchain/core/widgets/z_rays.dart';
 import 'package:wordchain/core/widgets/z_stroked_text.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
 
 /// The artwork of the result screen (canvas turn 7 `ZOverA`): the loss hero
@@ -136,6 +137,9 @@ class ZOverLossHero extends StatelessWidget {
   /// The letter the missed word had to start with; null on an empty chain.
   final String? requiredLetter;
 
+  /// Which letter of a word links it (1 = the first; a Daily variant's 2/3).
+  final int linkPosition;
+
   const ZOverLossHero({
     super.key,
     required this.title,
@@ -143,6 +147,7 @@ class ZOverLossHero extends StatelessWidget {
     required this.tail,
     required this.tailStart,
     required this.requiredLetter,
+    this.linkPosition = 1,
   });
 
   @override
@@ -236,6 +241,7 @@ class ZOverLossHero extends StatelessWidget {
                           tail: tail,
                           tailStart: tailStart,
                           requiredLetter: requiredLetter,
+                          linkPosition: linkPosition,
                         ),
                       ),
                     ),
@@ -254,11 +260,13 @@ class _BrokenChain extends StatelessWidget {
   final List<String> tail;
   final int tailStart;
   final String? requiredLetter;
+  final int linkPosition;
 
   const _BrokenChain({
     required this.tail,
     required this.tailStart,
     required this.requiredLetter,
+    required this.linkPosition,
   });
 
   static const _tilt = [4.0, -3.0, 3.0];
@@ -270,7 +278,11 @@ class _BrokenChain extends StatelessWidget {
     final end = tailStart + tail.length;
     final label =
         'آخر زنجیر: ${tail.join('، ')}'
-        '${requiredLetter != null ? '؛ کلمهٔ بعدی با «$requiredLetter» شروع می‌شد' : ''}';
+        '${requiredLetter == null
+            ? ''
+            : linkPosition > 1
+            ? '؛ حرف ${linkOrdinal(linkPosition)} کلمهٔ بعدی «$requiredLetter» بود'
+            : '؛ کلمهٔ بعدی با «$requiredLetter» شروع می‌شد'}';
 
     final children = <Widget>[];
     for (var i = 0; i < tail.length; i++) {
@@ -278,7 +290,11 @@ class _BrokenChain extends StatelessWidget {
       children.add(
         Transform.rotate(
           angle: HomeLoop.deg(_tilt[i % _tilt.length]),
-          child: _WordTile(word: tail[i], index: index),
+          child: _WordTile(
+            word: tail[i],
+            index: index,
+            linkPosition: linkPosition,
+          ),
         ),
       );
       if (i < tail.length - 1) {
@@ -316,6 +332,7 @@ class _BrokenChain extends StatelessWidget {
               angle: HomeLoop.deg(-14),
               child: _MissingSlot(
                 letter: requiredLetter!,
+                position: linkPosition,
                 ink: zChainHueInk(context, zChainHueAt(end)),
                 dashed: zs.chain,
                 surface: z.surface,
@@ -336,8 +353,13 @@ class _BrokenChain extends StatelessWidget {
 class _WordTile extends StatelessWidget {
   final String word;
   final int index;
+  final int linkPosition;
 
-  const _WordTile({required this.word, required this.index});
+  const _WordTile({
+    required this.word,
+    required this.index,
+    required this.linkPosition,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -359,6 +381,7 @@ class _WordTile extends StatelessWidget {
           index: index,
           fontSize: 17,
           color: z.ink,
+          linkPosition: linkPosition,
         ),
         maxLines: 1,
       ),
@@ -447,12 +470,16 @@ class _LinkPainter extends CustomPainter {
 /// The dashed «ر ؟» chip where the missing word would have been.
 class _MissingSlot extends StatelessWidget {
   final String letter;
+
+  /// Where [letter] sits in the missing word: «ن؟», or «؟ن؟» for the 2nd.
+  final int position;
   final Color ink;
   final Color dashed;
   final Color surface;
 
   const _MissingSlot({
     required this.letter,
+    this.position = 1,
     required this.ink,
     required this.dashed,
     required this.surface,
@@ -485,6 +512,7 @@ class _MissingSlot extends StatelessWidget {
               height: 1,
             ),
             children: [
+              if (position > 1) TextSpan(text: '؟' * (position - 1)),
               TextSpan(text: letter, style: TextStyle(color: ink)),
               const TextSpan(text: '؟'),
             ],

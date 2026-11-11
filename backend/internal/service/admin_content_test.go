@@ -69,7 +69,7 @@ func (f *fakeContent) ListDaily(_ context.Context, from, to time.Time) ([]reposi
 }
 func (f *fakeContent) DailyStats(_ context.Context, date time.Time) (repository.AdminDailyStats, error) {
 	n := f.players[date.Format("2006-01-02")]
-	return repository.AdminDailyStats{Players: n, Attempts: n}, nil
+	return repository.AdminDailyStats{Players: n, Attempts: n, FreeRuns: n}, nil
 }
 func (f *fakeContent) DailyAttempts(context.Context, time.Time, int) ([]repository.AdminDayAttempt, error) {
 	return nil, nil
@@ -101,7 +101,10 @@ func (f *fakeContent) GetChallenge(_ context.Context, date time.Time) (*reposito
 	}
 	return nil, repository.ErrNoDailyChallenge
 }
-func (f *fakeContent) GetDailyLeaderboard(context.Context, time.Time, int) ([]*repository.DailyBoardRow, error) {
+func (f *fakeContent) GetDailyLeaderboard(_ context.Context, _ time.Time, variant, _ int) ([]*repository.DailyBoardRow, error) {
+	if variant != 1 {
+		return nil, nil
+	}
 	return f.board, nil
 }
 func (f *fakeContent) GetTopN(_ context.Context, n int) ([]service.LeaderboardEntry, error) {

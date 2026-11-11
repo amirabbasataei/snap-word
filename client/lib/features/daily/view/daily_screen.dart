@@ -24,6 +24,7 @@ import 'package:wordchain/features/daily/view/widgets/daily_rules.dart';
 import 'package:wordchain/features/daily/view/widgets/daily_streak.dart';
 import 'package:wordchain/features/daily/view/widgets/daily_tiles.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
+import 'package:wordchain/features/game/data/link_position.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
 import 'package:wordchain/features/game/view/widgets/z_over_hero.dart';
 import 'package:wordchain/features/home/view/widgets/home_scene_background.dart';
@@ -41,12 +42,19 @@ class DailyScreen extends StatelessWidget {
   /// Clock for the countdown and the week strip; tests pass a fixed one.
   final DateTime Function()? clock;
 
-  const DailyScreen({super.key, this.clock});
+  /// The Daily variant (`/daily?variant=N`, picked in Home's type dialog):
+  /// the letter position that links words. 1 = classic.
+  final int variant;
+
+  const DailyScreen({super.key, this.clock, this.variant = 1});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => DailyCubit(repository: getIt<DailyRepository>())..load(),
+      create:
+          (_) =>
+              DailyCubit(repository: getIt<DailyRepository>(), variant: variant)
+                ..load(),
       child: _DailyView(clock: clock),
     );
   }
@@ -126,7 +134,7 @@ class _DailyViewState extends State<_DailyView> with WidgetsBindingObserver {
           case DailyRetryFailed(:final message):
             ZToast.show(context, message, kind: ZToastKind.error);
           case DailyRetryAvailable(:final challenge):
-            _playDaily(context, challenge.startLetter);
+            _playDaily(context, challenge);
           default:
         }
       },
@@ -171,18 +179,29 @@ class _DailyViewState extends State<_DailyView> with WidgetsBindingObserver {
 /// Opens the daily game and, when it closes, reloads the challenge quietly so
 /// the result shows the attempt just played. The screen stays mounted under
 /// the game (it is pushed, not replaced), so nothing else would refresh it.
-Future<void> _playDaily(BuildContext context, String startLetter) async {
+Future<void> _playDaily(BuildContext context, DailyChallenge challenge) async {
   final cubit = context.read<DailyCubit>();
   await context.push(
     '/game',
     extra: GameRouteArgs(
       mode: 'daily',
       opponentType: 'solo',
-      startLetter: startLetter,
+      startLetter: challenge.startLetter,
+      linkPosition: cubit.variant,
     ),
   );
   if (!cubit.isClosed) await cubit.load(silent: true);
 }
+
+/// The board of this screen's variant.
+String _boardPath(int variant) =>
+    variant == GameConstants.dailyVariantClassic
+        ? '/daily/board'
+        : '/daily/board?variant=$variant';
+
+/// «چالش روزانه», or «چالش روزانه · حرف دوم» for a harder variant.
+String _dailyTitle(int variant) =>
+    variant > 1 ? 'چالش روزانه · ${linkVariantName(variant)}' : 'چالش روزانه';
 
 /// Scene, header and a body slot for the states with no challenge to show.
 class _Frame extends StatelessWidget {
@@ -194,7 +213,10 @@ class _Frame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Scaffold(
-      header: DailyHeader(title: 'چالش روزانه', onBack: onBack),
+      header: DailyHeader(
+        title: _dailyTitle(context.read<DailyCubit>().variant),
+        onBack: onBack,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
         child: child,
@@ -258,9 +280,10 @@ class _DailyBefore extends StatelessWidget {
     // count and an average the server does not send (todo.md 2.5), so the
     // chip shows the day's best score, or invites the first player.
     final best = challenge.todaysBest;
+    final variant = challenge.variant;
     return _Scaffold(
       header: DailyHeader(
-        title: 'چالش روزانه',
+        title: _dailyTitle(variant),
         onBack: onBack,
         dateLabel: dailyDateLabel(challenge.challengeDate, now),
       ),
@@ -268,7 +291,18 @@ class _DailyBefore extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8),
         child: Column(
           children: [
-            DailyLetterHero(letter: challenge.startLetter),
+            DailyLetterHero(letter: challenge.startLetter, position: variant),
+            if (variant > 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ZOverEnter(
+                  kind: ZOverEnterKind.up,
+                  delayMs: 460,
+                  child: DailyPill(
+                    'حرف ${linkOrdinal(variant)} هر کلمه = حرف آخر کلمهٔ قبلی',
+                  ),
+                ),
+              ),
             ZOverEnter(
               kind: ZOverEnterKind.up,
               delayMs: 500,
@@ -283,7 +317,7 @@ class _DailyBefore extends StatelessWidget {
               child: ZOverEnter(
                 kind: ZOverEnterKind.up,
                 delayMs: 580,
-                child: const DailyRules(),
+                child: DailyRules(variant: variant),
               ),
             ),
             if (challenge.dailyStreak > 0)
@@ -309,8 +343,8 @@ class _DailyBefore extends StatelessWidget {
           kind: ZOverEnterKind.up,
           delayMs: 720,
           child: DailyBeforeActions(
-            onStart: () => _playDaily(context, challenge.startLetter),
-            onBoard: () => context.push('/daily/board'),
+            onStart: () => _playDaily(context, challenge),
+            onBoard: () => context.push(_boardPath(variant)),
           ),
         ),
       ),
@@ -352,7 +386,7 @@ class _DailyAfter extends StatelessWidget {
               delayMs: 60,
               child: DailyPill(
                 '${dailyDateLabel(challenge.challengeDate, now)} · '
-                'حرف شروع «${challenge.startLetter}»',
+                '${challenge.variant > 1 ? linkVariantName(challenge.variant) : 'حرف شروع'} «${challenge.startLetter}»',
               ),
             ),
             DailyResultHero(
@@ -366,7 +400,10 @@ class _DailyAfter extends StatelessWidget {
               child: ZOverEnter(
                 kind: ZOverEnterKind.up,
                 delayMs: 600,
-                child: DailyChainCard(words: attempt.wordChain),
+                child: DailyChainCard(
+                  words: attempt.wordChain,
+                  linkPosition: challenge.variant,
+                ),
               ),
             ),
             if (challenge.hasRetried)
@@ -406,7 +443,7 @@ class _DailyAfter extends StatelessWidget {
                           wordChain: attempt.wordChain,
                         ),
                       ),
-                  onBoard: () => context.push('/daily/board'),
+                  onBoard: () => context.push(_boardPath(challenge.variant)),
                   onSolo:
                       () => context.push(
                         '/game',

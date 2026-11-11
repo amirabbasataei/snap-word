@@ -8,9 +8,14 @@ part 'leaderboard_state.dart';
 class LeaderboardCubit extends Cubit<LeaderboardState> {
   final LeaderboardRepository _repo;
 
+  /// The Daily variant whose board [BoardTab.daily] loads (1 = classic; the
+  /// daily board route of a harder variant passes 2/3).
+  final int dailyVariant;
+
   LeaderboardCubit({
     required LeaderboardRepository repository,
     required String currentUserId,
+    this.dailyVariant = 1,
   }) : _repo = repository,
        super(LeaderboardState(currentUserId: currentUserId));
 
@@ -78,7 +83,7 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
 
   Future<LeaderboardResult> _fetchTab(BoardTab tab) => switch (tab) {
     BoardTab.weekly => _repo.fetchGlobal(),
-    BoardTab.daily => _repo.fetchDaily(currentUserId),
+    BoardTab.daily => _repo.fetchDaily(currentUserId, variant: dailyVariant),
     BoardTab.allTime => _repo.fetchAllTime(),
     BoardTab.friends => _repo.fetchFriends(),
   };

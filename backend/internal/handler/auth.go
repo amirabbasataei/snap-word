@@ -204,6 +204,9 @@ type rewardItemResponse struct {
 	Coins     int       `json:"coins"`
 	Claimed   bool      `json:"claimed"`
 	CreatedAt time.Time `json:"created_at"`
+	// DailyVariant names the Daily type of a daily_done/daily_rank prize;
+	// omitted for classic and for every other kind.
+	DailyVariant int `json:"daily_variant,omitempty"`
 }
 
 // GetRewards handles GET /api/v1/rewards (protected): claimable prizes.
@@ -222,10 +225,16 @@ func (h *AuthHandler) GetRewards(c *gin.Context) {
 		if !it.Claimed {
 			unclaimed++
 		}
-		resp = append(resp, rewardItemResponse{
+		item := rewardItemResponse{
 			ID: it.ID, Kind: it.Kind, Detail: it.Detail,
 			Coins: it.Coins, Claimed: it.Claimed, CreatedAt: it.CreatedAt,
-		})
+		}
+		if it.Kind == repository.RewardDailyDone || it.Kind == repository.RewardDailyRank {
+			if v := service.DailyVariantFromRef(it.Ref); v != config.DailyVariantClassic {
+				item.DailyVariant = v
+			}
+		}
+		resp = append(resp, item)
 	}
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"items": resp, "unclaimed_count": unclaimed, "coins": view.Coins}})
 }

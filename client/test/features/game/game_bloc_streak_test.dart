@@ -10,7 +10,12 @@ import 'package:wordchain/features/game/data/game_repository.dart';
 
 class _FakeRepo extends Fake implements GameRepository {
   @override
-  Future<int> startLocalGame(String mode, String opponentType) async => 1;
+  Future<int> startLocalGame(
+    String mode,
+    String opponentType, {
+    int linkPosition = 1,
+    String? startLetter,
+  }) async => 1;
 
   @override
   Future<bool> isWordUsed(int localMatchId, String word) async => false;

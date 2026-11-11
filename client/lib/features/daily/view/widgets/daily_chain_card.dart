@@ -13,9 +13,12 @@ import 'package:wordchain/features/game/view/widgets/z_game_word.dart';
 class DailyChainCard extends StatelessWidget {
   final List<String> words;
 
+  /// Which letter of a word links it (a Daily variant; 1 = the first).
+  final int linkPosition;
+
   static const shown = 8;
 
-  const DailyChainCard({super.key, required this.words});
+  const DailyChainCard({super.key, required this.words, this.linkPosition = 1});
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +60,7 @@ class DailyChainCard extends StatelessWidget {
                           word: visible[i],
                           index: i,
                           maxWidth: c.maxWidth,
+                          linkPosition: linkPosition,
                         ),
                         if (i < visible.length - 1 || more > 0)
                           _Ring(
@@ -97,11 +101,13 @@ class _WordTile extends StatelessWidget {
   final String word;
   final int index;
   final double maxWidth;
+  final int linkPosition;
 
   const _WordTile({
     required this.word,
     required this.index,
     required this.maxWidth,
+    required this.linkPosition,
   });
 
   @override
@@ -132,6 +138,7 @@ class _WordTile extends StatelessWidget {
                   index: index,
                   fontSize: 16,
                   color: z.ink,
+                  linkPosition: linkPosition,
                 ),
                 maxLines: 1,
               ),

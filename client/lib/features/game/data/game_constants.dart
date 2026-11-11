@@ -7,6 +7,25 @@ abstract final class GameConstants {
   static const int entryFeePot = entryFeeCoins * 2;
   static const int classicTurnTimerSec = 15;
 
+  /// Daily Challenge variants («نوع چالش»): the letter position that links
+  /// two words — the next word's Nth letter (half-spaces not counted) must be
+  /// the previous word's last letter, and the first word carries the day's
+  /// letter at that position. 1 is the classic rule. Each variant is its own
+  /// daily (attempt, retry, board, prizes). Mirrors `config.DailyVariant*`.
+  static const List<int> dailyVariants = [1, 2, 3];
+  static const int dailyVariantClassic = 1;
+
+  /// Turn timer of each Daily variant: a fixed 2nd/3rd letter is slower to
+  /// find. Mirrors `config.DailyVariantTimerSec`.
+  static const Map<int, int> dailyVariantTimerSec = {1: 15, 2: 20, 3: 25};
+
+  static int dailyTurnTimerSec(int variant) =>
+      dailyVariantTimerSec[variant] ?? classicTurnTimerSec;
+
+  /// The turn timer of a single-player run: a Daily run uses its variant's.
+  static int turnTimerSecFor(String mode, int linkPosition) =>
+      mode == 'daily' ? dailyTurnTimerSec(linkPosition) : classicTurnTimerSec;
+
   /// How long matchmaking waits for a human before pairing the player with
   /// the AI (mirrors `config.AIFallbackWaitSec`).
   static const int matchmakingAiFallbackSec = 30;

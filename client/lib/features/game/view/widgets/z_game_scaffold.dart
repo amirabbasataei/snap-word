@@ -167,6 +167,7 @@ class _ZGameFooterState extends State<ZGameFooter> {
                       controller: _controller,
                       focusNode: _focusNode,
                       startLetter: state.nextStartLetter,
+                      linkPosition: state.linkPosition,
                       enabled: _canType,
                       hintWord: state.hintWord,
                       isOpponentThinking: thinking,

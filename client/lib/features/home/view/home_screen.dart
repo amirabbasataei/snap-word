@@ -11,7 +11,9 @@ import 'package:wordchain/core/theme/theme_cubit.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/daily/data/daily_repository.dart';
+import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/game_screen.dart';
+import 'package:wordchain/features/home/view/widgets/home_daily_dialog.dart';
 import 'package:wordchain/features/home/view/widgets/home_level_dialog.dart';
 import 'package:wordchain/features/home/view/widgets/home_view.dart';
 import 'package:wordchain/features/messages/cubit/messages_cubit.dart';
@@ -163,6 +165,22 @@ class _HomeScreenState extends State<HomeScreen> {
     context.push(_isAuthenticated ? route : '/login?return=$route');
   }
 
+  /// «چالش روزانه»: pick the type first (classic, 2nd letter, 3rd letter),
+  /// then open that daily. A guest still sees the picker; the router sends
+  /// them to sign in with the picked type kept.
+  Future<void> _openDaily(BuildContext context) async {
+    final variant = await showDailyTypeDialog(
+      context,
+      played: _daily?.playedVariants ?? const [],
+    );
+    if (variant == null || !context.mounted) return;
+    await context.push(
+      variant == GameConstants.dailyVariantClassic
+          ? '/daily'
+          : '/daily?variant=$variant',
+    );
+  }
+
   void _resume(BuildContext context) {
     final match = _activeMatch;
     if (match == null) return;
@@ -197,7 +215,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       xpForNext: _xpForNext,
                       unclaimedRewards: rewards.unclaimedCount,
                       pendingMessages: messages.count,
-                      dailyAttempted: _daily?.hasAttempted ?? false,
+                      // Any type played today clears the ribbon's dot (the
+                      // classic attempt alone missed a player who only plays
+                      // «حرف دوم»/«حرف سوم»).
+                      dailyAttempted:
+                          (_daily?.hasAttempted ?? false) ||
+                          (_daily?.playedVariants.isNotEmpty ?? false),
                       hasActiveMatch: _checked && _activeMatch != null,
                       // PLACEHOLDER: no endpoint reports players online. The
                       // design's «۳٬۴۰۱» is shown in debug builds only so the
@@ -207,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPlay: () => _startSolo(context),
                     onAi: () => _startVsAi(context),
                     onOnline: () => _startOnline(context),
-                    onDaily: () => context.push('/daily'),
+                    onDaily: () => _openDaily(context),
                     onChest: () => _openRoute(context, '/rewards'),
                     onMessages: () => _openRoute(context, '/messages'),
                     // Coin purchase lives in ZProfile's buy sheet.

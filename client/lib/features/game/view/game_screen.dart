@@ -31,6 +31,10 @@ class GameRouteArgs {
   final String? startLetter; // daily challenge: first required letter
   final String? opponentName; // friend challenge: shown while waiting to join
 
+  /// Daily challenge: the letter position that links words (1 classic, 2/3
+  /// the harder variants).
+  final int linkPosition;
+
   const GameRouteArgs({
     required this.mode,
     required this.opponentType,
@@ -39,6 +43,7 @@ class GameRouteArgs {
     this.myPlayerId,
     this.startLetter,
     this.opponentName,
+    this.linkPosition = 1,
   });
 
   bool get isMultiplayer => roomId != null;
@@ -76,6 +81,7 @@ class GameScreen extends StatelessWidget {
               roomId: args.roomId,
               myPlayerId: args.myPlayerId ?? _authenticatedUserId(),
               startLetter: args.startLetter,
+              linkPosition: args.linkPosition,
             ),
           ),
       child: _GameView(args: args),
@@ -164,7 +170,11 @@ class _GameView extends StatelessWidget {
           if (context.canPop()) {
             context.pop();
           } else {
-            context.go('/daily');
+            context.go(
+              state.linkPosition > 1
+                  ? '/daily?variant=${state.linkPosition}'
+                  : '/daily',
+            );
           }
         }
       },
