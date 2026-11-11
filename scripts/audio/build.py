@@ -3,9 +3,9 @@
 
     python3 scripts/audio/build.py            # all
     python3 scripts/audio/build.py tap win    # only these SFX
-    python3 scripts/audio/build.py --music    # only the two music loops
+    python3 scripts/audio/build.py --music    # only the music loops
 
-SFX are 16-bit mono WAV (no decode latency), music is stereo Ogg Vorbis.
+SFX are 16-bit mono WAV (no decode latency), music (menu, game) is stereo Ogg Vorbis.
 Needs numpy and ffmpeg (with libvorbis). The output is original synthesis: no
 samples, no third-party licence.
 """
@@ -45,7 +45,7 @@ def build_sfx(names):
 
 def build_music():
     os.makedirs(f"{ROOT}/music", exist_ok=True)
-    for name, fn in (("menu", music.menu), ("game", music.game)):
+    for name, fn in music.TRACKS.items():
         sig = fn()
         with tempfile.TemporaryDirectory() as d:
             wav = f"{d}/{name}.wav"

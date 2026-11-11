@@ -82,7 +82,9 @@ int pickVoice(Sound sound, double rate, int counter) {
   return counter % sound.voices;
 }
 
-/// The two seamless loops, `assets/audio/music/<name>.ogg`.
+/// The two seamless loops, `assets/audio/music/<name>.ogg` (made by
+/// `scripts/audio/music.py`; the volume is the mix level, the loops themselves
+/// are normalised to one perceived loudness).
 enum MusicTrack {
   menu('menu', 0.5),
   game('game', 0.4);

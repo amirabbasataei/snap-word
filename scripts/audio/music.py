@@ -1,7 +1,14 @@
-"""Two seamless, cheerful music loops in F major: a relaxed, sunny `menu` loop and
-a bouncy `game` loop built from the same hook and the same timbres. Both are
-rendered with a short reverb whose tail is folded back onto the start, so the
-loop point is inaudible.
+"""Two seamless, cheerful music loops in F major, from one santur / bell / tonbak
+palette and one idea (a rising pentatonic figure over the chords I, IV and V):
+
+  menu  105 bpm 4/4  swung, light and lilting          (the four tabs)
+  game  120 bpm 6/8  Bandari / folk-dance lilt, 80 dotted-beat pulses a minute (a match)
+
+Each is rendered with a short reverb whose tail is folded back onto the start, so
+the loop point is inaudible. Tempo is 210 / 240 eighth notes a minute: nothing
+drags and nothing rushes. Register: melodies live between D4 and C6 (centre about
+D5), basses between B-flat2 and F3, so nothing is shrill and nothing needs a
+subwoofer.
 
 Everything you are likely to want to tweak is in the KNOBS block below.
 
@@ -42,43 +49,20 @@ MODE = "major"
 
 # Per-track settings. gains are linear multipliers on each layer.
 MENU = dict(
-    bpm=96, bars=12,
-    wet=0.16, size=0.60,        # reverb amount / room size (old loops: 0.35 / 1.2)
-    melody=1.0, bell=0.8, arp=0.9, pad=0.8, bass=1.0, perc=1.0,
-    bright=0.78,                # santur brightness for the melody (0..1)
+    bpm=105, bars=16,
+    wet=0.14, size=0.55,
+    melody=1.0, bell=0.8, comp=1.0, pad=0.5, bass=1.0, perc=1.0,
+    bright=0.68,
+    swing=2 / 3,                # where the off-beat eighth falls inside the beat (0.5 = straight)
 )
 GAME = dict(
-    bpm=128, bars=20,
-    wet=0.10, size=0.45,
+    bpm=120, bars=24, bpb=3,    # 6/8 = three quarter-note beats of two eighths per bar
+    wet=0.11, size=0.45,
     melody=1.0, bell=0.8, stab=1.0, pad=0.5, bass=1.0, perc=1.0,
-    bright=0.74,
+    bright=0.70,
 )
-# Perceived loudness (A-weighted RMS) of both loops; the old loops were ~0.048.
+# Perceived loudness (A-weighted RMS) of both loops (the very first pair was ~0.048).
 LOUDNESS = 0.048
-
-# The hook: scale degrees (1 = F4, 8 = F5, 12 = C6) and beats. It always rises or
-# leaps up, then ends on a high note. A phrase fits one bar of 4 beats.
-PHRASES = {
-    "hook": [(5, .5), (8, .5), (10, 1), (9, .5), (10, .5), (12, 1)],    # C F A G A C  (over F)
-    "ans":  [(8, .5), (10, .5), (12, 1), (10, .5), (12, .5), (13, 1)],  # F A C A C D  (over F)
-    "iv":   [(8, .5), (11, .5), (13, 1), (11, .5), (12, .5), (13, 1)],  # F Bb D Bb C D (over Bb)
-    "v":    [(5, .5), (9, .5), (12, 1), (9, .5), (11, .5), (12, 1)],    # C G C G Bb C (over C)
-    "run":  [(5, .5), (6, .5), (7, .5), (8, .5), (9, .5), (10, .5), (11, .5), (12, .5)],  # rising scale
-}
-
-# Chords per bar as scale degrees of the root (1 = F, 4 = Bb, 5 = C).
-MENU_CHORDS = [1, 1, 4, 5] + [1, 4, 1, 5] + [1, 1, 4, 5]
-MENU_MELODY = ["hook", "ans", "iv", "v"] + ["hook", None, "ans", "v"] + ["hook", "ans", "iv", "v"]
-
-GAME_CHORDS = [1, 1, 4, 5] + [1, 4, 1, 5] + [1, 1, 4, 5] + [4, 5, 1, 1] + [1, 4, 5, 5]
-GAME_MELODY = (
-    ["hook", "ans", "iv", "v"]
-    + ["hook", None, "ans", None]
-    + ["hook", "ans", "iv", "v"]
-    + [None, None, None, None]            # breather: bass, drums and bell pings only
-    + ["hook", "iv", "v", "run"]
-)
-GAME_BELL_ECHO = {8, 9, 10, 11, 16, 17, 18, 19}  # bars where a bell doubles the last note
 
 TAIL = 4.0  # seconds of reverb tail folded onto the start
 
@@ -122,9 +106,9 @@ def jingle(vel: float = 1.0, dur: float = 0.09) -> np.ndarray:
 
 
 class Loop:
-    def __init__(self, bpm: float, bars: int):
+    def __init__(self, bpm: float, bars: int, bpb: int = 4):
         self.spb = 60.0 / bpm
-        self.beats = bars * 4
+        self.beats = bars * bpb
         self.length = self.beats * self.spb
         n = n_samples(self.length + TAIL)
         self.dry_l, self.dry_r = np.zeros(n), np.zeros(n)
@@ -178,150 +162,181 @@ def phrase_beats(notes) -> float:
     return sum(b for _, b in notes)
 
 
-def syncopate(notes):
-    """Lilt: the first one-beat note becomes an eighth plus an eighth rest."""
-    out, done = [], False
-    for deg, b in notes:
-        if not done and b == 1:
-            out += [(deg, .5), (None, .5)]
-            done = True
-        else:
-            out.append((deg, b))
-    return out
-
-
-def melody(loop: Loop, notes, start_beat, bright, gain=1.0, pan=0.0, bell_last=0.0):
-    """Plays a phrase with plucked santur; optionally doubles its last note with a bell."""
-    t = start_beat
-    last = None
-    for deg, beats in notes:
-        if deg is not None:
-            _guard(deg)
-            vel = (0.95 if beats >= 1 else 0.8) * gain
-            dur = min(1.6, beats * loop.spb * 1.5 + 0.3)
-            loop.add(santur(mhz(deg), dur, vel, bright), t, pan)
-            last = (deg, t)
-        t += beats
-    if bell_last and last:
-        loop.add(bell(mhz(last[0]), 1.6, bell_last), last[1], -0.3)
-    return t
-
-
-def lay_melody(loop, plan, cfg, sync, echo=()):
-    for bar, name in enumerate(plan):
-        if name is None:
-            continue
-        notes = PHRASES[name]
-        if sync and name != "run":
-            notes = syncopate(notes)
-        assert abs(phrase_beats(notes) - 4) < 1e-9, name
-        melody(loop, notes, bar * 4, cfg["bright"], cfg["melody"], -0.1,
-               bell_last=0.22 * cfg["bell"] if bar in echo else 0.0)
-
-
 def triad(root: int, base: int = 0):
     return [root + base, root + base + 2, root + base + 4]
-
-
-def lay_bass(loop, chords, steps, cfg):
-    """steps: (eighth-note step in the bar, octave offset in degrees, velocity)."""
-    for bar, r in enumerate(chords):
-        for step, up, vel in steps:
-            loop.add(bass_pluck(mhz(r - 14 + up), 0.42, vel * cfg["bass"]), bar * 4 + step * 0.5, 0.0)
-
-
-def lay_perc(loop, bars, hits, jingles, cfg, fill=None):
-    """hits: (eighth step, 'd'|'t', vel). jingles: (step, vel). fill: extra hits on every 4th bar."""
-    for bar in range(bars):
-        base = bar * 4
-        pat = list(hits) + (fill if (fill and bar % 4 == 3) else [])
-        for step, kind, v in pat:
-            sig = tonbak_dum(v) if kind == "d" else tonbak_tak(v)
-            loop.add(sig, base + step * 0.5, bus="perc", gain=0.30 * cfg["perc"])
-        for step, v in jingles:
-            loop.add(jingle(v), base + step * 0.5, bus="perc", gain=0.20 * cfg["perc"])
 
 
 def _seed(n: int) -> None:
     synth._rng = np.random.default_rng(n)  # same output whatever was rendered before
 
 
-# ================================================================= menu
+# ============================================================ writing the loops
+# Phrases are written over an F chord (degree 1); `fit` carries them to IV and V.
+FIT = {1: 0, 4: -4, 5: -3}   # chord root -> diatonic shift that keeps a phrase on that chord's tones
+
+
+def fit(notes, root: int):
+    return [(None if d is None else d + FIT[root], b) for d, b in notes]
+
+
+def bass_root(r: int) -> int:
+    """Bass degree for chord root r: F3 / B-flat2 / C3 (175, 117, 131 Hz)."""
+    return r - 7 if r <= 3 else r - 14
+
+
+def bass_fifth(r: int) -> int:
+    return bass_root(r) - 3 if r == 1 else bass_root(r) + 4   # C3 / F3 / G3
+
+
+def swung(t: float, amount: float) -> float:
+    """Moves an off-beat eighth (x.5) to x + amount; everything else stays."""
+    frac = t % 1
+    return t - frac + amount if abs(frac - 0.5) < 1e-9 else t
+
+
+def lay_phrases(loop, plan, chords, phrases, cfg, bpb, echo=(), swing=None):
+    for bar, name in enumerate(plan):
+        if name is None:
+            continue
+        notes = phrases[name]
+        if name not in ("run", "end", "brun", "bend"):
+            notes = fit(notes, chords[bar])
+        else:
+            assert chords[bar] == (5 if name in ("run", "brun") else 1), (bar, name)
+        assert abs(phrase_beats(notes) - bpb) < 1e-9, (name, phrase_beats(notes))
+        t = bar * bpb
+        last = None
+        for deg, beats in notes:
+            if deg is not None:
+                _guard(deg)
+                at = swung(t - bar * bpb, swing) + bar * bpb if swing else t
+                vel = (0.95 if beats >= 1 else 0.8) * cfg["melody"]
+                dur = min(1.6, beats * loop.spb * 1.5 + 0.3)
+                loop.add(santur(mhz(deg), dur, vel, cfg["bright"]), at, -0.1)
+                last = (deg, at)
+            t += beats
+        if bar in echo and last:
+            loop.add(bell(mhz(last[0]), 1.6, 0.22 * cfg["bell"]), last[1], -0.3)
+
+
+def lay_bass_low(loop, chords, steps, cfg, bpb, swing=None):
+    """steps: (beat in the bar, 'root' | 'fifth', velocity, length in s)."""
+    for bar, r in enumerate(chords):
+        for beat, kind, vel, dur in steps:
+            deg = bass_root(r) if kind == "root" else bass_fifth(r)
+            at = bar * bpb + (swung(beat, swing) if swing else beat)
+            loop.add(bass_pluck(mhz(deg), dur, vel * cfg["bass"]), at, 0.0)
+
+
+def lay_perc_beats(loop, bars, bpb, hits, jingles, cfg, swing=None, fill=None):
+    """hits: (beat in the bar, 'd'|'t', vel); jingles: (beat, vel). fill adds hits on every 4th bar."""
+    for bar in range(bars):
+        pat = list(hits) + (fill if (fill and bar % 4 == 3) else [])
+        for beat, kind, v in pat:
+            sig = tonbak_dum(v) if kind == "d" else tonbak_tak(v)
+            at = bar * bpb + (swung(beat, swing) if swing else beat)
+            loop.add(sig, at, bus="perc", gain=0.30 * cfg["perc"])
+        for beat, v in jingles:
+            at = bar * bpb + (swung(beat, swing) if swing else beat)
+            loop.add(jingle(v), at, bus="perc", gain=0.20 * cfg["perc"])
+
+
+def lay_pad(loop, chords, bpb, gain):
+    for bar, r in enumerate(chords):
+        for deg in triad(r):
+            loop.add(pad(mhz(deg), bpb * loop.spb + 0.7, 0.30 * gain, 0.6), bar * bpb, bus="pad")
+
+
+# ---------------------------------------------------------------- menu
+
+MENU_PHRASES = {
+    "k1":  [(3, .5), (5, .5), (8, 1), (6, .5), (8, .5), (10, 1)],             # A C F D F A
+    "k2":  [(5, .5), (8, .5), (10, .5), (9, .5), (8, .5), (10, .5), (12, 1)], # C F A G F A C
+    "end": [(3, .5), (5, .5), (8, 1), (10, 2)],                               # A C F  A (held)
+    "run": [(d, .5) for d in range(1, 9)],                                    # F up the scale to F
+}
+MENU_CHORDS = [1, 5, 4, 1] + [1, 5, 4, 5] + [4, 1, 5, 1] + [1, 5, 4, 5]
+MENU_PLAN = (["k1", "k1", "k1", "end"] + ["k1", None, "k2", "k1"]
+             + ["k2", "k2", "k2", "end"] + ["k1", "k1", "k2", "run"])
+MENU_ECHO = {3, 11}
 
 
 def build_menu() -> Loop:
     cfg = MENU
-    _seed(2701)
+    _seed(2703)
+    sw = cfg["swing"]
     loop = Loop(cfg["bpm"], cfg["bars"])
-    assert len(MENU_CHORDS) == len(MENU_MELODY) == cfg["bars"]
+    assert len(MENU_CHORDS) == len(MENU_PLAN) == cfg["bars"]
 
-    # soft pad: one chord per bar, swelling over a bar and a half
+    lay_pad(loop, MENU_CHORDS, 4, cfg["pad"])
+    # bass: root on 1, fifth on 3
+    lay_bass_low(loop, MENU_CHORDS, [(0, "root", 0.9, 0.5), (2, "fifth", 0.7, 0.45)], cfg, 4)
+    # chord "plinks" on the swung off-beats after 2 and 4, mid register, alternating sides
     for bar, r in enumerate(MENU_CHORDS):
-        for k, deg in enumerate(triad(r)):
-            loop.add(pad(mhz(deg), 4 * loop.spb + 0.8, 0.30 * cfg["pad"], 0.7), bar * 4, bus="pad")
-
-    # gentle rising arpeggio in the warm register under the tune
-    pattern = (0, 1, 2, 3, 1, 2, 3, 2)
-    for bar, r in enumerate(MENU_CHORDS):
-        tones = [r - 7, r - 5, r - 3, r]
-        for i, p in enumerate(pattern):
-            loop.add(santur(mhz(tones[p]), 0.7, 0.20 * cfg["arp"], 0.5), bar * 4 + i * 0.5, 0.3 * (1 if i % 2 else -1))
-
-    # bass on the downbeat and the "and" of 3
-    lay_bass(loop, MENU_CHORDS, [(0, 0, 0.9), (5, 0, 0.6)], cfg)
-
-    lay_melody(loop, MENU_MELODY, cfg, sync=False, echo={8, 9, 10, 11})
-
-    # light daf / tonbak: dum . tak . | . dum tak .  and a faint zil on every eighth
-    lay_perc(loop, cfg["bars"],
-             hits=[(0, "d", 0.6), (3, "t", 0.35), (5, "d", 0.45), (6, "t", 0.4)],
-             jingles=[(i, 0.18 if i % 2 else 0.10) for i in range(8)], cfg=cfg)
+        for beat, pan in ((1.5, -0.25), (3.5, 0.25)):
+            at = bar * 4 + swung(beat, sw)
+            for k, deg in enumerate([r - 5, r - 3, r]):
+                loop.add(santur(mhz(deg), 0.24, 0.20 * 0.55 * cfg["comp"], 0.45), at + k * 0.012, pan)
+    lay_phrases(loop, MENU_PLAN, MENU_CHORDS, MENU_PHRASES, cfg, 4, MENU_ECHO, sw)
+    # light kit: dum on 1 and the swung "and" of 3, tak on 2 and 4, faint zils on the off-beats
+    lay_perc_beats(loop, cfg["bars"], 4,
+                   hits=[(0, "d", 0.6), (1, "t", 0.4), (2.5, "d", 0.45), (3, "t", 0.4)],
+                   jingles=[(b + 0.5, 0.2) for b in range(4)] + [(b, 0.08) for b in range(4)],
+                   cfg=cfg, swing=sw)
     return loop
 
 
 def menu() -> np.ndarray:
-    """96 bpm x 12 bars = 30 s. Relaxed, sunny: hook on santur over a soft pad and arpeggio."""
+    """105 bpm x 16 bars = 36.6 s. Swung and lilting: plinking off-beats, low-slung tune."""
     return build_menu().render(MENU["wet"], MENU["size"])
 
 
-# ================================================================= game
+# ---------------------------------------------------------------- game
+
+GAME_PHRASES = {   # six eighths = one 6/8 bar
+    "b1":    [(3, .5), (5, .5), (8, .5), (5, .5), (8, .5), (10, .5)],   # A C F C F A
+    "b2":    [(5, .5), (8, .5), (10, .5), (8, .5), (10, .5), (12, .5)], # C F A F A C
+    "bend":  [(3, .5), (5, .5), (8, .5), (10, 1.5)],                    # A C F  A (held)
+    "brun":  [(d, .5) for d in range(3, 9)],                            # A up the scale to F
+}
+GAME_CHORDS = ([1, 4, 1, 5] + [1, 4, 5, 1] + [1, 1, 4, 5]
+                  + [1, 4, 1, 5] + [1, 4, 5, 1] + [1, 4, 5, 5])
+GAME_PLAN = (["b1", "b1", "b2", "b1"] + ["b1", None, "b1", "bend"] + [None] * 4
+                + ["b2", "b2", "b1", "b1"] + ["b1", "b2", "b2", "bend"] + ["b1", "b1", "b2", "brun"])
+GAME_ECHO = {15, 19, 20, 21}
 
 
 def build_game() -> Loop:
     cfg = GAME
-    _seed(2702)
-    loop = Loop(cfg["bpm"], cfg["bars"])
-    assert len(GAME_CHORDS) == len(GAME_MELODY) == cfg["bars"]
+    _seed(2704)
+    bpb = cfg["bpb"]
+    loop = Loop(cfg["bpm"], cfg["bars"], bpb)
+    assert len(GAME_CHORDS) == len(GAME_PLAN) == cfg["bars"]
 
-    # very light pad: keeps the harmony alive between drum hits, esp. in the sparse bars
+    lay_pad(loop, GAME_CHORDS, bpb, cfg["pad"])
+    # bass on the dotted beats: root on 1, fifth on 4 (eighth steps 0 and 3)
+    lay_bass_low(loop, GAME_CHORDS, [(0, "root", 1.0, 0.45), (1.5, "fifth", 0.75, 0.4)], cfg, bpb)
+    # stabs on the other eighths of each dotted beat (steps 2 and 5)
     for bar, r in enumerate(GAME_CHORDS):
-        for deg in triad(r):
-            loop.add(pad(mhz(deg), 4 * loop.spb + 0.6, 0.30 * cfg["pad"], 0.5), bar * 4, bus="pad")
-
-    # bass 3 + 3 + 2 (steps 0, 3, 6 of the bar's eighth-note grid)
-    lay_bass(loop, GAME_CHORDS, [(0, 0, 1.0), (3, 0, 0.8), (6, 7, 0.65)], cfg)
-
-    # chord stabs between the bass hits (steps 2 and 5), mid register, alternating sides
-    for bar, r in enumerate(GAME_CHORDS):
-        voicing = [r - 5, r - 3, r]
-        for step, vel, pan in ((2, 0.55, -0.25), (5, 0.45, 0.25)):
-            for k, deg in enumerate(voicing):
-                loop.add(santur(mhz(deg), 0.22, 0.20 * vel * cfg["stab"], 0.45), bar * 4 + step * 0.5 + k * 0.015, pan)
-
-    # breather: a bell ping on each downbeat (the fifth of the chord)
-    for bar in range(12, 16):
-        loop.add(bell(mhz(GAME_CHORDS[bar] + 4), 1.8, 0.20 * cfg["bell"]), bar * 4, 0.2)
-
-    lay_melody(loop, GAME_MELODY, cfg, sync=True, echo=GAME_BELL_ECHO)
-
-    # tonbak + daf, syncopated 3+3+2:  dum . tak dum tak . dum tak, zils on the offbeats
-    lay_perc(loop, cfg["bars"],
-             hits=[(0, "d", 0.9), (2, "t", 0.6), (3, "d", 0.7), (4, "t", 0.55), (6, "d", 0.8), (7, "t", 0.35)],
-             jingles=[(1, 0.35), (3, 0.5), (5, 0.35), (7, 0.55)], cfg=cfg,
-             fill=[(7.5, "t", 0.5)])
+        for beat, vel, pan in ((1.0, 0.55, -0.25), (2.5, 0.45, 0.25)):
+            for k, deg in enumerate([r - 5, r - 3, r]):
+                loop.add(santur(mhz(deg), 0.22, 0.20 * vel * cfg["stab"], 0.45), bar * bpb + beat + k * 0.015, pan)
+    # breather: a bell ping on each downbeat
+    for bar in range(8, 12):
+        loop.add(bell(mhz(GAME_CHORDS[bar] + 4), 1.6, 0.20 * cfg["bell"]), bar * bpb, 0.2)
+    lay_phrases(loop, GAME_PLAN, GAME_CHORDS, GAME_PHRASES, cfg, bpb, GAME_ECHO)
+    # tonbak + zils:  dum . tak | dum . tak   with ghost taks, bandari-style
+    lay_perc_beats(loop, cfg["bars"], bpb,
+                   hits=[(0, "d", 0.9), (1, "t", 0.6), (1.5, "d", 0.75), (2, "t", 0.3), (2.5, "t", 0.6)],
+                   jingles=[(0.5, 0.3), (1, 0.2), (2, 0.3), (2.5, 0.45)], cfg=cfg,
+                   fill=[(2.75, "t", 0.5)])
     return loop
 
 
 def game() -> np.ndarray:
-    """128 bpm x 20 bars = 37.5 s. Bouncy: 3+3+2 bass and tonbak, offbeat stabs, a sparse hook."""
+    """120 bpm 6/8 x 24 bars = 36 s. Dotted-beat bass, offbeat stabs, a sparse hook."""
     return build_game().render(GAME["wet"], GAME["size"])
+
+
+# name (= file name in client/assets/audio/music) -> renderer
+TRACKS = {"menu": menu, "game": game}
