@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -182,6 +183,7 @@ class ZPersianKeyboard extends StatelessWidget {
                             label: 'پاک کردن',
                             fill: z.tintCoral,
                             repeat: true,
+                            sound: Sound.keyBack,
                             onPress:
                                 () => ZKeyboardEditing.backspace(controller),
                             child: _Svg(
@@ -204,6 +206,7 @@ class ZPersianKeyboard extends StatelessWidget {
                         deep: z.tealDeep,
                         highlight: true,
                         commitOnRelease: true,
+                        sound: Sound.keySend,
                         onPress: onSend,
                         child: _Svg(
                           _sendSvg(svgHex(z.onTeal)),
@@ -334,6 +337,7 @@ class _Key extends StatefulWidget {
   final bool highlight;
   final bool repeat;
   final bool commitOnRelease;
+  final Sound sound;
   final VoidCallback onPress;
   final Widget child;
 
@@ -348,6 +352,7 @@ class _Key extends StatefulWidget {
     this.highlight = false,
     this.repeat = false,
     this.commitOnRelease = false,
+    this.sound = Sound.key,
   });
 
   @override
@@ -360,6 +365,11 @@ class _KeyState extends State<_Key> {
 
   void _fire() {
     HapticFeedback.selectionClick();
+    // Each letter has its own slight pitch, steady from press to press.
+    Sfx.play(
+      widget.sound,
+      rate: widget.sound == Sound.key ? 0.94 + (widget.label.hashCode % 7) * 0.02 : 1.0,
+    );
     widget.onPress();
   }
 

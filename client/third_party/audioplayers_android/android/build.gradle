@@ -1,0 +1,45 @@
+// Modernised for Zanjir: the upstream file declared its own buildscript
+// (AGP 7.3.1, Kotlin 1.7.10, android-junit5), which cannot be resolved here
+// (dl.google.com is unreachable from Iran) and conflicts with the app's AGP.
+// It now uses the app's plugins; the dependency versions are the ones already in
+// the Gradle cache. Everything else is unmodified upstream code
+// (audioplayers_android 5.2.1, MIT). Same approach as third_party/flutter_poolakey.
+plugins {
+    id "com.android.library"
+    id "kotlin-android"
+}
+
+group 'xyz.luan.audioplayers'
+version '1.0-SNAPSHOT'
+
+android {
+    namespace 'xyz.luan.audioplayers'
+    compileSdk 35
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+
+    lint {
+        disable 'InvalidPackage'
+    }
+}
+
+dependencies {
+    implementation "androidx.core:core-ktx:1.13.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
+}

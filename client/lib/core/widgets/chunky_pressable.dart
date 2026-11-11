@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 
 /// Press behaviour shared by every chunky button: on tap-down the solid edge
@@ -47,6 +48,7 @@ class _ChunkyPressableState extends State<ChunkyPressable> {
         onTapCancel: () => _set(false),
         onTap: () {
           HapticFeedback.lightImpact();
+          Sfx.play(Sound.tap);
           widget.onTap?.call();
         },
         child: AnimatedContainer(

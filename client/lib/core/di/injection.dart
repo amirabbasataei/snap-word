@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
 import 'package:wordchain/core/network/dio_client.dart';
 import 'package:wordchain/core/services/analytics_service.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/services/dictionary_delta_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
@@ -72,6 +73,7 @@ Future<void> configureDependencies(DictionaryService dictionaryService) async {
       prefs: prefs,
     ),
   );
+  getIt.registerLazySingleton<AudioService>(() => AudioService(prefs: prefs));
   getIt.registerLazySingleton<WebSocketService>(() => WebSocketService());
   getIt.registerLazySingleton<NotificationService>(
     () => NotificationService(getIt<DioClient>().dio),

@@ -10,6 +10,8 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wordchain/core/database/app_database.dart';
+import 'package:wordchain/core/services/audio_service.dart';
+import '../../helpers/silent_audio.dart';
 import 'package:wordchain/core/services/legal_links.dart';
 import 'package:wordchain/core/services/store_purchase_service.dart';
 import 'package:wordchain/core/services/notification_service.dart';
@@ -277,8 +279,12 @@ class _Harness {
         _Auth(state)
           ..codeError = codeError
           ..code = code;
-    theme = ThemeCubit(await SharedPreferences.getInstance());
+    final prefs = await SharedPreferences.getInstance();
+    theme = ThemeCubit(prefs);
     GetIt.I
+      ..registerSingleton<AudioService>(
+        AudioService(prefs: prefs, output: SilentAudioOutput()),
+      )
       ..registerSingleton<AuthCubit>(auth)
       ..registerSingleton<ProfileRepository>(repo)
       ..registerSingleton<StatsDao>(dao)

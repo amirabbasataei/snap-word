@@ -12,6 +12,7 @@ import 'package:wordchain/core/router/app_router.dart';
 import 'package:wordchain/core/widgets/z_toast.dart';
 import 'package:wordchain/core/services/ad_service.dart';
 import 'package:wordchain/core/services/analytics_service.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/services/challenge_watcher.dart';
 import 'package:wordchain/core/services/dictionary_delta_service.dart';
 import 'package:wordchain/core/services/dictionary_service.dart';
@@ -74,6 +75,9 @@ Future<void> main() async {
   unawaited(_initFirebase());
 
   runApp(const WordChainApp());
+
+  // Audio is decoration: started after the first frame, failures only log.
+  unawaited(getIt<AudioService>().init());
 }
 
 /// Firebase + push setup, run in the background after `runApp`. Failures (and

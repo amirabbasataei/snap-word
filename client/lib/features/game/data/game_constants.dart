@@ -116,6 +116,10 @@ abstract final class GameConstants {
   // the turn score in every mode. Mirrors `config.LongWordBonusFrom` /
   // `LongWordBonusPerLetter`; the server recomputes Daily scores with them.
   static const int longWordBonusFrom = 6;
+
+  /// The turn timer ticks audibly for the player's own turn once this many
+  /// seconds (or fewer) are left.
+  static const int tickFromSeconds = 5;
   static const int longWordBonusPerLetter = 15;
 
   /// How long a room waits for its second player before the server cancels it

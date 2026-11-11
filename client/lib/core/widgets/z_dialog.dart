@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -23,6 +24,7 @@ Future<T?> showZDialog<T>(
 }) {
   final reduced = homeReducedMotion(context);
   final direction = Directionality.of(context);
+  Sfx.play(Sound.dialogOpen);
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
@@ -88,7 +90,10 @@ Future<T?> showZDialog<T>(
         },
       );
     },
-  );
+  ).then((value) {
+    Sfx.play(Sound.dialogClose);
+    return value;
+  });
 }
 
 /// The canvas spring `cubic-bezier(.34,1.56,.64,1)`.

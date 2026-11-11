@@ -12,6 +12,7 @@ import 'package:wordchain/core/theme/app_typography.dart';
 import 'package:wordchain/core/utils/persian_digits.dart';
 import 'package:wordchain/core/widgets/z_buttons.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
+import 'package:wordchain/features/game/audio/game_sound_listener.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/z_over_screen.dart';
@@ -84,7 +85,7 @@ class GameScreen extends StatelessWidget {
               linkPosition: args.linkPosition,
             ),
           ),
-      child: _GameView(args: args),
+      child: GameSoundListener(child: _GameView(args: args)),
     );
   }
 }

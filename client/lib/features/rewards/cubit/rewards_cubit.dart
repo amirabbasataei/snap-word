@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/utils/error_messages.dart';
 import 'package:wordchain/features/auth/cubit/auth_cubit.dart';
 import 'package:wordchain/features/rewards/data/rewards_repository.dart';
@@ -63,6 +64,7 @@ class RewardsCubit extends Cubit<RewardsState> {
   Future<int> claim(String id) async {
     final coins = await _repo.claim(id);
     await _auth.creditCoins(coins);
+    Sfx.play(Sound.claim);
     emit(
       RewardsState(
         items: [for (final i in state.items) i.id == id ? i.asClaimed() : i],

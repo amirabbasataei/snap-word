@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/theme/app_elevation.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
@@ -56,6 +57,14 @@ abstract final class ZToast {
     VoidCallback? onAction,
   }) {
     _dismiss();
+    switch (kind) {
+      case ZToastKind.coin:
+        Sfx.play(Sound.coin);
+      case ZToastKind.success:
+        Sfx.play(Sound.toast);
+      case ZToastKind.info || ZToastKind.error:
+        break;
+    }
     late final OverlayEntry entry;
     entry = OverlayEntry(
       builder:

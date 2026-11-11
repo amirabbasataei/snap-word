@@ -51,6 +51,13 @@ dependencies:
     path: third_party/flutter_poolakey
 
   package_info_plus: ^9.0.1
+  audioplayers: ^6.5.1
+  flutter_soloud: ^5.2.3
+
+# audioplayers' Android half, with its Gradle file modernised (see its header).
+dependency_overrides:
+  audioplayers_android:
+    path: third_party/audioplayers_android
 
 dev_dependencies:
   flutter_test:
@@ -83,6 +90,8 @@ flutter:
   assets:
     - assets/words/fa.txt
     - assets/icons/
+    - assets/audio/sfx/
+    - assets/audio/music/
 
   fonts:
     - family: Vazirmatn

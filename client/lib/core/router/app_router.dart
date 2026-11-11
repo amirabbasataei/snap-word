@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
 import 'package:wordchain/core/utils/tab_refresh.dart';
 import 'package:wordchain/core/widgets/z_bottom_nav.dart';
@@ -207,10 +208,24 @@ GoRouter buildAppRouter() {
   );
 }
 
-class _MainShell extends StatelessWidget {
+class _MainShell extends StatefulWidget {
   final StatefulNavigationShell shell;
 
   const _MainShell({required this.shell});
+
+  @override
+  State<_MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<_MainShell> {
+  StatefulNavigationShell get shell => widget.shell;
+
+  @override
+  void initState() {
+    super.initState();
+    // The four tabs share one calm loop; a match swaps it for its own.
+    Sfx.music(MusicTrack.menu);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +244,7 @@ class _MainShell extends StatelessWidget {
               currentIndex: shell.currentIndex,
               friendsBadge: messages.count,
               onTap: (index) {
+                Sfx.play(Sound.tab);
                 shell.goBranch(
                   index,
                   initialLocation: index == shell.currentIndex,

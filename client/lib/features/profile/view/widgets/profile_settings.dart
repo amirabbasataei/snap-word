@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:wordchain/core/di/injection.dart';
+import 'package:wordchain/core/services/audio_service.dart';
 import 'package:wordchain/core/theme/app_game_metrics.dart';
 import 'package:wordchain/core/theme/app_scene_tokens.dart';
 import 'package:wordchain/core/theme/app_tokens.dart';
@@ -17,8 +19,9 @@ import 'package:wordchain/features/profile/view/widgets/profile_parts.dart';
 ///    for the OS permission, after the explainer, when switching on);
 ///  * «خروج از حساب» (signed in), full width in solid coral;
 ///  * «قوانین و مقررات» / «حریم خصوصی» — the public pages, opened in the browser.
-/// «صدا و لرزش» and «یادآور چالش روزانه» are not drawn: no setting is stored
-/// and no reminder is scheduled, so a toggle would only pretend.
+/// «صدا» and «موسیقی» are the two audio switches ([ProfileSoundSwitches]), for
+/// guests too. «لرزش» and «یادآور چالش روزانه» are not drawn: no setting is
+/// stored and no reminder is scheduled, so a toggle would only pretend.
 class ProfileSettings extends StatelessWidget {
   final bool isDark;
   final VoidCallback onToggleTheme;
@@ -55,6 +58,8 @@ class ProfileSettings extends StatelessWidget {
             ],
           ],
         ),
+        const SizedBox(height: 4),
+        const ProfileSoundSwitches(),
         if (signedIn) ...[
           const SizedBox(height: 4),
           ProfileChunkButton(label: 'کد دعوت داری؟', onTap: onRedeem),
@@ -217,6 +222,48 @@ class ProfileSwitchButton extends StatelessWidget {
               ),
         ),
       ),
+    );
+  }
+}
+
+/// «صدا» (sound effects) and «موسیقی» (the two loops), side by side. Both are
+/// stored by [AudioService] and apply at once; turning one on plays a sample so
+/// the switch proves itself.
+class ProfileSoundSwitches extends StatelessWidget {
+  const ProfileSoundSwitches({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final audio = getIt<AudioService>();
+    return Row(
+      children: [
+        Expanded(
+          child: ValueListenableBuilder<bool>(
+            valueListenable: audio.sfxOn,
+            builder:
+                (context, on, _) => ProfileSwitchButton(
+                  label: 'صدا',
+                  value: on,
+                  onTap: () async {
+                    await audio.setSfxEnabled(!on);
+                    if (!on) audio.play(Sound.toggle);
+                  },
+                ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ValueListenableBuilder<bool>(
+            valueListenable: audio.musicOn,
+            builder:
+                (context, on, _) => ProfileSwitchButton(
+                  label: 'موسیقی',
+                  value: on,
+                  onTap: () => audio.setMusicEnabled(!on),
+                ),
+          ),
+        ),
+      ],
     );
   }
 }
