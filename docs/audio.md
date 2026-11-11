@@ -7,7 +7,7 @@ Built 2026-11-11. **Not auditioned by the author and not verified on a device** 
 | Piece | Path |
 |---|---|
 | Generator (numpy + ffmpeg) | `scripts/audio/` — `synth.py` (instruments, reverb), `sfx.py` (31 effects), `music.py` (2 loops), `build.py` |
-| Output | `client/assets/audio/sfx/*.wav` (16-bit mono 44.1 kHz, ~2 MB) · `client/assets/audio/music/{menu,game}.ogg` (stereo Vorbis q3, ~590 KB) |
+| Output | `client/assets/audio/sfx/*.wav` (16-bit mono 44.1 kHz, ~2 MB) · `client/assets/audio/music/{menu,game}.ogg` (stereo Vorbis q3, ~680 KB: menu 300 KB / 30 s, game 381 KB / 37.5 s) |
 | Client service | `core/services/audio_service.dart` — `Sound`, `MusicTrack`, `AudioService`, the `Sfx` facade, `AudioPlayersOutput` |
 | Match sounds | `features/game/audio/game_sounds.dart` (pure `soundsForTransition(prev, curr)`) + `game_sound_listener.dart` |
 | Settings | ZProfile «صدا» / «موسیقی» (`ProfileSoundSwitches`), guests too |
@@ -17,9 +17,20 @@ Regenerate: `python3 scripts/audio/build.py` (all), `… tap win` (some SFX), `�
 
 ## Sound language
 
-Everything is original synthesis, so there is no third-party licence to track and no credits screen. The palette is a plucked santur-like string (additive inharmonic partials, a detuned string pair, a felt-hammer transient), glassy bells and tonbak-style drum hits, all in **Shur on D** (D, E-koron, F, G, A, B♭, C; koron = a quarter-tone flat, `synth.SCALE_CENTS`). Effects use scale degrees from the same mode so they sit in tune with the music. The chain-link «clink» (`tile_land`) is the signature sound.
+Everything is original synthesis, so there is no third-party licence to track and no credits screen. The palette is a plucked santur-like string (additive inharmonic partials, a detuned string pair, a felt-hammer transient), glassy bells and tonbak-style drum hits. The **effects** are in **Shur on D** (D, E-koron, F, G, A, B♭, C; koron = a quarter-tone flat, `synth.SCALE_CENTS`); the **music** is in **F major** (see below). The chain-link «clink» (`tile_land`) is the signature sound.
 
-Music: `menu` 76 bpm × 8 bars (25 s), `game` 108 bpm × 16 bars (36 s, tonbak groove + two sparse melodies). Reverb tails are folded back onto the start, so the loops are seamless.
+## Music (rewritten 2026-11-11: the first pair sounded sad)
+
+The first loops (Shur on D with koron degrees, 76 / 108 bpm, falling melodies, long reverb, a low pad) read as sad. The replacement is meant to be playful, bright and light.
+
+- **menu** — 96 bpm × 12 bars = 30 s: the hook on santur over a soft pad, a gentle rising arpeggio, a round bass, light tonbak/daf, faint zils. Relaxed and sunny.
+- **game** — 128 bpm × 20 bars = 37.5 s: bouncy 3+3+2 bass and tonbak, offbeat chord stabs between the bass hits, a very light pad, the same hook played syncopated and *sparsely* (it rests in 8 of the 20 bars, with a 4-bar breather of bass, drums and bell pings) so it can sit under typing and the 15 s timer.
+- **Same family**: same santur/bell/tonbak timbres, one hook (`C F A G A C`, rising, ending high, with four variants `ans / iv / v / run` that follow the chord), different energy.
+- **Mode: F major, chords I · IV · V only, pentatonic hook.** Why F: without the koron, Shur on D is the same seven notes as F major (D natural minor is its relative minor), so every pitched effect note (`accepted` G+D, `streak` D-F-A-D, `key_send`, `tile_land`'s clink ≈ D7/B♭7/F8) is a note of the scale and nothing clashes, while F as tonic and no minor third in the tune make it sound major. Chahargah (augmented 2nd, exotic and dramatic) and Bayat-e Esfahan (resolves like a minor mode) were rejected as the opposite of playful. The Persian colour comes from the santur/tonbak/zil timbres and the 3+3+2 syncopation. `synth.SCALE_CENTS`/`TONIC` are unchanged; `music.py` has its own scale (`MODES`, `mhz`).
+- **Residual clash risk** (numbers only, nobody has listened): (1) E-koron appears only in `long_word` (a 45 ms passing note; ~a quarter tone off the music's E, which is rare) and `lose` (music already stopped); (2) `tick` is a 1320 Hz sine (E6): no melodic or bell fundamental is placed in 1250–1450 Hz (`_guard` asserts it), but overtones (e.g. F5's 2nd harmonic at 1397 Hz) leave ~1 % of the spectrum there, so a semitone rub of a few tens of ms is possible; (3) the unpitched `key`/`tap` glides (≈ 400–1000 Hz) and `tile_land`'s metallic clink (2.3–5.6 kHz, music has 1.3–2.3 % of its energy there against 0.1 % before) will sit inside the music; if they are masked, lower `perc` and `bell` in `music.py`.
+- **Level**: normalised to the same *perceived* loudness as the old loops (A-weighted RMS 0.048; plain RMS is 0.06 against 0.11 because the new loops have far less bass), peak ≤ 0.40. `MusicTrack.volume` (menu 0.5, game 0.4) unchanged.
+- Reverb is short (`wet` 0.16 / 0.10, `size` 0.6 / 0.45; old 0.35 / 1.2) and its tail is folded onto the start, so the loops are seamless (seam step ≈ 0.3× a normal sample step; decoded lengths are within 200 / 10 samples of the exact bar count).
+- **Tweak knobs** (top of `scripts/audio/music.py`, then `python3 scripts/audio/build.py --music`): `MENU` / `GAME` (`bpm`, `bars`, `wet`, `size`, per-layer gains `melody bell arp stab pad bass perc`, `bright`), `LOUDNESS`, `PHRASES` (the hook), the per-bar `*_CHORDS` / `*_MELODY` plans, `GAME_BELL_ECHO`, `MODE`, `TONIC_HZ` (keep it F). “A bit faster” = `bpm`; “less busy” = lower `arp`/`stab`/`perc` or put more `None` in the melody plan.
 
 ## Rules
 
@@ -70,6 +81,7 @@ Built but **not wired**: `level_up` (no level-up event exists on the client yet)
 
 ## To do
 
-- Listen to everything; tune `PEAKS` in `sfx.py` / `rms` in `music.py` and the `Sound.volume` / `MusicTrack.volume` mix levels.
+- **Listen to the two new loops first** (home screen = menu, a match = game): the loop point, the music under keyboard / word sounds, whether it feels happy rather than kitsch or busy.
+- Listen to everything; tune `PEAKS` in `sfx.py` / `LOUDNESS` and the layer gains in `music.py` and the `Sound.volume` / `MusicTrack.volume` mix levels.
 - Device check (after the 2026-11-11 reliability fix, still **unverified**): latency of the keyboard sound on a low-end Android, overlapping effects, music pause/resume across a call or app switch, iOS silent switch.
 - Goldens of ZProfile change (a new row of switches) — regenerate with `--update-goldens` on a machine where the goldens pass.
