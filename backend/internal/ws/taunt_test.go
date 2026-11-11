@@ -2,6 +2,9 @@ package ws
 
 import (
 	"context"
+	"errors"
+	"strings"
+	"sync"
 	"testing"
 
 	"wordchain/backend/internal/config"
@@ -129,5 +132,128 @@ func TestGameStartCarriesPremiumAndAvatars(t *testing.T) {
 	}
 	if gs.State.Avatars["p1"] != "lion" || len(gs.State.Avatars) != 1 {
 		t.Errorf("avatars: want {p1:lion}, got %v", gs.State.Avatars)
+	}
+}
+
+// fakeRecorder collects what the room stores for the admin panel.
+type fakeRecorder struct {
+	mu   sync.Mutex
+	rows []recordedMsg
+}
+
+type recordedMsg struct{ matchID, sender, kind, tauntID, text string }
+
+func (f *fakeRecorder) RecordPlayerMessage(_ context.Context, matchID, sender, kind, tauntID, text string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.rows = append(f.rows, recordedMsg{matchID, sender, kind, tauntID, text})
+	return nil
+}
+
+func (f *fakeRecorder) all() []recordedMsg {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]recordedMsg(nil), f.rows...)
+}
+
+func startedMessageRoom(t *testing.T, perks fakePerks, rec *fakeRecorder) (*Room, *Client, *Client) {
+	t.Helper()
+	hub := NewHub(RoomDeps{Perks: perks, Taunts: testTaunts, Messages: rec})
+	room := hub.GetOrCreateRoom("msg-room", "classic")
+	c1, c2 := newTestClient(room, "p1"), newTestClient(room, "p2")
+	if err := room.Join(c1); err != nil {
+		t.Fatal(err)
+	}
+	if err := room.Join(c2); err != nil {
+		t.Fatal(err)
+	}
+	drainAll(c1)
+	drainAll(c2)
+	return room, c1, c2
+}
+
+func TestCustomMessagePremiumBroadcastsAndIsStored(t *testing.T) {
+	rec := &fakeRecorder{}
+	room, c1, c2 := startedMessageRoom(t, fakePerks{"p1": {Premium: true}}, rec)
+	room.handleMessage(c1, []byte(`{"type":"send_message","text":"  سلام   رفیق  "}`))
+
+	for _, c := range []*Client{c1, c2} {
+		m := findType(drainAll(c), "taunt")
+		if m == nil || !m.Custom || m.Taunt != config.CustomTauntID || m.Text != "سلام رفیق" || m.PlayerID != "p1" {
+			t.Fatalf("expected custom message from p1, got %+v", m)
+		}
+	}
+	rows := rec.all()
+	if len(rows) != 1 || rows[0] != (recordedMsg{"msg-room", "p1", "custom", "", "سلام رفیق"}) {
+		t.Fatalf("stored = %+v", rows)
+	}
+}
+
+func TestPresetTauntIsStoredToo(t *testing.T) {
+	rec := &fakeRecorder{}
+	room, c1, _ := startedMessageRoom(t, fakePerks{"p1": {Premium: true}}, rec)
+	room.handleMessage(c1, []byte(`{"type":"send_taunt","taunt":"hurry_up"}`))
+	rows := rec.all()
+	if len(rows) != 1 || rows[0] != (recordedMsg{"msg-room", "p1", "preset", "hurry_up", "زود باش!"}) {
+		t.Fatalf("stored = %+v", rows)
+	}
+}
+
+func TestCustomMessageFreePlayerRejectedAndNotStored(t *testing.T) {
+	rec := &fakeRecorder{}
+	room, c1, c2 := startedMessageRoom(t, fakePerks{"p1": {Premium: true}}, rec)
+	room.handleMessage(c2, []byte(`{"type":"send_message","text":"سلام"}`))
+
+	if m := findType(drainAll(c2), "taunt_rejected"); m == nil || m.Reason != "premium_required" {
+		t.Fatalf("expected premium_required, got %+v", m)
+	}
+	if findType(drainAll(c1), "taunt") != nil || len(rec.all()) != 0 {
+		t.Fatal("a rejected message must neither reach the opponent nor be stored")
+	}
+}
+
+func TestCustomMessageInvalidTextDropped(t *testing.T) {
+	rec := &fakeRecorder{}
+	room, c1, c2 := startedMessageRoom(t, fakePerks{"p1": {Premium: true}}, rec)
+	long := strings.Repeat("آ", config.CustomMessageMaxRunes+1)
+	for _, text := range []string{"", "   ", "​‮", long} {
+		room.handleMessage(c1, []byte(`{"type":"send_message","text":"`+text+`"}`))
+	}
+	if findType(drainAll(c2), "taunt") != nil || len(rec.all()) != 0 {
+		t.Fatal("empty or over-long text must be dropped")
+	}
+}
+
+func TestCustomMessageSharesTheTauntLimits(t *testing.T) {
+	rec := &fakeRecorder{}
+	room, c1, _ := startedMessageRoom(t, fakePerks{"p1": {Premium: true}}, rec)
+	room.handleMessage(c1, []byte(`{"type":"send_taunt","taunt":"hurry_up"}`))
+	room.handleMessage(c1, []byte(`{"type":"send_message","text":"سلام"}`))
+	if m := findType(drainAll(c1), "taunt_rejected"); m == nil || m.Reason != "rate_limited" {
+		t.Fatalf("custom right after a taunt should be rate_limited, got %+v", m)
+	}
+	if len(rec.all()) != 1 {
+		t.Fatalf("only the delivered message is stored, got %+v", rec.all())
+	}
+}
+
+func TestCleanCustomMessage(t *testing.T) {
+	cases := []struct {
+		in, want string
+		err      error
+	}{
+		{"سلام", "سلام", nil},
+		{"  می‌رم\n\tبعد  ", "می‌رم بعد", nil}, // ZWNJ kept, whitespace collapsed
+		{"a‮b​c", "abc", nil},         // bidi override + zero-width space dropped
+		{"\x00\x07", "", ErrEmptyMessage},
+		{"   ", "", ErrEmptyMessage},
+		{strings.Repeat("ب", config.CustomMessageMaxRunes), strings.Repeat("ب", config.CustomMessageMaxRunes), nil},
+		{strings.Repeat("ب", config.CustomMessageMaxRunes+1), "", ErrMessageTooLong},
+	}
+	for _, c := range cases {
+		got, err := CleanCustomMessage(c.in)
+		if got != c.want || !errors.Is(err, c.err) {
+			t.Errorf("CleanCustomMessage(%q) = %q, %v; want %q, %v", c.in, got, err, c.want, c.err)
+		}
 	}
 }

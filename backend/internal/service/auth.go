@@ -205,6 +205,13 @@ func (s *AuthService) VerifyOTP(ctx context.Context, rawPhone, code, referralCod
 		}
 		user.Coins += config.CoinWelcome
 
+		// The Special Subscription gift. A failure must not block the sign-in
+		// (the account exists and is verified); it is logged for the operator,
+		// who can grant the days from the panel.
+		if err := s.userRepo.GrantWelcomePremium(ctx, user.ID, config.WelcomeCampaignID, config.WelcomePremiumDays); err != nil {
+			slog.Error("welcome premium grant failed", "userID", user.ID, "error", err)
+		}
+
 		if referredByID != "" {
 			if err := s.userRepo.AwardCoins(ctx, user.ID, config.CoinReferralSignup); err != nil {
 				return nil, VerifyResult{}, fmt.Errorf("VerifyOTP award signup bonus: %w", err)

@@ -65,6 +65,9 @@ function Loaded({ match: m }: { match: Detail }) {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-text">{MATCH_KIND_LABEL[m.kind] ?? m.kind}</h1>
         <MatchStatusBadge status={m.status} label={MATCH_STATUS_LABEL[m.status] ?? m.status} />
+        {m.kind === 'versus' && (
+          <Link to={`/messages?q=${m.id}`} className="text-sm text-muted hover:text-blue">پیام‌های این مسابقه</Link>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

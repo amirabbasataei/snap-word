@@ -96,6 +96,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<HintRequested>((_, _) => add(const PowerupRequested('hint')));
     on<PowerupRequested>(_onPowerupRequested);
     on<TauntSent>(_onTauntSent);
+    on<MessageSent>(_onMessageSent);
     on<GamePaused>(_onGamePaused);
     on<GameResumed>(_onGameResumed);
     on<GameEnded>(_onGameEnded);
@@ -527,6 +528,17 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     // subscription and answers with `taunt` (echoed to both players) or
     // `taunt_rejected`.
     _wsService.send({'type': 'send_taunt', 'taunt': event.tauntId});
+  }
+
+  void _onMessageSent(MessageSent event, Emitter<GameState> emit) {
+    final active = state;
+    if (active is! GameActive || !_isMultiplayer) return;
+    final text = event.text.trim();
+    if (text.isEmpty ||
+        text.runes.length > GameConstants.customMessageMaxRunes) {
+      return;
+    }
+    _wsService.send({'type': 'send_message', 'text': text});
   }
 
   Future<void> _onPowerupRequested(

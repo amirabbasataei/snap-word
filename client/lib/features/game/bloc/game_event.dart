@@ -76,6 +76,18 @@ class TauntSent extends GameEvent {
   List<Object?> get props => [tauntId];
 }
 
+/// Sends a subscriber's own message (premium perk, multiplayer only). The
+/// server cleans and length-caps the text, re-checks the subscription, applies
+/// the taunts' rate limits and stores the message.
+class MessageSent extends GameEvent {
+  final String text;
+
+  const MessageSent(this.text);
+
+  @override
+  List<Object?> get props => [text];
+}
+
 /// Freezes the solo/vs-AI clocks (turn timer and the AI's pending move) while
 /// something modal, like a rewarded ad, is on screen. No-op in multiplayer.
 class GamePaused extends GameEvent {

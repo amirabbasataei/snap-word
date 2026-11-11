@@ -58,6 +58,9 @@ abstract final class GameConstants {
   // the server enforces them, the tray only states them).
   static const int tauntCooldownSec = 5;
   static const int tauntMaxPerMatch = 8;
+  // Longest free-text message a subscriber may send (config.CustomMessageMaxRunes;
+  // it shares the taunts' cooldown and cap).
+  static const int customMessageMaxRunes = 60;
   static const int guestHintUsesPerSession = 5;
 
   // Launch splash. The intro choreography is 2.4 s (SplashTimeline); it then

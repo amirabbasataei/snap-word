@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default:
 const Users = lazy(() => import('@/pages/Users').then((m) => ({ default: m.Users })))
 const UserDetail = lazy(() => import('@/pages/UserDetail').then((m) => ({ default: m.UserDetail })))
 
+const Messages = lazy(() => import('@/pages/Messages').then((m) => ({ default: m.Messages })))
 const Matches = lazy(() => import('@/pages/Matches').then((m) => ({ default: m.Matches })))
 const MatchDetail = lazy(() => import('@/pages/MatchDetail').then((m) => ({ default: m.MatchDetail })))
 
@@ -40,6 +41,7 @@ export function App() {
           <Route index element={<Suspense fallback={null}><Dashboard /></Suspense>} />
           <Route path="/users" element={<Suspense fallback={null}><Users /></Suspense>} />
           <Route path="/users/:id" element={<Suspense fallback={null}><UserDetail /></Suspense>} />
+          <Route path="/messages" element={<Suspense fallback={null}><Messages /></Suspense>} />
           <Route path="/matches" element={<Suspense fallback={null}><Matches /></Suspense>} />
           <Route path="/matches/:id" element={<Suspense fallback={null}><MatchDetail /></Suspense>} />
           <Route path="/analytics" element={<Suspense fallback={null}><Analytics /></Suspense>} />

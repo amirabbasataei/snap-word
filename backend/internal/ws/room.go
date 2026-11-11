@@ -33,6 +33,7 @@ type inMsg struct {
 	Powerup string `json:"powerup"`
 	Method  string `json:"method"` // "ad" | "coins" | "forfeit" for continue
 	Taunt   string `json:"taunt"`  // preset taunt ID for send_taunt
+	Text    string `json:"text"`   // free text for send_message (subscribers)
 }
 
 // outMsg is the JSON envelope for server→client messages.
@@ -62,7 +63,9 @@ type outMsg struct {
 	// Preset taunt ID (taunt) plus its text, so a client with a stale catalogue
 	// can still show a taunt added after it last fetched.
 	Taunt string `json:"taunt,omitempty"`
-	Text  string `json:"text,omitempty"`
+	// Custom marks a subscriber's free-text message (Taunt is then config.CustomTauntID).
+	Custom bool   `json:"custom,omitempty"`
+	Text   string `json:"text,omitempty"`
 	// Rating («جام») change per player, on rating_update (sent after game_over
 	// for a rated 1v1 match; Reason "pair_cap" when the match changed nothing).
 	Rating map[string]RatingChange `json:"rating,omitempty"`
@@ -163,6 +166,7 @@ type RoomDeps struct {
 	Perks          PerkLookup       // nil disables premium perks (tests)
 	Usernames      UsernameLookup   // nil omits usernames from game_start (tests)
 	Taunts         TauntLookup      // nil disables taunts (tests)
+	Messages       MessageRecorder  // nil skips storing player messages (tests)
 	WordMisses     WordMissRecorder // nil disables the missing-word tally (tests)
 	Rating         RatingApplier    // nil disables the rating (tests)
 }
@@ -171,6 +175,12 @@ type RoomDeps struct {
 // for the admin panel). It must not block. Implemented by service.WordMissService.
 type WordMissRecorder interface {
 	RecordWordMiss(word string)
+}
+
+// MessageRecorder stores every message a player sends in a match (preset or
+// free text) for the admin panel. Implemented by service.MessageService.
+type MessageRecorder interface {
+	RecordPlayerMessage(ctx context.Context, matchID, senderID, kind, tauntID, text string) error
 }
 
 // TauntLookup resolves a taunt id to its Persian text; false means unknown.
@@ -418,6 +428,8 @@ func (r *Room) handleMessage(client *Client, raw []byte) {
 		r.processForfeit(client)
 	case "send_taunt":
 		r.processTaunt(client, msg.Taunt)
+	case "send_message":
+		r.processMessage(client, msg.Text)
 	case "ping":
 		r.sendTo(client.userID, mustMarshal(outMsg{Type: "pong"}))
 	default:
@@ -632,7 +644,25 @@ func (r *Room) processTaunt(client *Client, taunt string) {
 		slog.Warn("ws: unknown taunt", "taunt", taunt, "userID", client.userID)
 		return
 	}
+	r.relayMessage(client, repository.MessageKindPreset, taunt, text)
+}
 
+// processMessage relays a subscriber's free-text message. Same perk gate,
+// cooldown and per-match cap as a preset taunt (they share the counters); the
+// text is cleaned and length-capped first, and anything left empty is dropped.
+func (r *Room) processMessage(client *Client, raw string) {
+	text, err := CleanCustomMessage(raw)
+	if err != nil {
+		slog.Warn("ws: custom message dropped", "userID", client.userID, "error", err)
+		return
+	}
+	r.relayMessage(client, repository.MessageKindCustom, config.CustomTauntID, text)
+}
+
+// relayMessage applies the subscription gate and the rate limits, broadcasts
+// the message as a `taunt` event (so every client already knows how to show
+// it) and stores it.
+func (r *Room) relayMessage(client *Client, kind, tauntID, text string) {
 	// Look the subscription up before taking the room lock (DB round-trip).
 	premium := false
 	if r.deps.Perks != nil {
@@ -646,33 +676,53 @@ func (r *Room) processTaunt(client *Client, taunt string) {
 		premium = perks[client.userID].Premium
 	}
 
+	delivered := r.deliverMessage(client, premium, kind, tauntID, text)
+	if !delivered || r.deps.Messages == nil {
+		return
+	}
+	// Stored after the room lock is released; a failure is logged, never fatal.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	stored := tauntID
+	if kind == repository.MessageKindCustom {
+		stored = ""
+	}
+	if err := r.deps.Messages.RecordPlayerMessage(ctx, r.id, client.userID, kind, stored, text); err != nil {
+		slog.Error("ws: storing player message failed", "room", r.id, "userID", client.userID, "error", err)
+	}
+}
+
+// deliverMessage runs the checks under the room lock and broadcasts; it
+// reports whether the message went out.
+func (r *Room) deliverMessage(client *Client, premium bool, kind, tauntID, text string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if r.state != stateActive && r.state != stateContinueWin {
-		return
+		return false
 	}
-	reject := func(reason string) {
+	reject := func(reason string) bool {
 		r.sendTo(client.userID, mustMarshal(outMsg{Type: "taunt_rejected", Reason: reason}))
+		return false
 	}
 	if !premium {
-		reject("premium_required")
-		return
+		return reject("premium_required")
 	}
 	now := time.Now()
 	if last, ok := r.tauntLast[client.userID]; ok &&
 		now.Sub(last) < time.Duration(config.TauntCooldownSec)*time.Second {
-		reject("rate_limited")
-		return
+		return reject("rate_limited")
 	}
 	if r.tauntCount[client.userID] >= config.TauntMaxPerMatch {
-		reject("rate_limited")
-		return
+		return reject("rate_limited")
 	}
 	r.tauntLast[client.userID] = now
 	r.tauntCount[client.userID]++
 
-	r.broadcast(mustMarshal(outMsg{Type: "taunt", PlayerID: client.userID, Taunt: taunt, Text: text}))
+	r.broadcast(mustMarshal(outMsg{
+		Type: "taunt", PlayerID: client.userID, Taunt: tauntID, Text: text, Custom: kind == repository.MessageKindCustom,
+	}))
+	return true
 }
 
 // perkState returns the premium player IDs and avatar map for game_start.

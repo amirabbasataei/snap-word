@@ -407,6 +407,65 @@ void main() {
       expect(find.text('طعنه بفرست'), findsNothing);
     });
 
+    testWidgets('premium: typed message is sent trimmed, tray closes', (
+      tester,
+    ) async {
+      await _size(tester, 393, 852);
+      final bloc = _FeeBloc(20);
+      await tester.pumpWidget(_screen(_state(myPremium: true), bloc: bloc));
+      await _settle(tester);
+      await openTray(tester);
+      final sendKey = find.descendant(
+        of: find.byType(ZMessageField),
+        matching: find.byType(ChunkyPressable),
+      );
+
+      // Empty text: the send key does nothing.
+      await tester.tap(sendKey);
+      await tester.pump();
+      expect(bloc.events, isEmpty);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('taunt-message-field')),
+        '  سلام رفیق  ',
+      );
+      await tester.pump();
+      await tester.tap(sendKey);
+      await tester.pump(const Duration(milliseconds: 700));
+      expect((bloc.events.single as MessageSent).text, 'سلام رفیق');
+      expect(find.text('طعنه بفرست'), findsNothing);
+    });
+
+    testWidgets('premium: the field stops at the length cap', (tester) async {
+      await _size(tester, 393, 852);
+      await tester.pumpWidget(_screen(_state(myPremium: true)));
+      await _settle(tester);
+      await openTray(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('taunt-message-field')),
+        'ب' * (GameConstants.customMessageMaxRunes + 10),
+      );
+      await tester.pump();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('taunt-message-field')),
+      );
+      expect(
+        field.controller!.text.runes.length,
+        GameConstants.customMessageMaxRunes,
+      );
+    });
+
+    testWidgets('free player: the message field is locked', (tester) async {
+      await _size(tester, 393, 852);
+      final bloc = _FeeBloc(20);
+      await tester.pumpWidget(_screen(_state(), bloc: bloc));
+      await _settle(tester);
+      await openTray(tester);
+      expect(find.byKey(const ValueKey('taunt-message-field')), findsNothing);
+      expect(find.text('نوشتن پیام آزاد مخصوص اشتراک ویژه‌ست'), findsOneWidget);
+      expect(bloc.events, isEmpty);
+    });
+
     testWidgets('the rule line follows the constants', (tester) async {
       expect(GameConstants.tauntCooldownSec, 5);
       expect(GameConstants.tauntMaxPerMatch, 8);

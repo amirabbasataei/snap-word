@@ -1,0 +1,2 @@
+DELETE FROM notification_campaigns WHERE id = '00000000-0000-4000-8000-0000000000a1';
+DROP TABLE IF EXISTS player_messages;

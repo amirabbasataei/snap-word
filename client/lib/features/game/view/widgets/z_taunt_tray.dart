@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wordchain/core/di/injection.dart';
@@ -12,6 +13,7 @@ import 'package:wordchain/core/widgets/chunky.dart';
 import 'package:wordchain/core/widgets/chunky_pill.dart';
 import 'package:wordchain/core/widgets/chunky_pressable.dart';
 import 'package:wordchain/core/widgets/z_dialog.dart';
+import 'package:wordchain/core/widgets/z_form_dialog.dart';
 import 'package:wordchain/features/game/bloc/game_bloc.dart';
 import 'package:wordchain/features/game/data/game_constants.dart';
 import 'package:wordchain/features/game/view/widgets/z_game_bubbles.dart';
@@ -25,7 +27,10 @@ import 'package:wordchain/features/game/view/widgets/z_game_bubbles.dart';
 String zTauntRuleLine() => tauntRuleText();
 
 const _freeLine =
-    'فرستادن طعنه فقط برای اشتراک ویژه‌ست، دریافتش برای همه رایگانه.';
+    'فرستادن طعنه و پیام فقط برای اشتراک ویژه‌ست، دریافتشون برای همه رایگانه.';
+
+const _messageHint = 'پیام خودت رو بنویس…';
+const _messageLockedHint = 'نوشتن پیام آزاد مخصوص اشتراک ویژه‌ست';
 
 /// 66dp chunky button next to the input card. A crown badge marks it as a
 /// premium feature; free players see a lock instead and the tray explains.
@@ -97,7 +102,8 @@ class ZTauntButton extends StatelessWidget {
   }
 }
 
-/// Opens the tray over the game. Picking a taunt sends [TauntSent] and closes.
+/// Opens the tray over the game. Picking a taunt sends [TauntSent], typing
+/// a message sends [MessageSent]; either closes it.
 Future<void> showZTauntTray(BuildContext context, {required bool premium}) {
   final bloc = context.read<GameBloc>();
   return showZDialog<void>(
@@ -108,6 +114,10 @@ Future<void> showZTauntTray(BuildContext context, {required bool premium}) {
           catalog: getIt<PerksCatalogService>(),
           onSend: (id) {
             bloc.add(TauntSent(id));
+            Navigator.of(dialogContext).pop();
+          },
+          onSendText: (text) {
+            bloc.add(MessageSent(text));
             Navigator.of(dialogContext).pop();
           },
           onClose: () => Navigator.of(dialogContext).pop(),
@@ -122,6 +132,7 @@ class ZTauntTray extends StatefulWidget {
   final bool premium;
   final PerksCatalogService catalog;
   final void Function(String id) onSend;
+  final void Function(String text) onSendText;
   final VoidCallback onClose;
 
   const ZTauntTray({
@@ -129,6 +140,7 @@ class ZTauntTray extends StatefulWidget {
     required this.premium,
     required this.catalog,
     required this.onSend,
+    required this.onSendText,
     required this.onClose,
   });
 
@@ -143,7 +155,7 @@ class _ZTauntTrayState extends State<ZTauntTray> {
   Widget build(BuildContext context) {
     final z = context.z;
     return ZDialogCard(
-      semanticLabel: 'طعنه بفرست',
+      semanticLabel: 'طعنه یا پیام بفرست',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -187,8 +199,142 @@ class _ZTauntTrayState extends State<ZTauntTray> {
               );
             },
           ),
+          const SizedBox(height: 12),
+          ZMessageField(premium: widget.premium, onSend: widget.onSendText),
         ],
       ),
+    );
+  }
+}
+
+/// The subscriber's own-message field under the taunts: a text box capped at
+/// [GameConstants.customMessageMaxRunes] with a teal send key. Free players see
+/// it locked (the tray's sub-line already says why).
+class ZMessageField extends StatefulWidget {
+  final bool premium;
+  final void Function(String text) onSend;
+
+  const ZMessageField({super.key, required this.premium, required this.onSend});
+
+  @override
+  State<ZMessageField> createState() => _ZMessageFieldState();
+}
+
+class _ZMessageFieldState extends State<ZMessageField> {
+  final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String get _text => _controller.text.trim();
+  bool get _canSend => widget.premium && _text.isNotEmpty;
+
+  void _submit() {
+    if (_canSend) widget.onSend(_text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final z = context.z;
+    if (!widget.premium) {
+      return Semantics(
+        label: _messageLockedHint,
+        excludeSemantics: true,
+        child: ChunkyBox(
+          fill: z.wash,
+          depth: 0,
+          radius: 15,
+          highlight: false,
+          borderWidth: ZGame.outlineInner,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          alignment: AlignmentDirectional.centerStart,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _messageLockedHint,
+                  style: TextStyle(
+                    color: z.ink60,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ),
+              Icon(Icons.lock_outline_rounded, size: 14, color: z.ink60),
+            ],
+          ),
+        ),
+      );
+    }
+    final ink = svgHex(z.onTeal);
+    return Row(
+      children: [
+        Expanded(
+          child: ZDialogField(
+            child: TextField(
+              key: const ValueKey('taunt-message-field'),
+              controller: _controller,
+              maxLength: GameConstants.customMessageMaxRunes,
+              maxLengthEnforcement: MaxLengthEnforcement.enforced,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submit(),
+              cursorColor: z.indigo,
+              style: TextStyle(
+                color: z.ink,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                counterText: '',
+                hintText: _messageHint,
+                hintStyle: TextStyle(color: z.ink40),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Opacity(
+          opacity: _canSend ? 1 : .45,
+          child: ChunkyPressable(
+            depth: ZGame.depthSm,
+            onTap: _canSend ? _submit : null,
+            semanticLabel: 'فرستادن پیام',
+            builder:
+                (context, depth, _) => ChunkyBox(
+                  fill: z.teal,
+                  depth: depth,
+                  radius: 15,
+                  highlight: false,
+                  borderWidth: ZGame.outlineInner,
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.center,
+                  child: SvgPicture.string(
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="$ink" '
+                    'stroke-width="2.6" stroke-linejoin="round" '
+                    'stroke-linecap="round"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg>',
+                    width: 22,
+                    height: 22,
+                  ),
+                ),
+          ),
+        ),
+      ],
     );
   }
 }

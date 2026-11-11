@@ -178,6 +178,34 @@ void main() {
     ]);
   });
 
+  test(
+    'MessageSent sends trimmed free text; empty and over-long are not sent',
+    () async {
+      await startGame(premium: [_me]);
+      bloc.add(const MessageSent('  سلام رفیق '));
+      bloc.add(const MessageSent('   '));
+      bloc.add(MessageSent('ب' * (GameConstants.customMessageMaxRunes + 1)));
+      await _settle();
+      expect(ws.sent, [
+        {'type': 'send_message', 'text': 'سلام رفیق'},
+      ]);
+    },
+  );
+
+  test('an incoming custom message shows like a taunt', () async {
+    await startGame(premium: [_them]);
+    ws.emit('taunt', {
+      'player_id': _them,
+      'taunt': '_custom',
+      'custom': true,
+      'text': 'سلام رفیق',
+    });
+    await _settle();
+    final s = bloc.state as GameActive;
+    expect(s.tauntText, 'سلام رفیق');
+    expect(s.tauntFromMe, isFalse);
+  });
+
   test('taunt_rejected surfaces a Persian notice', () async {
     final before = await startGame();
     ws.emit('taunt_rejected', {'reason': 'premium_required'});

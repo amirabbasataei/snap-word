@@ -117,6 +117,7 @@ func main() {
 		Perks:          userRepo,
 		Usernames:      userRepo,
 		Taunts:         catalogSvc,
+		Messages:       service.NewMessageService(repository.NewPlayerMessageRepository(db)),
 		WordMisses:     wordMissSvc,
 		Rating:         ratingApplier{ratingSvc},
 	})
@@ -151,6 +152,7 @@ func main() {
 	adminAuthHandler := handler.NewAdminAuthHandler(adminAuthSvc, auditSvc, cfg.AdminAPIKey)
 	dashboardHandler := handler.NewAdminDashboardHandler(service.NewAdminDashboardService(adminRepo, hub, rdb, notifSvc))
 	adminMatchesHandler := handler.NewAdminMatchesHandler(service.NewAdminMatchService(adminRepo))
+	adminMessagesHandler := handler.NewAdminMessagesHandler(service.NewAdminMessageService(adminRepo))
 	adminUsersHandler := handler.NewAdminUsersHandler(service.NewAdminUserService(adminRepo, userRepo, authSvc, auditSvc))
 	adminContentSvc, err := service.NewAdminContentService(adminRepo, dailyRepo, leaderboardSvc, userRepo, rdb, auditSvc, cfg)
 	if err != nil {
@@ -236,6 +238,7 @@ func main() {
 	admin.GET("/users/:id", adminUsersHandler.Get)
 	admin.GET("/matches", adminMatchesHandler.List)
 	admin.GET("/matches/:id", adminMatchesHandler.Get)
+	admin.GET("/messages", adminMessagesHandler.List)
 	admin.GET("/analytics/overview", adminAnalyticsHandler.Overview)
 	admin.GET("/analytics/retention", adminAnalyticsHandler.Retention)
 	admin.GET("/analytics/funnel", adminAnalyticsHandler.Funnel)

@@ -265,8 +265,9 @@ func TestNotif_ReachAndHistory(t *testing.T) {
 	if _, err := svc.Send(ctx, notifActor, service.NotifSendInput{Title: "a", Body: "b", Channels: []string{"inapp"}, Audience: repository.NotifAudience{Type: "all"}}); err != nil {
 		t.Fatal(err)
 	}
+	// The history also lists the seeded signup-gift campaign (migration 021), oldest.
 	page, err := svc.List(ctx, 1, 20)
-	if err != nil || page.Total != 1 || page.Items[0].Title != "a" || page.Items[0].CreatedBy != "tester" {
+	if err != nil || page.Total != 2 || page.Items[0].Title != "a" || page.Items[0].CreatedBy != "tester" {
 		t.Fatalf("history = %+v, %v", page, err)
 	}
 	if _, err := svc.Get(ctx, "eeeeeeee-0000-4000-8000-0000000000ff"); !errors.Is(err, service.ErrNotifNotFound) {

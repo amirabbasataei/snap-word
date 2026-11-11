@@ -498,3 +498,33 @@ func (r *UserRepository) BannedIDs(ctx context.Context, userIDs []string) (map[s
 	}
 	return out, rows.Err()
 }
+
+// GrantWelcomePremium gives a new account the Special Subscription for `days`
+// days and drops the «you got a gift» message in its inbox, in one transaction.
+// Premium extends any remaining time; the message is created once per user.
+func (r *UserRepository) GrantWelcomePremium(ctx context.Context, userID, campaignID string, days int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("GrantWelcomePremium: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE users SET premium_until = GREATEST(COALESCE(premium_until, now()), now()) + make_interval(days => $2)
+		  WHERE id = $1`, userID, days); err != nil {
+		return fmt.Errorf("GrantWelcomePremium premium: %w", err)
+	}
+	res, err := tx.ExecContext(ctx,
+		`INSERT INTO inbox_messages (campaign_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, campaignID, userID)
+	if err != nil {
+		return fmt.Errorf("GrantWelcomePremium message: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE notification_campaigns SET recipients = recipients + 1, inapp_delivered = inapp_delivered + 1 WHERE id = $1`,
+			campaignID); err != nil {
+			return fmt.Errorf("GrantWelcomePremium counters: %w", err)
+		}
+	}
+	return tx.Commit()
+}

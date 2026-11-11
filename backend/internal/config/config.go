@@ -270,6 +270,20 @@ const (
 	TauntMaxPerMatch  = 8         // taunts one player may send in a single match
 	TauntMaxTextRunes = 60        // longest taunt text an operator may add
 	AvatarMaxBytes    = 256 << 10 // largest avatar image an operator may upload
+
+	// CustomMessageMaxRunes caps a subscriber's free-text message. It shares
+	// the taunts' cooldown and per-match cap.
+	CustomMessageMaxRunes = 60
+	// CustomTauntID is the `taunt` id broadcast for a free-text message (old
+	// clients need a non-empty id; the leading underscore can never collide
+	// with a catalogue id, which must start with a lowercase letter).
+	CustomTauntID = "_custom"
+
+	// WelcomePremiumDays is the Special Subscription every new account gets.
+	WelcomePremiumDays = 7
+	// WelcomeCampaignID is the seeded campaign (migration 021) carrying the
+	// in-app «you got a gift» message.
+	WelcomeCampaignID = "00000000-0000-4000-8000-0000000000a1"
 )
 
 // Admin panel sessions and login throttling (Phase 23). The idle TTL is the
